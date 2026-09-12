@@ -158,7 +158,7 @@ function resetAll() {
                 <a
                     href="/students/template"
                     download
-                    class="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-primary/30 text-primary bg-primary/5 hover:bg-primary/10 active:bg-primary/20 font-semibold text-xs sm:text-sm transition-all shadow-2xs hover:shadow-sm"
+                    class="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-secondary/50 text-secondary bg-secondary/5 hover:bg-secondary/10 active:bg-secondary/20 font-semibold text-xs sm:text-sm transition-all shadow-2xs hover:shadow-sm"
                     title="Download template XLSX resmi untuk import data siswa"
                 >
                     <span class="material-symbols-outlined text-[18px]">download</span>
