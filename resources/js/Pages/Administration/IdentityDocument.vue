@@ -285,9 +285,9 @@ const clearSelection = () => { selectedStudentIds.value = []; };
                                         />
                                     </th>
                                     <th class="py-3 px-3 w-10">No</th>
-                                    <th class="py-3 px-3">Nama Siswa</th>
+                                    <th class="py-3 px-3 whitespace-nowrap w-1">Nama Siswa</th>
                                     <th class="py-3 px-3 w-28">Kelas</th>
-                                    <th class="py-3 px-3 w-32">Unit</th>
+                                    <th class="py-3 px-3">Unit</th>
                                     <th class="py-3 px-4 text-right w-28">Aksi</th>
                                 </tr>
                             </thead>
@@ -311,7 +311,7 @@ const clearSelection = () => { selectedStudentIds.value = []; };
                                     <td class="py-2.5 px-3 text-xs text-on-surface-variant font-mono">
                                         {{ idx + 1 }}
                                     </td>
-                                    <td class="py-2.5 px-3">
+                                    <td class="py-2.5 px-3 whitespace-nowrap">
                                         <button @click="openPreview(student)" class="text-left">
                                             <div class="font-semibold text-on-surface group-hover:text-primary transition-colors cursor-pointer">
                                                 {{ student.nama }}
