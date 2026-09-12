@@ -1,0 +1,5 @@
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/u9022432/public_html/data.ulilalbabkra.sch.id
+    - /bin/cp -R * $DEPLOYPATH
