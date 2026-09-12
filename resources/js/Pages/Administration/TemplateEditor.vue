@@ -14,7 +14,7 @@ const props = defineProps({
     },
 });
 
-const activeSection = ref('school'); // 'school' | 'signatory' | 'options' | 'variables'
+const activeSection = ref('cover'); // 'cover' | 'school' | 'signatory' | 'variables'
 const isSubmitting = ref(false);
 const previewPage = ref('cover'); // 'cover' | 'school_profile' | 'identity'
 const zoomLevel = ref(65);
@@ -105,9 +105,9 @@ const previewStudent = computed(() => {
 
 // Sections config
 const sections = [
+    { id: 'cover', label: 'Cover', icon: 'book' },
     { id: 'school', label: 'Profil Sekolah', icon: 'domain' },
     { id: 'signatory', label: 'Penandatangan', icon: 'draw' },
-    { id: 'options', label: 'Opsi Tampilan', icon: 'tune' },
 ];
 
 // Page options for preview
@@ -239,6 +239,60 @@ const resetTemplate = () => {
 
                 <!-- Form Content -->
                 <div class="p-6">
+                    <!-- SECTION: Cover -->
+                    <div v-show="activeSection === 'cover'" class="space-y-5 max-w-2xl">
+                        <div>
+                            <h3 class="font-bold text-on-surface mb-0.5">Pengaturan Cover Dokumen</h3>
+                            <p class="text-xs text-on-surface-variant mb-4">Atur judul dan logo yang ditampilkan pada Cover dokumen.</p>
+                        </div>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block font-medium text-sm text-on-surface mb-1">Judul Kementerian (Cover)</label>
+                                <textarea v-model="form.school_profile.kementerian_title" rows="2" class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2 focus:border-primary outline-none text-on-surface text-sm"></textarea>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="flex items-center justify-between p-4 bg-surface-container-low rounded-2xl border border-outline-variant cursor-pointer hover:border-primary transition-colors group">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-9 h-9 bg-blue-100 text-blue-700 rounded-xl flex items-center justify-center overflow-hidden">
+                                            <img v-if="liveTemplate.options.tut_wuri_logo_preview || liveTemplate.options.tut_wuri_logo_path" :src="liveTemplate.options.tut_wuri_logo_preview || ('/storage/' + liveTemplate.options.tut_wuri_logo_path)" class="w-full h-full object-contain" />
+                                            <span v-else class="material-symbols-outlined text-lg">military_tech</span>
+                                        </div>
+                                        <div>
+                                            <span class="block font-semibold text-sm text-on-surface">Lambang Kementerian (Atas)</span>
+                                            <span class="text-xs text-on-surface-variant">Tampil di bagian atas Cover</span>
+                                        </div>
+                                    </div>
+                                    <div :class="['w-11 h-6 rounded-full transition-colors relative cursor-pointer', form.options.show_tut_wuri_logo ? 'bg-primary' : 'bg-surface-container-high']" @click.prevent="form.options.show_tut_wuri_logo = !form.options.show_tut_wuri_logo">
+                                        <div :class="['absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform', form.options.show_tut_wuri_logo ? 'translate-x-5' : 'translate-x-0.5']"></div>
+                                    </div>
+                                </label>
+                                <div class="pl-16 pr-4">
+                                    <input type="file" accept="image/*" @change="e => form.options.tut_wuri_logo_file = e.target.files[0]" class="text-xs text-on-surface-variant file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-primary-container file:text-on-primary-container hover:file:bg-primary-container/80 cursor-pointer" />
+                                </div>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="flex items-center justify-between p-4 bg-surface-container-low rounded-2xl border border-outline-variant cursor-pointer hover:border-primary transition-colors group">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-9 h-9 bg-emerald-100 text-emerald-700 rounded-xl flex items-center justify-center overflow-hidden">
+                                            <img v-if="liveTemplate.options.school_logo_preview || liveTemplate.options.school_logo_path" :src="liveTemplate.options.school_logo_preview || ('/storage/' + liveTemplate.options.school_logo_path)" class="w-full h-full object-contain" />
+                                            <span v-else class="material-symbols-outlined text-lg">account_balance</span>
+                                        </div>
+                                        <div>
+                                            <span class="block font-semibold text-sm text-on-surface">Logo Sekolah (Tengah)</span>
+                                            <span class="text-xs text-on-surface-variant">Tampil di tengah Cover</span>
+                                        </div>
+                                    </div>
+                                    <div :class="['w-11 h-6 rounded-full transition-colors relative cursor-pointer', form.options.show_school_logo ? 'bg-primary' : 'bg-surface-container-high']" @click.prevent="form.options.show_school_logo = !form.options.show_school_logo">
+                                        <div :class="['absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform', form.options.show_school_logo ? 'translate-x-5' : 'translate-x-0.5']"></div>
+                                    </div>
+                                </label>
+                                <div class="pl-16 pr-4">
+                                    <input type="file" accept="image/*" @change="e => form.options.school_logo_file = e.target.files[0]" class="text-xs text-on-surface-variant file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-primary-container file:text-on-primary-container hover:file:bg-primary-container/80 cursor-pointer" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- SECTION: Profil Sekolah -->
                     <div v-show="activeSection === 'school'" class="space-y-5 max-w-3xl">
                         <div>
@@ -299,15 +353,9 @@ const resetTemplate = () => {
                                     <input v-model="form.school_profile.website" type="text" class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2 focus:border-primary outline-none text-on-surface" />
                                 </div>
                             </div>
-                            <div class="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label class="block font-medium text-on-surface mb-1">Email</label>
-                                    <input v-model="form.school_profile.email" type="text" class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2 focus:border-primary outline-none text-on-surface" />
-                                </div>
-                                <div>
-                                    <label class="block font-medium text-on-surface mb-1">Judul Kementerian (Cover)</label>
-                                    <textarea v-model="form.school_profile.kementerian_title" rows="2" class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2 focus:border-primary outline-none text-on-surface"></textarea>
-                                </div>
+                            <div>
+                                <label class="block font-medium text-on-surface mb-1">Email</label>
+                                <input v-model="form.school_profile.email" type="text" class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2 focus:border-primary outline-none text-on-surface" />
                             </div>
                         </div>
                     </div>
@@ -348,72 +396,6 @@ const resetTemplate = () => {
                             </div>
                         </div>
                     </div>
-
-                    <!-- SECTION: Opsi Tampilan -->
-                    <div v-show="activeSection === 'options'" class="space-y-5 max-w-2xl">
-                        <div>
-                            <h3 class="font-bold text-on-surface mb-0.5">Opsi Tampilan Dokumen</h3>
-                            <p class="text-xs text-on-surface-variant mb-4">Atur elemen visual yang ditampilkan pada dokumen cetak.</p>
-                        </div>
-                        <div class="space-y-3">
-                            <div class="space-y-2">
-                                <label class="flex items-center justify-between p-4 bg-surface-container-low rounded-2xl border border-outline-variant cursor-pointer hover:border-primary transition-colors group">
-                                    <div class="flex items-center space-x-3">
-                                        <div class="w-9 h-9 bg-blue-100 text-blue-700 rounded-xl flex items-center justify-center overflow-hidden">
-                                            <img v-if="liveTemplate.options.tut_wuri_logo_preview || liveTemplate.options.tut_wuri_logo_path" :src="liveTemplate.options.tut_wuri_logo_preview || ('/storage/' + liveTemplate.options.tut_wuri_logo_path)" class="w-full h-full object-contain" />
-                                            <span v-else class="material-symbols-outlined text-lg">military_tech</span>
-                                        </div>
-                                        <div>
-                                            <span class="block font-semibold text-sm text-on-surface">Lambang Kementrian (Atas)</span>
-                                            <span class="text-xs text-on-surface-variant">Tampil di bagian atas Cover</span>
-                                        </div>
-                                    </div>
-                                    <div :class="['w-11 h-6 rounded-full transition-colors relative cursor-pointer', form.options.show_tut_wuri_logo ? 'bg-primary' : 'bg-surface-container-high']" @click.prevent="form.options.show_tut_wuri_logo = !form.options.show_tut_wuri_logo">
-                                        <div :class="['absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform', form.options.show_tut_wuri_logo ? 'translate-x-5' : 'translate-x-0.5']"></div>
-                                    </div>
-                                </label>
-                                <div class="pl-16 pr-4">
-                                    <input type="file" accept="image/*" @change="e => form.options.tut_wuri_logo_file = e.target.files[0]" class="text-xs text-on-surface-variant file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-primary-container file:text-on-primary-container hover:file:bg-primary-container/80 cursor-pointer" />
-                                </div>
-                            </div>
-                            <div class="space-y-2">
-                                <label class="flex items-center justify-between p-4 bg-surface-container-low rounded-2xl border border-outline-variant cursor-pointer hover:border-primary transition-colors group">
-                                    <div class="flex items-center space-x-3">
-                                        <div class="w-9 h-9 bg-emerald-100 text-emerald-700 rounded-xl flex items-center justify-center overflow-hidden">
-                                            <img v-if="liveTemplate.options.school_logo_preview || liveTemplate.options.school_logo_path" :src="liveTemplate.options.school_logo_preview || ('/storage/' + liveTemplate.options.school_logo_path)" class="w-full h-full object-contain" />
-                                            <span v-else class="material-symbols-outlined text-lg">account_balance</span>
-                                        </div>
-                                        <div>
-                                            <span class="block font-semibold text-sm text-on-surface">Logo Sekolah (Tengah)</span>
-                                            <span class="text-xs text-on-surface-variant">Tampil di tengah Cover</span>
-                                        </div>
-                                    </div>
-                                    <div :class="['w-11 h-6 rounded-full transition-colors relative cursor-pointer', form.options.show_school_logo ? 'bg-primary' : 'bg-surface-container-high']" @click.prevent="form.options.show_school_logo = !form.options.show_school_logo">
-                                        <div :class="['absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform', form.options.show_school_logo ? 'translate-x-5' : 'translate-x-0.5']"></div>
-                                    </div>
-                                </label>
-                                <div class="pl-16 pr-4">
-                                    <input type="file" accept="image/*" @change="e => form.options.school_logo_file = e.target.files[0]" class="text-xs text-on-surface-variant file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-primary-container file:text-on-primary-container hover:file:bg-primary-container/80 cursor-pointer" />
-                                </div>
-                            </div>
-                            <label class="flex items-center justify-between p-4 bg-surface-container-low rounded-2xl border border-outline-variant cursor-pointer hover:border-primary transition-colors group">
-                                <div class="flex items-center space-x-3">
-                                    <div class="w-9 h-9 bg-orange-100 text-orange-700 rounded-xl flex items-center justify-center">
-                                        <span class="material-symbols-outlined text-lg">person</span>
-                                    </div>
-                                    <div>
-                                        <span class="block font-semibold text-sm text-on-surface">Kotak Pas Foto 3×4</span>
-                                        <span class="text-xs text-on-surface-variant">Kotak foto di halaman Identitas Siswa</span>
-                                    </div>
-                                </div>
-                                <div :class="['w-11 h-6 rounded-full transition-colors relative cursor-pointer', form.options.show_photo_box ? 'bg-primary' : 'bg-surface-container-high']" @click="form.options.show_photo_box = !form.options.show_photo_box">
-                                    <div :class="['absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform', form.options.show_photo_box ? 'translate-x-5' : 'translate-x-0.5']"></div>
-                                </div>
-                            </label>
-                        </div>
-                    </div>
-
-
                 </div>
             </div>
 
