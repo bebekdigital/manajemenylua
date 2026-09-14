@@ -137,7 +137,7 @@ function closeMobileSubMenu() {
     </nav>
 
     <!-- Mobile Bottom Navigation Bar -->
-    <nav class="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-emerald-900 border-t border-emerald-800 shadow-[0_-4px_24px_rgba(0,30,15,0.4)] safe-area-bottom">
+    <nav class="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-outline-variant/30 safe-area-bottom">
 
         <!-- Sub-menu panel (slides up from above the nav bar) -->
         <Transition
@@ -148,7 +148,7 @@ function closeMobileSubMenu() {
             leave-from-class="max-h-48 opacity-100"
             leave-to-class="max-h-0 opacity-0"
         >
-            <div v-show="isMobileSubMenuOpen" class="overflow-hidden bg-white rounded-t-3xl shadow-[0_-10px_20px_rgba(0,0,0,0.1)] pb-2 pt-1 border-t border-outline-variant/30">
+            <div v-show="isMobileSubMenuOpen" class="overflow-hidden bg-white rounded-t-3xl border-t border-outline-variant/30 pb-2 pt-1 relative -top-[1px]">
                 <div class="w-12 h-1 bg-outline-variant/40 rounded-full mx-auto my-2"></div>
                 <div class="flex items-center justify-around px-4 py-2 gap-2">
                     <Link
@@ -176,7 +176,7 @@ function closeMobileSubMenu() {
         </Transition>
 
         <!-- Main bottom nav items -->
-        <div class="flex items-center justify-around px-2 py-2 gap-1">
+        <div class="flex items-center justify-around px-2 py-2 gap-1 bg-white relative z-10">
 
             <!-- Beranda -->
             <Link
@@ -185,8 +185,8 @@ function closeMobileSubMenu() {
                 :class="[
                     'flex items-center justify-center gap-1.5 py-2.5 rounded-2xl transition-all duration-300 ease-out',
                     mobileActiveTab === 'overview'
-                        ? 'text-yellow-200 bg-emerald-800 px-4 flex-shrink-0'
-                        : 'text-emerald-200/60 px-3 hover:text-emerald-200'
+                        ? 'text-emerald-900 bg-emerald-50 px-4 flex-shrink-0'
+                        : 'text-on-surface-variant px-3 hover:text-emerald-900'
                 ]"
             >
                 <span class="material-symbols-outlined text-[22px] shrink-0 filled-icon">home</span>
@@ -201,8 +201,8 @@ function closeMobileSubMenu() {
                 :class="[
                     'flex items-center justify-center gap-1.5 py-2.5 rounded-2xl transition-all duration-300 ease-out cursor-pointer',
                     mobileActiveTab === 'data' || ['students', 'staff', 'administration'].includes(currentRoute)
-                        ? 'text-yellow-200 bg-emerald-800 px-4 flex-shrink-0'
-                        : 'text-emerald-200/60 px-3 hover:text-emerald-200'
+                        ? 'text-emerald-900 bg-emerald-50 px-4 flex-shrink-0'
+                        : 'text-on-surface-variant px-3 hover:text-emerald-900'
                 ]"
             >
                 <span class="material-symbols-outlined text-[22px] shrink-0 filled-icon">folder</span>
@@ -218,8 +218,8 @@ function closeMobileSubMenu() {
                 :class="[
                     'flex items-center justify-center gap-1.5 py-2.5 rounded-2xl transition-all duration-300 ease-out',
                     mobileActiveTab === 'pembelajaran'
-                        ? 'text-yellow-200 bg-emerald-800 px-4 flex-shrink-0'
-                        : 'text-emerald-200/60 px-3 hover:text-emerald-200'
+                        ? 'text-emerald-900 bg-emerald-50 px-4 flex-shrink-0'
+                        : 'text-on-surface-variant px-3 hover:text-emerald-900'
                 ]"
             >
                 <span class="material-symbols-outlined text-[22px] shrink-0 filled-icon">menu_book</span>
@@ -235,8 +235,8 @@ function closeMobileSubMenu() {
                 :class="[
                     'flex items-center justify-center gap-1.5 py-2.5 rounded-2xl transition-all duration-300 ease-out',
                     mobileActiveTab === 'kesiswaan'
-                        ? 'text-yellow-200 bg-emerald-800 px-4 flex-shrink-0'
-                        : 'text-emerald-200/60 px-3 hover:text-emerald-200'
+                        ? 'text-emerald-900 bg-emerald-50 px-4 flex-shrink-0'
+                        : 'text-on-surface-variant px-3 hover:text-emerald-900'
                 ]"
             >
                 <span class="material-symbols-outlined text-[22px] shrink-0 filled-icon">diversity_3</span>
@@ -252,8 +252,8 @@ function closeMobileSubMenu() {
                 :class="[
                     'flex items-center justify-center gap-1.5 py-2.5 rounded-2xl transition-all duration-300 ease-out',
                     mobileActiveTab === 'portal'
-                        ? 'text-yellow-200 bg-emerald-800 px-4 flex-shrink-0'
-                        : 'text-emerald-200/60 px-3 hover:text-emerald-200'
+                        ? 'text-emerald-900 bg-emerald-50 px-4 flex-shrink-0'
+                        : 'text-on-surface-variant px-3 hover:text-emerald-900'
                 ]"
             >
                 <span class="material-symbols-outlined text-[22px] shrink-0 filled-icon">settings</span>

@@ -17,11 +17,11 @@ defineOptions({
 
     <div class="flex-grow p-gutter md:p-margin-desktop max-w-container-max mx-auto w-full">
         <!-- Row 1: Agenda (Lebar) + KPI (Kecil) -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-            <div class="lg:col-span-2">
+        <div class="flex lg:grid lg:grid-cols-3 gap-4 lg:gap-6 mb-6 overflow-x-auto snap-x snap-mandatory pb-2 lg:pb-0 -mx-4 md:-mx-6 lg:mx-0 px-4 md:px-6 lg:px-0 scrollbar-hide">
+            <div class="lg:col-span-2 min-w-[85vw] sm:min-w-[400px] lg:min-w-0 snap-center">
                 <AgendaCard />
             </div>
-            <div class="lg:col-span-1">
+            <div class="lg:col-span-1 min-w-[85vw] sm:min-w-[300px] lg:min-w-0 snap-center">
                 <KpiCard />
             </div>
         </div>

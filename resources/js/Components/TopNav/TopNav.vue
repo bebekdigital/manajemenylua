@@ -78,7 +78,8 @@ onUnmounted(() => {
             <div class="flex items-center shrink-0">
                 <!-- Brand icon only on mobile -->
                 <span class="material-symbols-outlined text-primary text-2xl mr-2 md:hidden">school</span>
-                <h1 class="hidden md:block text-sm font-bold text-on-surface">{{ pageTitle }}</h1>
+                <!-- Hide title on desktop as requested -->
+                <h1 class="hidden text-sm font-bold text-on-surface">{{ pageTitle }}</h1>
             </div>
 
             <!-- Center/Right: Academic Year Selector in TopBar -->
