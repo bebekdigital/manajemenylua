@@ -28,6 +28,10 @@ class UserController extends Controller
             'role' => ['required', 'string', 'in:superadmin,guru'], // Dapat ditambah nanti
         ]);
 
+        if (empty($validated['email'])) {
+            $validated['email'] = $validated['username'] . '@ulilalbabkra.sch.id';
+        }
+
         $validated['password'] = Hash::make($validated['password']);
 
         User::create($validated);
@@ -51,6 +55,10 @@ class UserController extends Controller
             'password' => ['nullable', 'string', 'min:8'],
             'role' => ['required', 'string', 'in:superadmin,guru'],
         ]);
+
+        if (empty($validated['email'])) {
+            $validated['email'] = $validated['username'] . '@ulilalbabkra.sch.id';
+        }
 
         if (!empty($validated['password'])) {
             $validated['password'] = Hash::make($validated['password']);
