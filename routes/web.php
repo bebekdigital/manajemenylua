@@ -13,6 +13,37 @@ Route::get('/', function () {
     return Inertia::render('Auth/Login');
 })->name('login');
 
+// TEMPORARY ROUTE: Untuk setup superadmin tanpa terminal
+Route::get('/setup-superadmin', function () {
+    try {
+        // 1. Paksa jalankan migrasi
+        \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+        
+        // 2. Buat akun superadmin jika belum ada
+        $user = \App\Models\User::updateOrCreate(
+            ['username' => 'fathudinmahmud'],
+            [
+                'name' => 'Fathudin Mahmud',
+                'email' => 'fathudinmahmud@admin.com',
+                'password' => \Illuminate\Support\Facades\Hash::make('Terusberkarya100@'),
+                'role' => 'superadmin',
+            ]
+        );
+
+        // 3. Ambil semua data user untuk di-audit
+        $allUsers = \App\Models\User::all();
+
+        return response()->json([
+            'status' => 'Sukses!',
+            'pesan' => 'Migrasi berhasil dijalankan dan akun superadmin telah dibuat.',
+            'superadmin_dibuat' => $user,
+            'audit_semua_user' => $allUsers
+        ]);
+    } catch (\Exception $e) {
+        return response()->json(['error' => $e->getMessage()]);
+    }
+});
+
 Route::post('/login', [AuthController::class, 'login'])->name('login.post');
 
 Route::middleware('auth')->group(function () {
