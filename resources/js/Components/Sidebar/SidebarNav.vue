@@ -65,10 +65,10 @@ function closeMobileSubMenu() {
                     ]"
                 >
                     <div class="flex items-center space-x-3">
-                        <span class="material-symbols-outlined text-[22px] filled-icon">folder</span>
+                        <span class="material-symbols-outlined text-[22px] transition-all duration-200" :class="{ 'filled-icon': ['students', 'staff', 'administration'].includes(currentRoute) }">folder</span>
                         <span>Database</span>
                     </div>
-                    <span class="material-symbols-outlined text-[18px] transition-transform duration-200 filled-icon" :class="{ 'rotate-180': isDataMenuOpen }">expand_more</span>
+                    <span class="material-symbols-outlined text-[18px] transition-transform duration-200" :class="{ 'rotate-180': isDataMenuOpen, 'filled-icon': ['students', 'staff', 'administration'].includes(currentRoute) }">expand_more</span>
                 </button>
 
                 <!-- Sub Menu -->
@@ -83,19 +83,19 @@ function closeMobileSubMenu() {
                     <ul v-show="isDataMenuOpen || ['students', 'staff', 'administration'].includes(currentRoute)" class="mt-1 ml-4 pl-4 border-l border-emerald-700 space-y-0.5 overflow-hidden">
                         <li>
                             <Link href="/students" :class="['flex items-center space-x-2.5 px-3 py-2 rounded-lg transition-all cursor-pointer active:scale-95 duration-200 text-[13px]', currentRoute === 'students' ? 'bg-emerald-800 text-yellow-200 font-semibold shadow-sm' : 'text-emerald-100/60 hover:bg-emerald-800 hover:text-yellow-200 font-medium']">
-                                <span class="material-symbols-outlined text-[17px] filled-icon">groups</span>
+                                <span class="material-symbols-outlined text-[17px] transition-all duration-200" :class="{ 'filled-icon': currentRoute === 'students' }">groups</span>
                                 <span>Data Siswa</span>
                             </Link>
                         </li>
                         <li>
                             <a href="#" :class="['flex items-center space-x-2.5 px-3 py-2 rounded-lg transition-all cursor-pointer active:scale-95 duration-200 text-[13px]', currentRoute === 'staff' ? 'bg-emerald-800 text-yellow-200 font-semibold shadow-sm' : 'text-emerald-100/60 hover:bg-emerald-800/50 hover:text-white font-medium']">
-                                <span class="material-symbols-outlined text-[17px] filled-icon">badge</span>
+                                <span class="material-symbols-outlined text-[17px] transition-all duration-200" :class="{ 'filled-icon': currentRoute === 'staff' }">badge</span>
                                 <span>Data Pegawai</span>
                             </a>
                         </li>
                         <li>
                             <Link href="/administration" :class="['flex items-center space-x-2.5 px-3 py-2 rounded-lg transition-all cursor-pointer active:scale-95 duration-200 text-[13px]', currentRoute === 'administration' ? 'bg-emerald-800 text-yellow-200 font-semibold shadow-sm' : 'text-emerald-100/60 hover:bg-emerald-800 hover:text-yellow-200 font-medium']">
-                                <span class="material-symbols-outlined text-[17px] filled-icon">description</span>
+                                <span class="material-symbols-outlined text-[17px] transition-all duration-200" :class="{ 'filled-icon': currentRoute === 'administration' }">description</span>
                                 <span>Administrasi</span>
                             </Link>
                         </li>
@@ -182,84 +182,64 @@ function closeMobileSubMenu() {
             <Link
                 href="/beranda"
                 @click="handleMobileTab('overview')"
-                :class="[
-                    'flex items-center justify-center gap-1.5 py-2.5 rounded-2xl transition-all duration-300 ease-out',
-                    mobileActiveTab === 'overview'
-                        ? 'text-emerald-900 bg-emerald-50 px-4 flex-shrink-0'
-                        : 'text-on-surface-variant px-3 hover:text-emerald-900'
-                ]"
+                class="flex flex-col items-center justify-center w-full py-1.5 transition-all duration-300 relative group"
+                :class="mobileActiveTab === 'overview' ? 'text-emerald-900' : 'text-on-surface-variant hover:text-emerald-900'"
             >
-                <span class="material-symbols-outlined text-[22px] shrink-0 filled-icon">home</span>
-                <Transition enter-active-class="transition-all duration-300 ease-out" enter-from-class="max-w-0 opacity-0" enter-to-class="max-w-[60px] opacity-100" leave-active-class="transition-all duration-200 ease-in" leave-from-class="max-w-[60px] opacity-100" leave-to-class="max-w-0 opacity-0">
-                    <span v-if="mobileActiveTab === 'overview'" class="text-[11px] font-bold whitespace-nowrap overflow-hidden">Beranda</span>
-                </Transition>
+                <div class="flex items-center justify-center px-4 py-1 rounded-full transition-all duration-300" :class="mobileActiveTab === 'overview' ? 'bg-emerald-100' : 'bg-transparent'">
+                    <span class="material-symbols-outlined text-[22px] transition-all duration-300 group-active:scale-90" :class="{ 'filled-icon': mobileActiveTab === 'overview' }">home</span>
+                </div>
+                <span class="text-[10px] mt-1 transition-all duration-300" :class="mobileActiveTab === 'overview' ? 'font-bold opacity-100' : 'font-medium opacity-80'">Beranda</span>
             </Link>
 
             <!-- Database -->
             <button
                 @click="handleMobileTab('data')"
-                :class="[
-                    'flex items-center justify-center gap-1.5 py-2.5 rounded-2xl transition-all duration-300 ease-out cursor-pointer',
-                    mobileActiveTab === 'data' || ['students', 'staff', 'administration'].includes(currentRoute)
-                        ? 'text-emerald-900 bg-emerald-50 px-4 flex-shrink-0'
-                        : 'text-on-surface-variant px-3 hover:text-emerald-900'
-                ]"
+                class="flex flex-col items-center justify-center w-full py-1.5 transition-all duration-300 relative group cursor-pointer"
+                :class="mobileActiveTab === 'data' || ['students', 'staff', 'administration'].includes(currentRoute) ? 'text-emerald-900' : 'text-on-surface-variant hover:text-emerald-900'"
             >
-                <span class="material-symbols-outlined text-[22px] shrink-0 filled-icon">folder</span>
-                <Transition enter-active-class="transition-all duration-300 ease-out" enter-from-class="max-w-0 opacity-0" enter-to-class="max-w-[60px] opacity-100" leave-active-class="transition-all duration-200 ease-in" leave-from-class="max-w-[60px] opacity-100" leave-to-class="max-w-0 opacity-0">
-                    <span v-if="mobileActiveTab === 'data' || ['students', 'staff', 'administration'].includes(currentRoute)" class="text-[11px] font-bold whitespace-nowrap overflow-hidden">Database</span>
-                </Transition>
+                <div class="flex items-center justify-center px-4 py-1 rounded-full transition-all duration-300" :class="mobileActiveTab === 'data' || ['students', 'staff', 'administration'].includes(currentRoute) ? 'bg-emerald-100' : 'bg-transparent'">
+                    <span class="material-symbols-outlined text-[22px] transition-all duration-300 group-active:scale-90" :class="{ 'filled-icon': mobileActiveTab === 'data' || ['students', 'staff', 'administration'].includes(currentRoute) }">folder</span>
+                </div>
+                <span class="text-[10px] mt-1 transition-all duration-300" :class="mobileActiveTab === 'data' || ['students', 'staff', 'administration'].includes(currentRoute) ? 'font-bold opacity-100' : 'font-medium opacity-80'">Database</span>
             </button>
 
             <!-- Pembelajaran -->
             <Link
                 href="#"
                 @click="handleMobileTab('pembelajaran')"
-                :class="[
-                    'flex items-center justify-center gap-1.5 py-2.5 rounded-2xl transition-all duration-300 ease-out',
-                    mobileActiveTab === 'pembelajaran'
-                        ? 'text-emerald-900 bg-emerald-50 px-4 flex-shrink-0'
-                        : 'text-on-surface-variant px-3 hover:text-emerald-900'
-                ]"
+                class="flex flex-col items-center justify-center w-full py-1.5 transition-all duration-300 relative group"
+                :class="mobileActiveTab === 'pembelajaran' ? 'text-emerald-900' : 'text-on-surface-variant hover:text-emerald-900'"
             >
-                <span class="material-symbols-outlined text-[22px] shrink-0 filled-icon">menu_book</span>
-                <Transition enter-active-class="transition-all duration-300 ease-out" enter-from-class="max-w-0 opacity-0" enter-to-class="max-w-[60px] opacity-100" leave-active-class="transition-all duration-200 ease-in" leave-from-class="max-w-[60px] opacity-100" leave-to-class="max-w-0 opacity-0">
-                    <span v-if="mobileActiveTab === 'pembelajaran'" class="text-[11px] font-bold whitespace-nowrap overflow-hidden">Belajar</span>
-                </Transition>
+                <div class="flex items-center justify-center px-4 py-1 rounded-full transition-all duration-300" :class="mobileActiveTab === 'pembelajaran' ? 'bg-emerald-100' : 'bg-transparent'">
+                    <span class="material-symbols-outlined text-[22px] transition-all duration-300 group-active:scale-90" :class="{ 'filled-icon': mobileActiveTab === 'pembelajaran' }">menu_book</span>
+                </div>
+                <span class="text-[10px] mt-1 transition-all duration-300" :class="mobileActiveTab === 'pembelajaran' ? 'font-bold opacity-100' : 'font-medium opacity-80'">Belajar</span>
             </Link>
 
             <!-- Kesiswaan -->
             <Link
                 href="#"
                 @click="handleMobileTab('kesiswaan')"
-                :class="[
-                    'flex items-center justify-center gap-1.5 py-2.5 rounded-2xl transition-all duration-300 ease-out',
-                    mobileActiveTab === 'kesiswaan'
-                        ? 'text-emerald-900 bg-emerald-50 px-4 flex-shrink-0'
-                        : 'text-on-surface-variant px-3 hover:text-emerald-900'
-                ]"
+                class="flex flex-col items-center justify-center w-full py-1.5 transition-all duration-300 relative group"
+                :class="mobileActiveTab === 'kesiswaan' ? 'text-emerald-900' : 'text-on-surface-variant hover:text-emerald-900'"
             >
-                <span class="material-symbols-outlined text-[22px] shrink-0 filled-icon">diversity_3</span>
-                <Transition enter-active-class="transition-all duration-300 ease-out" enter-from-class="max-w-0 opacity-0" enter-to-class="max-w-[60px] opacity-100" leave-active-class="transition-all duration-200 ease-in" leave-from-class="max-w-[60px] opacity-100" leave-to-class="max-w-0 opacity-0">
-                    <span v-if="mobileActiveTab === 'kesiswaan'" class="text-[11px] font-bold whitespace-nowrap overflow-hidden">Kesiswaan</span>
-                </Transition>
+                <div class="flex items-center justify-center px-4 py-1 rounded-full transition-all duration-300" :class="mobileActiveTab === 'kesiswaan' ? 'bg-emerald-100' : 'bg-transparent'">
+                    <span class="material-symbols-outlined text-[22px] transition-all duration-300 group-active:scale-90" :class="{ 'filled-icon': mobileActiveTab === 'kesiswaan' }">diversity_3</span>
+                </div>
+                <span class="text-[10px] mt-1 transition-all duration-300" :class="mobileActiveTab === 'kesiswaan' ? 'font-bold opacity-100' : 'font-medium opacity-80'">Kesiswaan</span>
             </Link>
 
             <!-- Pengaturan -->
             <Link
                 href="/portal"
                 @click="handleMobileTab('portal')"
-                :class="[
-                    'flex items-center justify-center gap-1.5 py-2.5 rounded-2xl transition-all duration-300 ease-out',
-                    mobileActiveTab === 'portal'
-                        ? 'text-emerald-900 bg-emerald-50 px-4 flex-shrink-0'
-                        : 'text-on-surface-variant px-3 hover:text-emerald-900'
-                ]"
+                class="flex flex-col items-center justify-center w-full py-1.5 transition-all duration-300 relative group"
+                :class="mobileActiveTab === 'portal' ? 'text-emerald-900' : 'text-on-surface-variant hover:text-emerald-900'"
             >
-                <span class="material-symbols-outlined text-[22px] shrink-0 filled-icon">settings</span>
-                <Transition enter-active-class="transition-all duration-300 ease-out" enter-from-class="max-w-0 opacity-0" enter-to-class="max-w-[60px] opacity-100" leave-active-class="transition-all duration-200 ease-in" leave-from-class="max-w-[60px] opacity-100" leave-to-class="max-w-0 opacity-0">
-                    <span v-if="mobileActiveTab === 'portal'" class="text-[11px] font-bold whitespace-nowrap overflow-hidden">Pengaturan</span>
-                </Transition>
+                <div class="flex items-center justify-center px-4 py-1 rounded-full transition-all duration-300" :class="mobileActiveTab === 'portal' ? 'bg-emerald-100' : 'bg-transparent'">
+                    <span class="material-symbols-outlined text-[22px] transition-all duration-300 group-active:scale-90" :class="{ 'filled-icon': mobileActiveTab === 'portal' }">settings</span>
+                </div>
+                <span class="text-[10px] mt-1 transition-all duration-300" :class="mobileActiveTab === 'portal' ? 'font-bold opacity-100' : 'font-medium opacity-80'">Pengaturan</span>
             </Link>
 
         </div>

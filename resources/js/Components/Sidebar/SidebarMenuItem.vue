@@ -34,7 +34,7 @@ defineProps({
                     : 'text-emerald-100/80 hover:bg-emerald-800 hover:text-yellow-200 font-medium'
             ]"
         >
-            <span class="material-symbols-outlined text-[22px]" :data-icon="icon">{{ icon }}</span>
+            <span class="material-symbols-outlined text-[22px] transition-all duration-200" :class="{ 'filled-icon': active }" :data-icon="icon">{{ icon }}</span>
             <span>{{ label }}</span>
         </Link>
         <!-- Fallback to normal anchor for placeholder links -->
@@ -48,7 +48,7 @@ defineProps({
                     : 'text-emerald-100/80 hover:bg-emerald-800/50 hover:text-white font-medium'
             ]"
         >
-            <span class="material-symbols-outlined text-[22px]" :data-icon="icon">{{ icon }}</span>
+            <span class="material-symbols-outlined text-[22px] transition-all duration-200" :class="{ 'filled-icon': active }" :data-icon="icon">{{ icon }}</span>
             <span>{{ label }}</span>
         </a>
     </li>
