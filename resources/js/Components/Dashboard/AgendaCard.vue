@@ -31,34 +31,37 @@ const agendas = [
 </script>
 
 <template>
-    <div class="bg-surface-container-lowest rounded-2xl border border-primary/10 shadow-[0px_4px_20px_rgba(0,40,20,0.06)] overflow-hidden h-full flex flex-col">
-        <div class="px-5 py-4 border-b border-outline-variant/30 flex items-center justify-between">
+    <div class="bg-gradient-to-br from-emerald-50 to-emerald-100/50 rounded-2xl border border-emerald-200/60 shadow-[0px_4px_20px_rgba(16,185,129,0.08)] overflow-hidden h-full flex flex-col relative">
+        <!-- Decorative subtle pattern/blob -->
+        <div class="absolute top-0 right-0 w-32 h-32 bg-emerald-200/30 rounded-full blur-2xl -translate-y-10 translate-x-10 pointer-events-none"></div>
+        
+        <div class="px-5 py-4 border-b border-emerald-200/50 flex items-center justify-between relative z-10">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                    <span class="material-symbols-outlined text-primary text-xl">event_upcoming</span>
+                <div class="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center shadow-sm">
+                    <span class="material-symbols-outlined text-white text-xl">event_upcoming</span>
                 </div>
                 <div>
-                    <h3 class="text-base font-bold text-on-surface">Agenda Terdekat</h3>
-                    <p class="text-xs text-on-surface-variant">Jadwal kegiatan akademik & yayasan</p>
+                    <h3 class="text-base font-bold text-emerald-950">Agenda Terdekat</h3>
+                    <p class="text-xs text-emerald-700/80">Jadwal kegiatan akademik & yayasan</p>
                 </div>
             </div>
-            <button class="text-xs font-semibold text-primary hover:text-primary-dark transition-colors">Lihat Semua</button>
+            <button class="text-xs font-bold text-emerald-600 hover:text-emerald-800 transition-colors bg-white/60 hover:bg-white px-3 py-1.5 rounded-lg border border-emerald-200/50">Lihat Semua</button>
         </div>
         
-        <div class="flex-grow p-0">
-            <div class="divide-y divide-outline-variant/20">
-                <div v-for="agenda in agendas" :key="agenda.id" class="p-4 hover:bg-surface-container-low/40 transition-colors flex flex-col sm:flex-row gap-4 sm:items-center justify-between">
+        <div class="flex-grow p-0 relative z-10">
+            <div class="divide-y divide-emerald-200/50">
+                <div v-for="agenda in agendas" :key="agenda.id" class="p-4 hover:bg-white/40 transition-colors flex flex-col sm:flex-row gap-4 sm:items-center justify-between">
                     <div class="flex items-start gap-4">
-                        <div class="hidden sm:flex flex-col items-center justify-center w-14 h-14 rounded-xl bg-surface-container border border-outline-variant/30 shrink-0">
-                            <span class="text-xs font-bold text-on-surface-variant uppercase">{{ agenda.date.split(' ')[1] }}</span>
-                            <span class="text-lg font-extrabold text-primary leading-tight">{{ agenda.date.split(' ')[0] }}</span>
+                        <div class="hidden sm:flex flex-col items-center justify-center w-14 h-14 rounded-xl bg-white border border-emerald-200/60 shadow-sm shrink-0">
+                            <span class="text-xs font-bold text-emerald-600 uppercase">{{ agenda.date.split(' ')[1] }}</span>
+                            <span class="text-lg font-extrabold text-emerald-900 leading-tight">{{ agenda.date.split(' ')[0] }}</span>
                         </div>
                         <div>
                             <div class="flex items-center gap-2 mb-1">
-                                <h4 class="font-bold text-on-surface text-sm">{{ agenda.title }}</h4>
+                                <h4 class="font-bold text-emerald-950 text-sm">{{ agenda.title }}</h4>
                                 <span :class="`text-[9px] font-bold px-2 py-0.5 rounded-md border ${agenda.typeColor}`">{{ agenda.type }}</span>
                             </div>
-                            <div class="flex items-center gap-3 text-xs text-on-surface-variant">
+                            <div class="flex items-center gap-3 text-xs text-emerald-700/90">
                                 <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">schedule</span> {{ agenda.time }}</span>
                                 <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">location_on</span> {{ agenda.location }}</span>
                             </div>
