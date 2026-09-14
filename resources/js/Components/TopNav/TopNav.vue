@@ -221,8 +221,8 @@ onUnmounted(() => {
                 <div class="flex items-center space-x-1 sm:space-x-2 shrink-0 ml-auto">
                     <!-- Role Badge (Hidden on mobile) -->
                     <div class="hidden lg:flex flex-col items-end mr-1">
-                        <span class="font-body-sm text-body-sm text-on-surface font-semibold leading-tight">Admin</span>
-                        <span class="text-xs text-on-surface-variant leading-tight">Karanganyar</span>
+                        <span class="font-body-sm text-body-sm text-on-surface font-semibold leading-tight capitalize">{{ page.props.auth?.user?.name || 'Guest' }}</span>
+                        <span class="text-xs text-on-surface-variant leading-tight capitalize">{{ page.props.auth?.user?.role || 'Guest' }}</span>
                     </div>
 
                     <button

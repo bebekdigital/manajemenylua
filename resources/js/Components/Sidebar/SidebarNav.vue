@@ -1,4 +1,5 @@
 <script setup>
+import { Link } from '@inertiajs/vue3';
 import SidebarMenuItem from './SidebarMenuItem.vue';
 
 defineProps({
@@ -75,10 +76,10 @@ const menuItems = [
                     </a>
                 </li>
                 <li>
-                    <a class="flex items-center space-x-3 px-4 py-2 text-emerald-100/80 hover:bg-emerald-800 hover:text-yellow-200 rounded-xl transition-colors duration-200 cursor-pointer active:scale-95 font-medium text-sm" href="#">
+                    <Link href="/logout" method="post" as="button" class="w-full flex items-center space-x-3 px-4 py-2 text-emerald-100/80 hover:bg-emerald-800 hover:text-yellow-200 rounded-xl transition-colors duration-200 cursor-pointer active:scale-95 font-medium text-sm">
                         <span class="material-symbols-outlined text-[20px]" data-icon="logout">logout</span>
                         <span>Logout</span>
-                    </a>
+                    </Link>
                 </li>
             </ul>
         </div>

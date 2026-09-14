@@ -1,7 +1,22 @@
 <script setup>
-import { Head, Link } from '@inertiajs/vue3';
-</script>
+import { Head } from '@inertiajs/vue3';
+import { useForm } from '@inertiajs/vue3';
+import { ref } from 'vue';
 
+const form = useForm({
+    user_id: '',
+    password: '',
+    remember: true,
+});
+
+const showPassword = ref(false);
+
+const submit = () => {
+    form.post('/login', {
+        onFinish: () => form.reset('password'),
+    });
+};
+</script>
 <template>
   <Head title="Login Portal - Yayasan Li Ulil Albab Karanganyar" />
 
@@ -68,7 +83,7 @@ import { Head, Link } from '@inertiajs/vue3';
             </div>
 
             <!-- Form Element -->
-            <form @submit.prevent class="space-y-5">
+            <form @submit.prevent="submit" class="space-y-5">
               
               <!-- Input Identitas / NIP / Username -->
               <div>
@@ -79,8 +94,9 @@ import { Head, Link } from '@inertiajs/vue3';
                   <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-foundation-muted">
                     <span class="material-symbols-outlined text-[20px]">person</span>
                   </div>
-                  <input type="text" id="user-id" placeholder="Contoh: 19850312-001 atau username" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 hover:bg-white text-sm font-inter rounded-lg border border-foundation-border focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder:text-slate-400 text-foundation-text">
+                  <input v-model="form.user_id" type="text" id="user-id" placeholder="Contoh: 19850312-001 atau username" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 hover:bg-white text-sm font-inter rounded-lg border border-foundation-border focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder:text-slate-400 text-foundation-text">
                 </div>
+                <div v-if="form.errors.user_id" class="text-error text-xs mt-1.5 ml-1">{{ form.errors.user_id }}</div>
               </div>
 
               <!-- Input Password -->
@@ -97,27 +113,29 @@ import { Head, Link } from '@inertiajs/vue3';
                   <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-foundation-muted">
                     <span class="material-symbols-outlined text-[20px]">lock</span>
                   </div>
-                  <input type="password" id="password" placeholder="••••••••••••" class="w-full pl-10 pr-11 py-2.5 bg-slate-50 hover:bg-white text-sm font-inter rounded-lg border border-foundation-border focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder:text-slate-400 text-foundation-text">
-                  <button type="button" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-foundation-muted hover:text-foundation-text">
-                    <span class="material-symbols-outlined text-[20px]">visibility_off</span>
+                  <input v-model="form.password" :type="showPassword ? 'text' : 'password'" id="password" placeholder="••••••••••••" class="w-full pl-10 pr-11 py-2.5 bg-slate-50 hover:bg-white text-sm font-inter rounded-lg border border-foundation-border focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder:text-slate-400 text-foundation-text">
+                  <button type="button" @click="showPassword = !showPassword" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-foundation-muted hover:text-foundation-text">
+                    <span class="material-symbols-outlined text-[20px]">{{ showPassword ? 'visibility' : 'visibility_off' }}</span>
                   </button>
                 </div>
+                <div v-if="form.errors.password" class="text-error text-xs mt-1.5 ml-1">{{ form.errors.password }}</div>
               </div>
 
               <!-- Remember Me & Fast Session Checkbox -->
               <div class="flex items-center justify-between pt-1">
                 <label class="flex items-center gap-2.5 cursor-pointer">
-                  <input type="checkbox" checked class="w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary/30 focus:ring-offset-0 cursor-pointer">
+                  <input v-model="form.remember" type="checkbox" id="remember" class="w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary/30 focus:ring-offset-0 cursor-pointer">
                   <span class="text-xs font-inter text-foundation-muted select-none">Ingat perangkat ini selama 30 hari</span>
                 </label>
               </div>
 
               <!-- CTA Button -->
               <div class="pt-2">
-                <Link href="/dashboard" as="button" type="button" class="w-full flex items-center justify-center gap-2 py-3 px-5 rounded-lg bg-primary hover:bg-[#00552d] active:scale-[0.99] text-white font-semibold text-sm shadow-md shadow-primary/20 transition-all cursor-pointer">
-                  <span class="">Masuk ke Portal</span>
+                <button type="submit" :disabled="form.processing" class="w-full flex items-center justify-center gap-2 py-3 px-5 rounded-lg bg-primary hover:bg-[#00552d] active:scale-[0.99] text-white font-semibold text-sm shadow-md shadow-primary/20 transition-all cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed">
+                  <span class="" v-if="!form.processing">Masuk ke Portal</span>
+                  <span class="" v-else>Memproses...</span>
                   <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
-                </Link>
+                </button>
               </div>
 
             </form>

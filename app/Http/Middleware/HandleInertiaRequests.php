@@ -62,6 +62,14 @@ class HandleInertiaRequests extends Middleware
                 'semester' => $selectedYear->semester,
                 'is_active' => (bool) $selectedYear->is_active,
             ] : null,
+            'auth' => [
+                'user' => $request->user() ? [
+                    'id' => $request->user()->id,
+                    'name' => $request->user()->name,
+                    'username' => $request->user()->username,
+                    'role' => $request->user()->role,
+                ] : null,
+            ],
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),
