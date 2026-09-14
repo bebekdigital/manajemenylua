@@ -1,6 +1,8 @@
 <script setup>
 import { useForm } from '@inertiajs/vue3';
-import { watch } from 'vue';
+import { watch, ref } from 'vue';
+
+const showPassword = ref(false);
 
 const props = defineProps({
     show: {
@@ -40,6 +42,7 @@ watch(
                 form.reset();
             }
             form.clearErrors();
+            showPassword.value = false;
         }
     }
 );
@@ -104,7 +107,7 @@ function submit() {
                     </div>
 
                     <!-- Form -->
-                    <form @submit.prevent="submit" class="p-6 space-y-5">
+                    <form @submit.prevent="submit" class="p-6 space-y-5" autocomplete="off">
                         <!-- Nama Lengkap -->
                         <div>
                             <label for="name" class="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1.5">
@@ -114,7 +117,8 @@ function submit() {
                                 id="name"
                                 v-model="form.name"
                                 type="text"
-                                class="w-full px-3.5 py-2.5 bg-surface-container hover:bg-surface-container-high focus:bg-white text-sm font-medium rounded-xl border border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-on-surface placeholder:text-on-surface-variant/50"
+                                autocomplete="off"
+                                class="w-full px-3.5 py-2.5 bg-white text-sm font-medium rounded-xl border border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-on-surface placeholder:text-on-surface-variant/50"
                                 placeholder="Contoh: Fathudin Mahmud"
                             >
                             <div v-if="form.errors.name" class="text-error text-xs mt-1.5 ml-1 font-medium">{{ form.errors.name }}</div>
@@ -129,7 +133,8 @@ function submit() {
                                 id="username"
                                 v-model="form.username"
                                 type="text"
-                                class="w-full px-3.5 py-2.5 bg-surface-container hover:bg-surface-container-high focus:bg-white text-sm font-medium rounded-xl border border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-on-surface placeholder:text-on-surface-variant/50"
+                                autocomplete="off"
+                                class="w-full px-3.5 py-2.5 bg-white text-sm font-medium rounded-xl border border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-on-surface placeholder:text-on-surface-variant/50"
                                 placeholder="Contoh: 19850312001"
                             >
                             <div v-if="form.errors.username" class="text-error text-xs mt-1.5 ml-1 font-medium">{{ form.errors.username }}</div>
@@ -138,13 +143,14 @@ function submit() {
                         <!-- Email -->
                         <div>
                             <label for="email" class="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1.5">
-                                Email (Opsional)
+                                Email
                             </label>
                             <input
                                 id="email"
                                 v-model="form.email"
                                 type="email"
-                                class="w-full px-3.5 py-2.5 bg-surface-container hover:bg-surface-container-high focus:bg-white text-sm font-medium rounded-xl border border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-on-surface placeholder:text-on-surface-variant/50"
+                                autocomplete="off"
+                                class="w-full px-3.5 py-2.5 bg-white text-sm font-medium rounded-xl border border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-on-surface placeholder:text-on-surface-variant/50"
                                 placeholder="Contoh: guru@sekolah.com"
                             >
                             <div v-if="form.errors.email" class="text-error text-xs mt-1.5 ml-1 font-medium">{{ form.errors.email }}</div>
@@ -158,7 +164,7 @@ function submit() {
                             <select
                                 id="role"
                                 v-model="form.role"
-                                class="w-full px-3.5 py-2.5 bg-surface-container hover:bg-surface-container-high focus:bg-white text-sm font-medium rounded-xl border border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-on-surface appearance-none"
+                                class="w-full px-3.5 py-2.5 bg-white text-sm font-medium rounded-xl border border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-on-surface appearance-none"
                             >
                                 <option value="guru">Guru</option>
                                 <option value="superadmin">Superadmin</option>
@@ -171,13 +177,19 @@ function submit() {
                             <label for="password" class="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1.5">
                                 Kata Sandi {{ editing ? '(Opsional)' : '' }}
                             </label>
-                            <input
-                                id="password"
-                                v-model="form.password"
-                                type="password"
-                                class="w-full px-3.5 py-2.5 bg-surface-container hover:bg-surface-container-high focus:bg-white text-sm font-medium rounded-xl border border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-on-surface placeholder:text-on-surface-variant/50"
-                                placeholder="••••••••••••"
-                            >
+                            <div class="relative">
+                                <input
+                                    id="password"
+                                    v-model="form.password"
+                                    :type="showPassword ? 'text' : 'password'"
+                                    autocomplete="new-password"
+                                    class="w-full pl-3.5 pr-11 py-2.5 bg-white text-sm font-medium rounded-xl border border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-on-surface placeholder:text-on-surface-variant/50"
+                                    placeholder="••••••••••••"
+                                >
+                                <button type="button" @click="showPassword = !showPassword" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-on-surface-variant hover:text-on-surface cursor-pointer">
+                                    <span class="material-symbols-outlined text-[20px]">{{ showPassword ? 'visibility' : 'visibility_off' }}</span>
+                                </button>
+                            </div>
                             <p v-if="editing" class="text-[10px] text-on-surface-variant/70 mt-1 ml-1">
                                 Kosongkan jika tidak ingin mengubah kata sandi.
                             </p>
