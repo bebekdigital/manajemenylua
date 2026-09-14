@@ -95,8 +95,8 @@ onUnmounted(() => {
                         type="button"
                         @click="toggleDropdown"
                         :disabled="isSwitching"
-                        class="group relative flex items-center gap-2 px-3 py-1.5 bg-surface-container-low md:hover:bg-surface-container border border-outline-variant/60 md:hover:border-primary/50 rounded-xl transition-all shadow-xs cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/25"
-                        :class="{ 'ring-2 ring-primary/30 border-primary bg-surface-container': isDropdownOpen, 'opacity-60 pointer-events-none': isSwitching }"
+                        class="group relative flex items-center gap-2 px-3 py-1.5 bg-white md:hover:bg-surface-container-low border border-outline-variant/60 md:hover:border-primary/50 rounded-xl transition-all shadow-xs cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/25"
+                        :class="{ 'ring-2 ring-primary/30 border-primary bg-white': isDropdownOpen, 'opacity-60 pointer-events-none': isSwitching }"
                         aria-haspopup="listbox"
                         :aria-expanded="isDropdownOpen"
                     >
@@ -145,7 +145,7 @@ onUnmounted(() => {
                     >
                         <div
                             v-if="isDropdownOpen"
-                            class="absolute right-0 mt-2 w-72 sm:w-80 bg-surface-container-lowest border border-outline-variant/40 rounded-2xl shadow-[0px_10px_35px_rgba(0,40,20,0.15)] z-50 overflow-hidden"
+                            class="absolute right-0 md:right-auto md:left-0 mt-2 w-72 sm:w-80 bg-white border border-outline-variant/40 rounded-2xl shadow-[0px_10px_35px_rgba(0,40,20,0.15)] z-50 overflow-hidden"
                         >
                             <!-- Dropdown Header -->
                             <div class="p-3 bg-surface-container-low/70 border-b border-outline-variant/30 flex items-center justify-between">

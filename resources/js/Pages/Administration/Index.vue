@@ -77,7 +77,7 @@ const modules = [
                     :key="mod.id"
                     :href="mod.href || undefined"
                     :class="[
-                        'group relative bg-surface rounded-2xl border overflow-hidden transition-all duration-200 flex flex-col',
+                        'group relative bg-white rounded-2xl border overflow-hidden transition-all duration-200 flex flex-col',
                         mod.status === 'available'
                             ? 'border-outline-variant md:hover:shadow-lg md:hover:-translate-y-1 cursor-pointer'
                             : 'border-outline-variant/50 opacity-70 cursor-default'
