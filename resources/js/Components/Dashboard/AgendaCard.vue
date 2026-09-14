@@ -31,7 +31,7 @@ const agendas = [
 </script>
 
 <template>
-    <div class="bg-gradient-to-br from-emerald-50 via-white to-amber-50/60 rounded-2xl border border-emerald-200/50 overflow-hidden h-full flex flex-col relative">
+    <div class="bg-gradient-to-br from-emerald-100/80 via-emerald-50 to-amber-50/80 rounded-2xl border border-emerald-200/60 overflow-hidden h-full flex flex-col relative">
         <!-- Decorative blobs -->
         <div class="absolute -right-10 -top-10 w-36 h-36 rounded-full bg-amber-200/20 pointer-events-none blur-2xl"></div>
         <div class="absolute left-0 bottom-0 w-28 h-28 rounded-full bg-emerald-200/20 pointer-events-none blur-2xl"></div>
