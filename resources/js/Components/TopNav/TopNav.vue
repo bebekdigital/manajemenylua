@@ -19,6 +19,18 @@ const dropdownRef = ref(null);
 const academicYears = computed(() => page.props.academicYears || []);
 const selectedAcademicYear = computed(() => page.props.selectedAcademicYear || null);
 
+const shortAcademicYear = computed(() => {
+    if (!selectedAcademicYear.value) return '...';
+    const name = selectedAcademicYear.value.name;
+    if (name && name.includes('/')) {
+        const parts = name.split('/');
+        if (parts.length === 2) {
+            return `${parts[0].slice(-2)}/${parts[1].slice(-2)}`;
+        }
+    }
+    return name;
+});
+
 function toggleDropdown() {
     if (!isSwitching.value) {
         isDropdownOpen.value = !isDropdownOpen.value;
@@ -74,18 +86,16 @@ onUnmounted(() => {
 <template>
     <header class="bg-surface-container-lowest shadow-sm docked full-width top-0 sticky z-30 border-b border-outline-variant/30 transition-all duration-300">
         <div class="flex justify-between items-center h-16 px-4 md:px-gutter max-w-container-max mx-auto gap-2 md:gap-4">
-            <!-- Left: Page Title -->
-            <div class="flex items-center shrink-0">
-                <!-- Brand icon only on mobile -->
-                <span class="material-symbols-outlined text-primary text-2xl mr-2 md:hidden">school</span>
+            <!-- Left: Page Title (Desktop only) -->
+            <div class="hidden md:flex items-center shrink-0">
                 <!-- Hide title on desktop as requested -->
                 <h1 class="hidden text-sm font-bold text-on-surface">{{ pageTitle }}</h1>
             </div>
 
-            <!-- Center/Right: Academic Year Selector in TopBar -->
-            <div class="flex items-center justify-end md:justify-start flex-grow gap-2 md:gap-4">
+            <!-- Center/Right: Academic Year Selector & Actions -->
+            <div class="flex items-center justify-between md:justify-start w-full md:w-auto md:flex-grow gap-2 md:gap-4">
                 <!-- Academic Year Custom Dropdown -->
-                <div ref="dropdownRef" class="relative">
+                <div ref="dropdownRef" class="relative order-1 md:order-none">
                     <button
                         type="button"
                         @click="toggleDropdown"
@@ -104,11 +114,12 @@ onUnmounted(() => {
                         </span>
 
                         <div class="flex flex-col text-left min-w-0">
+                            <!-- Desktop View -->
                             <span class="hidden sm:block text-[9px] font-bold text-on-surface-variant uppercase tracking-wider leading-none">
                                 Tahun Ajaran
                             </span>
-                            <div class="flex items-center gap-1.5">
-                                <span class="text-xs sm:text-sm font-bold text-primary truncate">
+                            <div class="hidden sm:flex items-center gap-1.5">
+                                <span class="text-sm font-bold text-primary truncate">
                                     {{ selectedAcademicYear ? `TA ${selectedAcademicYear.name} (${selectedAcademicYear.semester})` : 'Pilih TA' }}
                                 </span>
                                 <span
@@ -116,6 +127,16 @@ onUnmounted(() => {
                                     class="hidden md:inline-flex items-center px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-primary/15 text-primary border border-primary/25"
                                 >
                                     Aktif
+                                </span>
+                            </div>
+
+                            <!-- Mobile View -->
+                            <div class="flex sm:hidden flex-col">
+                                <span class="text-[13px] font-bold text-primary leading-tight">
+                                    TA {{ shortAcademicYear }}
+                                </span>
+                                <span class="text-[9px] font-medium text-on-surface-variant leading-tight mt-0.5">
+                                    Semester {{ selectedAcademicYear?.semester }}
                                 </span>
                             </div>
                         </div>
@@ -213,7 +234,7 @@ onUnmounted(() => {
                 </div>
 
                 <!-- Right Actions: Role, Notifications & Profile -->
-                <div class="flex items-center space-x-1 sm:space-x-2 shrink-0 ml-auto">
+                <div class="flex items-center space-x-1 sm:space-x-2 shrink-0 order-2 md:order-none ml-auto">
                     <!-- Role Badge (Hidden on mobile) -->
                     <div class="hidden lg:flex flex-col items-end mr-1">
                         <span class="font-body-sm text-body-sm text-on-surface font-semibold leading-tight capitalize">{{ page.props.auth?.user?.name || 'Guest' }}</span>
