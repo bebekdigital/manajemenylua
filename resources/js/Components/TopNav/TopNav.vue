@@ -107,7 +107,7 @@ onUnmounted(() => {
                     >
                         <!-- Calendar / Loading Icon -->
                         <span
-                            class="material-symbols-outlined text-primary text-[20px] shrink-0 transition-transform group-hover:scale-105"
+                            class="hidden md:block material-symbols-outlined text-primary text-[20px] shrink-0 transition-transform group-hover:scale-105"
                             :class="{ 'animate-spin': isSwitching }"
                         >
                             {{ isSwitching ? 'sync' : 'calendar_today' }}
@@ -135,8 +135,8 @@ onUnmounted(() => {
                                 <span class="text-[13px] font-bold text-primary leading-tight">
                                     TA {{ shortAcademicYear }}
                                 </span>
-                                <span class="text-[9px] font-medium text-on-surface-variant leading-tight mt-0.5">
-                                    Semester {{ selectedAcademicYear?.semester }}
+                                <span class="text-[10px] font-medium text-on-surface-variant leading-tight mt-0.5">
+                                    {{ selectedAcademicYear?.semester }}
                                 </span>
                             </div>
                         </div>
@@ -161,7 +161,7 @@ onUnmounted(() => {
                     >
                         <div
                             v-if="isDropdownOpen"
-                            class="absolute right-0 md:right-auto md:left-0 mt-2 w-72 sm:w-80 bg-white border border-outline-variant/40 rounded-2xl shadow-[0px_10px_35px_rgba(0,40,20,0.15)] z-50 overflow-hidden"
+                            class="absolute left-0 mt-2 w-72 sm:w-80 bg-white border border-outline-variant/40 rounded-2xl shadow-[0px_10px_35px_rgba(0,40,20,0.15)] z-50 overflow-hidden"
                         >
                             <!-- Dropdown Header -->
                             <div class="p-3 bg-surface-container-low/70 border-b border-outline-variant/30 flex items-center justify-between">
