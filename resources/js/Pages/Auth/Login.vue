@@ -3,6 +3,8 @@ import { Head } from '@inertiajs/vue3';
 import { useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
 
+defineOptions({ layout: null });
+
 const form = useForm({
     user_id: '',
     password: '',
