@@ -35,17 +35,17 @@ const menuItems = [
 
     <nav 
         :class="[
-            'bg-surface-container-low border-r border-outline-variant h-screen w-64 fixed left-0 top-0 flex flex-col p-4 space-y-2 z-40 transition-transform duration-300 ease-in-out md:translate-x-0',
+            'bg-emerald-900 border-r border-emerald-800 h-screen w-64 fixed left-0 top-0 flex flex-col p-4 space-y-2 z-40 transition-transform duration-300 ease-in-out md:translate-x-0',
             isOpen ? 'translate-x-0' : '-translate-x-full'
         ]"
     >
         <!-- Brand Header -->
         <div class="mb-8 px-2 flex items-center space-x-3 mt-4">
-            <div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container font-headline-md shadow-sm shrink-0">
+            <div class="w-10 h-10 rounded-full bg-emerald-700 flex items-center justify-center text-white font-headline-md shadow-sm shrink-0">
                 <span class="material-symbols-outlined" data-icon="school" data-weight="fill">school</span>
             </div>
             <div>
-                <h2 class="font-headline-md text-headline-md text-primary leading-tight text-lg">Yayasan Li Ulil Albab Karanganyar</h2>
+                <h2 class="font-headline-md text-headline-md text-white leading-tight text-lg">Yayasan Li Ulil Albab Karanganyar</h2>
             </div>
         </div>
 
@@ -62,20 +62,20 @@ const menuItems = [
         </ul>
 
         <!-- Bottom Action & Utilities -->
-        <div class="mt-auto pt-4 border-t border-outline-variant space-y-2">
-            <button class="w-full bg-primary text-on-primary py-2 px-4 rounded-full font-label-md hover:bg-primary-container transition-colors mb-4 flex items-center justify-center space-x-2 shadow-sm cursor-pointer active:scale-98">
+        <div class="mt-auto pt-4 border-t border-emerald-800 space-y-2">
+            <button class="w-full bg-emerald-700 text-white py-2 px-4 rounded-full font-label-md hover:bg-emerald-600 transition-colors mb-4 flex items-center justify-center space-x-2 shadow-sm cursor-pointer active:scale-98">
                 <span class="material-symbols-outlined text-[18px]">add_circle</span>
                 <span>Generate Report</span>
             </button>
             <ul class="space-y-1">
                 <li>
-                    <a class="flex items-center space-x-3 px-4 py-2 text-on-surface-variant hover:bg-surface-container-high rounded-xl transition-colors duration-200 cursor-pointer active:scale-95 font-medium text-sm" href="#">
+                    <a class="flex items-center space-x-3 px-4 py-2 text-emerald-100/80 hover:bg-emerald-800 hover:text-white rounded-xl transition-colors duration-200 cursor-pointer active:scale-95 font-medium text-sm" href="#">
                         <span class="material-symbols-outlined text-[20px]" data-icon="help">help</span>
                         <span>Help Center</span>
                     </a>
                 </li>
                 <li>
-                    <a class="flex items-center space-x-3 px-4 py-2 text-on-surface-variant hover:bg-surface-container-high rounded-xl transition-colors duration-200 cursor-pointer active:scale-95 font-medium text-sm" href="#">
+                    <a class="flex items-center space-x-3 px-4 py-2 text-emerald-100/80 hover:bg-emerald-800 hover:text-white rounded-xl transition-colors duration-200 cursor-pointer active:scale-95 font-medium text-sm" href="#">
                         <span class="material-symbols-outlined text-[20px]" data-icon="logout">logout</span>
                         <span>Logout</span>
                     </a>

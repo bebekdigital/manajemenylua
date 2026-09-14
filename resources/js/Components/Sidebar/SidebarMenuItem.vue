@@ -30,8 +30,8 @@ defineProps({
             :class="[
                 'flex items-center space-x-3 px-4 py-3 rounded-xl transition-all cursor-pointer active:scale-95 duration-200',
                 active
-                    ? 'bg-secondary-container text-on-secondary-container font-semibold shadow-sm'
-                    : 'text-on-surface-variant hover:bg-surface-container-high font-medium'
+                    ? 'bg-emerald-700 text-white font-semibold shadow-sm'
+                    : 'text-emerald-100/80 hover:bg-emerald-800/50 hover:text-white font-medium'
             ]"
         >
             <span class="material-symbols-outlined text-[22px]" :data-icon="icon">{{ icon }}</span>
@@ -44,8 +44,8 @@ defineProps({
             :class="[
                 'flex items-center space-x-3 px-4 py-3 rounded-xl transition-all cursor-pointer active:scale-95 duration-200',
                 active
-                    ? 'bg-secondary-container text-on-secondary-container font-semibold shadow-sm'
-                    : 'text-on-surface-variant hover:bg-surface-container-high font-medium'
+                    ? 'bg-emerald-700 text-white font-semibold shadow-sm'
+                    : 'text-emerald-100/80 hover:bg-emerald-800/50 hover:text-white font-medium'
             ]"
         >
             <span class="material-symbols-outlined text-[22px]" :data-icon="icon">{{ icon }}</span>
