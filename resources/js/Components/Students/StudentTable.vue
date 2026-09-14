@@ -84,21 +84,21 @@ function getAlamatLengkap(s) {
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
                 <thead>
-                    <tr class="border-b border-outline-variant/30 bg-surface-container-low">
-                        <th class="p-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider w-12">No</th>
-                        <th class="p-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">NISN</th>
-                        <th class="p-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Nama</th>
-                        <th class="p-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">NIPD</th>
-                        <th class="p-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Jenjang</th>
-                        <th class="p-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Unit</th>
-                        <th class="p-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Program</th>
-                        <th class="p-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider w-16">Tingkat</th>
-                        <th class="p-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider w-16">Kelas</th>
-                        <th class="p-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider w-14">JK</th>
-                        <th class="p-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">TTL</th>
-                        <th class="p-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">No WA</th>
-                        <th class="p-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Alamat Lengkap</th>
-                        <th class="p-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider text-center w-20">Aksi</th>
+                    <tr class="border-b border-emerald-700 bg-emerald-600">
+                        <th class="p-4 font-label-md text-label-md text-white uppercase tracking-wider w-12">No</th>
+                        <th class="p-4 font-label-md text-label-md text-white uppercase tracking-wider">NISN</th>
+                        <th class="p-4 font-label-md text-label-md text-white uppercase tracking-wider">Nama</th>
+                        <th class="p-4 font-label-md text-label-md text-white uppercase tracking-wider">NIPD</th>
+                        <th class="p-4 font-label-md text-label-md text-white uppercase tracking-wider">Jenjang</th>
+                        <th class="p-4 font-label-md text-label-md text-white uppercase tracking-wider">Unit</th>
+                        <th class="p-4 font-label-md text-label-md text-white uppercase tracking-wider">Program</th>
+                        <th class="p-4 font-label-md text-label-md text-white uppercase tracking-wider w-16">Tingkat</th>
+                        <th class="p-4 font-label-md text-label-md text-white uppercase tracking-wider w-16">Kelas</th>
+                        <th class="p-4 font-label-md text-label-md text-white uppercase tracking-wider w-14">JK</th>
+                        <th class="p-4 font-label-md text-label-md text-white uppercase tracking-wider">TTL</th>
+                        <th class="p-4 font-label-md text-label-md text-white uppercase tracking-wider">No WA</th>
+                        <th class="p-4 font-label-md text-label-md text-white uppercase tracking-wider">Alamat Lengkap</th>
+                        <th class="p-4 font-label-md text-label-md text-white uppercase tracking-wider text-center w-20">Aksi</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-outline-variant/10">
