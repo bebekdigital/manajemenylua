@@ -74,17 +74,11 @@ onUnmounted(() => {
 <template>
     <header class="bg-surface-container-lowest shadow-sm docked full-width top-0 sticky z-30 border-b border-outline-variant/30 transition-all duration-300">
         <div class="flex justify-between items-center h-16 px-4 md:px-gutter max-w-container-max mx-auto gap-2 md:gap-4">
-            <!-- Left: Hamburger + Brand Icon -->
+            <!-- Left: Page Title -->
             <div class="flex items-center shrink-0">
-                <button
-                    @click="$emit('toggle-sidebar')"
-                    class="md:hidden p-2 mr-1 -ml-2 text-on-surface hover:bg-surface-variant rounded-full transition-colors focus:outline-none"
-                    aria-label="Toggle Sidebar"
-                >
-                    <span class="material-symbols-outlined">menu</span>
-                </button>
                 <!-- Brand icon only on mobile -->
                 <span class="material-symbols-outlined text-primary text-2xl mr-2 md:hidden">school</span>
+                <h1 class="hidden md:block text-sm font-bold text-on-surface">{{ pageTitle }}</h1>
             </div>
 
             <!-- Center/Right: Academic Year Selector in TopBar -->
