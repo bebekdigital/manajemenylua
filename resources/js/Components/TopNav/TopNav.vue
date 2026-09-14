@@ -74,21 +74,19 @@ onUnmounted(() => {
 <template>
     <header class="bg-surface-container-lowest shadow-sm docked full-width top-0 sticky z-30 border-b border-outline-variant/30 transition-all duration-300">
         <div class="flex justify-between items-center h-16 px-4 md:px-gutter max-w-container-max mx-auto gap-2 md:gap-4">
-            <!-- Mobile Left: Hamburger + Brand Icon -->
-            <div class="flex items-center md:hidden shrink-0">
+            <!-- Left: Hamburger + Brand Icon & Page Title -->
+            <div class="flex items-center shrink-0">
                 <button
                     @click="$emit('toggle-sidebar')"
-                    class="p-2 mr-1 -ml-2 text-on-surface hover:bg-surface-variant rounded-full transition-colors focus:outline-none"
+                    class="md:hidden p-2 mr-1 -ml-2 text-on-surface hover:bg-surface-variant rounded-full transition-colors focus:outline-none"
                     aria-label="Toggle Sidebar"
                 >
                     <span class="material-symbols-outlined">menu</span>
                 </button>
-                <span class="material-symbols-outlined text-primary text-2xl mr-1">school</span>
-            </div>
-
-            <!-- Desktop/Tablet Left: Page Title -->
-            <div class="hidden md:flex items-center shrink-0">
-                <h1 class="font-headline-sm text-headline-sm text-on-surface whitespace-nowrap">{{ pageTitle }}</h1>
+                <!-- Brand icon only on mobile -->
+                <span class="material-symbols-outlined text-primary text-2xl mr-2 md:hidden">school</span>
+                <!-- Page Title (Visible on both Mobile and Desktop) -->
+                <h1 class="font-headline-sm text-headline-sm text-black font-bold whitespace-nowrap">{{ pageTitle }}</h1>
             </div>
 
             <!-- Center/Right: Academic Year Selector in TopBar -->
