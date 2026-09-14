@@ -41,7 +41,7 @@ const menuItems = [
     >
         <!-- Brand Header -->
         <div class="mb-8 px-2 flex items-center space-x-3 mt-4">
-            <div class="w-10 h-10 rounded-full bg-emerald-700 flex items-center justify-center text-white font-headline-md shadow-sm shrink-0">
+            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-amber-300 to-amber-500 flex items-center justify-center text-emerald-950 font-headline-md shadow-md shadow-amber-900/20 shrink-0">
                 <span class="material-symbols-outlined" data-icon="school" data-weight="fill">school</span>
             </div>
             <div>
@@ -63,19 +63,19 @@ const menuItems = [
 
         <!-- Bottom Action & Utilities -->
         <div class="mt-auto pt-4 border-t border-emerald-800 space-y-2">
-            <button class="w-full bg-emerald-700 text-white py-2 px-4 rounded-full font-label-md hover:bg-emerald-600 transition-colors mb-4 flex items-center justify-center space-x-2 shadow-sm cursor-pointer active:scale-98">
+            <button class="w-full bg-gradient-to-r from-amber-400 to-amber-500 text-emerald-950 py-2 px-4 rounded-full font-label-md hover:from-amber-300 hover:to-amber-400 transition-all mb-4 flex items-center justify-center space-x-2 shadow-md shadow-amber-900/20 cursor-pointer active:scale-98 font-bold">
                 <span class="material-symbols-outlined text-[18px]">add_circle</span>
                 <span>Generate Report</span>
             </button>
             <ul class="space-y-1">
                 <li>
-                    <a class="flex items-center space-x-3 px-4 py-2 text-emerald-100/80 hover:bg-emerald-800 hover:text-white rounded-xl transition-colors duration-200 cursor-pointer active:scale-95 font-medium text-sm" href="#">
+                    <a class="flex items-center space-x-3 px-4 py-2 text-emerald-100/80 hover:bg-emerald-800/60 hover:text-amber-400 rounded-xl transition-colors duration-200 cursor-pointer active:scale-95 font-medium text-sm" href="#">
                         <span class="material-symbols-outlined text-[20px]" data-icon="help">help</span>
                         <span>Help Center</span>
                     </a>
                 </li>
                 <li>
-                    <a class="flex items-center space-x-3 px-4 py-2 text-emerald-100/80 hover:bg-emerald-800 hover:text-white rounded-xl transition-colors duration-200 cursor-pointer active:scale-95 font-medium text-sm" href="#">
+                    <a class="flex items-center space-x-3 px-4 py-2 text-emerald-100/80 hover:bg-emerald-800/60 hover:text-amber-400 rounded-xl transition-colors duration-200 cursor-pointer active:scale-95 font-medium text-sm" href="#">
                         <span class="material-symbols-outlined text-[20px]" data-icon="logout">logout</span>
                         <span>Logout</span>
                     </a>
