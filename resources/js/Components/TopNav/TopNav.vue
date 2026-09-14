@@ -88,7 +88,7 @@ onUnmounted(() => {
             </div>
 
             <!-- Center/Right: Academic Year Selector in TopBar -->
-            <div class="flex items-center justify-end flex-grow gap-2 md:gap-4">
+            <div class="flex items-center justify-end md:justify-start flex-grow gap-2 md:gap-4">
                 <!-- Academic Year Custom Dropdown -->
                 <div ref="dropdownRef" class="relative">
                     <button
@@ -218,7 +218,7 @@ onUnmounted(() => {
                 </div>
 
                 <!-- Right Actions: Role, Notifications & Profile -->
-                <div class="flex items-center space-x-1 sm:space-x-2 shrink-0">
+                <div class="flex items-center space-x-1 sm:space-x-2 shrink-0 ml-auto">
                     <!-- Role Badge (Hidden on mobile) -->
                     <div class="hidden lg:flex flex-col items-end mr-1">
                         <span class="font-body-sm text-body-sm text-on-surface font-semibold leading-tight">Admin</span>
