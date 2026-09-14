@@ -19,7 +19,7 @@ class AuthController extends Controller
         if (Auth::attempt([$loginField => $credentials['user_id'], 'password' => $credentials['password']], $request->boolean('remember'))) {
             $request->session()->regenerate();
 
-            return redirect()->intended('/dashboard');
+            return redirect()->intended('/beranda');
         }
 
         return back()->withErrors([

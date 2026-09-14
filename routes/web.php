@@ -49,7 +49,7 @@ Route::post('/login', [AuthController::class, 'login'])->name('login.post');
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-    Route::get('/dashboard', function () {
+    Route::get('/beranda', function () {
         return Inertia::render('Dashboard');
     })->name('dashboard');
 

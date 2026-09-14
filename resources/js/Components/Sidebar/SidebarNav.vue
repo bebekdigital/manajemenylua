@@ -16,7 +16,7 @@ defineProps({
 defineEmits(['close']);
 
 const menuItems = [
-    { id: 'overview', label: 'Beranda', icon: 'dashboard', href: '/' },
+    { id: 'overview', label: 'Beranda', icon: 'dashboard', href: '/beranda' },
     { id: 'students', label: 'Data Siswa', icon: 'groups', href: '/students' },
     { id: 'administration', label: 'Administrasi', icon: 'description', href: '/administration' },
     { id: 'staff', label: 'Data Pegawai', icon: 'badge', href: '#' },
