@@ -8,8 +8,12 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::get('/', function () {
+    return Inertia::render('Auth/Login');
+})->name('login');
+
+Route::get('/dashboard', function () {
     return Inertia::render('Dashboard');
-});
+})->name('dashboard');
 
 Route::get('/students', [StudentController::class, 'index'])->name('students.index');
 Route::get('/students/template', [StudentController::class, 'downloadTemplate'])->name('students.template');

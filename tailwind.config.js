@@ -55,7 +55,18 @@ export default {
                 "primary-fixed-dim": "#83d99c",
                 "on-tertiary-container": "#d4d1c7",
                 "on-secondary-fixed": "#241a00",
-                "error-container": "#ffdad6"
+                "error-container": "#ffdad6",
+                "accent": {
+                    "gold": "#d4af37",
+                    "amber": "#f59e0b"
+                },
+                "foundation": {
+                    "bg": "#fbf9f8",
+                    "surface": "#ffffff",
+                    "border": "#e2e8f0",
+                    "text": "#1e293b",
+                    "muted": "#64748b"
+                }
             },
             borderRadius: {
                 "DEFAULT": "0.125rem",
