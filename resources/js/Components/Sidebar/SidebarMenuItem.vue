@@ -28,10 +28,10 @@ defineProps({
             v-if="href !== '#'"
             :href="href"
             :class="[
-                'flex items-center space-x-3 px-4 py-3 rounded-xl transition-all cursor-pointer active:scale-95 duration-200 border-l-4',
+                'flex items-center space-x-3 px-4 py-3 rounded-xl transition-all cursor-pointer active:scale-95 duration-200',
                 active
-                    ? 'bg-emerald-800/60 border-amber-400 text-amber-400 font-semibold shadow-sm'
-                    : 'border-transparent text-emerald-100/80 hover:bg-emerald-800/40 hover:text-amber-200 font-medium'
+                    ? 'bg-emerald-800 text-yellow-200 font-semibold shadow-sm'
+                    : 'text-emerald-100/80 hover:bg-emerald-800 hover:text-yellow-200 font-medium'
             ]"
         >
             <span class="material-symbols-outlined text-[22px]" :data-icon="icon">{{ icon }}</span>
