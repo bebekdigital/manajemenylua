@@ -148,24 +148,25 @@ function closeMobileSubMenu() {
             leave-from-class="max-h-48 opacity-100"
             leave-to-class="max-h-0 opacity-0"
         >
-            <div v-show="isMobileSubMenuOpen" class="overflow-hidden border-b border-emerald-700 bg-emerald-800/90 backdrop-blur-sm">
-                <div class="flex items-center justify-around px-4 py-3 gap-2">
+            <div v-show="isMobileSubMenuOpen" class="overflow-hidden bg-white rounded-t-3xl shadow-[0_-10px_20px_rgba(0,0,0,0.1)] pb-2 pt-1 border-t border-outline-variant/30">
+                <div class="w-12 h-1 bg-outline-variant/40 rounded-full mx-auto my-2"></div>
+                <div class="flex items-center justify-around px-4 py-2 gap-2">
                     <Link
                         href="/students"
                         @click="closeMobileSubMenu"
-                        :class="['flex flex-col items-center justify-center px-3 py-2 rounded-xl flex-1 transition-all', currentRoute === 'students' ? 'text-yellow-200 bg-emerald-700/70' : 'text-emerald-200/80 active:text-yellow-200']"
+                        :class="['flex flex-col items-center justify-center px-3 py-2 rounded-xl flex-1 transition-all', currentRoute === 'students' ? 'text-emerald-900 bg-emerald-50' : 'text-on-surface-variant active:text-emerald-900']"
                     >
                         <span class="material-symbols-outlined text-[20px] filled-icon">groups</span>
                         <span class="text-[10px] font-semibold mt-1 leading-tight">Data Siswa</span>
                     </Link>
-                    <a href="#" :class="['flex flex-col items-center justify-center px-3 py-2 rounded-xl flex-1 transition-all', currentRoute === 'staff' ? 'text-yellow-200 bg-emerald-700/70' : 'text-emerald-200/80 active:text-yellow-200']">
+                    <a href="#" :class="['flex flex-col items-center justify-center px-3 py-2 rounded-xl flex-1 transition-all', currentRoute === 'staff' ? 'text-emerald-900 bg-emerald-50' : 'text-on-surface-variant active:text-emerald-900']">
                         <span class="material-symbols-outlined text-[20px] filled-icon">badge</span>
                         <span class="text-[10px] font-semibold mt-1 leading-tight">Data Pegawai</span>
                     </a>
                     <Link
                         href="/administration"
                         @click="closeMobileSubMenu"
-                        :class="['flex flex-col items-center justify-center px-3 py-2 rounded-xl flex-1 transition-all', currentRoute === 'administration' ? 'text-yellow-200 bg-emerald-700/70' : 'text-emerald-200/80 active:text-yellow-200']"
+                        :class="['flex flex-col items-center justify-center px-3 py-2 rounded-xl flex-1 transition-all', currentRoute === 'administration' ? 'text-emerald-900 bg-emerald-50' : 'text-on-surface-variant active:text-emerald-900']"
                     >
                         <span class="material-symbols-outlined text-[20px] filled-icon">description</span>
                         <span class="text-[10px] font-semibold mt-1 leading-tight">Administrasi</span>

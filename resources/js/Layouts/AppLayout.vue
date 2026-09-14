@@ -32,7 +32,7 @@ const activeRouteLabel = computed(() => {
 </script>
 
 <template>
-    <div class="bg-slate-50 text-slate-900 font-body-md min-h-screen flex flex-col md:flex-row antialiased">
+    <div class="bg-white text-slate-900 font-body-md min-h-screen flex flex-col md:flex-row antialiased">
         <!-- Persistent Sidebar (Desktop Only) -->
         <SidebarNav :current-route="activeRoute" />
 
