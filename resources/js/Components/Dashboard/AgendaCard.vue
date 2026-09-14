@@ -37,35 +37,35 @@ const agendas = [
         <div class="absolute left-0 bottom-0 w-28 h-28 rounded-full bg-emerald-200/20 pointer-events-none blur-2xl"></div>
 
         <!-- Header -->
-        <div class="px-5 py-4 border-b border-emerald-200/40 flex items-center justify-between relative z-10">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-400 flex items-center justify-center shadow-sm">
-                    <span class="material-symbols-outlined text-white text-xl">event_upcoming</span>
+        <div class="px-3 sm:px-5 py-3 sm:py-4 border-b border-emerald-200/40 flex items-center justify-between relative z-10">
+            <div class="flex items-center gap-2 sm:gap-3">
+                <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-400 flex items-center justify-center shadow-sm shrink-0">
+                    <span class="material-symbols-outlined text-white text-lg sm:text-xl">event_upcoming</span>
                 </div>
                 <div>
-                    <h3 class="text-base font-bold text-slate-900">Agenda Terdekat</h3>
-                    <p class="text-[11px] text-slate-500">Jadwal kegiatan akademik & yayasan</p>
+                    <h3 class="text-sm sm:text-base font-bold text-slate-900">Agenda Terdekat</h3>
+                    <p class="text-[10px] sm:text-[11px] text-slate-500 hidden sm:block">Jadwal kegiatan akademik & yayasan</p>
                 </div>
             </div>
-            <button class="text-[11px] font-bold text-slate-700 hover:text-slate-900 transition-colors bg-slate-100/80 hover:bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200/60">Lihat Semua</button>
+            <button class="text-[10px] sm:text-[11px] font-bold text-slate-700 hover:text-slate-900 transition-colors bg-slate-100/80 hover:bg-slate-100 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg border border-slate-200/60">Lihat Semua</button>
         </div>
         
         <!-- List -->
         <div class="flex-grow p-0 relative z-10">
             <div class="divide-y divide-emerald-100/80">
-                <div v-for="agenda in agendas" :key="agenda.id" class="p-4 hover:bg-emerald-50/50 transition-colors flex items-start gap-4">
-                    <div class="flex flex-col items-center justify-center w-12 h-12 rounded-xl bg-white border border-emerald-200/60 shadow-sm shrink-0">
-                        <span class="text-[9px] font-bold text-amber-500 uppercase leading-tight">{{ agenda.date.split(' ')[1] }}</span>
-                        <span class="text-base font-extrabold text-slate-900 leading-tight">{{ agenda.date.split(' ')[0] }}</span>
+                <div v-for="agenda in agendas" :key="agenda.id" class="px-3 sm:px-4 py-3 sm:py-4 hover:bg-emerald-50/50 transition-colors flex items-start gap-2.5 sm:gap-4">
+                    <div class="flex flex-col items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-white border border-emerald-200/60 shadow-sm shrink-0">
+                        <span class="text-[8px] sm:text-[9px] font-bold text-amber-500 uppercase leading-tight">{{ agenda.date.split(' ')[1] }}</span>
+                        <span class="text-sm sm:text-base font-extrabold text-slate-900 leading-tight">{{ agenda.date.split(' ')[0] }}</span>
                     </div>
                     <div class="min-w-0 flex-1">
-                        <div class="flex items-center gap-2 mb-1">
-                            <h4 class="font-bold text-slate-900 text-sm truncate">{{ agenda.title }}</h4>
-                            <span :class="`text-[9px] font-bold px-2 py-0.5 rounded-md border shrink-0 ${agenda.typeColor}`">{{ agenda.type }}</span>
+                        <div class="flex items-start sm:items-center gap-1.5 sm:gap-2 mb-1">
+                            <h4 class="font-bold text-slate-900 text-xs sm:text-sm leading-tight line-clamp-2 sm:truncate">{{ agenda.title }}</h4>
+                            <span :class="`text-[8px] sm:text-[9px] font-bold px-1.5 sm:px-2 py-0.5 rounded-md border shrink-0 ${agenda.typeColor}`">{{ agenda.type }}</span>
                         </div>
-                        <div class="flex items-center gap-3 text-[11px] text-slate-500">
-                            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[13px]">schedule</span> {{ agenda.time }}</span>
-                            <span class="flex items-center gap-1 truncate"><span class="material-symbols-outlined text-[13px]">location_on</span> {{ agenda.location }}</span>
+                        <div class="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-3 text-[10px] sm:text-[11px] text-slate-500">
+                            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[12px] sm:text-[13px]">schedule</span> {{ agenda.time }}</span>
+                            <span class="flex items-center gap-1 truncate"><span class="material-symbols-outlined text-[12px] sm:text-[13px]">location_on</span> {{ agenda.location }}</span>
                         </div>
                     </div>
                 </div>

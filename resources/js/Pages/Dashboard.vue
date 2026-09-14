@@ -17,11 +17,11 @@ defineOptions({
 
     <div class="flex-grow p-gutter md:p-margin-desktop max-w-container-max mx-auto w-full">
         <!-- Row 1: Agenda + KPI (swipeable on mobile) -->
-        <div class="flex lg:grid lg:grid-cols-3 gap-4 lg:gap-6 mb-6 overflow-x-auto snap-x snap-mandatory pb-0 lg:pb-0 -mx-4 md:-mx-6 lg:mx-0 px-4 md:px-6 lg:px-0 no-scrollbar">
-            <div class="lg:col-span-2 w-[75vw] sm:w-auto lg:w-auto snap-start shrink-0">
+        <div class="flex lg:grid lg:grid-cols-3 gap-4 lg:gap-6 mb-6 overflow-x-auto snap-x snap-mandatory lg:overflow-visible no-scrollbar">
+            <div class="lg:col-span-2 w-[75vw] sm:w-auto lg:w-auto snap-start shrink-0 ml-0">
                 <AgendaCard />
             </div>
-            <div class="lg:col-span-1 w-[75vw] sm:w-auto lg:w-auto snap-start shrink-0">
+            <div class="lg:col-span-1 w-[75vw] sm:w-auto lg:w-auto snap-start shrink-0 mr-4 lg:mr-0">
                 <KpiCard />
             </div>
         </div>
