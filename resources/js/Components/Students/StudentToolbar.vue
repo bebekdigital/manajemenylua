@@ -126,7 +126,7 @@ function resetAll() {
 </script>
 
 <template>
-    <div class="bg-surface-container-lowest rounded-2xl p-4 md:p-5 mb-6 shadow-[0px_4px_20px_rgba(0,40,20,0.06)] border border-primary/10 flex flex-col gap-4">
+    <div class="bg-white rounded-2xl p-4 md:p-5 mb-6 shadow-sm border border-slate-200 flex flex-col gap-4">
         <!-- Row 1: Search Input & Action Downloads -->
         <div class="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
             <!-- Search Bar with Clear Button -->
@@ -138,7 +138,7 @@ function resetAll() {
                     v-model="searchQuery"
                     type="text"
                     placeholder="Cari berdasarkan nama, NISN, atau NIPD..."
-                    class="w-full pl-11 pr-10 py-2.5 bg-surface-container-low hover:bg-surface-container focus:bg-surface-container-lowest border border-outline-variant/60 rounded-xl font-body-md text-sm text-on-surface placeholder:text-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                    class="w-full pl-11 pr-10 py-2.5 bg-white hover:bg-slate-50 focus:bg-white border border-slate-300 rounded-xl font-body-md text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all"
                     @input="onSearchInput"
                 />
                 <button
@@ -191,7 +191,7 @@ function resetAll() {
                 <div class="relative min-w-[135px] sm:min-w-[155px] flex-grow sm:flex-grow-0">
                     <select
                         v-model="selectedUnit"
-                        class="w-full pl-3 pr-8 py-2 bg-surface-container-low hover:bg-surface-container border border-outline-variant/60 rounded-xl text-xs sm:text-sm font-medium text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary cursor-pointer transition-colors"
+                        class="w-full pl-3 pr-8 py-2 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm font-medium text-slate-700 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 cursor-pointer transition-colors"
                         @change="onUnitChange"
                     >
                         <option v-for="u in units" :key="u.value" :value="u.value">{{ u.label }}</option>
@@ -202,7 +202,7 @@ function resetAll() {
                 <div class="relative min-w-[115px] sm:min-w-[135px] flex-grow sm:flex-grow-0">
                     <select
                         v-model="selectedGrade"
-                        class="w-full pl-3 pr-8 py-2 bg-surface-container-low hover:bg-surface-container border border-outline-variant/60 rounded-xl text-xs sm:text-sm font-medium text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary cursor-pointer transition-colors"
+                        class="w-full pl-3 pr-8 py-2 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm font-medium text-slate-700 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 cursor-pointer transition-colors"
                         @change="onGradeChange"
                     >
                         <option v-for="g in grades" :key="g.value" :value="g.value">{{ g.label }}</option>
@@ -213,7 +213,7 @@ function resetAll() {
                 <div class="relative min-w-[125px] sm:min-w-[145px] flex-grow sm:flex-grow-0">
                     <select
                         v-model="selectedStatus"
-                        class="w-full pl-3 pr-8 py-2 bg-surface-container-low hover:bg-surface-container border border-outline-variant/60 rounded-xl text-xs sm:text-sm font-medium text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary cursor-pointer transition-colors"
+                        class="w-full pl-3 pr-8 py-2 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm font-medium text-slate-700 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 cursor-pointer transition-colors"
                         @change="onStatusChange"
                     >
                         <option v-for="s in statuses" :key="s.value" :value="s.value">{{ s.label }}</option>
@@ -225,7 +225,7 @@ function resetAll() {
                     <div class="relative flex items-center">
                         <select
                             :value="perPage"
-                            class="w-full pl-8 pr-8 py-2 bg-surface-container-low hover:bg-surface-container border border-outline-variant/60 focus:border-primary rounded-xl text-xs sm:text-sm font-medium text-on-surface focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer transition-colors appearance-none"
+                            class="w-full pl-8 pr-8 py-2 bg-white hover:bg-slate-50 border border-slate-300 focus:border-emerald-500 rounded-xl text-xs sm:text-sm font-medium text-slate-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer transition-colors appearance-none"
                             @change="onPerPageChange"
                             title="Tampilkan jumlah baris data per halaman"
                         >
