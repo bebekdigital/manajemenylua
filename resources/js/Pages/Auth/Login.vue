@@ -25,30 +25,30 @@ const submit = () => {
   <div class="bg-foundation-bg min-h-screen text-foundation-text flex flex-col justify-between antialiased selection:bg-primary/20 selection:text-primary font-sans">
     <!-- Main Container: Centered Institutional Two-Section Container -->
     <main class="flex-grow flex items-center justify-center p-4 sm:p-6 lg:p-10">
-      <div class="w-full max-w-5xl bg-foundation-surface rounded-2xl shadow-xl shadow-slate-200/60 border border-foundation-border/70 overflow-hidden flex flex-col md:flex-row min-h-[580px]">
+      <div class="w-full max-w-5xl bg-foundation-surface rounded-2xl shadow-xl shadow-slate-200/60 border border-foundation-border/70 overflow-hidden flex flex-col md:flex-row min-h-0 md:min-h-[580px]">
         
         <!-- Section Kiri: Judul Portal & Identitas Yayasan -->
-        <section class="md:w-5/12 bg-gradient-to-br from-[#005a30] via-[#006837] to-[#044426] text-white p-8 md:p-12 flex flex-col justify-between relative overflow-hidden">
+        <section class="md:w-5/12 bg-gradient-to-br from-[#005a30] via-[#006837] to-[#044426] text-white p-6 md:p-12 flex flex-col justify-center md:justify-between relative overflow-hidden">
           <!-- Subtle Decorative Background Pattern -->
-          <div class="absolute -right-16 -top-16 w-56 h-56 rounded-full bg-white/5 pointer-events-none blur-2xl"></div>
-          <div class="absolute -left-12 -bottom-12 w-64 h-64 rounded-full bg-accent-gold/10 pointer-events-none blur-3xl"></div>
+          <div class="absolute -right-16 -top-16 w-56 h-56 rounded-full bg-white/5 pointer-events-none blur-2xl hidden md:block"></div>
+          <div class="absolute -left-12 -bottom-12 w-64 h-64 rounded-full bg-accent-gold/10 pointer-events-none blur-3xl hidden md:block"></div>
           <div class="absolute inset-0 opacity-[0.04] pointer-events-none" style="background-image: radial-gradient(#fff 1px, transparent 1px); background-size: 24px 24px;"></div>
 
           <!-- Top Header & Logo Identity -->
           <div class="relative z-10">
-            <div class="flex items-center gap-3.5 mb-8">
-              <div class="w-12 h-12 rounded-xl bg-white/10 backdrop-blur border border-white/20 flex items-center justify-center text-accent-gold shadow-inner">
-                <span class="material-symbols-outlined text-2xl font-bold">account_balance</span>
+            <div class="flex items-center gap-3.5 md:mb-8">
+              <div class="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-white/10 backdrop-blur border border-white/20 flex items-center justify-center text-accent-gold shadow-inner shrink-0">
+                <span class="material-symbols-outlined text-xl md:text-2xl font-bold">account_balance</span>
               </div>
               <div>
-                <span class="text-xs uppercase tracking-widest text-emerald-200/80 font-semibold block">Sistem Terpadu</span>
-                <h2 class="font-bold text-lg leading-tight tracking-tight text-white">Yayasan Li Ulil Albab</h2>
-                <span class="text-xs text-emerald-200/90">Karanganyar</span>
+                <span class="text-[10px] md:text-xs uppercase tracking-widest text-emerald-200/80 font-semibold block">Sistem Terpadu</span>
+                <h2 class="font-bold text-base md:text-lg leading-tight tracking-tight text-white">Yayasan Li Ulil Albab</h2>
+                <span class="hidden md:block text-xs text-emerald-200/90">Karanganyar</span>
               </div>
             </div>
 
-            <!-- Judul Portal & Deskripsi -->
-            <div class="mt-4 space-y-3">
+            <!-- Judul Portal & Deskripsi (Disembunyikan sebagian di mobile) -->
+            <div class="mt-4 space-y-3 hidden md:block">
               <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-xs text-emerald-100 font-medium font-inter">
                 <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                 Portal Resmi Akademik &amp; SDM
@@ -63,8 +63,8 @@ const submit = () => {
             </div>
           </div>
 
-          <!-- Bottom Informational / Trust Badge -->
-          <div class="relative z-10 pt-8 mt-8 border-t border-white/15">
+          <!-- Bottom Informational / Trust Badge (Disembunyikan di mobile) -->
+          <div class="hidden md:block relative z-10 pt-8 mt-8 border-t border-white/15">
             <div class="flex items-center gap-3 text-emerald-100/90 text-xs font-inter">
               <span class="material-symbols-outlined text-accent-gold text-lg">verified_user</span>
               <span class="">Enkripsi Institusional 256-bit aman &amp; terverifikasi.</span>
@@ -156,20 +156,6 @@ const submit = () => {
 
       </div>
     </main>
-
-    <!-- Global Footer -->
-    <footer class="w-full py-4 border-t border-foundation-border/60 bg-white/70 backdrop-blur-sm">
-      <div class="max-w-5xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-inter text-foundation-muted">
-        <p class="">© 2024 Yayasan Li Ulil Albab Karanganyar. Seluruh hak cipta dilindungi.</p>
-        <div class="flex items-center gap-5">
-          <a href="#" class="hover:text-primary transition-colors">Kebijakan Privasi</a>
-          <span class="text-slate-300">•</span>
-          <a href="#" class="hover:text-primary transition-colors">Syarat Penggunaan</a>
-          <span class="text-slate-300">•</span>
-          <a href="#" class="hover:text-primary transition-colors">Pusat Bantuan IT</a>
-        </div>
-      </div>
-    </footer>
   </div>
 </template>
 
