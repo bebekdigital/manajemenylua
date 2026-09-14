@@ -95,7 +95,7 @@ onUnmounted(() => {
                         type="button"
                         @click="toggleDropdown"
                         :disabled="isSwitching"
-                        class="group relative flex items-center gap-2 px-3 py-1.5 bg-surface-container-low hover:bg-surface-container border border-outline-variant/60 hover:border-primary/50 rounded-xl transition-all shadow-xs cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/25"
+                        class="group relative flex items-center gap-2 px-3 py-1.5 bg-surface-container-low md:hover:bg-surface-container border border-outline-variant/60 md:hover:border-primary/50 rounded-xl transition-all shadow-xs cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/25"
                         :class="{ 'ring-2 ring-primary/30 border-primary bg-surface-container': isDropdownOpen, 'opacity-60 pointer-events-none': isSwitching }"
                         aria-haspopup="listbox"
                         :aria-expanded="isDropdownOpen"
@@ -166,7 +166,7 @@ onUnmounted(() => {
                                     class="w-full flex items-center justify-between p-2.5 rounded-xl text-left transition-all cursor-pointer group"
                                     :class="Number(selectedAcademicYear?.id) === Number(year.id)
                                         ? 'bg-primary/10 text-primary font-bold border border-primary/20 shadow-2xs'
-                                        : 'text-on-surface hover:bg-surface-container hover:text-primary font-medium'"
+                                        : 'text-on-surface md:hover:bg-surface-container md:hover:text-primary font-medium'"
                                 >
                                     <div class="flex items-center gap-2.5 min-w-0">
                                         <span

@@ -79,7 +79,7 @@ const modules = [
                     :class="[
                         'group relative bg-surface rounded-2xl border overflow-hidden transition-all duration-200 flex flex-col',
                         mod.status === 'available'
-                            ? 'border-outline-variant hover:shadow-lg hover:-translate-y-1 cursor-pointer'
+                            ? 'border-outline-variant md:hover:shadow-lg md:hover:-translate-y-1 cursor-pointer'
                             : 'border-outline-variant/50 opacity-70 cursor-default'
                     ]"
                 >
@@ -107,7 +107,7 @@ const modules = [
                         <!-- Title & Description -->
                         <h2 :class="[
                             'text-base font-bold mb-2 leading-snug transition-colors',
-                            mod.status === 'available' ? 'text-on-surface group-hover:text-primary' : 'text-on-surface-variant'
+                            mod.status === 'available' ? 'text-on-surface md:group-hover:text-primary' : 'text-on-surface-variant'
                         ]">
                             {{ mod.title }}
                         </h2>
@@ -131,9 +131,9 @@ const modules = [
 
                         <!-- Footer CTA -->
                         <div class="pt-4 border-t border-outline-variant/50 mt-auto">
-                            <div v-if="mod.status === 'available'" class="flex items-center space-x-1.5 text-sm font-semibold text-primary group-hover:underline">
+                            <div v-if="mod.status === 'available'" class="flex items-center space-x-1.5 text-sm font-semibold text-primary md:group-hover:underline">
                                 <span>Buka Fitur</span>
-                                <span class="material-symbols-outlined text-base group-hover:translate-x-0.5 transition-transform">arrow_forward</span>
+                                <span class="material-symbols-outlined text-base md:group-hover:translate-x-0.5 transition-transform">arrow_forward</span>
                             </div>
                             <div v-else class="text-xs text-on-surface-variant flex items-center space-x-1.5">
                                 <span class="material-symbols-outlined text-base">schedule</span>
