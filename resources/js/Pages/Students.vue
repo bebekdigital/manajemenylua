@@ -148,16 +148,16 @@ function onPageChange(page) {
         <!-- Page Header -->
         <div class="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-                <h2 class="text-2xl text-primary font-bold">
+                <h2 class="text-2xl text-black font-bold">
                     Database Siswa
                 </h2>
-                <p class="font-body-md text-body-md text-on-surface-variant mt-1">
+                <p class="font-body-md text-body-md text-black mt-1">
                     Kelola dan tinjau seluruh data peserta didik sesuai Tahun Ajaran aktif
                 </p>
             </div>
             <div class="flex items-center gap-2">
-                <span class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-surface-container-high text-on-surface border border-outline-variant/50 shadow-2xs">
-                    <span class="material-symbols-outlined text-[16px] text-primary">groups</span>
+                <span class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-surface-container-high text-black border border-outline-variant/50 shadow-2xs">
+                    <span class="material-symbols-outlined text-[16px] text-black">groups</span>
                     {{ students.length }} Peserta Didik Terdaftar
                 </span>
             </div>

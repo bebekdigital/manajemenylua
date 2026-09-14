@@ -74,7 +74,7 @@ onUnmounted(() => {
 <template>
     <header class="bg-surface-container-lowest shadow-sm docked full-width top-0 sticky z-30 border-b border-outline-variant/30 transition-all duration-300">
         <div class="flex justify-between items-center h-16 px-4 md:px-gutter max-w-container-max mx-auto gap-2 md:gap-4">
-            <!-- Left: Hamburger + Brand Icon & Page Title -->
+            <!-- Left: Hamburger + Brand Icon -->
             <div class="flex items-center shrink-0">
                 <button
                     @click="$emit('toggle-sidebar')"
@@ -85,8 +85,6 @@ onUnmounted(() => {
                 </button>
                 <!-- Brand icon only on mobile -->
                 <span class="material-symbols-outlined text-primary text-2xl mr-2 md:hidden">school</span>
-                <!-- Page Title (Visible on both Mobile and Desktop) -->
-                <h1 class="font-headline-sm text-headline-sm text-black font-bold whitespace-nowrap">{{ pageTitle }}</h1>
             </div>
 
             <!-- Center/Right: Academic Year Selector in TopBar -->
