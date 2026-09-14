@@ -43,11 +43,11 @@ const agendas = [
                     <span class="material-symbols-outlined text-white text-xl">event_upcoming</span>
                 </div>
                 <div>
-                    <h3 class="text-base font-bold text-emerald-900">Agenda Terdekat</h3>
-                    <p class="text-[11px] text-emerald-700/60">Jadwal kegiatan akademik & yayasan</p>
+                    <h3 class="text-base font-bold text-slate-900">Agenda Terdekat</h3>
+                    <p class="text-[11px] text-slate-500">Jadwal kegiatan akademik & yayasan</p>
                 </div>
             </div>
-            <button class="text-[11px] font-bold text-emerald-700 hover:text-emerald-900 transition-colors bg-emerald-100/80 hover:bg-emerald-100 px-3 py-1.5 rounded-lg border border-emerald-200/60">Lihat Semua</button>
+            <button class="text-[11px] font-bold text-slate-700 hover:text-slate-900 transition-colors bg-slate-100/80 hover:bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200/60">Lihat Semua</button>
         </div>
         
         <!-- List -->
@@ -56,14 +56,14 @@ const agendas = [
                 <div v-for="agenda in agendas" :key="agenda.id" class="p-4 hover:bg-emerald-50/50 transition-colors flex items-start gap-4">
                     <div class="flex flex-col items-center justify-center w-12 h-12 rounded-xl bg-white border border-emerald-200/60 shadow-sm shrink-0">
                         <span class="text-[9px] font-bold text-amber-500 uppercase leading-tight">{{ agenda.date.split(' ')[1] }}</span>
-                        <span class="text-base font-extrabold text-emerald-900 leading-tight">{{ agenda.date.split(' ')[0] }}</span>
+                        <span class="text-base font-extrabold text-slate-900 leading-tight">{{ agenda.date.split(' ')[0] }}</span>
                     </div>
                     <div class="min-w-0 flex-1">
                         <div class="flex items-center gap-2 mb-1">
-                            <h4 class="font-bold text-emerald-950 text-sm truncate">{{ agenda.title }}</h4>
+                            <h4 class="font-bold text-slate-900 text-sm truncate">{{ agenda.title }}</h4>
                             <span :class="`text-[9px] font-bold px-2 py-0.5 rounded-md border shrink-0 ${agenda.typeColor}`">{{ agenda.type }}</span>
                         </div>
-                        <div class="flex items-center gap-3 text-[11px] text-emerald-700/70">
+                        <div class="flex items-center gap-3 text-[11px] text-slate-500">
                             <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[13px]">schedule</span> {{ agenda.time }}</span>
                             <span class="flex items-center gap-1 truncate"><span class="material-symbols-outlined text-[13px]">location_on</span> {{ agenda.location }}</span>
                         </div>
