@@ -3,6 +3,7 @@ import { ref, computed } from 'vue';
 import { Head, router, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AcademicYearFormModal from '@/Components/Portal/AcademicYearFormModal.vue';
+import UserFormModal from '@/Components/Portal/UserFormModal.vue';
 
 defineOptions({
     layout: AppLayout,
@@ -13,12 +14,21 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    users: {
+        type: Array,
+        default: () => [],
+    },
 });
 
 const page = usePage();
 
 const showFormModal = ref(false);
 const editingYear = ref(null);
+
+const showUserModal = ref(false);
+const editingUser = ref(null);
+const deletingUserId = ref(null);
+
 const dismissedFlash = ref(false);
 const settingActiveId = ref(null);
 const deletingId = ref(null);
@@ -49,6 +59,43 @@ function closeFormModal() {
 function onFormSuccess() {
     closeFormModal();
     dismissedFlash.value = false;
+}
+
+// User Modal Functions
+function openUserCreateModal() {
+    editingUser.value = null;
+    showUserModal.value = true;
+}
+
+function openUserEditModal(user) {
+    editingUser.value = { ...user };
+    showUserModal.value = true;
+}
+
+function closeUserModal() {
+    showUserModal.value = false;
+    editingUser.value = null;
+}
+
+function onUserFormSuccess() {
+    closeUserModal();
+    dismissedFlash.value = false;
+}
+
+function confirmUserDelete(user) {
+    if (!confirm(`Yakin ingin menghapus akun pengguna "${user.name}"?\n\nAksi ini tidak bisa dibatalkan.`)) {
+        return;
+    }
+
+    deletingUserId.value = user.id;
+    dismissedFlash.value = false;
+
+    router.delete(`/portal/users/${user.id}`, {
+        preserveScroll: true,
+        onFinish: () => {
+            deletingUserId.value = null;
+        },
+    });
 }
 
 function setActive(year) {
@@ -277,6 +324,108 @@ function formatDate(dateStr) {
                 </button>
             </div>
         </div>
+        
+        <!-- User Management Section (Superadmin Only) -->
+        <div v-if="$page.props.auth?.user?.role === 'superadmin'" class="bg-surface-container-lowest rounded-2xl border border-primary/10 shadow-[0px_4px_20px_rgba(0,40,20,0.06)] overflow-hidden mt-8">
+            <!-- Section Header -->
+            <div class="flex items-center justify-between px-5 py-4 border-b border-outline-variant/30">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                        <span class="material-symbols-outlined text-primary text-xl">manage_accounts</span>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-on-surface">Manajemen Pengguna</h3>
+                        <p class="text-xs text-on-surface-variant">Kelola akun dan kewenangan staf/guru di sistem</p>
+                    </div>
+                </div>
+                <button
+                    type="button"
+                    @click="openUserCreateModal"
+                    class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-container text-on-primary font-semibold text-sm transition-all shadow-xs hover:shadow-md cursor-pointer"
+                >
+                    <span class="material-symbols-outlined text-[18px]">person_add</span>
+                    <span>Tambah Akun</span>
+                </button>
+            </div>
+
+            <!-- Table -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="bg-surface-container-low/50">
+                            <th class="text-left px-5 py-3 font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Nama Lengkap</th>
+                            <th class="text-left px-5 py-3 font-semibold text-on-surface-variant text-xs uppercase tracking-wider">NIP / Username</th>
+                            <th class="text-left px-5 py-3 font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Email</th>
+                            <th class="text-center px-5 py-3 font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Role</th>
+                            <th class="text-center px-5 py-3 font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Dibuat Pada</th>
+                            <th class="text-center px-5 py-3 font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-outline-variant/20">
+                        <tr
+                            v-for="u in users"
+                            :key="u.id"
+                            class="hover:bg-surface-container-low/40 transition-colors"
+                        >
+                            <td class="px-5 py-3.5">
+                                <span class="font-semibold text-on-surface">{{ u.name }}</span>
+                                <span v-if="u.id === $page.props.auth?.user?.id" class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-primary/10 text-primary border border-primary/20">
+                                    Anda
+                                </span>
+                            </td>
+                            <td class="px-5 py-3.5 text-on-surface-variant">
+                                {{ u.username }}
+                            </td>
+                            <td class="px-5 py-3.5 text-on-surface-variant">
+                                {{ u.email || '—' }}
+                            </td>
+                            <td class="px-5 py-3.5 text-center">
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider"
+                                      :class="u.role === 'superadmin' ? 'bg-error/10 text-error border border-error/20' : 'bg-secondary-container/40 text-on-secondary-container border border-secondary-container/60'">
+                                    {{ u.role }}
+                                </span>
+                            </td>
+                            <td class="px-5 py-3.5 text-center text-on-surface-variant text-xs">
+                                {{ u.created_at }}
+                            </td>
+                            <td class="px-5 py-3.5 text-center">
+                                <div class="flex items-center justify-center gap-1">
+                                    <button
+                                        type="button"
+                                        @click="openUserEditModal(u)"
+                                        class="p-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer"
+                                        title="Edit Akun"
+                                    >
+                                        <span class="material-symbols-outlined text-[18px]">edit</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        @click="confirmUserDelete(u)"
+                                        :disabled="deletingUserId === u.id || u.id === $page.props.auth?.user?.id"
+                                        class="p-2 rounded-lg transition-colors cursor-pointer"
+                                        :class="u.id === $page.props.auth?.user?.id
+                                            ? 'text-outline/40 cursor-not-allowed'
+                                            : 'text-on-surface-variant hover:text-error hover:bg-error/10'"
+                                        :title="u.id === $page.props.auth?.user?.id ? 'Tidak bisa menghapus akun sendiri' : 'Hapus Akun'"
+                                    >
+                                        <span
+                                            v-if="deletingUserId === u.id"
+                                            class="material-symbols-outlined text-[18px] animate-spin"
+                                        >sync</span>
+                                        <span v-else class="material-symbols-outlined text-[18px]">delete</span>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Empty State Users -->
+            <div v-if="users.length === 0" class="px-5 py-10 text-center text-on-surface-variant">
+                Belum ada data pengguna lainnya.
+            </div>
+        </div>
     </div>
 
     <!-- Form Modal -->
@@ -285,5 +434,13 @@ function formatDate(dateStr) {
         :editing="editingYear"
         @close="closeFormModal"
         @success="onFormSuccess"
+    />
+
+    <!-- User Form Modal -->
+    <UserFormModal
+        :show="showUserModal"
+        :editing="editingUser"
+        @close="closeUserModal"
+        @success="onUserFormSuccess"
     />
 </template>

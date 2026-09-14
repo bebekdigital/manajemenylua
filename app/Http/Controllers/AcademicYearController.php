@@ -29,8 +29,18 @@ class AcademicYearController extends Controller
                 'classrooms_count' => $year->classrooms()->count(),
             ]);
 
+        $users = \App\Models\User::orderBy('name')->get()->map(fn ($user) => [
+            'id' => $user->id,
+            'name' => $user->name,
+            'username' => $user->username,
+            'email' => $user->email,
+            'role' => $user->role,
+            'created_at' => $user->created_at?->format('Y-m-d H:i'),
+        ]);
+
         return Inertia::render('Portal', [
             'academicYears' => $academicYears,
+            'users' => $users,
         ]);
     }
 
