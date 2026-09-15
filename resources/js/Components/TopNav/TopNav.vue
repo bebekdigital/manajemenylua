@@ -255,13 +255,7 @@ onUnmounted(() => {
             </div>
 
             <!-- Right Actions: Role, Notifications & Profile -->
-            <div class="flex items-center space-x-1 sm:space-x-2 shrink-0">
-                <!-- Role Badge (Hidden on mobile) -->
-                <div class="hidden lg:flex flex-col items-end mr-1">
-                    <span class="font-body-sm text-body-sm text-on-surface font-semibold leading-tight capitalize">{{ page.props.auth?.user?.name || 'Guest' }}</span>
-                    <span class="text-xs text-on-surface-variant leading-tight capitalize">{{ page.props.auth?.user?.role || 'Guest' }}</span>
-                </div>
-
+            <div class="flex items-center space-x-1 sm:space-x-3 shrink-0">
                 <button
                     type="button"
                     aria-label="Notifications"
@@ -269,7 +263,23 @@ onUnmounted(() => {
                 >
                     <span class="material-symbols-outlined" data-icon="notifications">notifications</span>
                 </button>
-                <div class="relative" ref="profileMenuRef">
+
+                <!-- Desktop Profile Link (Hidden on mobile) -->
+                <Link
+                    href="/profile"
+                    class="hidden lg:flex items-center gap-2.5 p-1 pr-3 bg-surface-container-low hover:bg-surface-container-low/80 border border-outline-variant/30 rounded-full transition-colors cursor-pointer group"
+                >
+                    <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0 group-hover:bg-primary/20 transition-colors">
+                        <span class="material-symbols-outlined text-[18px]">person</span>
+                    </div>
+                    <div class="flex flex-col items-start">
+                        <span class="text-xs font-bold text-on-surface leading-tight capitalize">{{ page.props.auth?.user?.name || 'Guest' }}</span>
+                        <span class="text-[10px] font-medium text-on-surface-variant leading-tight capitalize">{{ page.props.auth?.user?.role || 'Guest' }}</span>
+                    </div>
+                </Link>
+
+                <!-- Mobile Profile Dropdown (Hidden on desktop) -->
+                <div class="relative lg:hidden" ref="profileMenuRef">
                     <button
                         type="button"
                         @click="toggleProfileMenu"
