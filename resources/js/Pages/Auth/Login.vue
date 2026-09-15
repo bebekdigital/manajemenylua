@@ -1,8 +1,7 @@
 <script setup>
 import { Head } from '@inertiajs/vue3';
 import { useForm } from '@inertiajs/vue3';
-import { ref } from 'vue';
-
+import { ref, onMounted, onUnmounted } from 'vue';
 defineOptions({ layout: null });
 
 const form = useForm({
@@ -17,6 +16,36 @@ const submit = () => {
     form.post('/login', {
         onFinish: () => form.reset('password'),
     });
+};
+
+// PWA Install Handling
+const deferredPrompt = ref(null);
+const showInstallButton = ref(false);
+
+const handleBeforeInstallPrompt = (e) => {
+  e.preventDefault();
+  deferredPrompt.value = e;
+  showInstallButton.value = true;
+};
+
+onMounted(() => {
+  window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+});
+
+const installPWA = async () => {
+  if (deferredPrompt.value) {
+    deferredPrompt.value.prompt();
+    const { outcome } = await deferredPrompt.value.userChoice;
+    if (outcome === 'accepted') {
+      console.log('User accepted the PWA install prompt');
+    }
+    deferredPrompt.value = null;
+    showInstallButton.value = false;
+  }
 };
 </script>
 <template>
@@ -141,6 +170,14 @@ const submit = () => {
               </div>
 
             </form>
+
+            <!-- PWA Install Button -->
+            <div v-if="showInstallButton" class="mt-6">
+              <button @click="installPWA" type="button" class="w-full flex items-center justify-center gap-2 py-2.5 px-5 rounded-lg bg-emerald-50 text-primary hover:bg-emerald-100 font-semibold text-sm transition-all border border-emerald-200 shadow-sm">
+                <span class="material-symbols-outlined text-[18px]">install_desktop</span>
+                Install Aplikasi (PWA)
+              </button>
+            </div>
 
             <!-- Security note / Footer hint within card -->
             <div class="mt-8 pt-6 border-t border-slate-100 flex items-center justify-between text-xs font-inter text-slate-500">
