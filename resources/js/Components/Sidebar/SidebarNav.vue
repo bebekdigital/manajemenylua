@@ -109,8 +109,8 @@ function closeMobileSubMenu() {
             <!-- Kesiswaan -->
             <SidebarMenuItem href="#" icon="diversity_3" label="Kesiswaan" :active="currentRoute === 'kesiswaan'" />
 
-            <!-- Pengaturan -->
-            <SidebarMenuItem href="/portal" icon="settings" label="Pengaturan" :active="currentRoute === 'portal'" />
+            <!-- Manajemen -->
+            <SidebarMenuItem href="#" icon="admin_panel_settings" label="Manajemen" :active="currentRoute === 'manajemen'" />
         </ul>
 
         <!-- Bottom Action & Utilities -->
@@ -121,10 +121,10 @@ function closeMobileSubMenu() {
             </button>
             <ul class="space-y-1">
                 <li>
-                    <a class="flex items-center space-x-3 px-4 py-2 text-emerald-100/80 hover:bg-emerald-800 hover:text-yellow-200 rounded-xl transition-colors duration-200 cursor-pointer font-medium text-sm" href="#">
-                        <span class="material-symbols-outlined text-[20px] filled-icon">help</span>
-                        <span>Help Center</span>
-                    </a>
+                    <Link href="/portal" class="flex items-center space-x-3 px-4 py-2 text-emerald-100/80 hover:bg-emerald-800 hover:text-yellow-200 rounded-xl transition-colors duration-200 cursor-pointer font-medium text-sm">
+                        <span class="material-symbols-outlined text-[20px] filled-icon">settings</span>
+                        <span>Pengaturan</span>
+                    </Link>
                 </li>
                 <li>
                     <Link href="/logout" method="post" as="button" class="w-full flex items-center space-x-3 px-4 py-2 text-emerald-100/80 hover:bg-emerald-800 hover:text-yellow-200 rounded-xl transition-colors duration-200 cursor-pointer font-medium text-sm">
@@ -229,17 +229,17 @@ function closeMobileSubMenu() {
                 <span class="text-[10px] mt-1 transition-all duration-300" :class="mobileActiveTab === 'kesiswaan' ? 'font-bold opacity-100' : 'font-medium opacity-80'">Kesiswaan</span>
             </Link>
 
-            <!-- Pengaturan -->
+            <!-- Manajemen -->
             <Link
-                href="/portal"
-                @click="handleMobileTab('portal')"
+                href="#"
+                @click="handleMobileTab('manajemen')"
                 class="flex flex-col items-center justify-center w-full py-1.5 transition-all duration-300 relative group"
-                :class="mobileActiveTab === 'portal' ? 'text-emerald-900' : 'text-on-surface-variant hover:text-emerald-900'"
+                :class="mobileActiveTab === 'manajemen' ? 'text-emerald-900' : 'text-on-surface-variant hover:text-emerald-900'"
             >
-                <div class="flex items-center justify-center px-4 py-1 rounded-full transition-all duration-300" :class="mobileActiveTab === 'portal' ? 'bg-emerald-100' : 'bg-transparent'">
-                    <span class="material-symbols-outlined text-[22px] transition-all duration-300 group-active:scale-90" :class="{ 'filled-icon': mobileActiveTab === 'portal' }">settings</span>
+                <div class="flex items-center justify-center px-4 py-1 rounded-full transition-all duration-300" :class="mobileActiveTab === 'manajemen' ? 'bg-emerald-100' : 'bg-transparent'">
+                    <span class="material-symbols-outlined text-[22px] transition-all duration-300 group-active:scale-90" :class="{ 'filled-icon': mobileActiveTab === 'manajemen' }">admin_panel_settings</span>
                 </div>
-                <span class="text-[10px] mt-1 transition-all duration-300" :class="mobileActiveTab === 'portal' ? 'font-bold opacity-100' : 'font-medium opacity-80'">Pengaturan</span>
+                <span class="text-[10px] mt-1 transition-all duration-300" :class="mobileActiveTab === 'manajemen' ? 'font-bold opacity-100' : 'font-medium opacity-80'">Manajemen</span>
             </Link>
 
         </div>
