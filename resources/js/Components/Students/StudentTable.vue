@@ -200,9 +200,9 @@ function getAlamatLengkap(s) {
         </div>
 
         <!-- Pagination Footer -->
-        <div class="p-4 border-t border-outline-variant/30 flex flex-col sm:flex-row items-center justify-between gap-4 bg-surface-container-lowest">
+        <div class="p-3 sm:p-4 border-t border-outline-variant/30 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 bg-surface-container-lowest">
             <div class="flex flex-wrap items-center gap-3">
-                <span class="font-body-sm text-body-sm text-on-surface-variant">
+                <span class="text-[10px] sm:text-sm sm:font-body-sm text-on-surface-variant">
                     <template v-if="perPage === 0">
                         Menampilkan seluruh <strong class="text-on-surface font-semibold">{{ totalEntries }}</strong> data
                     </template>
@@ -213,43 +213,25 @@ function getAlamatLengkap(s) {
                         Menampilkan <strong class="text-on-surface font-semibold">{{ startEntry }} - {{ endEntry }}</strong> dari <strong class="text-on-surface font-semibold">{{ totalEntries }}</strong> data
                     </template>
                 </span>
-
-                <!-- Quick Selector Tampilkan Data -->
-                <div class="flex items-center gap-1.5 text-xs text-on-surface-variant pl-2 border-l border-outline-variant/40">
-                    <span>Tampilkan:</span>
-                    <select
-                        :value="perPage"
-                        @change="$emit('update:per-page', Number($event.target.value))"
-                        class="bg-surface-container-low hover:bg-surface-container border border-outline-variant/60 rounded-lg px-2 py-1 text-xs font-semibold text-primary focus:ring-1 focus:ring-primary focus:outline-none cursor-pointer transition-colors"
-                        title="Ubah jumlah data yang ditampilkan"
-                    >
-                        <option :value="10">10</option>
-                        <option :value="25">25</option>
-                        <option :value="50">50</option>
-                        <option :value="100">100</option>
-                        <option :value="0">Semua</option>
-                    </select>
-                    <span>data</span>
-                </div>
             </div>
 
             <!-- Page Buttons (Only shown when paginated and multiple pages exist) -->
-            <div v-if="perPage > 0 && totalPages > 1" class="flex items-center gap-1.5">
+            <div v-if="perPage > 0 && totalPages > 1" class="flex items-center gap-1 sm:gap-1.5">
                 <button
                     :disabled="currentPage <= 1"
-                    class="p-2 rounded-lg border border-outline-variant/60 text-on-surface-variant hover:border-primary hover:text-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                    class="p-1 sm:p-2 rounded-md sm:rounded-lg border border-outline-variant/60 text-on-surface-variant hover:border-primary hover:text-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                     @click="$emit('page-change', currentPage - 1)"
                     title="Halaman sebelumnya"
                 >
-                    <span class="material-symbols-outlined text-sm">chevron_left</span>
+                    <span class="material-symbols-outlined text-[14px] sm:text-sm">chevron_left</span>
                 </button>
 
                 <template v-for="(page, i) in visiblePages" :key="i">
-                    <span v-if="page === '...'" class="px-2 py-1 text-on-surface-variant text-xs font-bold">...</span>
+                    <span v-if="page === '...'" class="px-1.5 py-1 text-on-surface-variant text-[10px] sm:text-xs font-bold">...</span>
                     <button
                         v-else
                         :class="[
-                            'px-3 py-1 rounded-lg font-body-sm text-body-sm font-semibold transition-all cursor-pointer',
+                            'px-2 py-0.5 sm:px-3 sm:py-1 rounded-md sm:rounded-lg text-[10px] sm:text-sm font-semibold transition-all cursor-pointer',
                             page === currentPage
                                 ? 'bg-primary text-on-primary shadow-xs'
                                 : 'border border-outline-variant/60 text-on-surface-variant hover:border-primary hover:text-primary'
@@ -262,11 +244,11 @@ function getAlamatLengkap(s) {
 
                 <button
                     :disabled="currentPage >= totalPages"
-                    class="p-2 rounded-lg border border-outline-variant/60 text-on-surface-variant hover:border-primary hover:text-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                    class="p-1 sm:p-2 rounded-md sm:rounded-lg border border-outline-variant/60 text-on-surface-variant hover:border-primary hover:text-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                     @click="$emit('page-change', currentPage + 1)"
                     title="Halaman berikutnya"
                 >
-                    <span class="material-symbols-outlined text-sm">chevron_right</span>
+                    <span class="material-symbols-outlined text-[14px] sm:text-sm">chevron_right</span>
                 </button>
             </div>
         </div>
