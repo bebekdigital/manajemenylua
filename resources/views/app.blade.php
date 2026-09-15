@@ -9,27 +9,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
     <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
-    <link rel="manifest" href="{{ asset('manifest.json') }}">
-    <script>
-      // Tangkap event PWA secepat mungkin sebelum Vue selesai dirender
-      window.deferredPrompt = null;
-      window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        window.deferredPrompt = e;
-        // Panggil event kustom yang bisa dideteksi oleh Vue nanti
-        window.dispatchEvent(new Event('pwa-ready'));
-      });
-
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', function() {
-          navigator.serviceWorker.register('/sw.js').then(function(registration) {
-            console.log('ServiceWorker registration successful');
-          }, function(err) {
-            console.log('ServiceWorker registration failed: ', err);
-          });
-        });
-      }
-    </script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @inertiaHead
 </head>

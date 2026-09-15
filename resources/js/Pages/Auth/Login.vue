@@ -17,36 +17,6 @@ const submit = () => {
         onFinish: () => form.reset('password'),
     });
 };
-
-// PWA Install Handling
-const deferredPrompt = ref(null);
-
-onMounted(() => {
-  // Tangkap event jika sudah ada dari blade atau muncul belakangan
-  if (window.deferredPrompt) {
-    deferredPrompt.value = window.deferredPrompt;
-  }
-  window.addEventListener('pwa-ready', () => {
-    deferredPrompt.value = window.deferredPrompt;
-  });
-});
-
-const pwaInstalled = ref(false);
-
-const installPWA = async () => {
-  if (deferredPrompt.value) {
-    // Browser mendukung prompt otomatis
-    deferredPrompt.value.prompt();
-    const { outcome } = await deferredPrompt.value.userChoice;
-    if (outcome === 'accepted') {
-      pwaInstalled.value = true;
-    }
-    deferredPrompt.value = null;
-  } else {
-    // Panduan manual untuk browser yang tidak mendukung prompt otomatis
-    alert('Untuk menginstall:\n\nChrome: Ketuk menu ⋮ (titik tiga) lalu pilih "Tambahkan ke layar utama"\n\nSafari: Ketuk ikon Share lalu pilih "Add to Home Screen"');
-  }
-};
 </script>
 <template>
   <Head title="Login Portal - Yayasan Li Ulil Albab Karanganyar" />
@@ -161,22 +131,11 @@ const installPWA = async () => {
               </div>
 
               <!-- CTA Button -->
-              <div class="pt-2 space-y-3">
+              <div class="pt-2">
                 <button type="submit" :disabled="form.processing" class="w-full flex items-center justify-center gap-2 py-3 px-5 rounded-lg bg-primary hover:bg-[#00552d] active:scale-[0.99] text-white font-semibold text-sm shadow-md shadow-primary/20 transition-all cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed">
                   <span class="" v-if="!form.processing">Masuk ke Portal</span>
                   <span class="" v-else>Memproses...</span>
                   <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
-                </button>
-
-                <!-- Tombol Install PWA: selalu tampil di Mobile, tersembunyi di Desktop -->
-                <button
-                  v-if="!pwaInstalled"
-                  @click="installPWA"
-                  type="button"
-                  class="md:hidden w-full flex items-center justify-center gap-2 py-2.5 px-5 rounded-lg bg-emerald-50 text-primary hover:bg-emerald-100 active:scale-[0.99] font-semibold text-sm transition-all border border-emerald-200 shadow-sm"
-                >
-                  <span class="material-symbols-outlined text-[18px]">install_mobile</span>
-                  Install Aplikasi
                 </button>
               </div>
 
