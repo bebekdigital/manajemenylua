@@ -20,35 +20,31 @@ const submit = () => {
 
 // PWA Install Handling
 const deferredPrompt = ref(null);
-const showInstallButton = ref(false);
-
-const checkPwaStatus = () => {
-  if (window.deferredPrompt) {
-    deferredPrompt.value = window.deferredPrompt;
-    showInstallButton.value = true;
-  }
-};
 
 onMounted(() => {
-  // Cek apakah event sudah tertangkap oleh app.blade.php sebelum Vue mount
-  checkPwaStatus();
-  // Dengarkan juga jika event muncul setelah mount
-  window.addEventListener('pwa-ready', checkPwaStatus);
+  // Tangkap event jika sudah ada dari blade atau muncul belakangan
+  if (window.deferredPrompt) {
+    deferredPrompt.value = window.deferredPrompt;
+  }
+  window.addEventListener('pwa-ready', () => {
+    deferredPrompt.value = window.deferredPrompt;
+  });
 });
 
-onUnmounted(() => {
-  window.removeEventListener('pwa-ready', checkPwaStatus);
-});
+const pwaInstalled = ref(false);
 
 const installPWA = async () => {
   if (deferredPrompt.value) {
+    // Browser mendukung prompt otomatis
     deferredPrompt.value.prompt();
     const { outcome } = await deferredPrompt.value.userChoice;
     if (outcome === 'accepted') {
-      console.log('User accepted the PWA install prompt');
+      pwaInstalled.value = true;
     }
     deferredPrompt.value = null;
-    showInstallButton.value = false;
+  } else {
+    // Panduan manual untuk browser yang tidak mendukung prompt otomatis
+    alert('Untuk menginstall:\n\nChrome: Ketuk menu ⋮ (titik tiga) lalu pilih "Tambahkan ke layar utama"\n\nSafari: Ketuk ikon Share lalu pilih "Add to Home Screen"');
   }
 };
 </script>
@@ -165,23 +161,26 @@ const installPWA = async () => {
               </div>
 
               <!-- CTA Button -->
-              <div class="pt-2">
+              <div class="pt-2 space-y-3">
                 <button type="submit" :disabled="form.processing" class="w-full flex items-center justify-center gap-2 py-3 px-5 rounded-lg bg-primary hover:bg-[#00552d] active:scale-[0.99] text-white font-semibold text-sm shadow-md shadow-primary/20 transition-all cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed">
                   <span class="" v-if="!form.processing">Masuk ke Portal</span>
                   <span class="" v-else>Memproses...</span>
                   <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
                 </button>
+
+                <!-- Tombol Install PWA: selalu tampil di Mobile, tersembunyi di Desktop -->
+                <button
+                  v-if="!pwaInstalled"
+                  @click="installPWA"
+                  type="button"
+                  class="md:hidden w-full flex items-center justify-center gap-2 py-2.5 px-5 rounded-lg bg-emerald-50 text-primary hover:bg-emerald-100 active:scale-[0.99] font-semibold text-sm transition-all border border-emerald-200 shadow-sm"
+                >
+                  <span class="material-symbols-outlined text-[18px]">install_mobile</span>
+                  Install Aplikasi
+                </button>
               </div>
 
             </form>
-
-            <!-- PWA Install Button (Mobile Only) -->
-            <div v-if="showInstallButton" class="mt-6 md:hidden">
-              <button @click="installPWA" type="button" class="w-full flex items-center justify-center gap-2 py-2.5 px-5 rounded-lg bg-emerald-50 text-primary hover:bg-emerald-100 font-semibold text-sm transition-all border border-emerald-200 shadow-sm">
-                <span class="material-symbols-outlined text-[18px]">install_mobile</span>
-                Install Aplikasi (PWA)
-              </button>
-            </div>
 
             <!-- Security note / Footer hint within card -->
             <div class="mt-8 pt-6 border-t border-slate-100 flex items-center justify-between text-xs font-inter text-slate-500">
