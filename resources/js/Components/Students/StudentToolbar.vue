@@ -126,72 +126,46 @@ function resetAll() {
 </script>
 
 <template>
-    <div class="bg-white rounded-2xl p-4 md:p-5 mb-6 shadow-sm border border-slate-200 flex flex-col gap-4">
-        <!-- Row 1: Search Input & Action Downloads -->
-        <div class="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+    <div class="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-5 mb-4 sm:mb-6 shadow-sm border border-slate-200 flex flex-col gap-3 sm:gap-4">
+        <!-- Main Row: Search and Filters -->
+        <div class="flex flex-col xl:flex-row gap-2 sm:gap-3 items-start xl:items-center justify-between w-full">
             <!-- Search Bar with Clear Button -->
-            <div class="relative flex-grow max-w-xl">
-                <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-[20px] pointer-events-none">
+            <div class="relative w-full xl:w-auto xl:min-w-[280px] xl:max-w-md shrink-0">
+                <span class="material-symbols-outlined absolute left-2.5 sm:left-3.5 top-1/2 -translate-y-1/2 text-outline text-[16px] sm:text-[20px] pointer-events-none">
                     search
                 </span>
                 <input
                     v-model="searchQuery"
                     type="text"
                     placeholder="Cari berdasarkan nama, NISN, atau NIPD..."
-                    class="w-full pl-11 pr-10 py-2.5 bg-white hover:bg-slate-50 focus:bg-white border border-slate-300 rounded-xl font-body-md text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all"
+                    class="w-full pl-8 sm:pl-11 pr-8 sm:pr-10 py-1.5 sm:py-2.5 bg-white hover:bg-slate-50 focus:bg-white border border-slate-300 rounded-lg sm:rounded-xl font-body-sm sm:font-body-md text-[11px] sm:text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all"
                     @input="onSearchInput"
                 />
                 <button
                     v-if="searchQuery"
                     type="button"
                     @click="clearSearch"
-                    class="absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface p-1 rounded-full hover:bg-surface-variant transition-colors cursor-pointer"
+                    class="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface p-1 rounded-full hover:bg-surface-variant transition-colors cursor-pointer"
                     title="Hapus pencarian"
                     aria-label="Hapus kata kunci pencarian"
                 >
-                    <span class="material-symbols-outlined text-[18px]">close</span>
+                    <span class="material-symbols-outlined text-[14px] sm:text-[18px]">close</span>
                 </button>
             </div>
 
-            <!-- Download & Action Buttons Group -->
-            <div class="flex items-center gap-2.5 shrink-0 flex-wrap sm:flex-nowrap">
-                <a
-                    href="/students/template"
-                    download
-                    class="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-yellow-300 text-yellow-800 bg-yellow-100 hover:bg-yellow-200 active:bg-yellow-300 font-semibold text-xs sm:text-sm transition-all shadow-2xs hover:shadow-sm"
-                    title="Download template XLSX resmi untuk import data siswa"
-                >
-                    <span class="material-symbols-outlined text-[18px]">download</span>
-                    <span>Download Template</span>
-                </a>
-
-                <button
-                    type="button"
-                    @click="$emit('open-import')"
-                    class="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-container text-on-primary font-semibold text-xs sm:text-sm transition-all shadow-xs hover:shadow-md cursor-pointer"
-                    title="Import data siswa dari file template Excel"
-                >
-                    <span class="material-symbols-outlined text-[18px]">upload_file</span>
-                    <span>Import Data Siswa</span>
-                </button>
-            </div>
-        </div>
-
-        <!-- Row 2: Filter Dropdowns, Tampilkan Data Selector, Reset Action & Summary Counter -->
-        <div class="pt-3 border-t border-outline-variant/30 flex flex-col lg:flex-row gap-3 items-start lg:items-center justify-between">
             <!-- Filter Dropdowns & Limit -->
-            <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+            <div class="flex flex-wrap items-center gap-1.5 sm:gap-2 w-full xl:w-auto flex-grow justify-start xl:justify-end">
                 <!-- Filter Label -->
                 <div class="hidden sm:flex items-center gap-1.5 text-on-surface-variant mr-1">
-                    <span class="material-symbols-outlined text-[18px] text-primary">tune</span>
-                    <span class="text-xs font-bold uppercase tracking-wider">Filter:</span>
+                    <span class="material-symbols-outlined text-[16px] sm:text-[18px] text-primary">tune</span>
+                    <span class="text-[10px] sm:text-xs font-bold uppercase tracking-wider">Filter:</span>
                 </div>
 
                 <!-- Unit Filter -->
-                <div class="relative min-w-[135px] sm:min-w-[155px] flex-grow sm:flex-grow-0">
+                <div class="relative min-w-[110px] sm:min-w-[140px] flex-grow sm:flex-grow-0">
                     <select
                         v-model="selectedUnit"
-                        class="w-full pl-3 pr-8 py-2 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm font-medium text-slate-700 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 cursor-pointer transition-colors"
+                        class="w-full pl-2 sm:pl-3 pr-6 sm:pr-8 py-1.5 sm:py-2 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg sm:rounded-xl text-[11px] sm:text-sm font-medium text-slate-700 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 cursor-pointer transition-colors"
                         @change="onUnitChange"
                     >
                         <option v-for="u in units" :key="u.value" :value="u.value">{{ u.label }}</option>
@@ -199,10 +173,10 @@ function resetAll() {
                 </div>
 
                 <!-- Grade Filter (Dinamis sesuai unit) -->
-                <div class="relative min-w-[115px] sm:min-w-[135px] flex-grow sm:flex-grow-0">
+                <div class="relative min-w-[100px] sm:min-w-[120px] flex-grow sm:flex-grow-0">
                     <select
                         v-model="selectedGrade"
-                        class="w-full pl-3 pr-8 py-2 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm font-medium text-slate-700 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 cursor-pointer transition-colors"
+                        class="w-full pl-2 sm:pl-3 pr-6 sm:pr-8 py-1.5 sm:py-2 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg sm:rounded-xl text-[11px] sm:text-sm font-medium text-slate-700 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 cursor-pointer transition-colors"
                         @change="onGradeChange"
                     >
                         <option v-for="g in grades" :key="g.value" :value="g.value">{{ g.label }}</option>
@@ -210,10 +184,10 @@ function resetAll() {
                 </div>
 
                 <!-- Status Filter -->
-                <div class="relative min-w-[125px] sm:min-w-[145px] flex-grow sm:flex-grow-0">
+                <div class="relative min-w-[110px] sm:min-w-[130px] flex-grow sm:flex-grow-0">
                     <select
                         v-model="selectedStatus"
-                        class="w-full pl-3 pr-8 py-2 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm font-medium text-slate-700 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 cursor-pointer transition-colors"
+                        class="w-full pl-2 sm:pl-3 pr-6 sm:pr-8 py-1.5 sm:py-2 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg sm:rounded-xl text-[11px] sm:text-sm font-medium text-slate-700 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 cursor-pointer transition-colors"
                         @change="onStatusChange"
                     >
                         <option v-for="s in statuses" :key="s.value" :value="s.value">{{ s.label }}</option>
@@ -221,11 +195,11 @@ function resetAll() {
                 </div>
 
                 <!-- Tampilkan ... Data Selector Filter -->
-                <div class="relative min-w-[150px] sm:min-w-[170px] flex-grow sm:flex-grow-0">
+                <div class="relative min-w-[130px] sm:min-w-[150px] flex-grow sm:flex-grow-0">
                     <div class="relative flex items-center">
                         <select
                             :value="perPage"
-                            class="w-full pl-8 pr-8 py-2 bg-white hover:bg-slate-50 border border-slate-300 focus:border-emerald-500 rounded-xl text-xs sm:text-sm font-medium text-slate-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer transition-colors appearance-none"
+                            class="w-full pl-7 sm:pl-8 pr-6 sm:pr-8 py-1.5 sm:py-2 bg-white hover:bg-slate-50 border border-slate-300 focus:border-emerald-500 rounded-lg sm:rounded-xl text-[11px] sm:text-sm font-medium text-slate-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer transition-colors appearance-none"
                             @change="onPerPageChange"
                             title="Tampilkan jumlah baris data per halaman"
                         >
@@ -233,37 +207,37 @@ function resetAll() {
                                 {{ opt.label }}
                             </option>
                         </select>
-                        <span class="material-symbols-outlined text-primary text-[18px] pointer-events-none absolute left-2.5">
+                        <span class="material-symbols-outlined text-primary text-[14px] sm:text-[18px] pointer-events-none absolute left-2 sm:left-2.5">
                             format_list_numbered
                         </span>
-                        <span class="material-symbols-outlined text-outline text-[16px] pointer-events-none absolute right-2.5">
+                        <span class="material-symbols-outlined text-outline text-[14px] sm:text-[16px] pointer-events-none absolute right-2 sm:right-2.5">
                             expand_more
                         </span>
                     </div>
                 </div>
 
-                <!-- Reset Filter Button (Only shows when filters/search active) -->
+                <!-- Reset Filter Button -->
                 <button
                     v-if="hasActiveFilters"
                     type="button"
                     @click="resetAll"
-                    class="inline-flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-semibold text-error hover:bg-error-container/30 border border-error/30 transition-colors whitespace-nowrap cursor-pointer"
+                    class="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-semibold text-error hover:bg-error-container/30 border border-error/30 transition-colors whitespace-nowrap cursor-pointer"
                     title="Hapus seluruh filter dan pencarian"
                 >
-                    <span class="material-symbols-outlined text-[16px]">restart_alt</span>
+                    <span class="material-symbols-outlined text-[14px] sm:text-[16px]">restart_alt</span>
                     <span>Reset Filter</span>
                 </button>
             </div>
+        </div>
 
-            <!-- Result Counter / Filter Summary -->
-            <div class="text-xs text-on-surface-variant font-medium self-end lg:self-center shrink-0">
-                <span v-if="hasActiveFilters" class="inline-flex items-center gap-1">
-                    Menampilkan <strong class="text-primary font-bold">{{ filteredCount }}</strong> dari {{ totalCount }} siswa
-                </span>
-                <span v-else class="text-outline">
-                    Total: <strong class="text-on-surface font-semibold">{{ totalCount }}</strong> peserta didik
-                </span>
-            </div>
+        <!-- Result Counter / Filter Summary -->
+        <div class="pt-2 sm:pt-3 border-t border-outline-variant/30 text-[10px] sm:text-xs text-on-surface-variant font-medium flex justify-start sm:justify-end shrink-0">
+            <span v-if="hasActiveFilters" class="inline-flex items-center gap-1">
+                Menampilkan <strong class="text-primary font-bold">{{ filteredCount }}</strong> dari {{ totalCount }} siswa
+            </span>
+            <span v-else class="text-outline">
+                Total: <strong class="text-on-surface font-semibold">{{ totalCount }}</strong> peserta didik
+            </span>
         </div>
     </div>
 </template>

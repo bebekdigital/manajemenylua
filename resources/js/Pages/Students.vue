@@ -155,6 +155,28 @@ function onPageChange(page) {
                     Kelola dan tinjau seluruh data peserta didik sesuai Tahun Ajaran aktif
                 </p>
             </div>
+            <!-- Action Buttons -->
+            <div class="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
+                <a
+                    href="/students/template"
+                    download
+                    class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2.5 rounded-lg sm:rounded-xl border border-yellow-300 text-yellow-800 bg-yellow-100 hover:bg-yellow-200 active:bg-yellow-300 font-semibold text-[11px] sm:text-sm transition-all shadow-2xs hover:shadow-sm"
+                    title="Download template XLSX resmi untuk import data siswa"
+                >
+                    <span class="material-symbols-outlined text-[16px] sm:text-[18px]">download</span>
+                    <span>Download Template</span>
+                </a>
+
+                <button
+                    type="button"
+                    @click="showImportModal = true"
+                    class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2.5 rounded-lg sm:rounded-xl bg-primary hover:bg-primary-container text-on-primary font-semibold text-[11px] sm:text-sm transition-all shadow-xs hover:shadow-md cursor-pointer"
+                    title="Import data siswa dari file template Excel"
+                >
+                    <span class="material-symbols-outlined text-[16px] sm:text-[18px]">upload_file</span>
+                    <span>Import Data Siswa</span>
+                </button>
+            </div>
         </div>
 
         <!-- Flash Notification Banners -->
