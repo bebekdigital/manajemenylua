@@ -171,10 +171,10 @@ const installPWA = async () => {
 
             </form>
 
-            <!-- PWA Install Button -->
-            <div v-if="showInstallButton" class="mt-6">
+            <!-- PWA Install Button (Mobile Only) -->
+            <div v-if="showInstallButton" class="mt-6 md:hidden">
               <button @click="installPWA" type="button" class="w-full flex items-center justify-center gap-2 py-2.5 px-5 rounded-lg bg-emerald-50 text-primary hover:bg-emerald-100 font-semibold text-sm transition-all border border-emerald-200 shadow-sm">
-                <span class="material-symbols-outlined text-[18px]">install_desktop</span>
+                <span class="material-symbols-outlined text-[18px]">install_mobile</span>
                 Install Aplikasi (PWA)
               </button>
             </div>
