@@ -1,25 +1,22 @@
 <script setup>
-import { ref, watch } from 'vue';
+import { ref } from 'vue';
+import { Head, Link } from '@inertiajs/vue3';
+import AppLayout from '@/Layouts/AppLayout.vue';
+
+defineOptions({
+    layout: AppLayout,
+});
 
 const props = defineProps({
     student: {
         type: Object,
-        default: null,
-    },
-    show: {
-        type: Boolean,
-        default: false,
+        required: true,
     },
 });
-
-const emit = defineEmits(['close']);
 
 const activeTab = ref('identitas');
 
-// Reset tab when modal opens
-watch(() => props.show, (val) => {
-    if (val) activeTab.value = 'identitas';
-});
+
 
 const tabs = [
     { id: 'identitas', label: 'Identitas', icon: 'person' },
@@ -51,58 +48,51 @@ function hitungUsia(tanggalLahir) {
 </script>
 
 <template>
-    <!-- Backdrop -->
-    <Teleport to="body">
-        <Transition name="modal-backdrop">
-            <div
-                v-if="show"
-                class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-                @click.self="$emit('close')"
-            >
-                <Transition name="modal-content">
-                    <div
-                        v-if="show && student"
-                        class="bg-surface-container-lowest rounded-2xl shadow-xl w-full max-w-3xl max-h-[85vh] flex flex-col overflow-hidden"
-                    >
-                        <!-- Modal Header -->
-                        <div class="flex items-center justify-between px-6 py-4 border-b border-outline-variant/30 bg-surface-container-low">
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
-                                    {{ student.nama ? student.nama.charAt(0) : '?' }}
-                                </div>
-                                <div>
-                                    <h3 class="text-lg font-bold text-on-surface">{{ student.nama }}</h3>
-                                    <p class="text-sm text-on-surface-variant">NISN: {{ student.nisn }} &middot; Kelas {{ student.kelas }}</p>
-                                </div>
-                            </div>
-                            <button
-                                @click="$emit('close')"
-                                class="p-2 rounded-full hover:bg-surface-container-high transition-colors text-on-surface-variant"
-                            >
-                                <span class="material-symbols-outlined">close</span>
-                            </button>
-                        </div>
+    <Head :title="`Detail Siswa - ${student.nama}`" />
 
-                        <!-- Tabs -->
-                        <div class="flex border-b border-outline-variant/30 px-2 bg-surface-container-low overflow-x-auto">
-                            <button
-                                v-for="tab in tabs"
-                                :key="tab.id"
-                                @click="activeTab = tab.id"
-                                :class="[
-                                    'flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors whitespace-nowrap border-b-2',
-                                    activeTab === tab.id
-                                        ? 'text-primary border-primary'
-                                        : 'text-on-surface-variant border-transparent hover:text-on-surface hover:border-outline-variant'
-                                ]"
-                            >
-                                <span class="material-symbols-outlined text-[18px]">{{ tab.icon }}</span>
-                                {{ tab.label }}
-                            </button>
-                        </div>
+    <div class="flex-1 overflow-y-auto p-4 md:p-margin-desktop bg-surface-container-lowest">
+        <!-- Back Button -->
+        <div class="mb-4">
+            <Link href="/students" class="inline-flex items-center gap-1 text-sm font-medium text-on-surface-variant hover:text-primary transition-colors">
+                <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+                Kembali ke Data Siswa
+            </Link>
+        </div>
 
-                        <!-- Tab Content -->
-                        <div class="flex-1 overflow-y-auto p-6">
+        <div class="bg-surface-container-lowest rounded-2xl shadow-sm border border-outline-variant/30 flex flex-col overflow-hidden">
+            <!-- Header -->
+            <div class="flex items-center justify-between px-6 py-4 border-b border-outline-variant/30 bg-surface-container-low">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xl">
+                        {{ student.nama ? student.nama.charAt(0) : '?' }}
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-on-surface">{{ student.nama }}</h3>
+                        <p class="text-sm text-on-surface-variant">NISN: {{ student.nisn }} &middot; Kelas {{ student.kelas }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="flex border-b border-outline-variant/30 px-4 bg-surface-container-low overflow-x-auto">
+                <button
+                    v-for="tab in tabs"
+                    :key="tab.id"
+                    @click="activeTab = tab.id"
+                    :class="[
+                        'flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors whitespace-nowrap border-b-2',
+                        activeTab === tab.id
+                            ? 'text-primary border-primary'
+                            : 'text-on-surface-variant border-transparent hover:text-on-surface hover:border-outline-variant'
+                    ]"
+                >
+                    <span class="material-symbols-outlined text-[18px]">{{ tab.icon }}</span>
+                    {{ tab.label }}
+                </button>
+            </div>
+
+            <!-- Tab Content -->
+            <div class="flex-1 p-6">
 
                             <!-- TAB: Identitas -->
                             <div v-if="activeTab === 'identitas'" class="space-y-4">
@@ -473,36 +463,9 @@ function hitungUsia(tanggalLahir) {
                                 </div>
                             </div>
 
-                        </div>
-                    </div>
-                </Transition>
             </div>
-        </Transition>
-    </Teleport>
+        </div>
+    </div>
 </template>
 
-<style scoped>
-.modal-backdrop-enter-active,
-.modal-backdrop-leave-active {
-    transition: opacity 0.25s ease;
-}
-.modal-backdrop-enter-from,
-.modal-backdrop-leave-to {
-    opacity: 0;
-}
 
-.modal-content-enter-active {
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.modal-content-leave-active {
-    transition: all 0.2s ease-in;
-}
-.modal-content-enter-from {
-    opacity: 0;
-    transform: scale(0.95) translateY(10px);
-}
-.modal-content-leave-to {
-    opacity: 0;
-    transform: scale(0.95) translateY(10px);
-}
-</style>

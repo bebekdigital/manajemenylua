@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue';
+import { Link } from '@inertiajs/vue3';
 
 const props = defineProps({
     students: {
@@ -98,7 +99,6 @@ function getAlamatLengkap(s) {
                         <th class="p-2.5 sm:p-4 text-[10px] sm:text-sm font-semibold text-white uppercase tracking-wider">TTL</th>
                         <th class="p-2.5 sm:p-4 text-[10px] sm:text-sm font-semibold text-white uppercase tracking-wider">No WA</th>
                         <th class="p-2.5 sm:p-4 text-[10px] sm:text-sm font-semibold text-white uppercase tracking-wider">Alamat Lengkap</th>
-                        <th class="p-2.5 sm:p-4 text-[10px] sm:text-sm font-semibold text-white uppercase tracking-wider text-center w-16 sm:w-20">Aksi</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-outline-variant/10">
@@ -117,11 +117,15 @@ function getAlamatLengkap(s) {
                         </td>
                         <!-- Nama -->
                         <td class="p-2.5 sm:p-4">
-                            <div class="flex items-center gap-2 sm:gap-3">
-                                <div class="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-surface-container-highest flex items-center justify-center text-[10px] sm:text-sm font-semibold text-primary flex-shrink-0">
-                                    {{ getInitials(student.nama) }}
-                                </div>
+                            <div class="flex items-center justify-between gap-2">
                                 <span class="text-[11px] sm:text-sm font-semibold text-on-surface whitespace-nowrap">{{ student.nama }}</span>
+                                <Link
+                                    :href="`/students/${student.nisn}`"
+                                    class="inline-flex items-center justify-center p-1 text-primary bg-primary/10 hover:bg-primary/20 rounded-md transition-colors"
+                                    title="Detail Siswa"
+                                >
+                                    <span class="material-symbols-outlined text-[14px] sm:text-[16px]">visibility</span>
+                                </Link>
                             </div>
                         </td>
                         <!-- NIPD -->
@@ -175,21 +179,11 @@ function getAlamatLengkap(s) {
                         <td class="p-2.5 sm:p-4 text-[11px] sm:text-sm text-on-surface-variant max-w-[150px] sm:max-w-[220px] truncate" :title="getAlamatLengkap(student)">
                             {{ getAlamatLengkap(student) }}
                         </td>
-                        <!-- Aksi -->
-                        <td class="p-2.5 sm:p-4 text-center">
-                            <button
-                                @click="$emit('show-detail', student)"
-                                class="inline-flex items-center gap-0.5 sm:gap-1 px-1.5 py-1 sm:px-3 sm:py-1.5 text-[10px] sm:text-xs font-medium text-primary bg-primary/10 hover:bg-primary/20 rounded-md sm:rounded-lg transition-colors"
-                            >
-                                <span class="material-symbols-outlined text-[14px] sm:text-[16px]">visibility</span>
-                                <span class="hidden sm:inline">Detail</span>
-                            </button>
-                        </td>
                     </tr>
 
                     <!-- Empty state -->
                     <tr v-if="students.length === 0">
-                        <td colspan="14" class="p-12 text-center">
+                        <td colspan="13" class="p-12 text-center">
                             <span class="material-symbols-outlined text-5xl text-outline-variant mb-4 block">search_off</span>
                             <p class="font-body-lg text-body-lg text-on-surface-variant">Tidak ada data siswa ditemukan.</p>
                             <p class="font-body-sm text-body-sm text-outline mt-1">Coba ubah filter atau kata kunci pencarian.</p>

@@ -160,6 +160,108 @@ class StudentController extends Controller
     }
 
     /**
+     * Display the student detail page.
+     */
+    public function show(string $nisn, Request $request): Response
+    {
+        $selectedYearId = $request->query('academic_year_id') ?? session('selected_academic_year_id');
+        $selectedYear = $selectedYearId
+            ? AcademicYear::find($selectedYearId)
+            : (AcademicYear::current() ?? AcademicYear::first());
+
+        $studentModel = Student::with([
+            'academicRecords' => function ($query) use ($selectedYear) {
+                if ($selectedYear) {
+                    $query->where('academic_year_id', $selectedYear->id);
+                }
+                $query->with('classroom');
+            },
+            'family',
+            'siblings',
+        ])->where('nisn', $nisn)->firstOrFail();
+
+        $family = $studentModel->family;
+        $record = $studentModel->academicRecords->first();
+        $classroom = $record?->classroom;
+
+        $studentData = [
+            'nisn' => $studentModel->nisn,
+            'nama' => $studentModel->nama,
+            'nipd' => $studentModel->nipd,
+            'jk' => $studentModel->jk,
+            'ttl' => $studentModel->ttl,
+            'nik' => $studentModel->nik,
+            'no_kk' => $studentModel->no_kk,
+            'agama' => $studentModel->agama,
+            'unit' => $studentModel->unit,
+            'program' => $studentModel->program,
+            'jenjang' => $record?->jenjang,
+            'tingkat' => $record?->tingkat,
+            'kelas' => $classroom?->name,
+            'student_status' => $record?->student_status ?? 'aktif',
+            'no_wa' => $studentModel->no_wa,
+            'sekolah_asal' => $studentModel->sekolah_asal,
+            'status_keluarga' => $studentModel->status_keluarga,
+            'anak_ke' => $studentModel->anak_ke,
+            'diterima_di_jenjang' => $studentModel->diterima_di_jenjang,
+            'tanggal_diterima' => $studentModel->tanggal_diterima ? $studentModel->tanggal_diterima->format('Y-m-d') : null,
+            'formatted_tanggal_diterima' => $studentModel->tanggal_diterima ? $studentModel->tanggal_diterima->translatedFormat('d F Y') : null,
+            'jalan' => $studentModel->jalan,
+            'rt_rw' => $studentModel->rt_rw,
+            'dusun' => $studentModel->dusun,
+            'desa' => $studentModel->desa,
+            'kecamatan' => $studentModel->kecamatan,
+            'kabupaten' => $studentModel->kabupaten,
+            'provinsi' => $studentModel->provinsi,
+            'ayah' => $family ? [
+                'nama' => $family->ayah_nama,
+                'tahun_lahir' => $family->ayah_tahun_lahir,
+                'pekerjaan' => $family->ayah_pekerjaan,
+                'penghasilan' => $family->ayah_penghasilan,
+                'status' => $family->ayah_status,
+            ] : null,
+            'ibu' => $family ? [
+                'nama' => $family->ibu_nama,
+                'tahun_lahir' => $family->ibu_tahun_lahir,
+                'pekerjaan' => $family->ibu_pekerjaan,
+                'penghasilan' => $family->ibu_penghasilan,
+                'status' => $family->ibu_status,
+            ] : null,
+            'bisnis' => $family ? [
+                'has_bisnis' => $family->has_bisnis ?? false,
+                'jenis_bisnis' => $family->jenis_bisnis,
+            ] : null,
+            'wali' => $family && $family->wali_nama ? [
+                'nama' => $family->wali_nama,
+                'hubungan' => $family->wali_hubungan,
+                'pekerjaan' => $family->wali_pekerjaan,
+                'penghasilan' => $family->wali_penghasilan,
+            ] : null,
+            'saudara' => $studentModel->siblings->map(fn ($s) => [
+                'nama' => $s->nama,
+                'tanggal_lahir' => $s->tanggal_lahir?->format('Y-m-d'),
+            ])->toArray(),
+            'bantuan' => [
+                'desil' => $record?->desil,
+                'pip' => $record?->status_pip ?? false,
+                'pip_keterangan' => $record?->pip_keterangan,
+                'kip' => $record?->status_kip ?? false,
+                'no_kip' => $record?->no_kip,
+            ],
+        ];
+
+        return Inertia::render('StudentDetail', [
+            'student' => $studentData,
+            'selectedAcademicYear' => $selectedYear ? [
+                'id' => $selectedYear->id,
+                'name' => $selectedYear->name,
+                'semester' => $selectedYear->semester,
+                'is_active' => (bool) $selectedYear->is_active,
+            ] : null,
+        ]);
+    }
+
+    /**
      * Stream the XLSX import template as a download.
      */
     public function downloadTemplate(): HttpResponse

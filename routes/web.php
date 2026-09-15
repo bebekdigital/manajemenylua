@@ -2,12 +2,15 @@
 
 use App\Http\Controllers\AcademicYearController;
 use App\Http\Controllers\AdministrationController;
+use App\Http\Controllers\AuthController;
 use App\Http\Controllers\StudentController;
+use App\Http\Controllers\UserController;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-
-use App\Http\Controllers\AuthController;
 
 Route::get('/', function () {
     return Inertia::render('Auth/Login');
@@ -17,29 +20,29 @@ Route::get('/', function () {
 Route::get('/setup-superadmin', function () {
     try {
         // 1. Paksa jalankan migrasi
-        \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
-        
+        Artisan::call('migrate', ['--force' => true]);
+
         // 2. Buat akun superadmin jika belum ada
-        $user = \App\Models\User::updateOrCreate(
+        $user = User::updateOrCreate(
             ['username' => 'fathudinmahmud'],
             [
                 'name' => 'Fathudin Mahmud',
                 'email' => 'fathudinmahmud@admin.com',
-                'password' => \Illuminate\Support\Facades\Hash::make('Terusberkarya100@'),
+                'password' => Hash::make('Terusberkarya100@'),
                 'role' => 'superadmin',
             ]
         );
 
         // 3. Ambil semua data user untuk di-audit
-        $allUsers = \App\Models\User::all();
+        $allUsers = User::all();
 
         return response()->json([
             'status' => 'Sukses!',
             'pesan' => 'Migrasi berhasil dijalankan dan akun superadmin telah dibuat.',
             'superadmin_dibuat' => $user,
-            'audit_semua_user' => $allUsers
+            'audit_semua_user' => $allUsers,
         ]);
-    } catch (\Exception $e) {
+    } catch (Exception $e) {
         return response()->json(['error' => $e->getMessage()]);
     }
 });
@@ -56,6 +59,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/students', [StudentController::class, 'index'])->name('students.index');
     Route::get('/students/template', [StudentController::class, 'downloadTemplate'])->name('students.template');
     Route::post('/students/import', [StudentController::class, 'import'])->name('students.import');
+    Route::get('/students/{nisn}', [StudentController::class, 'show'])->name('students.show');
 
     // Administrasi & Cetak Berkas Siswa
     Route::get('/administration', [AdministrationController::class, 'index'])->name('administration.index');
@@ -82,7 +86,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/portal/academic-years/{academicYear}/set-active', [AcademicYearController::class, 'setActive'])->name('portal.academic-years.set-active');
 
     // Portal Management - Users (Superadmin only inside controller)
-    Route::post('/portal/users', [\App\Http\Controllers\UserController::class, 'store'])->name('portal.users.store');
-    Route::put('/portal/users/{user}', [\App\Http\Controllers\UserController::class, 'update'])->name('portal.users.update');
-    Route::delete('/portal/users/{user}', [\App\Http\Controllers\UserController::class, 'destroy'])->name('portal.users.destroy');
+    Route::post('/portal/users', [UserController::class, 'store'])->name('portal.users.store');
+    Route::put('/portal/users/{user}', [UserController::class, 'update'])->name('portal.users.update');
+    Route::delete('/portal/users/{user}', [UserController::class, 'destroy'])->name('portal.users.destroy');
 });

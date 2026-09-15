@@ -4,7 +4,6 @@ import { Head, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import StudentToolbar from '@/Components/Students/StudentToolbar.vue';
 import StudentTable from '@/Components/Students/StudentTable.vue';
-import StudentDetailModal from '@/Components/Students/StudentDetailModal.vue';
 import StudentImportModal from '@/Components/Students/StudentImportModal.vue';
 
 defineOptions({
@@ -34,9 +33,7 @@ const statusFilter = ref('');
 const currentPage = ref(1);
 const perPage = ref(10);
 
-// Detail & Import modal state
-const showDetail = ref(false);
-const selectedStudent = ref(null);
+// Import modal state
 const showImportModal = ref(false);
 const dismissedFlash = ref(false);
 
@@ -47,16 +44,6 @@ const flashSuccess = computed(() => {
 const flashError = computed(() => {
     return !dismissedFlash.value ? page.props.flash?.error : null;
 });
-
-function openDetail(student) {
-    selectedStudent.value = student;
-    showDetail.value = true;
-}
-
-function closeDetail() {
-    showDetail.value = false;
-    selectedStudent.value = null;
-}
 
 function onImportSuccess() {
     dismissedFlash.value = false;
@@ -245,16 +232,8 @@ function onPageChange(page) {
             :total-entries="totalEntries"
             @update:per-page="onPerPageChange"
             @page-change="onPageChange"
-            @show-detail="openDetail"
         />
     </div>
-
-    <!-- Detail Modal -->
-    <StudentDetailModal
-        :student="selectedStudent"
-        :show="showDetail"
-        @close="closeDetail"
-    />
 
     <!-- Import Modal -->
     <StudentImportModal
