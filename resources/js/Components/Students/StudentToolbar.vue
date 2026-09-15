@@ -68,11 +68,11 @@ const statuses = [
 ];
 
 const perPageOptions = [
-    { value: 10, label: 'Tampilkan 10 data' },
-    { value: 25, label: 'Tampilkan 25 data' },
-    { value: 50, label: 'Tampilkan 50 data' },
-    { value: 100, label: 'Tampilkan 100 data' },
-    { value: 0, label: 'Tampilkan Semua data' },
+    { value: 10, label: '10 Data' },
+    { value: 25, label: '25 Data' },
+    { value: 50, label: '50 Data' },
+    { value: 100, label: '100 Data' },
+    { value: 0, label: 'Semua Data' },
 ];
 
 const hasActiveFilters = computed(() => {
@@ -175,9 +175,9 @@ function resetAll() {
             </div>
 
             <!-- Right Side: Search & Tampilkan Data -->
-            <div class="flex items-center gap-2 w-full xl:w-auto shrink-0 justify-end">
+            <div class="flex items-center gap-2 w-full xl:w-auto shrink-0 justify-between flex-nowrap">
                 <!-- Search Bar with Clear Button -->
-                <div class="relative flex-grow sm:flex-grow-0 sm:w-64 xl:w-56 2xl:w-72 shrink-0">
+                <div class="relative flex-1 min-w-0 sm:flex-none sm:w-64 xl:w-56 2xl:w-72">
                     <span class="material-symbols-outlined absolute left-2.5 sm:left-3.5 top-1/2 -translate-y-1/2 text-outline text-[18px] sm:text-[20px] pointer-events-none">
                         search
                     </span>
@@ -201,11 +201,11 @@ function resetAll() {
                 </div>
 
                 <!-- Tampilkan ... Data Selector Filter -->
-                <div class="relative w-[110px] sm:w-auto sm:min-w-[120px] shrink-0">
+                <div class="relative w-[95px] shrink-0 sm:w-auto sm:min-w-[120px]">
                     <div class="relative flex items-center">
                         <select
                             :value="perPage"
-                            class="w-full pl-7 sm:pl-8 pr-6 sm:pr-8 py-2 sm:py-2 bg-white hover:bg-slate-50 border border-slate-300 focus:border-emerald-500 rounded-lg sm:rounded-xl text-[12px] sm:text-sm font-medium text-slate-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer transition-colors appearance-none"
+                            class="w-full pl-6 sm:pl-8 pr-6 sm:pr-8 py-2 sm:py-2 bg-white hover:bg-slate-50 border border-slate-300 focus:border-emerald-500 rounded-lg sm:rounded-xl text-[12px] sm:text-sm font-medium text-slate-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer transition-colors appearance-none"
                             @change="onPerPageChange"
                             title="Tampilkan jumlah baris data per halaman"
                         >
@@ -213,10 +213,10 @@ function resetAll() {
                                 {{ opt.label }}
                             </option>
                         </select>
-                        <span class="material-symbols-outlined text-primary text-[15px] sm:text-[18px] pointer-events-none absolute left-2 sm:left-2.5">
+                        <span class="material-symbols-outlined text-primary text-[15px] sm:text-[18px] pointer-events-none absolute left-1.5 sm:left-2.5">
                             format_list_numbered
                         </span>
-                        <span class="material-symbols-outlined text-outline text-[15px] sm:text-[16px] pointer-events-none absolute right-2 sm:right-2.5">
+                        <span class="material-symbols-outlined text-outline text-[15px] sm:text-[16px] pointer-events-none absolute right-1.5 sm:right-2.5">
                             expand_more
                         </span>
                     </div>
