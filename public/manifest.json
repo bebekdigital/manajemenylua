@@ -1,7 +1,7 @@
 {
     "name": "Yayasan Li Ulil Albab Karanganyar",
     "short_name": "YLUA",
-    "start_url": "/",
+    "start_url": "/?mode=standalone",
     "display": "standalone",
     "background_color": "#ffffff",
     "theme_color": "#006837",

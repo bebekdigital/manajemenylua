@@ -22,18 +22,22 @@ const submit = () => {
 const deferredPrompt = ref(null);
 const showInstallButton = ref(false);
 
-const handleBeforeInstallPrompt = (e) => {
-  e.preventDefault();
-  deferredPrompt.value = e;
-  showInstallButton.value = true;
+const checkPwaStatus = () => {
+  if (window.deferredPrompt) {
+    deferredPrompt.value = window.deferredPrompt;
+    showInstallButton.value = true;
+  }
 };
 
 onMounted(() => {
-  window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  // Cek apakah event sudah tertangkap oleh app.blade.php sebelum Vue mount
+  checkPwaStatus();
+  // Dengarkan juga jika event muncul setelah mount
+  window.addEventListener('pwa-ready', checkPwaStatus);
 });
 
 onUnmounted(() => {
-  window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  window.removeEventListener('pwa-ready', checkPwaStatus);
 });
 
 const installPWA = async () => {

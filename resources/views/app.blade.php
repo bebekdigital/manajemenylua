@@ -11,6 +11,15 @@
     <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
     <link rel="manifest" href="{{ asset('manifest.json') }}">
     <script>
+      // Tangkap event PWA secepat mungkin sebelum Vue selesai dirender
+      window.deferredPrompt = null;
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        window.deferredPrompt = e;
+        // Panggil event kustom yang bisa dideteksi oleh Vue nanti
+        window.dispatchEvent(new Event('pwa-ready'));
+      });
+
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {
           navigator.serviceWorker.register('/sw.js').then(function(registration) {
