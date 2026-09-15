@@ -130,7 +130,7 @@ function resetAll() {
         <!-- Main Row: Search and Filters -->
         <div class="flex flex-col xl:flex-row gap-2 sm:gap-3 items-start xl:items-center justify-between w-full">
             <!-- Search Bar with Clear Button -->
-            <div class="relative w-full xl:w-auto xl:min-w-[280px] xl:max-w-md shrink-0">
+            <div class="relative w-full xl:w-56 2xl:w-72 shrink-0">
                 <span class="material-symbols-outlined absolute left-2.5 sm:left-3.5 top-1/2 -translate-y-1/2 text-outline text-[16px] sm:text-[20px] pointer-events-none">
                     search
                 </span>
@@ -162,7 +162,7 @@ function resetAll() {
                 </div>
 
                 <!-- Unit Filter -->
-                <div class="relative min-w-[110px] sm:min-w-[140px] flex-grow sm:flex-grow-0">
+                <div class="relative min-w-[110px] xl:min-w-[100px] flex-grow sm:flex-grow-0">
                     <select
                         v-model="selectedUnit"
                         class="w-full pl-2 sm:pl-3 pr-6 sm:pr-8 py-1.5 sm:py-2 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg sm:rounded-xl text-[11px] sm:text-sm font-medium text-slate-700 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 cursor-pointer transition-colors"
@@ -173,7 +173,7 @@ function resetAll() {
                 </div>
 
                 <!-- Grade Filter (Dinamis sesuai unit) -->
-                <div class="relative min-w-[100px] sm:min-w-[120px] flex-grow sm:flex-grow-0">
+                <div class="relative min-w-[100px] xl:min-w-[90px] flex-grow sm:flex-grow-0">
                     <select
                         v-model="selectedGrade"
                         class="w-full pl-2 sm:pl-3 pr-6 sm:pr-8 py-1.5 sm:py-2 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg sm:rounded-xl text-[11px] sm:text-sm font-medium text-slate-700 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 cursor-pointer transition-colors"
@@ -184,7 +184,7 @@ function resetAll() {
                 </div>
 
                 <!-- Status Filter -->
-                <div class="relative min-w-[110px] sm:min-w-[130px] flex-grow sm:flex-grow-0">
+                <div class="relative min-w-[110px] xl:min-w-[100px] flex-grow sm:flex-grow-0">
                     <select
                         v-model="selectedStatus"
                         class="w-full pl-2 sm:pl-3 pr-6 sm:pr-8 py-1.5 sm:py-2 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg sm:rounded-xl text-[11px] sm:text-sm font-medium text-slate-700 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 cursor-pointer transition-colors"
@@ -195,7 +195,7 @@ function resetAll() {
                 </div>
 
                 <!-- Tampilkan ... Data Selector Filter -->
-                <div class="relative min-w-[130px] sm:min-w-[150px] flex-grow sm:flex-grow-0">
+                <div class="relative min-w-[130px] xl:min-w-[110px] flex-grow sm:flex-grow-0">
                     <div class="relative flex items-center">
                         <select
                             :value="perPage"

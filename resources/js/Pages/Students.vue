@@ -148,10 +148,10 @@ function onPageChange(page) {
         <!-- Page Header -->
         <div class="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-                <h2 class="text-2xl text-primary font-bold">
+                <h2 class="text-lg sm:text-2xl text-primary font-bold leading-tight">
                     Database Siswa
                 </h2>
-                <p class="font-body-md text-body-md text-on-surface-variant mt-1">
+                <p class="font-body-sm sm:font-body-md text-xs sm:text-sm text-on-surface-variant mt-1">
                     Kelola dan tinjau seluruh data peserta didik sesuai Tahun Ajaran aktif
                 </p>
             </div>
