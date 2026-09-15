@@ -3,6 +3,7 @@
 use App\Http\Controllers\AcademicYearController;
 use App\Http\Controllers\AdministrationController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\UserController;
 use App\Models\User;
@@ -55,6 +56,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/beranda', function () {
         return Inertia::render('Dashboard');
     })->name('dashboard');
+
+    // Profile
+    Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
+    Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::post('/profile/photo', [ProfileController::class, 'updatePhoto'])->name('profile.photo');
 
     Route::get('/students', [StudentController::class, 'index'])->name('students.index');
     Route::get('/students/template', [StudentController::class, 'downloadTemplate'])->name('students.template');

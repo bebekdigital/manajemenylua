@@ -15,6 +15,7 @@ const activeRoute = computed(() => {
     if (url.startsWith('/portal')) return 'portal';
     if (url.startsWith('/pembelajaran')) return 'pembelajaran';
     if (url.startsWith('/kesiswaan')) return 'kesiswaan';
+    if (url.startsWith('/profile')) return 'profile';
     return 'overview';
 });
 
@@ -27,6 +28,7 @@ const activeRouteLabel = computed(() => {
     if (route === 'portal') return 'Pengaturan';
     if (route === 'pembelajaran') return 'Pembelajaran';
     if (route === 'kesiswaan') return 'Kesiswaan';
+    if (route === 'profile') return 'Profil Saya';
     return 'Beranda';
 });
 </script>
