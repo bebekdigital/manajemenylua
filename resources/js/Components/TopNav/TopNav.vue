@@ -100,9 +100,9 @@ onUnmounted(() => {
                         aria-haspopup="listbox"
                         :aria-expanded="isDropdownOpen"
                     >
-                        <!-- Calendar / Loading Icon (Hidden on Mobile) -->
+                        <!-- Calendar / Loading Icon (Hidden on Mobile/Tablet) -->
                         <span
-                            class="hidden md:block material-symbols-outlined text-primary text-[20px] shrink-0 transition-transform group-hover:scale-105"
+                            class="hidden lg:block material-symbols-outlined text-primary text-[20px] shrink-0 transition-transform group-hover:scale-105"
                             :class="{ 'animate-spin': isSwitching }"
                         >
                             {{ isSwitching ? 'sync' : 'calendar_today' }}
@@ -119,7 +119,7 @@ onUnmounted(() => {
                                 </span>
                                 <span
                                     v-if="selectedAcademicYear?.is_active"
-                                    class="hidden md:inline-flex items-center px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-primary/15 text-primary border border-primary/25"
+                                    class="hidden lg:inline-flex items-center px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-primary/15 text-primary border border-primary/25"
                                 >
                                     Aktif
                                 </span>
@@ -136,9 +136,9 @@ onUnmounted(() => {
                             </div>
                         </div>
 
-                        <!-- Dropdown Chevron Icon (Hidden on Mobile) -->
+                        <!-- Dropdown Chevron Icon (Hidden on Mobile/Tablet) -->
                         <span
-                            class="hidden md:block material-symbols-outlined text-primary/70 text-[18px] shrink-0 transition-transform duration-200 ml-0.5"
+                            class="hidden lg:block material-symbols-outlined text-primary/70 text-[18px] shrink-0 transition-transform duration-200 ml-0.5"
                             :class="{ 'rotate-180 text-primary': isDropdownOpen }"
                         >
                             expand_more
