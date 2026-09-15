@@ -2,4 +2,4 @@
 deployment:
   tasks:
     - export DEPLOYPATH=/home/u9022432/public_html/data.ulilalbabkra.sch.id
-    - /bin/cp -R * $DEPLOYPATH
+    - /bin/rsync -av --exclude='.git' --exclude='storage' ./ $DEPLOYPATH
