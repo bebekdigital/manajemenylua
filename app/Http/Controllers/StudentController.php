@@ -115,12 +115,18 @@ class StudentController extends Controller
                         'tahun_lahir' => $family->ayah_tahun_lahir,
                         'pekerjaan' => $family->ayah_pekerjaan,
                         'penghasilan' => $family->ayah_penghasilan,
+                        'status' => $family->ayah_status,
                     ] : null,
                     'ibu' => $family ? [
                         'nama' => $family->ibu_nama,
                         'tahun_lahir' => $family->ibu_tahun_lahir,
                         'pekerjaan' => $family->ibu_pekerjaan,
                         'penghasilan' => $family->ibu_penghasilan,
+                        'status' => $family->ibu_status,
+                    ] : null,
+                    'bisnis' => $family ? [
+                        'has_bisnis' => $family->has_bisnis ?? false,
+                        'jenis_bisnis' => $family->jenis_bisnis,
                     ] : null,
                     'wali' => $family && $family->wali_nama ? [
                         'nama' => $family->wali_nama,
@@ -222,7 +228,7 @@ class StudentController extends Controller
             'SDIT Ulil Albab Gondangrejo', 'Umum',
             'L', 'Karanganyar', '2014-03-15', 'Islam',
             '081234567001', 'TK Aisyiyah Colomadu',
-            'Anak Kandung', '1', '7', '2024-07-15'
+            'Anak Kandung', '1', '7', '2024-07-15',
         ]], null, 'A2');
 
         $this->styleExampleRow($sheet, 2, 'A', 'Q');
@@ -269,31 +275,36 @@ class StudentController extends Controller
             'E' => ['Pendidikan Ayah', 18],
             'F' => ['Pekerjaan Ayah', 20],
             'G' => ['Penghasilan Ayah', 28],
-            'H' => ['Nama Ibu', 25],
-            'I' => ['NIK Ibu', 18],
-            'J' => ['Thn Lahir Ibu', 16],
-            'K' => ['Pendidikan Ibu', 18],
-            'L' => ['Pekerjaan Ibu', 20],
-            'M' => ['Penghasilan Ibu', 28],
-            'N' => ['Nama Wali', 25],
-            'O' => ['NIK Wali', 18],
-            'P' => ['Thn Lahir Wali', 16],
-            'Q' => ['Hubungan Wali', 18],
-            'R' => ['Pendidikan Wali', 18],
-            'S' => ['Pekerjaan Wali', 20],
-            'T' => ['Penghasilan Wali', 28],
+            'H' => ['Status Ayah (Hidup/Meninggal)', 30],
+            'I' => ['Nama Ibu', 25],
+            'J' => ['NIK Ibu', 18],
+            'K' => ['Thn Lahir Ibu', 16],
+            'L' => ['Pendidikan Ibu', 18],
+            'M' => ['Pekerjaan Ibu', 20],
+            'N' => ['Penghasilan Ibu', 28],
+            'O' => ['Status Ibu (Hidup/Meninggal)', 30],
+            'P' => ['Memiliki Bisnis/Usaha (Ya/Tidak)', 32],
+            'Q' => ['Jenis Bisnis/Usaha', 30],
+            'R' => ['Nama Wali', 25],
+            'S' => ['NIK Wali', 18],
+            'T' => ['Thn Lahir Wali', 16],
+            'U' => ['Hubungan Wali', 18],
+            'V' => ['Pendidikan Wali', 18],
+            'W' => ['Pekerjaan Wali', 20],
+            'X' => ['Penghasilan Wali', 28],
         ];
 
         $this->applySheetHeaders($sheet, $headers, '6A1E99');
 
         $sheet->fromArray([[
             '0051234001',
-            'Fauzi Hidayat', '', '1980', 'SMA/SMK', 'Wiraswasta', 'Rp 3.000.000 - Rp 5.000.000',
-            'Siti Rahmawati', '', '1984', 'SMA/SMK', 'Ibu Rumah Tangga', 'Kurang dari Rp 1.000.000',
+            'Fauzi Hidayat', '', '1980', 'SMA/SMK', 'Wiraswasta', 'Rp 3.000.000 - Rp 5.000.000', 'Hidup',
+            'Siti Rahmawati', '', '1984', 'SMA/SMK', 'Ibu Rumah Tangga', 'Kurang dari Rp 1.000.000', 'Hidup',
+            'Ya', 'Warung Makan',
             '', '', '', '', '', '', '',
         ]], null, 'A2');
 
-        $this->styleExampleRow($sheet, 2, 'A', 'T');
+        $this->styleExampleRow($sheet, 2, 'A', 'X');
         $sheet->freezePane('B2');
     }
 

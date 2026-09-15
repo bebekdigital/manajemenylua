@@ -261,6 +261,22 @@ function hitungUsia(tanggalLahir) {
                                             <label class="text-xs text-on-surface-variant uppercase tracking-wider">Penghasilan</label>
                                             <p class="text-sm font-medium text-on-surface mt-0.5">{{ student.ayah?.penghasilan || '-' }}</p>
                                         </div>
+                                        <div>
+                                            <label class="text-xs text-on-surface-variant uppercase tracking-wider">Status</label>
+                                            <p class="mt-0.5">
+                                                <span
+                                                    v-if="student.ayah?.status"
+                                                    :class="[
+                                                        'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold',
+                                                        student.ayah.status === 'Meninggal' ? 'bg-slate-200 text-slate-600' : 'bg-emerald-100 text-emerald-700'
+                                                    ]"
+                                                >
+                                                    <span class="material-symbols-outlined text-[12px]">{{ student.ayah.status === 'Meninggal' ? 'sentiment_sad' : 'favorite' }}</span>
+                                                    {{ student.ayah.status }}
+                                                </span>
+                                                <span v-else class="text-sm font-medium text-on-surface">-</span>
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -286,6 +302,52 @@ function hitungUsia(tanggalLahir) {
                                         <div>
                                             <label class="text-xs text-on-surface-variant uppercase tracking-wider">Penghasilan</label>
                                             <p class="text-sm font-medium text-on-surface mt-0.5">{{ student.ibu?.penghasilan || '-' }}</p>
+                                        </div>
+                                        <div>
+                                            <label class="text-xs text-on-surface-variant uppercase tracking-wider">Status</label>
+                                            <p class="mt-0.5">
+                                                <span
+                                                    v-if="student.ibu?.status"
+                                                    :class="[
+                                                        'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold',
+                                                        student.ibu.status === 'Meninggal' ? 'bg-slate-200 text-slate-600' : 'bg-pink-100 text-pink-700'
+                                                    ]"
+                                                >
+                                                    <span class="material-symbols-outlined text-[12px]">{{ student.ibu.status === 'Meninggal' ? 'sentiment_sad' : 'favorite' }}</span>
+                                                    {{ student.ibu.status }}
+                                                </span>
+                                                <span v-else class="text-sm font-medium text-on-surface">-</span>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Bisnis / Usaha Keluarga -->
+                                <div>
+                                    <h4 class="text-sm font-bold text-primary mb-3 flex items-center gap-2">
+                                        <span class="material-symbols-outlined text-[18px]">shoppingmode</span>
+                                        Bisnis / Usaha Keluarga
+                                    </h4>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 pl-1">
+                                        <div>
+                                            <label class="text-xs text-on-surface-variant uppercase tracking-wider">Memiliki Bisnis/Usaha</label>
+                                            <p class="mt-0.5">
+                                                <span
+                                                    v-if="student.bisnis !== null"
+                                                    :class="[
+                                                        'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold',
+                                                        student.bisnis?.has_bisnis ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'
+                                                    ]"
+                                                >
+                                                    <span class="material-symbols-outlined text-[12px]">{{ student.bisnis?.has_bisnis ? 'store' : 'store_mall_directory' }}</span>
+                                                    {{ student.bisnis?.has_bisnis ? 'Ya' : 'Tidak' }}
+                                                </span>
+                                                <span v-else class="text-sm font-medium text-on-surface">-</span>
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <label class="text-xs text-on-surface-variant uppercase tracking-wider">Jenis Bisnis/Usaha</label>
+                                            <p class="text-sm font-medium text-on-surface mt-0.5">{{ student.bisnis?.jenis_bisnis || '-' }}</p>
                                         </div>
                                     </div>
                                 </div>

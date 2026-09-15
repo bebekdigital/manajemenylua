@@ -18,12 +18,16 @@ class StudentFamily extends Model
         'ayah_pendidikan',
         'ayah_pekerjaan',
         'ayah_penghasilan',
+        'ayah_status',
         'ibu_nama',
         'ibu_nik',
         'ibu_tahun_lahir',
         'ibu_pendidikan',
         'ibu_pekerjaan',
         'ibu_penghasilan',
+        'ibu_status',
+        'has_bisnis',
+        'jenis_bisnis',
         'wali_nama',
         'wali_nik',
         'wali_tahun_lahir',
@@ -39,6 +43,7 @@ class StudentFamily extends Model
             'ayah_tahun_lahir' => 'integer',
             'ibu_tahun_lahir' => 'integer',
             'wali_tahun_lahir' => 'integer',
+            'has_bisnis' => 'boolean',
         ];
     }
 
