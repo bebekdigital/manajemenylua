@@ -117,7 +117,7 @@ function closeMobileSubMenu() {
         <div class="mt-auto pt-4 border-t border-emerald-800 space-y-2">
             <button class="w-full bg-yellow-200 text-emerald-900 py-2 px-4 rounded-full hover:bg-yellow-300 transition-colors mb-4 flex items-center justify-center space-x-2 shadow-sm cursor-pointer font-semibold text-sm">
                 <span class="material-symbols-outlined text-[18px] filled-icon">add_circle</span>
-                <span>Generate Report</span>
+                <span>Buat Laporan</span>
             </button>
             <ul class="space-y-1">
                 <li>
