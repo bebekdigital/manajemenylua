@@ -503,8 +503,18 @@ class StudentController extends Controller
                         $classroomId = $record->classroom_id;
                         if (! empty($d['kelas']) && ! empty($d['unit'])) {
                             $classroom = Classroom::firstOrCreate(
-                                ['name' => $d['kelas'], 'unit' => $d['unit']],
-                                ['name' => $d['kelas'], 'unit' => $d['unit']]
+                                [
+                                    'name' => $d['kelas'],
+                                    'unit' => $d['unit'],
+                                    'academic_year_id' => $selectedYearId
+                                ],
+                                [
+                                    'name' => $d['kelas'],
+                                    'unit' => $d['unit'],
+                                    'academic_year_id' => $selectedYearId,
+                                    'jenjang' => $d['jenjang'] ?? null,
+                                    'grade' => $d['tingkat'] ?? null,
+                                ]
                             );
                             $classroomId = $classroom->id;
                         }
