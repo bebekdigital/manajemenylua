@@ -46,7 +46,7 @@ const columns = {
         { key: 'sekolah_asal', label: 'Sekolah Asal', type: 'text', width: 'w-40' },
     ],
     akademik: [
-        { key: 'unit', label: 'Unit', type: 'select', options: ['SDIT Ulil Albab Gondangrejo', 'SMPIT Ulil Albab Gondangrejo', 'PPTQ Ulil Albab Gondangrejo'], width: 'w-44' },
+        { key: 'unit', label: 'Unit', type: 'text', width: 'w-44' },
         { key: 'program', label: 'Program', type: 'select', options: ['Umum', 'Fullday', 'Boarding'], width: 'w-28' },
         { key: 'jenjang', label: 'Jenjang', type: 'select', options: ['SD', 'SMP', 'SMA'], width: 'w-24' },
         { key: 'tingkat', label: 'Tingkat', type: 'number', width: 'w-20' },
@@ -318,7 +318,7 @@ function groupSpan(groupKey) {
                                 @click="bulkMode = 'all'"
                                 :class="['px-3 py-1.5 text-xs font-semibold transition-colors', bulkMode === 'all' ? 'bg-amber-500 text-white' : 'bg-white text-amber-700 hover:bg-amber-100']"
                             >
-                                Semua ({{ form.students.length }})
+                                Semua ({{ students.length }})
                             </button>
                         </div>
                     </div>
