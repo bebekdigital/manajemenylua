@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, reactive } from 'vue';
-import { Head, useForm, Link } from '@inertiajs/vue3';
+import { Head, router, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 
 defineOptions({ layout: AppLayout });
@@ -11,11 +11,12 @@ const props = defineProps({
 });
 
 // ============================================================
-// Form Data
+// Student Data (mutable local copy)
 // ============================================================
-const form = useForm({
-    students: props.students.map(s => ({ ...s })),
-});
+const students = reactive(props.students.map(s => ({ ...s })));
+
+const isSaving = ref(false);
+const saveError = ref(null);
 
 // ============================================================
 // Column Groups (collapsible)
@@ -108,9 +109,9 @@ const searchQuery = ref('');
 const selectedRows = ref(new Set());
 
 const filteredStudents = computed(() => {
-    if (!searchQuery.value) return form.students;
+    if (!searchQuery.value) return students;
     const q = searchQuery.value.toLowerCase().trim();
-    return form.students.filter(s =>
+    return students.filter(s =>
         s.nama?.toLowerCase().includes(q) ||
         s.nisn?.includes(q) ||
         s.nipd?.includes(q)
@@ -152,8 +153,8 @@ const bulkColumn = computed(() => allColumns.find(c => c.key === bulkField.value
 function applyBulk() {
     if (!bulkField.value) return;
     const targets = bulkMode.value === 'all'
-        ? form.students
-        : form.students.filter(s => selectedRows.value.has(s.nisn));
+        ? students
+        : students.filter(s => selectedRows.value.has(s.nisn));
 
     const val = bulkColumn.value?.type === 'number' ? Number(bulkValue.value) :
                 bulkColumn.value?.type === 'checkbox' ? Boolean(bulkValue.value) :
@@ -170,7 +171,22 @@ function applyBulk() {
 // Save
 // ============================================================
 function saveChanges() {
-    form.post(route('students.inline-update'), { preserveScroll: true });
+    isSaving.value = true;
+    saveError.value = null;
+
+    router.post('/students/inline-update', { students: students }, {
+        preserveScroll: true,
+        onSuccess: () => {
+            isSaving.value = false;
+        },
+        onError: (errors) => {
+            saveError.value = Object.values(errors).join(', ') || 'Terjadi kesalahan saat menyimpan data.';
+            isSaving.value = false;
+        },
+        onFinish: () => {
+            isSaving.value = false;
+        }
+    });
 }
 
 // ============================================================
@@ -247,12 +263,24 @@ function groupSpan(groupKey) {
                 <button
                     type="button"
                     @click="saveChanges"
-                    :disabled="form.processing"
+                    :disabled="isSaving"
                     class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-on-primary font-semibold text-xs transition-all shadow-sm hover:shadow-md disabled:opacity-50 cursor-pointer"
                 >
-                    <span class="material-symbols-outlined text-[16px]">{{ form.processing ? 'hourglass_empty' : 'save' }}</span>
-                    {{ form.processing ? 'Menyimpan...' : 'Simpan Perubahan' }}
+                    <span class="material-symbols-outlined text-[16px]">{{ isSaving ? 'hourglass_empty' : 'save' }}</span>
+                    {{ isSaving ? 'Menyimpan...' : 'Simpan Perubahan' }}
                 </button>
+            </div>
+        </div>
+
+        <!-- Error Banner -->
+        <div
+            v-if="saveError"
+            class="mb-4 p-3 bg-red-50 border border-red-300 rounded-2xl flex items-start gap-2 text-sm text-red-700"
+        >
+            <span class="material-symbols-outlined text-[18px] shrink-0 mt-0.5">error</span>
+            <div>
+                <strong>Gagal menyimpan:</strong> {{ saveError }}
+                <button type="button" @click="saveError = null" class="ml-2 underline text-red-500 hover:text-red-700">Tutup</button>
             </div>
         </div>
 
@@ -551,17 +579,17 @@ function groupSpan(groupKey) {
             <!-- Footer -->
             <div class="px-4 py-3 border-t border-slate-100 flex items-center justify-between bg-slate-50/50">
                 <span class="text-xs text-slate-500">
-                    Menampilkan <strong class="text-slate-700">{{ filteredStudents.length }}</strong> dari <strong class="text-slate-700">{{ form.students.length }}</strong> siswa
+                    Menampilkan <strong class="text-slate-700">{{ filteredStudents.length }}</strong> dari <strong class="text-slate-700">{{ students.length }}</strong> siswa
                     <span v-if="selectedRows.size > 0"> · <strong class="text-amber-600">{{ selectedRows.size }} dipilih</strong></span>
                 </span>
                 <button
                     type="button"
                     @click="saveChanges"
-                    :disabled="form.processing"
+                    :disabled="isSaving"
                     class="inline-flex items-center gap-1.5 px-4 py-1.5 bg-primary text-on-primary rounded-lg text-xs font-bold disabled:opacity-50 cursor-pointer transition-all hover:shadow-md"
                 >
-                    <span class="material-symbols-outlined text-[14px]">save</span>
-                    Simpan Perubahan
+                    <span class="material-symbols-outlined text-[14px]">{{ isSaving ? 'hourglass_empty' : 'save' }}</span>
+                    {{ isSaving ? 'Menyimpan...' : 'Simpan Perubahan' }}
                 </button>
             </div>
         </div>
