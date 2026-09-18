@@ -225,12 +225,9 @@ function resetAll() {
         </div>
 
         <!-- Result Counter / Filter Summary -->
-        <div class="pt-2 sm:pt-3 border-t border-outline-variant/30 text-[10px] sm:text-xs text-on-surface-variant font-medium flex justify-start sm:justify-end shrink-0">
-            <span v-if="hasActiveFilters" class="inline-flex items-center gap-1">
+        <div v-if="hasActiveFilters" class="pt-2 sm:pt-3 border-t border-outline-variant/30 text-[10px] sm:text-xs text-on-surface-variant font-medium flex justify-start sm:justify-end shrink-0">
+            <span class="inline-flex items-center gap-1">
                 Menampilkan <strong class="text-primary font-bold">{{ filteredCount }}</strong> dari {{ totalCount }} siswa
-            </span>
-            <span v-else class="text-outline">
-                Total: <strong class="text-on-surface font-semibold">{{ totalCount }}</strong> peserta didik
             </span>
         </div>
     </div>

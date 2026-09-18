@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue';
-import { Head, usePage } from '@inertiajs/vue3';
+import { Head, usePage, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import StudentToolbar from '@/Components/Students/StudentToolbar.vue';
 import StudentTable from '@/Components/Students/StudentTable.vue';
@@ -144,6 +144,15 @@ function onPageChange(page) {
             </div>
             <!-- Action Buttons -->
             <div class="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
+                <Link
+                    href="/students/inline-edit"
+                    class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2.5 rounded-lg sm:rounded-xl border border-primary text-primary bg-primary/10 hover:bg-primary/20 active:bg-primary/30 font-semibold text-[11px] sm:text-sm transition-all shadow-2xs hover:shadow-sm"
+                    title="Edit langsung data siswa secara massal"
+                >
+                    <span class="material-symbols-outlined text-[16px] sm:text-[18px]">edit_note</span>
+                    <span>Edit Data</span>
+                </Link>
+
                 <a
                     href="/students/template"
                     download

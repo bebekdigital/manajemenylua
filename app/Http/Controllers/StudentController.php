@@ -3,11 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\AcademicYear;
+use App\Models\Classroom;
 use App\Models\Student;
+use App\Models\StudentAcademicRecord;
 use App\Services\StudentImportService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -259,6 +262,161 @@ class StudentController extends Controller
                 'is_active' => (bool) $selectedYear->is_active,
             ] : null,
         ]);
+    }
+
+    /**
+     * Display the inline student editing page.
+     */
+    public function inlineEdit(Request $request): Response
+    {
+        $selectedYearId = $request->query('academic_year_id') ?? session('selected_academic_year_id');
+        $selectedYear = $selectedYearId
+            ? AcademicYear::find($selectedYearId)
+            : (AcademicYear::current() ?? AcademicYear::first());
+
+        if ($selectedYear && session('selected_academic_year_id') !== $selectedYear->id) {
+            session(['selected_academic_year_id' => $selectedYear->id]);
+        }
+
+        $students = Student::with([
+            'academicRecords' => function ($query) use ($selectedYear) {
+                if ($selectedYear) {
+                    $query->where('academic_year_id', $selectedYear->id);
+                }
+                $query->with('classroom');
+            },
+            'family',
+            'siblings',
+        ])
+            ->when($selectedYear, function ($query) use ($selectedYear) {
+                $query->whereHas('academicRecords', function ($q) use ($selectedYear) {
+                    $q->where('academic_year_id', $selectedYear->id);
+                });
+            })
+            ->orderBy('unit')
+            ->orderBy('nama')
+            ->get()
+            ->map(function (Student $student) {
+                $record = $student->academicRecords->first();
+                $classroom = $record?->classroom;
+
+                return [
+                    'nisn' => $student->nisn,
+                    'nama' => $student->nama,
+                    'nipd' => $student->nipd,
+                    'jk' => $student->jk,
+                    'ttl' => $student->ttl, // Read only representation
+                    'tempat_lahir' => $student->tempat_lahir,
+                    'tanggal_lahir' => $student->tanggal_lahir ? $student->tanggal_lahir->format('Y-m-d') : null,
+                    'unit' => $student->unit,
+                    'program' => $student->program,
+                    'jenjang' => $record?->jenjang,
+                    'tingkat' => $record?->tingkat,
+                    'kelas' => $classroom?->name,
+                    'student_status' => $record?->student_status ?? 'aktif',
+                    'no_wa' => $student->no_wa,
+                    'jalan' => $student->jalan,
+                    'rt_rw' => $student->rt_rw,
+                    'dusun' => $student->dusun,
+                    'desa' => $student->desa,
+                    'kecamatan' => $student->kecamatan,
+                    'kabupaten' => $student->kabupaten,
+                    'provinsi' => $student->provinsi,
+                ];
+            });
+
+        return Inertia::render('Students/InlineEdit', [
+            'students' => $students,
+            'selectedAcademicYear' => $selectedYear ? [
+                'id' => $selectedYear->id,
+                'name' => $selectedYear->name,
+                'semester' => $selectedYear->semester,
+                'is_active' => (bool) $selectedYear->is_active,
+            ] : null,
+        ]);
+    }
+
+    /**
+     * Process batch updates from inline editing.
+     */
+    public function inlineUpdate(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'students' => ['required', 'array'],
+            'students.*.nisn' => ['required', 'string'],
+            'students.*.nama' => ['required', 'string'],
+            'students.*.nipd' => ['nullable', 'string'],
+            'students.*.jk' => ['nullable', 'string'],
+            'students.*.tempat_lahir' => ['nullable', 'string'],
+            'students.*.tanggal_lahir' => ['nullable', 'date'],
+            'students.*.unit' => ['nullable', 'string'],
+            'students.*.program' => ['nullable', 'string'],
+            'students.*.jenjang' => ['nullable', 'string'],
+            'students.*.tingkat' => ['nullable', 'numeric'],
+            'students.*.kelas' => ['nullable', 'string'],
+            'students.*.no_wa' => ['nullable', 'string'],
+            'students.*.jalan' => ['nullable', 'string'],
+            'students.*.rt_rw' => ['nullable', 'string'],
+            'students.*.dusun' => ['nullable', 'string'],
+            'students.*.desa' => ['nullable', 'string'],
+            'students.*.kecamatan' => ['nullable', 'string'],
+            'students.*.kabupaten' => ['nullable', 'string'],
+            'students.*.provinsi' => ['nullable', 'string'],
+        ]);
+
+        $selectedYearId = session('selected_academic_year_id') ?? AcademicYear::current()?->id;
+
+        DB::transaction(function () use ($validated, $selectedYearId) {
+            foreach ($validated['students'] as $studentData) {
+                $student = Student::where('nisn', $studentData['nisn'])->first();
+                if (! $student) {
+                    continue;
+                }
+
+                $student->update([
+                    'nama' => $studentData['nama'],
+                    'nipd' => $studentData['nipd'] ?? $student->nipd,
+                    'jk' => $studentData['jk'] ?? $student->jk,
+                    'tempat_lahir' => $studentData['tempat_lahir'] ?? $student->tempat_lahir,
+                    'tanggal_lahir' => $studentData['tanggal_lahir'] ?? $student->tanggal_lahir,
+                    'unit' => $studentData['unit'] ?? $student->unit,
+                    'program' => $studentData['program'] ?? $student->program,
+                    'no_wa' => $studentData['no_wa'] ?? $student->no_wa,
+                    'jalan' => $studentData['jalan'] ?? $student->jalan,
+                    'rt_rw' => $studentData['rt_rw'] ?? $student->rt_rw,
+                    'dusun' => $studentData['dusun'] ?? $student->dusun,
+                    'desa' => $studentData['desa'] ?? $student->desa,
+                    'kecamatan' => $studentData['kecamatan'] ?? $student->kecamatan,
+                    'kabupaten' => $studentData['kabupaten'] ?? $student->kabupaten,
+                    'provinsi' => $studentData['provinsi'] ?? $student->provinsi,
+                ]);
+
+                if ($selectedYearId) {
+                    $record = StudentAcademicRecord::where('student_id', $student->id)
+                        ->where('academic_year_id', $selectedYearId)
+                        ->first();
+
+                    if ($record) {
+                        $classroomId = $record->classroom_id;
+                        if (! empty($studentData['kelas']) && $studentData['unit']) {
+                            $classroom = Classroom::firstOrCreate(
+                                ['name' => $studentData['kelas'], 'unit' => $studentData['unit']],
+                                ['name' => $studentData['kelas'], 'unit' => $studentData['unit']]
+                            );
+                            $classroomId = $classroom->id;
+                        }
+
+                        $record->update([
+                            'jenjang' => $studentData['jenjang'] ?? $record->jenjang,
+                            'tingkat' => $studentData['tingkat'] ?? $record->tingkat,
+                            'classroom_id' => $classroomId,
+                        ]);
+                    }
+                }
+            }
+        });
+
+        return redirect()->route('students.index')->with('success', 'Data siswa berhasil diperbarui secara massal.');
     }
 
     /**
