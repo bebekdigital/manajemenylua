@@ -6,6 +6,7 @@ use App\Models\AcademicYear;
 use App\Models\Classroom;
 use App\Models\Student;
 use App\Models\StudentAcademicRecord;
+use App\Models\StudentFamily;
 use App\Services\StudentImportService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -297,24 +298,36 @@ class StudentController extends Controller
             ->orderBy('nama')
             ->get()
             ->map(function (Student $student) {
+                $family = $student->family;
                 $record = $student->academicRecords->first();
                 $classroom = $record?->classroom;
 
                 return [
+                    // Identitas
                     'nisn' => $student->nisn,
                     'nama' => $student->nama,
                     'nipd' => $student->nipd,
+                    'nik' => $student->nik,
+                    'no_kk' => $student->no_kk,
                     'jk' => $student->jk,
-                    'ttl' => $student->ttl, // Read only representation
                     'tempat_lahir' => $student->tempat_lahir,
                     'tanggal_lahir' => $student->tanggal_lahir ? $student->tanggal_lahir->format('Y-m-d') : null,
+                    'agama' => $student->agama,
+                    'no_wa' => $student->no_wa,
+                    'sekolah_asal' => $student->sekolah_asal,
+                    // Akademik
                     'unit' => $student->unit,
                     'program' => $student->program,
                     'jenjang' => $record?->jenjang,
                     'tingkat' => $record?->tingkat,
                     'kelas' => $classroom?->name,
                     'student_status' => $record?->student_status ?? 'aktif',
-                    'no_wa' => $student->no_wa,
+                    // Registrasi
+                    'status_keluarga' => $student->status_keluarga,
+                    'anak_ke' => $student->anak_ke,
+                    'diterima_di_jenjang' => $student->diterima_di_jenjang,
+                    'tanggal_diterima' => $student->tanggal_diterima ? $student->tanggal_diterima->format('Y-m-d') : null,
+                    // Alamat
                     'jalan' => $student->jalan,
                     'rt_rw' => $student->rt_rw,
                     'dusun' => $student->dusun,
@@ -322,6 +335,31 @@ class StudentController extends Controller
                     'kecamatan' => $student->kecamatan,
                     'kabupaten' => $student->kabupaten,
                     'provinsi' => $student->provinsi,
+                    // Keluarga - Ayah
+                    'ayah_nama' => $family?->ayah_nama,
+                    'ayah_tahun_lahir' => $family?->ayah_tahun_lahir,
+                    'ayah_pendidikan' => $family?->ayah_pendidikan,
+                    'ayah_pekerjaan' => $family?->ayah_pekerjaan,
+                    'ayah_penghasilan' => $family?->ayah_penghasilan,
+                    'ayah_status' => $family?->ayah_status,
+                    // Keluarga - Ibu
+                    'ibu_nama' => $family?->ibu_nama,
+                    'ibu_tahun_lahir' => $family?->ibu_tahun_lahir,
+                    'ibu_pendidikan' => $family?->ibu_pendidikan,
+                    'ibu_pekerjaan' => $family?->ibu_pekerjaan,
+                    'ibu_penghasilan' => $family?->ibu_penghasilan,
+                    'ibu_status' => $family?->ibu_status,
+                    // Keluarga - Wali
+                    'wali_nama' => $family?->wali_nama,
+                    'wali_hubungan' => $family?->wali_hubungan,
+                    'wali_pekerjaan' => $family?->wali_pekerjaan,
+                    'wali_penghasilan' => $family?->wali_penghasilan,
+                    // Bantuan
+                    'desil' => $record?->desil,
+                    'status_pip' => $record?->status_pip ?? false,
+                    'pip_keterangan' => $record?->pip_keterangan,
+                    'status_kip' => $record?->status_kip ?? false,
+                    'no_kip' => $record?->no_kip,
                 ];
             });
 
@@ -346,15 +384,24 @@ class StudentController extends Controller
             'students.*.nisn' => ['required', 'string'],
             'students.*.nama' => ['required', 'string'],
             'students.*.nipd' => ['nullable', 'string'],
+            'students.*.nik' => ['nullable', 'string'],
+            'students.*.no_kk' => ['nullable', 'string'],
             'students.*.jk' => ['nullable', 'string'],
             'students.*.tempat_lahir' => ['nullable', 'string'],
             'students.*.tanggal_lahir' => ['nullable', 'date'],
+            'students.*.agama' => ['nullable', 'string'],
+            'students.*.no_wa' => ['nullable', 'string'],
+            'students.*.sekolah_asal' => ['nullable', 'string'],
             'students.*.unit' => ['nullable', 'string'],
             'students.*.program' => ['nullable', 'string'],
             'students.*.jenjang' => ['nullable', 'string'],
             'students.*.tingkat' => ['nullable', 'numeric'],
             'students.*.kelas' => ['nullable', 'string'],
-            'students.*.no_wa' => ['nullable', 'string'],
+            'students.*.student_status' => ['nullable', 'string'],
+            'students.*.status_keluarga' => ['nullable', 'string'],
+            'students.*.anak_ke' => ['nullable', 'integer'],
+            'students.*.diterima_di_jenjang' => ['nullable', 'string'],
+            'students.*.tanggal_diterima' => ['nullable', 'date'],
             'students.*.jalan' => ['nullable', 'string'],
             'students.*.rt_rw' => ['nullable', 'string'],
             'students.*.dusun' => ['nullable', 'string'],
@@ -362,35 +409,91 @@ class StudentController extends Controller
             'students.*.kecamatan' => ['nullable', 'string'],
             'students.*.kabupaten' => ['nullable', 'string'],
             'students.*.provinsi' => ['nullable', 'string'],
+            'students.*.ayah_nama' => ['nullable', 'string'],
+            'students.*.ayah_tahun_lahir' => ['nullable', 'integer'],
+            'students.*.ayah_pendidikan' => ['nullable', 'string'],
+            'students.*.ayah_pekerjaan' => ['nullable', 'string'],
+            'students.*.ayah_penghasilan' => ['nullable', 'string'],
+            'students.*.ayah_status' => ['nullable', 'string'],
+            'students.*.ibu_nama' => ['nullable', 'string'],
+            'students.*.ibu_tahun_lahir' => ['nullable', 'integer'],
+            'students.*.ibu_pendidikan' => ['nullable', 'string'],
+            'students.*.ibu_pekerjaan' => ['nullable', 'string'],
+            'students.*.ibu_penghasilan' => ['nullable', 'string'],
+            'students.*.ibu_status' => ['nullable', 'string'],
+            'students.*.wali_nama' => ['nullable', 'string'],
+            'students.*.wali_hubungan' => ['nullable', 'string'],
+            'students.*.wali_pekerjaan' => ['nullable', 'string'],
+            'students.*.wali_penghasilan' => ['nullable', 'string'],
+            'students.*.desil' => ['nullable', 'integer'],
+            'students.*.status_pip' => ['nullable', 'boolean'],
+            'students.*.pip_keterangan' => ['nullable', 'string'],
+            'students.*.status_kip' => ['nullable', 'boolean'],
+            'students.*.no_kip' => ['nullable', 'string'],
         ]);
 
         $selectedYearId = session('selected_academic_year_id') ?? AcademicYear::current()?->id;
 
         DB::transaction(function () use ($validated, $selectedYearId) {
-            foreach ($validated['students'] as $studentData) {
-                $student = Student::where('nisn', $studentData['nisn'])->first();
+            foreach ($validated['students'] as $d) {
+                $student = Student::where('nisn', $d['nisn'])->first();
                 if (! $student) {
                     continue;
                 }
 
+                // Update student base data
                 $student->update([
-                    'nama' => $studentData['nama'],
-                    'nipd' => $studentData['nipd'] ?? $student->nipd,
-                    'jk' => $studentData['jk'] ?? $student->jk,
-                    'tempat_lahir' => $studentData['tempat_lahir'] ?? $student->tempat_lahir,
-                    'tanggal_lahir' => $studentData['tanggal_lahir'] ?? $student->tanggal_lahir,
-                    'unit' => $studentData['unit'] ?? $student->unit,
-                    'program' => $studentData['program'] ?? $student->program,
-                    'no_wa' => $studentData['no_wa'] ?? $student->no_wa,
-                    'jalan' => $studentData['jalan'] ?? $student->jalan,
-                    'rt_rw' => $studentData['rt_rw'] ?? $student->rt_rw,
-                    'dusun' => $studentData['dusun'] ?? $student->dusun,
-                    'desa' => $studentData['desa'] ?? $student->desa,
-                    'kecamatan' => $studentData['kecamatan'] ?? $student->kecamatan,
-                    'kabupaten' => $studentData['kabupaten'] ?? $student->kabupaten,
-                    'provinsi' => $studentData['provinsi'] ?? $student->provinsi,
+                    'nama' => $d['nama'],
+                    'nipd' => $d['nipd'] ?? $student->nipd,
+                    'nik' => $d['nik'] ?? $student->nik,
+                    'no_kk' => $d['no_kk'] ?? $student->no_kk,
+                    'jk' => $d['jk'] ?? $student->jk,
+                    'tempat_lahir' => $d['tempat_lahir'] ?? $student->tempat_lahir,
+                    'tanggal_lahir' => $d['tanggal_lahir'] ?? $student->tanggal_lahir,
+                    'agama' => $d['agama'] ?? $student->agama,
+                    'no_wa' => $d['no_wa'] ?? $student->no_wa,
+                    'sekolah_asal' => $d['sekolah_asal'] ?? $student->sekolah_asal,
+                    'unit' => $d['unit'] ?? $student->unit,
+                    'program' => $d['program'] ?? $student->program,
+                    'status_keluarga' => $d['status_keluarga'] ?? $student->status_keluarga,
+                    'anak_ke' => $d['anak_ke'] ?? $student->anak_ke,
+                    'diterima_di_jenjang' => $d['diterima_di_jenjang'] ?? $student->diterima_di_jenjang,
+                    'tanggal_diterima' => $d['tanggal_diterima'] ?? $student->tanggal_diterima,
+                    'jalan' => $d['jalan'] ?? $student->jalan,
+                    'rt_rw' => $d['rt_rw'] ?? $student->rt_rw,
+                    'dusun' => $d['dusun'] ?? $student->dusun,
+                    'desa' => $d['desa'] ?? $student->desa,
+                    'kecamatan' => $d['kecamatan'] ?? $student->kecamatan,
+                    'kabupaten' => $d['kabupaten'] ?? $student->kabupaten,
+                    'provinsi' => $d['provinsi'] ?? $student->provinsi,
                 ]);
 
+                // Update or create family data
+                $familyData = [
+                    'ayah_nama' => $d['ayah_nama'] ?? null,
+                    'ayah_tahun_lahir' => $d['ayah_tahun_lahir'] ?? null,
+                    'ayah_pendidikan' => $d['ayah_pendidikan'] ?? null,
+                    'ayah_pekerjaan' => $d['ayah_pekerjaan'] ?? null,
+                    'ayah_penghasilan' => $d['ayah_penghasilan'] ?? null,
+                    'ayah_status' => $d['ayah_status'] ?? null,
+                    'ibu_nama' => $d['ibu_nama'] ?? null,
+                    'ibu_tahun_lahir' => $d['ibu_tahun_lahir'] ?? null,
+                    'ibu_pendidikan' => $d['ibu_pendidikan'] ?? null,
+                    'ibu_pekerjaan' => $d['ibu_pekerjaan'] ?? null,
+                    'ibu_penghasilan' => $d['ibu_penghasilan'] ?? null,
+                    'ibu_status' => $d['ibu_status'] ?? null,
+                    'wali_nama' => $d['wali_nama'] ?? null,
+                    'wali_hubungan' => $d['wali_hubungan'] ?? null,
+                    'wali_pekerjaan' => $d['wali_pekerjaan'] ?? null,
+                    'wali_penghasilan' => $d['wali_penghasilan'] ?? null,
+                ];
+
+                StudentFamily::updateOrCreate(
+                    ['student_id' => $student->id],
+                    $familyData
+                );
+
+                // Update academic record
                 if ($selectedYearId) {
                     $record = StudentAcademicRecord::where('student_id', $student->id)
                         ->where('academic_year_id', $selectedYearId)
@@ -398,18 +501,24 @@ class StudentController extends Controller
 
                     if ($record) {
                         $classroomId = $record->classroom_id;
-                        if (! empty($studentData['kelas']) && $studentData['unit']) {
+                        if (! empty($d['kelas']) && ! empty($d['unit'])) {
                             $classroom = Classroom::firstOrCreate(
-                                ['name' => $studentData['kelas'], 'unit' => $studentData['unit']],
-                                ['name' => $studentData['kelas'], 'unit' => $studentData['unit']]
+                                ['name' => $d['kelas'], 'unit' => $d['unit']],
+                                ['name' => $d['kelas'], 'unit' => $d['unit']]
                             );
                             $classroomId = $classroom->id;
                         }
 
                         $record->update([
-                            'jenjang' => $studentData['jenjang'] ?? $record->jenjang,
-                            'tingkat' => $studentData['tingkat'] ?? $record->tingkat,
+                            'jenjang' => $d['jenjang'] ?? $record->jenjang,
+                            'tingkat' => $d['tingkat'] ?? $record->tingkat,
+                            'student_status' => $d['student_status'] ?? $record->student_status,
                             'classroom_id' => $classroomId,
+                            'desil' => $d['desil'] ?? $record->desil,
+                            'status_pip' => $d['status_pip'] ?? $record->status_pip,
+                            'pip_keterangan' => $d['pip_keterangan'] ?? $record->pip_keterangan,
+                            'status_kip' => $d['status_kip'] ?? $record->status_kip,
+                            'no_kip' => $d['no_kip'] ?? $record->no_kip,
                         ]);
                     }
                 }
