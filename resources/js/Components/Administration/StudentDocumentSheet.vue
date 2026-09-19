@@ -33,8 +33,7 @@ const coverNisnNis = computed(() => {
 });
 
 const signatoryDate = computed(() => {
-    const rawDate = signatory.value?.tanggal_titimangsa || '{{Tanggal Diterima}}';
-    return rawDate.replaceAll('{{Tanggal Diterima}}', props.student?.tanggal_diterima || '-');
+    return props.student?.tanggal_diterima || '-';
 });
 </script>
 
@@ -173,7 +172,7 @@ const signatoryDate = computed(() => {
             <div>
                 <h2 class="text-xl font-bold text-center uppercase mb-6 mt-2">{{ template?.template_content?.identity_title || 'IDENTITAS PESERTA DIDIK' }}</h2>
 
-                <table class="w-full text-sm border-collapse leading-tight" style="table-layout: fixed;">
+                <table class="w-full text-sm border-collapse leading-tight identity-table" style="table-layout: fixed;">
                     <colgroup>
                         <col style="width: 5%;">
                         <col style="width: 32%;">
@@ -181,146 +180,151 @@ const signatoryDate = computed(() => {
                         <col style="width: 60%;">
                     </colgroup>
                     <tbody>
-                        <tr>
-                            <td class="py-1">1.</td>
+                        <tr class="numbered-row" v-if="template?.identity_visibility?.nama_lengkap ?? true">
+                            <td class="py-1 row-number"></td>
                             <td>Nama Lengkap Peserta Didik</td>
                             <td class="text-center">:</td>
                             <td class="py-1 font-bold uppercase">{{ student?.nama || '-' }}</td>
                         </tr>
-                        <tr>
-                            <td class="py-1 w-8">2.</td>
+                        <tr class="numbered-row" v-if="template?.identity_visibility?.nomor_induk ?? true">
+                            <td class="py-1 row-number"></td>
                             <td class="w-56">Nomor Induk / NISN</td>
                             <td class="w-4 text-center">:</td>
                             <td class="py-1">{{ student?.nis || student?.nipd || '-' }} / {{ student?.nisn || '-' }}</td>
                         </tr>
-                        <tr>
-                            <td class="py-1 w-8">3.</td>
+                        <tr class="numbered-row" v-if="template?.identity_visibility?.tempat_tanggal_lahir ?? true">
+                            <td class="py-1 row-number"></td>
                             <td class="w-56">Tempat, Tanggal Lahir</td>
                             <td class="w-4 text-center">:</td>
                             <td class="py-1">{{ student?.tempat_lahir || '-' }}, {{ student?.tanggal_lahir || student?.ttl || '-' }}</td>
                         </tr>
-                        <tr>
-                            <td class="py-1 w-8">4.</td>
+                        <tr class="numbered-row" v-if="template?.identity_visibility?.jenis_kelamin ?? true">
+                            <td class="py-1 row-number"></td>
                             <td class="w-56">Jenis Kelamin</td>
                             <td class="w-4 text-center">:</td>
                             <td class="py-1">{{ student?.jk || '-' }}</td>
                         </tr>
-                        <tr>
-                            <td class="py-1 w-8">5.</td>
+                        <tr class="numbered-row" v-if="template?.identity_visibility?.agama ?? true">
+                            <td class="py-1 row-number"></td>
                             <td class="w-56">Agama</td>
                             <td class="w-4 text-center">:</td>
                             <td class="py-1">{{ student?.agama || '-' }}</td>
                         </tr>
-                        <tr>
-                            <td class="py-1 w-8">6.</td>
+                        <tr class="numbered-row" v-if="template?.identity_visibility?.status_keluarga ?? true">
+                            <td class="py-1 row-number"></td>
                             <td class="w-56">Status dalam Keluarga</td>
                             <td class="w-4 text-center">:</td>
                             <td class="py-1">{{ student?.status_keluarga || '-' }}</td>
                         </tr>
-                        <tr>
-                            <td class="py-1 w-8">7.</td>
+                        <tr class="numbered-row" v-if="template?.identity_visibility?.anak_ke ?? true">
+                            <td class="py-1 row-number"></td>
                             <td class="w-56">Anak ke</td>
                             <td class="w-4 text-center">:</td>
                             <td class="py-1">{{ student?.anak_ke || '-' }}</td>
                         </tr>
-                        <tr>
-                            <td class="py-1 w-8">8.</td>
+                        <tr class="numbered-row" v-if="template?.identity_visibility?.alamat_peserta ?? true">
+                            <td class="py-1 row-number"></td>
                             <td class="w-56">Alamat Peserta Didik</td>
                             <td class="w-4 text-center">:</td>
                             <td class="py-1">{{ student?.alamat || '-' }}</td>
                         </tr>
-                        <tr>
-                            <td class="py-1 w-8">9.</td>
+                        <tr class="numbered-row" v-if="template?.identity_visibility?.nomor_telepon ?? true">
+                            <td class="py-1 row-number"></td>
                             <td class="w-56">Nomor Telepon</td>
                             <td class="w-4 text-center">:</td>
                             <td class="py-1">{{ student?.no_wa || student?.hp || '-' }}</td>
                         </tr>
-                        <tr>
-                            <td class="py-1 w-8">10.</td>
+                        <tr class="numbered-row" v-if="template?.identity_visibility?.sekolah_asal ?? true">
+                            <td class="py-1 row-number"></td>
                             <td class="w-56">Sekolah Asal</td>
                             <td class="w-4 text-center">:</td>
                             <td class="py-1">{{ student?.sekolah_asal || '-' }}</td>
                         </tr>
-                        <tr>
-                            <td class="py-1">11.</td>
+                        
+                        <tr class="numbered-row" v-if="template?.identity_visibility?.diterima_di_sekolah ?? true">
+                            <td class="py-1 row-number"></td>
                             <td colspan="3">Diterima di sekolah ini:</td>
                         </tr>
-                        <tr>
+                        <tr v-if="template?.identity_visibility?.diterima_di_sekolah ?? true">
                             <td></td>
                             <td class="pl-4 py-0.5">a. Di kelas</td>
                             <td class="text-center">:</td>
                             <td class="py-0.5">{{ student?.kelas_diterima || student?.kelas || '-' }}</td>
                         </tr>
-                        <tr>
+                        <tr v-if="template?.identity_visibility?.diterima_di_sekolah ?? true">
                             <td></td>
                             <td class="pl-4 py-0.5">b. Pada tanggal</td>
                             <td class="text-center">:</td>
                             <td class="py-0.5">{{ student?.tanggal_diterima || '-' }}</td>
                         </tr>
-                        <tr>
-                            <td class="py-1">12.</td>
+
+                        <tr class="numbered-row" v-if="template?.identity_visibility?.nama_orang_tua ?? true">
+                            <td class="py-1 row-number"></td>
                             <td colspan="3">Nama Orang Tua:</td>
                         </tr>
-                        <tr>
+                        <tr v-if="template?.identity_visibility?.nama_orang_tua ?? true">
                             <td></td>
                             <td class="pl-4 py-0.5">a. Ayah</td>
                             <td class="text-center">:</td>
                             <td class="py-0.5">{{ student?.ayah_nama || '-' }}</td>
                         </tr>
-                        <tr>
+                        <tr v-if="template?.identity_visibility?.nama_orang_tua ?? true">
                             <td></td>
                             <td class="pl-4 py-0.5">b. Ibu</td>
                             <td class="text-center">:</td>
                             <td class="py-0.5">{{ student?.ibu_nama || '-' }}</td>
                         </tr>
-                        <tr>
-                            <td class="py-1 w-8">13.</td>
+                        
+                        <tr class="numbered-row" v-if="template?.identity_visibility?.alamat_orang_tua ?? true">
+                            <td class="py-1 row-number"></td>
                             <td class="w-56">Alamat Orang Tua</td>
                             <td class="w-4 text-center">:</td>
                             <td class="py-1">{{ student?.alamat || '-' }}</td>
                         </tr>
-                        <tr>
-                            <td class="py-1 w-8">14.</td>
+                        <tr class="numbered-row" v-if="template?.identity_visibility?.telepon_orang_tua ?? true">
+                            <td class="py-1 row-number"></td>
                             <td class="w-56">Nomor Telepon Orang Tua</td>
                             <td class="w-4 text-center">:</td>
                             <td class="py-1">{{ student?.no_wa || student?.hp || '-' }}</td>
                         </tr>
-                        <tr>
-                            <td class="py-1">15.</td>
+
+                        <tr class="numbered-row" v-if="template?.identity_visibility?.pekerjaan_orang_tua ?? true">
+                            <td class="py-1 row-number"></td>
                             <td colspan="3">Pekerjaan Orang Tua:</td>
                         </tr>
-                        <tr>
+                        <tr v-if="template?.identity_visibility?.pekerjaan_orang_tua ?? true">
                             <td></td>
                             <td class="pl-4 py-0.5">a. Ayah</td>
                             <td class="text-center">:</td>
                             <td class="py-0.5">{{ student?.ayah_pekerjaan || '-' }}</td>
                         </tr>
-                        <tr>
+                        <tr v-if="template?.identity_visibility?.pekerjaan_orang_tua ?? true">
                             <td></td>
                             <td class="pl-4 py-0.5">b. Ibu</td>
                             <td class="text-center">:</td>
                             <td class="py-0.5">{{ student?.ibu_pekerjaan || '-' }}</td>
                         </tr>
-                        <tr>
-                            <td class="py-1 w-8">16.</td>
+
+                        <tr class="numbered-row" v-if="template?.identity_visibility?.nama_wali ?? true">
+                            <td class="py-1 row-number"></td>
                             <td class="w-56">Nama Wali</td>
                             <td class="w-4 text-center">:</td>
                             <td class="py-1">{{ student?.wali_nama || '-' }}</td>
                         </tr>
-                        <tr>
-                            <td class="py-1 w-8">17.</td>
+                        <tr class="numbered-row" v-if="template?.identity_visibility?.alamat_wali ?? true">
+                            <td class="py-1 row-number"></td>
                             <td class="w-56">Alamat Wali</td>
                             <td class="w-4 text-center">:</td>
                             <td class="py-1">{{ student?.wali_alamat || '-' }}</td>
                         </tr>
-                        <tr>
-                            <td class="py-1 w-8">18.</td>
+                        <tr class="numbered-row" v-if="template?.identity_visibility?.telepon_wali ?? true">
+                            <td class="py-1 row-number"></td>
                             <td class="w-56">Nomor Telepon Wali</td>
                             <td class="w-4 text-center">:</td>
                             <td class="py-1">{{ student?.wali_hp || '-' }}</td>
                         </tr>
-                        <tr>
-                            <td class="py-1 w-8">19.</td>
+                        <tr class="numbered-row" v-if="template?.identity_visibility?.pekerjaan_wali ?? true">
+                            <td class="py-1 row-number"></td>
                             <td class="w-56">Pekerjaan Wali</td>
                             <td class="w-4 text-center">:</td>
                             <td class="py-1">{{ student?.wali_pekerjaan || '-' }}</td>
@@ -334,7 +338,7 @@ const signatoryDate = computed(() => {
                 
                 <!-- Tanda Tangan dengan Space Cukup untuk TTD Basah -->
                 <div class="text-left text-sm">
-                    <p>{{ signatory.tempat_titimangsa || 'Karanganyar' }}, {{ signatoryDate }}</p>
+                    <p>{{ signatory.tempat_penandatangan || signatory.tempat_titimangsa || 'Karanganyar' }}, {{ signatoryDate }}</p>
                     <p>Kepala Sekolah</p>
                     
                     <!-- Space / Ruang Kosong untuk Tanda Tangan Basah -->
@@ -353,6 +357,16 @@ const signatoryDate = computed(() => {
     font-family: 'Times New Roman', Times, serif;
     background-color: transparent;
     -webkit-font-smoothing: antialiased;
+}
+
+.identity-table {
+    counter-reset: identity-counter;
+}
+.identity-table > tbody > tr.numbered-row {
+    counter-increment: identity-counter;
+}
+.identity-table > tbody > tr.numbered-row > td.row-number::after {
+    content: counter(identity-counter) ".";
 }
 
 .document-page {
