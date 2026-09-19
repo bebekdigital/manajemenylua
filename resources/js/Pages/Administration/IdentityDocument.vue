@@ -40,6 +40,7 @@ const activePreviewStudent = ref(null);
 // --- Print Queue ---
 const batchStudentsToPrint = ref([]);
 const batchPagesToPrint = ref(['cover', 'school_profile', 'identity']);
+const selectedBatchPages = ref(['cover', 'school_profile', 'identity']);
 
 // Computed: Filtered students
 const filteredStudents = computed(() => {
@@ -135,7 +136,7 @@ const startBatchPrint = async () => {
     if (selectedCount.value === 0) return;
     const ids = new Set(selectedStudentIds.value);
     batchStudentsToPrint.value = props.students.filter(s => ids.has(s.id));
-    batchPagesToPrint.value = getPages();
+    batchPagesToPrint.value = [...selectedBatchPages.value];
     await nextTick();
     setTimeout(() => window.print(), 300);
 };
@@ -229,10 +230,24 @@ const clearSelection = () => { selectedStudentIds.value = []; };
                     >
                         <div class="flex items-center space-x-3 text-on-primary">
                             <span class="material-symbols-outlined text-xl">check_circle</span>
-                            <span class="font-semibold text-sm">
-                                {{ selectedCount }} siswa dipilih — Format: 
-                                <strong>Lengkap (3 Hlm)</strong>
+                            <span class="font-semibold text-sm mr-2">
+                                {{ selectedCount }} siswa dipilih
                             </span>
+                            <div class="hidden sm:flex items-center space-x-3 bg-white/10 px-3 py-1.5 rounded-xl border border-white/20">
+                                <span class="text-xs font-medium text-white/80">Cetak:</span>
+                                <label class="flex items-center space-x-1.5 cursor-pointer group">
+                                    <input type="checkbox" v-model="selectedBatchPages" value="cover" class="w-3.5 h-3.5 rounded border-white/40 bg-white/20 text-emerald-600 focus:ring-white focus:ring-offset-primary cursor-pointer">
+                                    <span class="text-xs font-medium text-white/90 group-hover:text-white transition-colors">Cover</span>
+                                </label>
+                                <label class="flex items-center space-x-1.5 cursor-pointer group">
+                                    <input type="checkbox" v-model="selectedBatchPages" value="school_profile" class="w-3.5 h-3.5 rounded border-white/40 bg-white/20 text-emerald-600 focus:ring-white focus:ring-offset-primary cursor-pointer">
+                                    <span class="text-xs font-medium text-white/90 group-hover:text-white transition-colors">Profil</span>
+                                </label>
+                                <label class="flex items-center space-x-1.5 cursor-pointer group">
+                                    <input type="checkbox" v-model="selectedBatchPages" value="identity" class="w-3.5 h-3.5 rounded border-white/40 bg-white/20 text-emerald-600 focus:ring-white focus:ring-offset-primary cursor-pointer">
+                                    <span class="text-xs font-medium text-white/90 group-hover:text-white transition-colors">Identitas</span>
+                                </label>
+                            </div>
                         </div>
                         <div class="flex items-center space-x-2">
                             <button
@@ -243,11 +258,29 @@ const clearSelection = () => { selectedStudentIds.value = []; };
                             </button>
                             <button
                                 @click="startBatchPrint"
-                                class="flex items-center space-x-2 px-4 py-1.5 bg-white text-primary rounded-xl text-sm font-bold hover:bg-white/90 active:scale-95 transition-all cursor-pointer shadow-sm"
+                                :disabled="selectedBatchPages.length === 0"
+                                class="flex items-center space-x-2 px-4 py-1.5 bg-white text-primary rounded-xl text-sm font-bold hover:bg-white/90 active:scale-95 transition-all cursor-pointer shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 <span class="material-symbols-outlined text-base">print</span>
                                 <span>Cetak {{ selectedCount }} Siswa</span>
                             </button>
+                        </div>
+                        
+                        <!-- Mobile view for page selection -->
+                        <div class="w-full sm:hidden flex items-center space-x-3 bg-white/10 px-3 py-2 rounded-xl border border-white/20 mt-2">
+                            <span class="text-xs font-medium text-white/80">Cetak:</span>
+                            <label class="flex items-center space-x-1.5 cursor-pointer group">
+                                <input type="checkbox" v-model="selectedBatchPages" value="cover" class="w-3.5 h-3.5 rounded border-white/40 bg-white/20 text-emerald-600 focus:ring-white focus:ring-offset-primary cursor-pointer">
+                                <span class="text-xs font-medium text-white/90">Cover</span>
+                            </label>
+                            <label class="flex items-center space-x-1.5 cursor-pointer group">
+                                <input type="checkbox" v-model="selectedBatchPages" value="school_profile" class="w-3.5 h-3.5 rounded border-white/40 bg-white/20 text-emerald-600 focus:ring-white focus:ring-offset-primary cursor-pointer">
+                                <span class="text-xs font-medium text-white/90">Profil</span>
+                            </label>
+                            <label class="flex items-center space-x-1.5 cursor-pointer group">
+                                <input type="checkbox" v-model="selectedBatchPages" value="identity" class="w-3.5 h-3.5 rounded border-white/40 bg-white/20 text-emerald-600 focus:ring-white focus:ring-offset-primary cursor-pointer">
+                                <span class="text-xs font-medium text-white/90">Identitas</span>
+                            </label>
                         </div>
                     </div>
                 </Transition>
