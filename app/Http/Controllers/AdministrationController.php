@@ -74,9 +74,9 @@ class AdministrationController extends Controller
                 $alamatParts = array_filter([
                     $student->jalan,
                     $student->rt_rw ? "RT/RW {$student->rt_rw}" : null,
-                    $student->dusun ? "Dsn. {$student->dusun}" : null,
-                    $student->desa ? "Ds. {$student->desa}" : null,
-                    $student->kecamatan ? "Kec. {$student->kecamatan}" : null,
+                    $student->dusun,
+                    $student->desa,
+                    $student->kecamatan,
                     $student->kabupaten,
                     $student->provinsi,
                 ]);
