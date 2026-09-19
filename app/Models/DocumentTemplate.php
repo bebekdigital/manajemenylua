@@ -18,6 +18,7 @@ class DocumentTemplate extends Model
         'template_content',
         'options',
     ];
+
     protected function casts(): array
     {
         return [
@@ -55,8 +56,7 @@ class DocumentTemplate extends Model
                 'kementerian_title' => "KEMENTERIAN PENDIDIKAN DASAR DAN MENENGAH\nREPUBLIK INDONESIA",
             ],
             'signatory' => [
-                'tempat_titimangsa' => 'Karanganyar',
-                'tanggal_titimangsa' => '{{Tanggal Diterima}}',
+                'tempat_penandatangan' => 'Karanganyar',
                 'jabatan' => 'Kepala Sekolah',
                 'nama_kepala_sekolah' => 'Nurul Choirul Janah, S.Pd.',
                 'nip' => '',

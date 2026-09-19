@@ -112,9 +112,11 @@ const livePreviewTemplate = computed(() => {
     return {
         school_profile: form.school_profile,
         signatory: form.signatory,
-        options: form.options,
+        options: {
+            ...form.options,
+            identity_visibility: form.identity_visibility,
+        },
         template_content: form.template_content,
-        identity_visibility: form.identity_visibility,
     };
 });
 
