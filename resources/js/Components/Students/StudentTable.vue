@@ -85,29 +85,32 @@ function getAlamatLengkap(s) {
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
                 <thead>
-                    <tr class="border-b border-emerald-700 bg-emerald-600">
-                        <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider w-10 sm:w-12">No</th>
-                        <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">NISN</th>
-                        <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">Nama</th>
-                        <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">NIPD</th>
-                        <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">Jenjang</th>
-                        <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">Unit</th>
-                        <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">Program</th>
-                        <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider w-14 sm:w-16">Tingkat</th>
-                        <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider w-14 sm:w-16">Kelas</th>
-                        <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider w-10 sm:w-14">JK</th>
-                        <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">TTL</th>
-                        <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">No WA</th>
-                        <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">Alamat Lengkap</th>
-                    </tr>
+                    <slot name="thead">
+                        <tr class="border-b border-emerald-700 bg-emerald-600">
+                            <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider w-10 sm:w-12">No</th>
+                            <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">NISN</th>
+                            <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">Nama</th>
+                            <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">NIPD</th>
+                            <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">Jenjang</th>
+                            <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">Unit</th>
+                            <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">Program</th>
+                            <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider w-14 sm:w-16">Tingkat</th>
+                            <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider w-14 sm:w-16">Kelas</th>
+                            <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider w-10 sm:w-14">JK</th>
+                            <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">TTL</th>
+                            <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">No WA</th>
+                            <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">Alamat Lengkap</th>
+                        </tr>
+                    </slot>
                 </thead>
                 <tbody class="divide-y divide-outline-variant/10">
                     <tr
                         v-for="(student, index) in students"
-                        :key="student.nisn"
+                        :key="student.id || student.nisn"
                         class="hover:bg-surface-container-high/50 transition-colors group"
                     >
-                        <!-- No -->
+                        <slot name="row" :student="student" :index="index" :start-entry="startEntry">
+                            <!-- No -->
                         <td class="p-2.5 sm:p-4 text-[12px] sm:text-sm text-on-surface-variant">
                             {{ startEntry + index }}
                         </td>
@@ -179,6 +182,7 @@ function getAlamatLengkap(s) {
                         <td class="p-2.5 sm:p-4 text-[12px] sm:text-sm text-on-surface-variant max-w-[150px] sm:max-w-[220px] truncate" :title="getAlamatLengkap(student)">
                             {{ getAlamatLengkap(student) }}
                         </td>
+                        </slot>
                     </tr>
 
                     <!-- Empty state -->

@@ -18,6 +18,18 @@ const props = defineProps({
         type: Number,
         default: 10,
     },
+    hideStatusFilter: {
+        type: Boolean,
+        default: false,
+    },
+    hidePerPage: {
+        type: Boolean,
+        default: false,
+    },
+    hideDefaultActions: {
+        type: Boolean,
+        default: false,
+    },
 });
 
 const emit = defineEmits([
@@ -160,6 +172,9 @@ function resetAll() {
                     </select>
                 </div>
 
+                <!-- Extra Filters Slot -->
+                <slot name="extra-filters"></slot>
+
                 <!-- Reset Filter Button -->
                 <div class="w-full sm:w-auto mt-1 sm:mt-0 flex justify-end" v-if="hasActiveFilters">
                     <button
@@ -201,7 +216,7 @@ function resetAll() {
                 </div>
 
                 <!-- Tampilkan ... Data Selector Filter -->
-                <div class="relative w-[95px] shrink-0 sm:w-auto sm:min-w-[120px]">
+                <div v-if="!hidePerPage" class="relative w-[95px] shrink-0 sm:w-auto sm:min-w-[120px]">
                     <div class="relative flex items-center">
                         <select
                             :value="perPage"
