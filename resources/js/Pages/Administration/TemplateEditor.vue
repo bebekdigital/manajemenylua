@@ -37,11 +37,31 @@ const form = reactive({
         email: props.template?.school_profile?.email || '',
     },
     signatory: {
-        tempat_titimangsa: props.template?.signatory?.tempat_titimangsa || 'Karanganyar',
-        tanggal_titimangsa: props.template?.signatory?.tanggal_titimangsa || '{{Tanggal Diterima}}',
+        tempat_penandatangan: props.template?.signatory?.tempat_penandatangan || props.template?.signatory?.tempat_titimangsa || 'Karanganyar',
         jabatan: props.template?.signatory?.jabatan || 'Kepala Sekolah',
         nama_kepala_sekolah: props.template?.signatory?.nama_kepala_sekolah || 'Nurul Choirul Janah, S.Pd.',
         nip: props.template?.signatory?.nip || '',
+    },
+    identity_visibility: {
+        nama_lengkap: props.template?.options?.identity_visibility?.nama_lengkap ?? true,
+        nomor_induk: props.template?.options?.identity_visibility?.nomor_induk ?? true,
+        tempat_tanggal_lahir: props.template?.options?.identity_visibility?.tempat_tanggal_lahir ?? true,
+        jenis_kelamin: props.template?.options?.identity_visibility?.jenis_kelamin ?? true,
+        agama: props.template?.options?.identity_visibility?.agama ?? true,
+        status_keluarga: props.template?.options?.identity_visibility?.status_keluarga ?? true,
+        anak_ke: props.template?.options?.identity_visibility?.anak_ke ?? true,
+        alamat_peserta: props.template?.options?.identity_visibility?.alamat_peserta ?? true,
+        nomor_telepon: props.template?.options?.identity_visibility?.nomor_telepon ?? true,
+        sekolah_asal: props.template?.options?.identity_visibility?.sekolah_asal ?? true,
+        diterima_di_sekolah: props.template?.options?.identity_visibility?.diterima_di_sekolah ?? true,
+        nama_orang_tua: props.template?.options?.identity_visibility?.nama_orang_tua ?? true,
+        alamat_orang_tua: props.template?.options?.identity_visibility?.alamat_orang_tua ?? true,
+        telepon_orang_tua: props.template?.options?.identity_visibility?.telepon_orang_tua ?? true,
+        pekerjaan_orang_tua: props.template?.options?.identity_visibility?.pekerjaan_orang_tua ?? true,
+        nama_wali: props.template?.options?.identity_visibility?.nama_wali ?? true,
+        alamat_wali: props.template?.options?.identity_visibility?.alamat_wali ?? true,
+        telepon_wali: props.template?.options?.identity_visibility?.telepon_wali ?? true,
+        pekerjaan_wali: props.template?.options?.identity_visibility?.pekerjaan_wali ?? true,
     },
     options: {
         show_tut_wuri_logo: props.template?.options?.show_tut_wuri_logo ?? true,
@@ -58,7 +78,10 @@ const form = reactive({
 // Live preview template
 const liveTemplate = computed(() => {
     // Generate object URLs for file previews if available
-    const previewOptions = { ...form.options };
+    const previewOptions = {
+        ...form.options,
+        identity_visibility: form.identity_visibility,
+    };
     if (form.options.tut_wuri_logo_file) {
         previewOptions.tut_wuri_logo_preview = URL.createObjectURL(form.options.tut_wuri_logo_file);
     }
@@ -107,7 +130,7 @@ const previewStudent = computed(() => {
 const sections = [
     { id: 'cover', label: 'Cover', icon: 'book' },
     { id: 'school', label: 'Profil Sekolah', icon: 'domain' },
-    { id: 'signatory', label: 'Penandatangan', icon: 'draw' },
+    { id: 'signatory', label: 'Identitas Siswa', icon: 'badge' },
 ];
 
 // Page options for preview
@@ -116,8 +139,6 @@ const previewPages = [
     { value: 'school_profile', label: 'Profil Sekolah' },
     { value: 'identity', label: 'Identitas Siswa' },
 ];
-
-
 
 const saveTemplate = () => {
     isSubmitting.value = true;
@@ -131,6 +152,10 @@ const saveTemplate = () => {
     // Signatory
     Object.keys(form.signatory).forEach(key => {
         formData.append(`signatory[${key}]`, form.signatory[key] || '');
+    });
+    // Identity visibility
+    Object.keys(form.identity_visibility).forEach(key => {
+        formData.append(`identity_visibility[${key}]`, form.identity_visibility[key] ? 1 : 0);
     });
     // Options
     Object.keys(form.options).forEach(key => {
@@ -167,6 +192,9 @@ const resetTemplate = () => {
             Object.assign(form.school_profile, props.template.school_profile);
             Object.assign(form.signatory, props.template.signatory);
             Object.assign(form.options, props.template.options);
+            if (props.template.options?.identity_visibility) {
+                Object.assign(form.identity_visibility, props.template.options.identity_visibility);
+            }
             form.template_content = props.template.template_content;
         },
         onFinish: () => { isSubmitting.value = false; },
@@ -360,39 +388,125 @@ const resetTemplate = () => {
                         </div>
                     </div>
 
-                    <!-- SECTION: Penandatangan -->
-                    <div v-show="activeSection === 'signatory'" class="space-y-5 max-w-2xl">
+                    <!-- SECTION: Identitas Siswa & Penandatangan -->
+                    <div v-show="activeSection === 'signatory'" class="space-y-6 max-w-2xl">
                         <div>
-                            <h3 class="font-bold text-on-surface mb-0.5">Data Penandatangan & Titimangsa</h3>
-                            <p class="text-xs text-on-surface-variant mb-4">Ditampilkan di bagian bawah halaman Identitas Siswa.</p>
+                            <h3 class="font-bold text-on-surface mb-0.5">Pengaturan Penandatangan & Identitas Siswa</h3>
+                            <p class="text-xs text-on-surface-variant mb-4">Atur data penandatangan serta checklist item data siswa yang ditampilkan pada lembar identitas.</p>
                         </div>
-                        <div class="space-y-4 text-sm">
+
+                        <!-- Data Penandatangan -->
+                        <div class="space-y-4 text-sm bg-surface-container-low p-4 rounded-xl border border-outline-variant">
+                            <h4 class="font-bold text-xs uppercase tracking-wider text-primary">Data Penandatangan</h4>
                             <div class="grid grid-cols-2 gap-3">
                                 <div>
-                                    <label class="block font-medium text-on-surface mb-1">Kota Titimangsa</label>
-                                    <input v-model="form.signatory.tempat_titimangsa" type="text" placeholder="Karanganyar" class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2 focus:border-primary outline-none text-on-surface" />
+                                    <label class="block font-medium text-on-surface mb-1">Tempat Penandatangan</label>
+                                    <input v-model="form.signatory.tempat_penandatangan" type="text" placeholder="Karanganyar" class="w-full bg-surface border border-outline-variant rounded-xl px-3 py-2 focus:border-primary outline-none text-on-surface" />
                                 </div>
                                 <div>
-                                    <label class="block font-medium text-on-surface mb-1">Tanggal Titimangsa</label>
-                                    <input v-model="form.signatory.tanggal_titimangsa" type="text" class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2 focus:border-primary outline-none text-on-surface" />
-                                    <p class="mt-1 text-[11px] text-on-surface-variant">
-                                         Gunakan <code v-text="'{{Tanggal Diterima}}'" class="bg-primary-container/50 px-1 rounded text-primary text-[10px]"></code> untuk otomatis.
-                                    </p>
+                                    <label class="block font-medium text-on-surface mb-1">Jabatan Penandatangan</label>
+                                    <input v-model="form.signatory.jabatan" type="text" placeholder="Kepala Sekolah" class="w-full bg-surface border border-outline-variant rounded-xl px-3 py-2 focus:border-primary outline-none text-on-surface" />
                                 </div>
                             </div>
                             <div class="grid grid-cols-2 gap-3">
                                 <div>
-                                    <label class="block font-medium text-on-surface mb-1">Jabatan Penandatangan</label>
-                                    <input v-model="form.signatory.jabatan" type="text" placeholder="Kepala Sekolah" class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2 focus:border-primary outline-none text-on-surface" />
+                                    <label class="block font-medium text-on-surface mb-1">Nama Kepala Sekolah</label>
+                                    <input v-model="form.signatory.nama_kepala_sekolah" type="text" class="w-full bg-surface border border-outline-variant rounded-xl px-3 py-2 focus:border-primary outline-none text-on-surface" />
                                 </div>
                                 <div>
                                     <label class="block font-medium text-on-surface mb-1">NIP Kepala Sekolah</label>
-                                    <input v-model="form.signatory.nip" type="text" placeholder="Kosongkan jika tidak ada NIP" class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2 focus:border-primary outline-none text-on-surface" />
+                                    <input v-model="form.signatory.nip" type="text" placeholder="Kosongkan jika tidak ada NIP" class="w-full bg-surface border border-outline-variant rounded-xl px-3 py-2 focus:border-primary outline-none text-on-surface" />
                                 </div>
                             </div>
+                        </div>
+
+                        <!-- Field Checklist Visibility -->
+                        <div class="space-y-3 bg-surface-container-low p-4 rounded-xl border border-outline-variant">
                             <div>
-                                <label class="block font-medium text-on-surface mb-1">Nama Kepala Sekolah</label>
-                                <input v-model="form.signatory.nama_kepala_sekolah" type="text" class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2 focus:border-primary outline-none text-on-surface" />
+                                <h4 class="font-bold text-xs uppercase tracking-wider text-primary flex items-center space-x-1">
+                                    <span class="material-symbols-outlined text-base">visibility</span>
+                                    <span>Tampilkan / Sembunyikan List Identitas Siswa</span>
+                                </h4>
+                                <p class="text-xs text-on-surface-variant mt-1">Centang untuk menampilkan atau hilangkan centang untuk menyembunyikan item pada lembar cetak. Nomor urut akan menyesuaikan secara otomatis.</p>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
+                                <label class="flex items-center space-x-2 text-sm cursor-pointer p-2 bg-surface hover:bg-surface-container rounded-lg border border-outline-variant/60 transition-colors">
+                                    <input type="checkbox" v-model="form.identity_visibility.nama_lengkap" class="w-4 h-4 rounded text-primary border-outline-variant focus:ring-primary">
+                                    <span class="select-none text-xs text-on-surface font-medium">Nama Lengkap</span>
+                                </label>
+                                <label class="flex items-center space-x-2 text-sm cursor-pointer p-2 bg-surface hover:bg-surface-container rounded-lg border border-outline-variant/60 transition-colors">
+                                    <input type="checkbox" v-model="form.identity_visibility.nomor_induk" class="w-4 h-4 rounded text-primary border-outline-variant focus:ring-primary">
+                                    <span class="select-none text-xs text-on-surface font-medium">Nomor Induk / NISN</span>
+                                </label>
+                                <label class="flex items-center space-x-2 text-sm cursor-pointer p-2 bg-surface hover:bg-surface-container rounded-lg border border-outline-variant/60 transition-colors">
+                                    <input type="checkbox" v-model="form.identity_visibility.tempat_tanggal_lahir" class="w-4 h-4 rounded text-primary border-outline-variant focus:ring-primary">
+                                    <span class="select-none text-xs text-on-surface font-medium">Tempat, Tanggal Lahir</span>
+                                </label>
+                                <label class="flex items-center space-x-2 text-sm cursor-pointer p-2 bg-surface hover:bg-surface-container rounded-lg border border-outline-variant/60 transition-colors">
+                                    <input type="checkbox" v-model="form.identity_visibility.jenis_kelamin" class="w-4 h-4 rounded text-primary border-outline-variant focus:ring-primary">
+                                    <span class="select-none text-xs text-on-surface font-medium">Jenis Kelamin</span>
+                                </label>
+                                <label class="flex items-center space-x-2 text-sm cursor-pointer p-2 bg-surface hover:bg-surface-container rounded-lg border border-outline-variant/60 transition-colors">
+                                    <input type="checkbox" v-model="form.identity_visibility.agama" class="w-4 h-4 rounded text-primary border-outline-variant focus:ring-primary">
+                                    <span class="select-none text-xs text-on-surface font-medium">Agama</span>
+                                </label>
+                                <label class="flex items-center space-x-2 text-sm cursor-pointer p-2 bg-surface hover:bg-surface-container rounded-lg border border-outline-variant/60 transition-colors">
+                                    <input type="checkbox" v-model="form.identity_visibility.status_keluarga" class="w-4 h-4 rounded text-primary border-outline-variant focus:ring-primary">
+                                    <span class="select-none text-xs text-on-surface font-medium">Status dalam Keluarga</span>
+                                </label>
+                                <label class="flex items-center space-x-2 text-sm cursor-pointer p-2 bg-surface hover:bg-surface-container rounded-lg border border-outline-variant/60 transition-colors">
+                                    <input type="checkbox" v-model="form.identity_visibility.anak_ke" class="w-4 h-4 rounded text-primary border-outline-variant focus:ring-primary">
+                                    <span class="select-none text-xs text-on-surface font-medium">Anak ke -</span>
+                                </label>
+                                <label class="flex items-center space-x-2 text-sm cursor-pointer p-2 bg-surface hover:bg-surface-container rounded-lg border border-outline-variant/60 transition-colors">
+                                    <input type="checkbox" v-model="form.identity_visibility.alamat_peserta" class="w-4 h-4 rounded text-primary border-outline-variant focus:ring-primary">
+                                    <span class="select-none text-xs text-on-surface font-medium">Alamat Peserta Didik</span>
+                                </label>
+                                <label class="flex items-center space-x-2 text-sm cursor-pointer p-2 bg-surface hover:bg-surface-container rounded-lg border border-outline-variant/60 transition-colors">
+                                    <input type="checkbox" v-model="form.identity_visibility.nomor_telepon" class="w-4 h-4 rounded text-primary border-outline-variant focus:ring-primary">
+                                    <span class="select-none text-xs text-on-surface font-medium">Nomor Telepon</span>
+                                </label>
+                                <label class="flex items-center space-x-2 text-sm cursor-pointer p-2 bg-surface hover:bg-surface-container rounded-lg border border-outline-variant/60 transition-colors">
+                                    <input type="checkbox" v-model="form.identity_visibility.sekolah_asal" class="w-4 h-4 rounded text-primary border-outline-variant focus:ring-primary">
+                                    <span class="select-none text-xs text-on-surface font-medium">Sekolah Asal</span>
+                                </label>
+                                <label class="flex items-center space-x-2 text-sm cursor-pointer p-2 bg-surface hover:bg-surface-container rounded-lg border border-outline-variant/60 transition-colors">
+                                    <input type="checkbox" v-model="form.identity_visibility.diterima_di_sekolah" class="w-4 h-4 rounded text-primary border-outline-variant focus:ring-primary">
+                                    <span class="select-none text-xs text-on-surface font-medium">Diterima di sekolah ini (Kelas & Tanggal)</span>
+                                </label>
+                                <label class="flex items-center space-x-2 text-sm cursor-pointer p-2 bg-surface hover:bg-surface-container rounded-lg border border-outline-variant/60 transition-colors">
+                                    <input type="checkbox" v-model="form.identity_visibility.nama_orang_tua" class="w-4 h-4 rounded text-primary border-outline-variant focus:ring-primary">
+                                    <span class="select-none text-xs text-on-surface font-medium">Nama Orang Tua</span>
+                                </label>
+                                <label class="flex items-center space-x-2 text-sm cursor-pointer p-2 bg-surface hover:bg-surface-container rounded-lg border border-outline-variant/60 transition-colors">
+                                    <input type="checkbox" v-model="form.identity_visibility.alamat_orang_tua" class="w-4 h-4 rounded text-primary border-outline-variant focus:ring-primary">
+                                    <span class="select-none text-xs text-on-surface font-medium">Alamat Orang Tua</span>
+                                </label>
+                                <label class="flex items-center space-x-2 text-sm cursor-pointer p-2 bg-surface hover:bg-surface-container rounded-lg border border-outline-variant/60 transition-colors">
+                                    <input type="checkbox" v-model="form.identity_visibility.telepon_orang_tua" class="w-4 h-4 rounded text-primary border-outline-variant focus:ring-primary">
+                                    <span class="select-none text-xs text-on-surface font-medium">Telepon Orang Tua</span>
+                                </label>
+                                <label class="flex items-center space-x-2 text-sm cursor-pointer p-2 bg-surface hover:bg-surface-container rounded-lg border border-outline-variant/60 transition-colors">
+                                    <input type="checkbox" v-model="form.identity_visibility.pekerjaan_orang_tua" class="w-4 h-4 rounded text-primary border-outline-variant focus:ring-primary">
+                                    <span class="select-none text-xs text-on-surface font-medium">Pekerjaan Orang Tua</span>
+                                </label>
+                                <label class="flex items-center space-x-2 text-sm cursor-pointer p-2 bg-surface hover:bg-surface-container rounded-lg border border-outline-variant/60 transition-colors">
+                                    <input type="checkbox" v-model="form.identity_visibility.nama_wali" class="w-4 h-4 rounded text-primary border-outline-variant focus:ring-primary">
+                                    <span class="select-none text-xs text-on-surface font-medium">Nama Wali</span>
+                                </label>
+                                <label class="flex items-center space-x-2 text-sm cursor-pointer p-2 bg-surface hover:bg-surface-container rounded-lg border border-outline-variant/60 transition-colors">
+                                    <input type="checkbox" v-model="form.identity_visibility.alamat_wali" class="w-4 h-4 rounded text-primary border-outline-variant focus:ring-primary">
+                                    <span class="select-none text-xs text-on-surface font-medium">Alamat Wali</span>
+                                </label>
+                                <label class="flex items-center space-x-2 text-sm cursor-pointer p-2 bg-surface hover:bg-surface-container rounded-lg border border-outline-variant/60 transition-colors">
+                                    <input type="checkbox" v-model="form.identity_visibility.telepon_wali" class="w-4 h-4 rounded text-primary border-outline-variant focus:ring-primary">
+                                    <span class="select-none text-xs text-on-surface font-medium">Telepon Wali</span>
+                                </label>
+                                <label class="flex items-center space-x-2 text-sm cursor-pointer p-2 bg-surface hover:bg-surface-container rounded-lg border border-outline-variant/60 transition-colors">
+                                    <input type="checkbox" v-model="form.identity_visibility.pekerjaan_wali" class="w-4 h-4 rounded text-primary border-outline-variant focus:ring-primary">
+                                    <span class="select-none text-xs text-on-surface font-medium">Pekerjaan Wali</span>
+                                </label>
                             </div>
                         </div>
                     </div>
