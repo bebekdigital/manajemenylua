@@ -184,11 +184,31 @@ class AdministrationController extends Controller
             'school_profile.kementerian_title' => ['nullable', 'string'],
 
             'signatory' => ['required', 'array'],
-            'signatory.tempat_titimangsa' => ['nullable', 'string'],
-            'signatory.tanggal_titimangsa' => ['nullable', 'string'],
+            'signatory.tempat_penandatangan' => ['nullable', 'string'],
             'signatory.jabatan' => ['nullable', 'string'],
             'signatory.nama_kepala_sekolah' => ['nullable', 'string'],
             'signatory.nip' => ['nullable', 'string'],
+
+            'identity_visibility' => ['nullable', 'array'],
+            'identity_visibility.nama_lengkap' => ['nullable', 'boolean'],
+            'identity_visibility.nomor_induk' => ['nullable', 'boolean'],
+            'identity_visibility.tempat_tanggal_lahir' => ['nullable', 'boolean'],
+            'identity_visibility.jenis_kelamin' => ['nullable', 'boolean'],
+            'identity_visibility.agama' => ['nullable', 'boolean'],
+            'identity_visibility.status_keluarga' => ['nullable', 'boolean'],
+            'identity_visibility.anak_ke' => ['nullable', 'boolean'],
+            'identity_visibility.alamat_peserta' => ['nullable', 'boolean'],
+            'identity_visibility.nomor_telepon' => ['nullable', 'boolean'],
+            'identity_visibility.sekolah_asal' => ['nullable', 'boolean'],
+            'identity_visibility.diterima_di_sekolah' => ['nullable', 'boolean'],
+            'identity_visibility.nama_orang_tua' => ['nullable', 'boolean'],
+            'identity_visibility.alamat_orang_tua' => ['nullable', 'boolean'],
+            'identity_visibility.telepon_orang_tua' => ['nullable', 'boolean'],
+            'identity_visibility.pekerjaan_orang_tua' => ['nullable', 'boolean'],
+            'identity_visibility.nama_wali' => ['nullable', 'boolean'],
+            'identity_visibility.alamat_wali' => ['nullable', 'boolean'],
+            'identity_visibility.telepon_wali' => ['nullable', 'boolean'],
+            'identity_visibility.pekerjaan_wali' => ['nullable', 'boolean'],
 
             'options' => ['nullable', 'array'],
             'tut_wuri_logo_file' => ['nullable', 'image', 'mimes:jpeg,png,jpg,svg', 'max:2048'],
@@ -226,8 +246,16 @@ class AdministrationController extends Controller
             $options['school_logo_path'] = $path;
         }
 
+        if (isset($validated['identity_visibility'])) {
+            $options['identity_visibility'] = array_merge($options['identity_visibility'] ?? [], $validated['identity_visibility']);
+            // Convert strings like "true" to booleans if sent via form-data
+            foreach ($options['identity_visibility'] as $key => $val) {
+                $options['identity_visibility'][$key] = filter_var($val, FILTER_VALIDATE_BOOLEAN);
+            }
+        }
+
         $validated['options'] = $options;
-        unset($validated['tut_wuri_logo_file'], $validated['school_logo_file']);
+        unset($validated['tut_wuri_logo_file'], $validated['school_logo_file'], $validated['identity_visibility']);
 
         $template->update($validated);
 

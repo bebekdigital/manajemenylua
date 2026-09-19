@@ -18,7 +18,6 @@ class DocumentTemplate extends Model
         'template_content',
         'options',
     ];
-
     protected function casts(): array
     {
         return [
@@ -117,6 +116,27 @@ class DocumentTemplate extends Model
                 'show_school_logo' => true,
                 'show_photo_box' => true,
                 'paper_size' => 'A4',
+                'identity_visibility' => [
+                    'nama_lengkap' => true,
+                    'nomor_induk' => true,
+                    'tempat_tanggal_lahir' => true,
+                    'jenis_kelamin' => true,
+                    'agama' => true,
+                    'status_keluarga' => true,
+                    'anak_ke' => true,
+                    'alamat_peserta' => true,
+                    'nomor_telepon' => true,
+                    'sekolah_asal' => true,
+                    'diterima_di_sekolah' => true,
+                    'nama_orang_tua' => true,
+                    'alamat_orang_tua' => true,
+                    'telepon_orang_tua' => true,
+                    'pekerjaan_orang_tua' => true,
+                    'nama_wali' => true,
+                    'alamat_wali' => true,
+                    'telepon_wali' => true,
+                    'pekerjaan_wali' => true,
+                ],
             ],
         ];
     }
