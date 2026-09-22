@@ -145,14 +145,14 @@ function handlePrint(settings) {
         styleEl.innerHTML = `@media print { @page { size: A4; margin: 0; } }`;
     }
 
-    // Wait for DOM to update with print layout
-    nextTick(() => {
+    // Wait for DOM to update AND modal transition to finish (leave-active is 150ms)
+    setTimeout(() => {
         window.print();
         // Restore after print dialog closes
         isPrinting.value = false;
         document.body.classList.remove(pageClass);
         if (styleEl) styleEl.remove();
-    });
+    }, 400);
 }
 </script>
 
@@ -343,6 +343,10 @@ function handlePrint(settings) {
 @media print {
     body {
         background-color: white !important;
+    }
+    /* Sembunyikan modal Teleport yang nempel langsung di body */
+    body > div:not(#app) {
+        display: none !important;
     }
     #app > div:not(.print-only-container) {
         display: none !important;
