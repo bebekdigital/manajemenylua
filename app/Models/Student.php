@@ -49,7 +49,8 @@ class Student extends Model
             return null;
         }
 
-        return Storage::disk('public')->url($this->foto);
+        // Gunakan path /storage/ langsung agar tidak bergantung APP_URL
+        return '/storage/'.$this->foto;
     }
 
     protected function casts(): array
