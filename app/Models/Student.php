@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Support\Facades\Storage;
 
 class Student extends Model
 {
@@ -49,8 +48,10 @@ class Student extends Model
             return null;
         }
 
-        // Gunakan path /storage/ langsung agar tidak bergantung APP_URL
-        return '/storage/'.$this->foto;
+        // Ekstrak nama file dari path (karena $this->foto berisi 'student-photos/filename.ext')
+        $filename = basename($this->foto);
+
+        return route('students.photo', ['filename' => $filename]);
     }
 
     protected function casts(): array

@@ -20,6 +20,7 @@ use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class StudentController extends Controller
 {
@@ -582,10 +583,10 @@ class StudentController extends Controller
             // Hapus foto lama jika ada
             $existingStudent = Student::where('nisn', $foundNisn)->first();
             if ($existingStudent?->foto) {
-                Storage::disk('public')->delete($existingStudent->foto);
+                Storage::disk('local')->delete($existingStudent->foto);
             }
 
-            Storage::disk('public')->put($storagePath, file_get_contents($photo));
+            Storage::disk('local')->put($storagePath, file_get_contents($photo));
 
             Student::where('nisn', $foundNisn)->update([
                 'foto' => $storagePath,
@@ -607,6 +608,20 @@ class StudentController extends Controller
         }
 
         return back()->with($matched > 0 ? 'success' : 'error', $msg);
+    }
+
+    /**
+     * Tampilkan foto siswa secara aman (hanya untuk user yang login).
+     */
+    public function showPhoto(string $filename): BinaryFileResponse|HttpResponse
+    {
+        $path = 'student-photos/'.$filename;
+
+        if (! Storage::disk('local')->exists($path)) {
+            abort(404, 'Foto tidak ditemukan.');
+        }
+
+        return response()->file(Storage::disk('local')->path($path));
     }
 
     /**

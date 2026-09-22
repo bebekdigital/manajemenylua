@@ -68,6 +68,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/students/template', [StudentController::class, 'downloadTemplate'])->name('students.template');
     Route::post('/students/import', [StudentController::class, 'import'])->name('students.import');
     Route::post('/students/upload-photos', [StudentController::class, 'uploadPhotos'])->name('students.upload-photos');
+    Route::get('/students/photo/{filename}', [StudentController::class, 'showPhoto'])->name('students.photo');
     Route::get('/students/{nisn}', [StudentController::class, 'show'])->name('students.show');
 
     // Administrasi & Cetak Berkas Siswa
