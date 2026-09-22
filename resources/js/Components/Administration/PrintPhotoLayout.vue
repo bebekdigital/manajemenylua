@@ -36,8 +36,8 @@ const paperClass = computed(() => {
                 :key="student.nisn + '-' + index"
                 class="photo-card"
                 :style="{
-                    width: dimensions.w + 'cm',
-                    height: (dimensions.h + (settings.showName ? 1.2 : 0)) + 'cm' // Tambah space untuk teks
+                    width: (dimensions.w + 0.4) + 'cm', // Tambah 0.4cm untuk padding kotak
+                    height: (dimensions.h + (settings.showName ? 1.6 : 0.4)) + 'cm' // Tambah space untuk teks dan padding
                 }"
             >
                 <div class="photo-frame" :style="{ width: dimensions.w + 'cm', height: dimensions.h + 'cm' }">
@@ -48,6 +48,7 @@ const paperClass = computed(() => {
                 <div v-if="settings.showName" class="photo-info">
                     <div class="photo-name">{{ student.nama }}</div>
                     <div class="photo-nisn">{{ student.nisn }}</div>
+                    <div class="photo-kelas">{{ student.kelas || '-' }}</div>
                 </div>
             </div>
         </div>
@@ -63,7 +64,6 @@ const paperClass = computed(() => {
 .print-layout-container {
     background-color: white;
     color: black;
-    /* Reset margin & padding */
     margin: 0;
     padding: 0;
     width: 100%;
@@ -73,7 +73,7 @@ const paperClass = computed(() => {
     display: flex;
     flex-wrap: wrap;
     align-content: flex-start;
-    /* Jarak antar foto */
+    /* Jarak antar kotak foto */
     gap: 0.5cm;
     /* Margin area aman dari tepi kertas */
     padding: 1cm;
@@ -82,15 +82,19 @@ const paperClass = computed(() => {
 .photo-card {
     display: flex;
     flex-direction: column;
-    /* Menghindari foto terpotong di halaman selanjutnya */
+    align-items: center;
+    /* Kotak hitam outline tidak rounded */
+    border: 1px solid black;
+    border-radius: 0;
+    padding: 0.2cm;
     page-break-inside: avoid;
     break-inside: avoid;
     box-sizing: border-box;
 }
 
 .photo-frame {
-    /* Border putih (opsional, jika butuh garis potong beri border tipis) */
-    border: 1px solid #ccc;
+    /* Foto tidak rounded */
+    border-radius: 0;
     background-color: #f8f8f8;
     box-sizing: border-box;
     overflow: hidden;
@@ -104,6 +108,7 @@ const paperClass = computed(() => {
     height: 100%;
     object-fit: cover;
     object-position: top center;
+    border-radius: 0;
 }
 
 .no-photo {
@@ -113,10 +118,11 @@ const paperClass = computed(() => {
 }
 
 .photo-info {
-    margin-top: 0.2cm;
+    margin-top: 0.15cm;
     text-align: center;
     font-family: Arial, sans-serif;
     line-height: 1.2;
+    width: 100%;
 }
 
 .photo-name {
@@ -129,9 +135,9 @@ const paperClass = computed(() => {
     max-width: 100%;
 }
 
-.photo-nisn {
+.photo-nisn, .photo-kelas {
     font-size: 6pt;
-    color: #333;
+    color: #111;
 }
 </style>
 

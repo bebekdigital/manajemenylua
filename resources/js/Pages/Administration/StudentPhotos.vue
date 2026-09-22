@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, nextTick } from 'vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import SearchFilter from '@/Components/Shared/SearchFilter.vue';
 import PrintPhotoModal from '@/Components/Administration/PrintPhotoModal.vue';
@@ -76,6 +76,7 @@ const withoutPhotoCount = computed(() => props.students.length - withPhotoCount.
 // ==============================
 // Selection Logic
 // ==============================
+const isSelectionMode = ref(false);
 const selectedNisns = ref([]);
 
 const isAllSelected = computed(() => {
@@ -107,6 +108,12 @@ function toggleSelectAll() {
 }
 
 function clearSelection() {
+    selectedNisns.value = [];
+    isSelectionMode.value = false;
+}
+
+function enableSelectionMode() {
+    isSelectionMode.value = true;
     selectedNisns.value = [];
 }
 
@@ -204,7 +211,7 @@ function handlePrint(settings) {
             </div>
         </div>
 
-        <!-- Toolbar (Search & Filter & Select All) -->
+        <!-- Toolbar (Search & Filter & Select All / Cetak) -->
         <div class="mb-6 flex flex-col sm:flex-row justify-between items-end sm:items-center gap-4">
             <SearchFilter
                 v-model="searchQuery"
@@ -215,18 +222,29 @@ function handlePrint(settings) {
                 class="w-full sm:w-auto flex-1"
             />
 
-            <!-- Select All Button -->
-            <button
-                v-if="filteredStudents.length > 0"
-                @click="toggleSelectAll"
-                class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border transition-all shrink-0"
-                :class="isAllSelected ? 'bg-primary/10 text-primary border-primary/30' : 'bg-surface-container-low text-on-surface-variant border-outline-variant/40 hover:border-outline-variant'"
-            >
-                <span class="material-symbols-outlined text-[20px]">
-                    {{ isAllSelected ? 'check_box' : 'check_box_outline_blank' }}
-                </span>
-                {{ isAllSelected ? 'Batal Pilih Semua' : 'Pilih Semua' }}
-            </button>
+            <!-- Toggle Buttons -->
+            <div class="flex items-center gap-2 shrink-0">
+                <button
+                    v-if="!isSelectionMode && filteredStudents.length > 0"
+                    @click="enableSelectionMode"
+                    class="flex items-center gap-2 px-5 py-2 bg-primary text-on-primary rounded-xl font-bold shadow-sm hover:shadow-md transition-all"
+                >
+                    <span class="material-symbols-outlined text-[20px]">print</span>
+                    Cetak Foto
+                </button>
+
+                <button
+                    v-if="isSelectionMode && filteredStudents.length > 0"
+                    @click="toggleSelectAll"
+                    class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border transition-all"
+                    :class="isAllSelected ? 'bg-primary/10 text-primary border-primary/30' : 'bg-surface-container-low text-on-surface-variant border-outline-variant/40 hover:border-outline-variant'"
+                >
+                    <span class="material-symbols-outlined text-[20px]">
+                        {{ isAllSelected ? 'check_box' : 'check_box_outline_blank' }}
+                    </span>
+                    {{ isAllSelected ? 'Batal Pilih Semua' : 'Pilih Semua' }}
+                </button>
+            </div>
         </div>
 
         <!-- Empty State -->
@@ -247,20 +265,23 @@ function handlePrint(settings) {
             <div
                 v-for="student in filteredStudents"
                 :key="student.nisn"
-                @click="toggleSelection(student.nisn)"
+                @click="isSelectionMode ? toggleSelection(student.nisn) : router.visit(`/students/${student.nisn}`)"
                 class="group relative rounded-2xl border overflow-hidden transition-all duration-200 flex flex-col cursor-pointer select-none"
                 :class="[
-                    selectedNisns.includes(student.nisn)
+                    isSelectionMode && selectedNisns.includes(student.nisn)
                         ? 'border-primary ring-2 ring-primary/50 bg-primary/5 shadow-md -translate-y-1'
                         : 'border-outline-variant/30 bg-surface shadow-sm hover:shadow-md hover:-translate-y-0.5'
                 ]"
             >
                 <!-- Checkbox -->
-                <div class="absolute top-2 left-2 z-10 w-6 h-6 rounded-md bg-white/80 backdrop-blur border border-outline-variant shadow flex items-center justify-center transition-colors"
+                <div v-if="isSelectionMode" class="absolute top-2 left-2 z-10 w-6 h-6 rounded-md bg-white/80 backdrop-blur border border-outline-variant shadow flex items-center justify-center transition-colors"
                      :class="selectedNisns.includes(student.nisn) ? 'bg-primary border-primary text-on-primary' : 'text-transparent group-hover:text-on-surface-variant/30'"
                 >
                     <span class="material-symbols-outlined text-[18px]">check</span>
                 </div>
+
+                <!-- Hover link overlay if not in selection mode -->
+                <div v-if="!isSelectionMode" class="absolute inset-0 rounded-2xl ring-2 ring-transparent group-hover:ring-primary/30 transition-all pointer-events-none" :title="`Lihat detail ${student.nama}`"></div>
 
                 <!-- Photo / Placeholder -->
                 <div class="relative aspect-[3/4] bg-surface-container overflow-hidden">
@@ -269,7 +290,7 @@ function handlePrint(settings) {
                         :src="student.photo_url"
                         :alt="student.nama"
                         class="w-full h-full object-cover object-top transition-transform duration-500"
-                        :class="selectedNisns.includes(student.nisn) ? 'scale-105' : 'group-hover:scale-105'"
+                        :class="isSelectionMode && selectedNisns.includes(student.nisn) ? 'scale-105' : 'group-hover:scale-105'"
                         loading="lazy"
                     />
                     <div
@@ -285,9 +306,9 @@ function handlePrint(settings) {
 
                 <!-- Info -->
                 <div class="p-3 flex flex-col gap-0.5">
-                    <p class="text-[11px] font-mono leading-none" :class="selectedNisns.includes(student.nisn) ? 'text-primary' : 'text-on-surface-variant/60'">{{ student.nisn }}</p>
-                    <p class="text-xs font-bold leading-snug line-clamp-2" :class="selectedNisns.includes(student.nisn) ? 'text-primary' : 'text-on-surface'">{{ student.nama }}</p>
-                    <p class="text-[10px] mt-0.5" :class="selectedNisns.includes(student.nisn) ? 'text-primary/70' : 'text-on-surface-variant'">{{ student.kelas || '-' }}</p>
+                    <p class="text-[11px] font-mono leading-none" :class="isSelectionMode && selectedNisns.includes(student.nisn) ? 'text-primary' : 'text-on-surface-variant/60'">{{ student.nisn }}</p>
+                    <p class="text-xs font-bold leading-snug line-clamp-2" :class="isSelectionMode && selectedNisns.includes(student.nisn) ? 'text-primary' : 'text-on-surface'">{{ student.nama }}</p>
+                    <p class="text-[10px] mt-0.5" :class="isSelectionMode && selectedNisns.includes(student.nisn) ? 'text-primary/70' : 'text-on-surface-variant'">{{ student.kelas || '-' }}</p>
                 </div>
             </div>
         </div>
@@ -300,7 +321,7 @@ function handlePrint(settings) {
             leave-to-class="opacity-0 translate-y-10 scale-95"
         >
             <div
-                v-if="selectedNisns.length > 0"
+                v-if="isSelectionMode"
                 class="fixed bottom-6 left-1/2 -translate-x-1/2 z-40"
             >
                 <div class="bg-surface border border-outline-variant/30 shadow-2xl rounded-2xl px-5 py-4 flex items-center gap-6">
@@ -316,11 +337,13 @@ function handlePrint(settings) {
                             @click="clearSelection"
                             class="px-4 py-2 text-sm font-medium text-error hover:bg-error/10 rounded-xl transition-colors cursor-pointer"
                         >
-                            Batal
+                            Batal Cetak
                         </button>
                         <button
                             @click="showPrintModal = true"
-                            class="flex items-center gap-2 px-5 py-2 bg-primary text-on-primary rounded-xl font-bold shadow-md hover:shadow-lg hover:bg-primary/90 transition-all active:scale-95 cursor-pointer"
+                            :disabled="selectedNisns.length === 0"
+                            :class="selectedNisns.length === 0 ? 'bg-surface-container-high text-on-surface-variant/50 cursor-not-allowed' : 'bg-primary text-on-primary hover:shadow-lg hover:bg-primary/90 active:scale-95 cursor-pointer shadow-md'"
+                            class="flex items-center gap-2 px-5 py-2 rounded-xl font-bold transition-all"
                         >
                             <span class="material-symbols-outlined text-xl">print</span>
                             Atur & Cetak
