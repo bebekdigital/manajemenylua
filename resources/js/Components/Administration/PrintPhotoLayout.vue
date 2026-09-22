@@ -76,8 +76,7 @@ const paperClass = computed(() => {
     align-content: flex-start;
     /* Jarak antar kotak foto */
     gap: 0.5cm;
-    /* Margin area aman dari tepi kertas */
-    padding: 1cm;
+    /* Margin halaman sekarang diatur via @page margin di StudentPhotos.vue */
 }
 
 .photo-card {

@@ -147,9 +147,9 @@ function handlePrint(settings) {
     // F4 size in mm is usually 215mm x 330mm
     // A4 is 210mm x 297mm
     if (settings.paperSize === 'F4') {
-        styleEl.innerHTML = `@media print { @page { size: 215mm 330mm; margin: 0; } }`;
+        styleEl.innerHTML = `@media print { @page { size: 215mm 330mm; margin: 1cm; } }`;
     } else {
-        styleEl.innerHTML = `@media print { @page { size: A4; margin: 0; } }`;
+        styleEl.innerHTML = `@media print { @page { size: A4; margin: 1cm; } }`;
     }
 
     // Wait for DOM to update AND modal transition to finish (leave-active is 150ms)
