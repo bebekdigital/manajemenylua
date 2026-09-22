@@ -266,11 +266,11 @@ function handlePrint(settings) {
                 v-for="student in filteredStudents"
                 :key="student.nisn"
                 @click="isSelectionMode ? toggleSelection(student.nisn) : router.visit(`/students/${student.nisn}`)"
-                class="group relative rounded-2xl border overflow-hidden transition-all duration-200 flex flex-col cursor-pointer select-none"
+                class="group relative border overflow-hidden transition-all duration-200 flex flex-col cursor-pointer select-none rounded-none"
                 :class="[
                     isSelectionMode && selectedNisns.includes(student.nisn)
                         ? 'border-primary ring-2 ring-primary/50 bg-primary/5 shadow-md -translate-y-1'
-                        : 'border-outline-variant/30 bg-surface shadow-sm hover:shadow-md hover:-translate-y-0.5'
+                        : 'border-black bg-surface shadow-sm hover:shadow-md hover:-translate-y-0.5'
                 ]"
             >
                 <!-- Checkbox -->
@@ -281,7 +281,7 @@ function handlePrint(settings) {
                 </div>
 
                 <!-- Hover link overlay if not in selection mode -->
-                <div v-if="!isSelectionMode" class="absolute inset-0 rounded-2xl ring-2 ring-transparent group-hover:ring-primary/30 transition-all pointer-events-none" :title="`Lihat detail ${student.nama}`"></div>
+                <div v-if="!isSelectionMode" class="absolute inset-0 ring-2 ring-transparent group-hover:ring-primary/30 transition-all pointer-events-none rounded-none" :title="`Lihat detail ${student.nama}`"></div>
 
                 <!-- Photo / Placeholder -->
                 <div class="relative aspect-[3/4] bg-surface-container overflow-hidden">

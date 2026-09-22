@@ -12,6 +12,7 @@ const settings = ref({
     photoSize: '3x4',
     paperSize: 'A4',
     showName: true,
+    showBorder: true,
 });
 
 function onPrint() {
@@ -129,7 +130,7 @@ function onPrint() {
                             </div>
 
                             <!-- Opsi Tampilan -->
-                            <div>
+                            <div class="space-y-3">
                                 <label class="flex items-center gap-3 p-3 bg-surface-container-low rounded-xl border border-outline-variant/30 cursor-pointer hover:bg-surface-container transition-colors">
                                     <input
                                         type="checkbox"
@@ -137,8 +138,19 @@ function onPrint() {
                                         class="w-5 h-5 rounded text-primary focus:ring-primary border-outline-variant/50 bg-surface cursor-pointer"
                                     />
                                     <div class="flex flex-col">
-                                        <span class="text-sm font-semibold text-on-surface">Tampilkan Nama & NISN</span>
-                                        <span class="text-[11px] text-on-surface-variant">Menambahkan label teks kecil di bawah setiap foto</span>
+                                        <span class="text-sm font-semibold text-on-surface">Tampilkan Teks Info</span>
+                                        <span class="text-[11px] text-on-surface-variant">Tampilkan nama, NISN, dan kelas di bawah foto</span>
+                                    </div>
+                                </label>
+                                <label class="flex items-center gap-3 p-3 bg-surface-container-low rounded-xl border border-outline-variant/30 cursor-pointer hover:bg-surface-container transition-colors">
+                                    <input
+                                        type="checkbox"
+                                        v-model="settings.showBorder"
+                                        class="w-5 h-5 rounded text-primary focus:ring-primary border-outline-variant/50 bg-surface cursor-pointer"
+                                    />
+                                    <div class="flex flex-col">
+                                        <span class="text-sm font-semibold text-on-surface">Garis Tepi (Outline)</span>
+                                        <span class="text-[11px] text-on-surface-variant">Berikan bingkai kotak pada setiap foto saat dicetak</span>
                                     </div>
                                 </label>
                             </div>

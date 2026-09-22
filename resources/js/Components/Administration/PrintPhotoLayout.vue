@@ -35,9 +35,10 @@ const paperClass = computed(() => {
                 v-for="(student, index) in students"
                 :key="student.nisn + '-' + index"
                 class="photo-card"
+                :class="{ 'has-border': settings.showBorder }"
                 :style="{
-                    width: (dimensions.w + 0.4) + 'cm', // Tambah 0.4cm untuk padding kotak
-                    height: (dimensions.h + (settings.showName ? 1.6 : 0.4)) + 'cm' // Tambah space untuk teks dan padding
+                    width: (dimensions.w + (settings.showBorder ? 0.4 : 0)) + 'cm',
+                    height: (dimensions.h + (settings.showName ? (settings.showBorder ? 1.6 : 1.2) : (settings.showBorder ? 0.4 : 0))) + 'cm'
                 }"
             >
                 <div class="photo-frame" :style="{ width: dimensions.w + 'cm', height: dimensions.h + 'cm' }">
@@ -83,13 +84,14 @@ const paperClass = computed(() => {
     display: flex;
     flex-direction: column;
     align-items: center;
-    /* Kotak hitam outline tidak rounded */
-    border: 1px solid black;
-    border-radius: 0;
-    padding: 0.2cm;
     page-break-inside: avoid;
     break-inside: avoid;
     box-sizing: border-box;
+}
+
+.photo-card.has-border {
+    border: 1px solid black;
+    padding: 0.2cm;
 }
 
 .photo-frame {
