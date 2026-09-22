@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Facades\Storage;
 
 class Student extends Model
 {
@@ -48,7 +49,7 @@ class Student extends Model
             return null;
         }
 
-        return $this->foto;
+        return Storage::disk('public')->url($this->foto);
     }
 
     protected function casts(): array

@@ -12,7 +12,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -549,17 +549,11 @@ class StudentController extends Controller
         $request->validate([
             'photos' => ['required', 'array', 'min:1'],
             'photos.*' => ['required', 'image', 'mimes:jpeg,png,jpg,webp', 'max:5120'],
-        ], [
             'photos.required' => 'Pilih minimal 1 file foto.',
             'photos.*.image' => 'File harus berupa gambar.',
             'photos.*.mimes' => 'Format foto harus jpeg, png, jpg, atau webp.',
             'photos.*.max' => 'Ukuran foto maksimal 5MB per file.',
         ]);
-
-        $uploadDir = public_path('uploads/students');
-        if (! File::isDirectory($uploadDir)) {
-            File::makeDirectory($uploadDir, 0755, true);
-        }
 
         $allNisns = Student::pluck('nisn')->toArray();
         $matched = 0;
@@ -583,11 +577,18 @@ class StudentController extends Controller
             }
 
             $extension = $photo->getClientOriginalExtension();
-            $filename = $foundNisn.'.'.$extension;
-            $photo->move($uploadDir, $filename);
+            $storagePath = 'student-photos/'.$foundNisn.'.'.$extension;
+
+            // Hapus foto lama jika ada
+            $existingStudent = Student::where('nisn', $foundNisn)->first();
+            if ($existingStudent?->foto) {
+                Storage::disk('public')->delete($existingStudent->foto);
+            }
+
+            Storage::disk('public')->put($storagePath, file_get_contents($photo));
 
             Student::where('nisn', $foundNisn)->update([
-                'foto' => '/uploads/students/'.$filename,
+                'foto' => $storagePath,
             ]);
 
             $matched++;
