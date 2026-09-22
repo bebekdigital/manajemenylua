@@ -77,6 +77,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/administration/identity-document/template', [AdministrationController::class, 'editTemplate'])->name('administration.template.edit');
     Route::post('/administration/identity-document/template', [AdministrationController::class, 'updateTemplate'])->name('administration.template.update');
     Route::post('/administration/identity-document/template/reset', [AdministrationController::class, 'resetTemplate'])->name('administration.template.reset');
+    Route::get('/administration/student-photos', [AdministrationController::class, 'studentPhotos'])->name('administration.student-photos');
 
     Route::post('/academic-years/switch', function (Request $request) {
         $validated = $request->validate([

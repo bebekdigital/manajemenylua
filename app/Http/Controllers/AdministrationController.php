@@ -24,6 +24,57 @@ class AdministrationController extends Controller
     }
 
     /**
+     * Display the student photo gallery for printing.
+     */
+    public function studentPhotos(Request $request): Response
+    {
+        $selectedYearId = $request->query('academic_year_id') ?? session('selected_academic_year_id');
+        $selectedYear = $selectedYearId
+            ? AcademicYear::find($selectedYearId)
+            : (AcademicYear::current() ?? AcademicYear::first());
+
+        $students = Student::with([
+            'academicRecords' => function ($query) use ($selectedYear) {
+                if ($selectedYear) {
+                    $query->where('academic_year_id', $selectedYear->id);
+                }
+                $query->with('classroom');
+            },
+        ])
+            ->when($selectedYear, function ($query) use ($selectedYear) {
+                $query->whereHas('academicRecords', function ($q) use ($selectedYear) {
+                    $q->where('academic_year_id', $selectedYear->id);
+                });
+            })
+            ->orderBy('unit')
+            ->orderBy('nama')
+            ->get()
+            ->map(function (Student $student) {
+                $record = $student->academicRecords->first();
+                $classroom = $record?->classroom;
+
+                return [
+                    'nisn' => $student->nisn,
+                    'nama' => $student->nama,
+                    'unit' => $student->unit,
+                    'kelas' => $classroom?->name,
+                    'jenjang' => $record?->jenjang,
+                    'tingkat' => $record?->tingkat,
+                    'photo_url' => $student->photo_url,
+                ];
+            });
+
+        $classrooms = $students->pluck('kelas')->filter()->unique()->sort()->values();
+        $units = $students->pluck('unit')->filter()->unique()->sort()->values();
+
+        return Inertia::render('Administration/StudentPhotos', [
+            'students' => $students,
+            'classrooms' => $classrooms,
+            'units' => $units,
+        ]);
+    }
+
+    /**
      * Display the administration page with student lists & template settings.
      */
     public function identityDocument(Request $request): Response
