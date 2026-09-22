@@ -11,6 +11,7 @@ use App\Services\StudentImportService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
@@ -547,21 +548,128 @@ class StudentController extends Controller
      */
     public function uploadPhotos(Request $request): RedirectResponse
     {
+        // Mode ZIP
+        if ($request->hasFile('zip')) {
+            return $this->handleZipUpload($request);
+        }
+
+        // Mode foto individu (maks 20 karena batas PHP max_file_uploads)
         $request->validate([
             'photos' => ['required', 'array', 'min:1'],
             'photos.*' => ['required', 'image', 'mimes:jpeg,png,jpg,webp', 'max:5120'],
+        ], [
             'photos.required' => 'Pilih minimal 1 file foto.',
             'photos.*.image' => 'File harus berupa gambar.',
             'photos.*.mimes' => 'Format foto harus jpeg, png, jpg, atau webp.',
             'photos.*.max' => 'Ukuran foto maksimal 5MB per file.',
         ]);
 
+        [$matched, $unmatched, $total] = $this->processPhotoFiles($request->file('photos'));
+
+        return $this->buildUploadResponse($matched, $total, $unmatched);
+    }
+
+    /**
+     * Proses upload ZIP berisi foto-foto siswa.
+     */
+    private function handleZipUpload(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'zip' => ['required', 'file', 'mimes:zip', 'max:102400'],
+        ], [
+            'zip.required' => 'File ZIP wajib diunggah.',
+            'zip.mimes' => 'File harus berformat .zip.',
+            'zip.max' => 'Ukuran ZIP maksimal 100MB.',
+        ]);
+
+        $zipPath = $request->file('zip')->getRealPath();
+        $zip = new \ZipArchive;
+
+        if ($zip->open($zipPath) !== true) {
+            return back()->with('error', 'File ZIP tidak valid atau rusak.');
+        }
+
+        $allowedExtensions = ['jpg', 'jpeg', 'png', 'webp'];
+        $extractedFiles = [];
+
+        $tmpDir = sys_get_temp_dir().'/student_photos_'.uniqid();
+        @mkdir($tmpDir, 0755, true);
+
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $name = $zip->getNameIndex($i);
+            $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+
+            // Lewati folder dan file bukan gambar
+            if (str_ends_with($name, '/') || ! in_array($ext, $allowedExtensions)) {
+                continue;
+            }
+
+            $basename = basename($name);
+            $tmpPath = $tmpDir.'/'.$basename;
+            file_put_contents($tmpPath, $zip->getFromIndex($i));
+            $extractedFiles[] = ['path' => $tmpPath, 'name' => $basename];
+        }
+
+        $zip->close();
+
         $allNisns = Student::pluck('nisn')->toArray();
         $matched = 0;
         $unmatched = [];
 
-        foreach ($request->file('photos') as $photo) {
+        foreach ($extractedFiles as $fileInfo) {
+            $originalName = pathinfo($fileInfo['name'], PATHINFO_FILENAME);
+            $ext = strtolower(pathinfo($fileInfo['name'], PATHINFO_EXTENSION));
+
+            $foundNisn = null;
+            foreach ($allNisns as $nisn) {
+                if (str_contains($originalName, $nisn)) {
+                    $foundNisn = $nisn;
+                    break;
+                }
+            }
+
+            if (! $foundNisn) {
+                $unmatched[] = $fileInfo['name'];
+                @unlink($fileInfo['path']);
+
+                continue;
+            }
+
+            $storagePath = 'student-photos/'.$foundNisn.'.'.$ext;
+            $existingStudent = Student::where('nisn', $foundNisn)->first();
+
+            if ($existingStudent?->foto && $existingStudent->foto !== $storagePath) {
+                Storage::disk('local')->delete($existingStudent->foto);
+            }
+
+            Storage::disk('local')->put($storagePath, file_get_contents($fileInfo['path']));
+            @unlink($fileInfo['path']);
+
+            Student::where('nisn', $foundNisn)->update(['foto' => $storagePath]);
+            $matched++;
+        }
+
+        // Bersihkan temp dir
+        @rmdir($tmpDir);
+
+        return $this->buildUploadResponse($matched, count($extractedFiles), $unmatched);
+    }
+
+    /**
+     * Proses array file foto dan cocokkan dengan NISN.
+     *
+     * @param  array<UploadedFile>  $photos
+     * @return array{int, array<string>, int}
+     */
+    private function processPhotoFiles(array $photos): array
+    {
+        $allNisns = Student::pluck('nisn')->toArray();
+        $matched = 0;
+        $unmatched = [];
+
+        foreach ($photos as $photo) {
             $originalName = pathinfo($photo->getClientOriginalName(), PATHINFO_FILENAME);
+            $ext = $photo->getClientOriginalExtension();
 
             $foundNisn = null;
             foreach ($allNisns as $nisn) {
@@ -577,25 +685,28 @@ class StudentController extends Controller
                 continue;
             }
 
-            $extension = $photo->getClientOriginalExtension();
-            $storagePath = 'student-photos/'.$foundNisn.'.'.$extension;
-
-            // Hapus foto lama jika ada
+            $storagePath = 'student-photos/'.$foundNisn.'.'.$ext;
             $existingStudent = Student::where('nisn', $foundNisn)->first();
+
             if ($existingStudent?->foto) {
                 Storage::disk('local')->delete($existingStudent->foto);
             }
 
             Storage::disk('local')->put($storagePath, file_get_contents($photo));
-
-            Student::where('nisn', $foundNisn)->update([
-                'foto' => $storagePath,
-            ]);
-
+            Student::where('nisn', $foundNisn)->update(['foto' => $storagePath]);
             $matched++;
         }
 
-        $total = count($request->file('photos'));
+        return [$matched, $unmatched, count($photos)];
+    }
+
+    /**
+     * Buat response redirect dengan pesan ringkasan hasil upload.
+     *
+     * @param  array<string>  $unmatched
+     */
+    private function buildUploadResponse(int $matched, int $total, array $unmatched): RedirectResponse
+    {
         $msg = "{$matched} dari {$total} foto berhasil dicocokkan dan disimpan.";
 
         if (count($unmatched) > 0) {
