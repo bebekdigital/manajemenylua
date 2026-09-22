@@ -5,6 +5,7 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import StudentToolbar from '@/Components/Students/StudentToolbar.vue';
 import StudentTable from '@/Components/Students/StudentTable.vue';
 import StudentImportModal from '@/Components/Students/StudentImportModal.vue';
+import StudentPhotoUploadModal from '@/Components/Students/StudentPhotoUploadModal.vue';
 
 defineOptions({
     layout: AppLayout,
@@ -35,6 +36,7 @@ const perPage = ref(10);
 
 // Import modal state
 const showImportModal = ref(false);
+const showPhotoUploadModal = ref(false);
 const dismissedFlash = ref(false);
 
 const flashSuccess = computed(() => {
@@ -153,6 +155,16 @@ function onPageChange(page) {
                     <span>Edit Data</span>
                 </Link>
 
+                <button
+                    type="button"
+                    @click="showPhotoUploadModal = true"
+                    class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2.5 rounded-lg sm:rounded-xl border border-tertiary/50 text-tertiary bg-tertiary/10 hover:bg-tertiary/20 active:bg-tertiary/30 font-semibold text-[11px] sm:text-sm transition-all shadow-2xs hover:shadow-sm cursor-pointer"
+                    title="Upload foto siswa secara batch berdasarkan NISN"
+                >
+                    <span class="material-symbols-outlined text-[16px] sm:text-[18px]">add_a_photo</span>
+                    <span>Upload Foto</span>
+                </button>
+
                 <a
                     href="/students/template"
                     download
@@ -249,5 +261,12 @@ function onPageChange(page) {
         :show="showImportModal"
         @close="showImportModal = false"
         @success="onImportSuccess"
+    />
+
+    <!-- Photo Upload Modal -->
+    <StudentPhotoUploadModal
+        :show="showPhotoUploadModal"
+        @close="showPhotoUploadModal = false"
+        @success="() => { dismissedFlash = false; }"
     />
 </template>

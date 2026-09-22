@@ -12,6 +12,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Inertia\Inertia;
 use Inertia\Response;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -96,6 +97,7 @@ class StudentController extends Controller
                     'agama' => $student->agama,
                     'unit' => $student->unit,
                     'program' => $student->program,
+                    'photo_url' => $student->photo_url,
                     'jenjang' => $record?->jenjang,
                     'tingkat' => $record?->tingkat,
                     'kelas' => $classroom?->name,
@@ -199,6 +201,7 @@ class StudentController extends Controller
             'agama' => $studentModel->agama,
             'unit' => $studentModel->unit,
             'program' => $studentModel->program,
+            'photo_url' => $studentModel->photo_url,
             'jenjang' => $record?->jenjang,
             'tingkat' => $record?->tingkat,
             'kelas' => $classroom?->name,
@@ -506,7 +509,7 @@ class StudentController extends Controller
                                 [
                                     'name' => $d['kelas'],
                                     'unit' => $d['unit'],
-                                    'academic_year_id' => $selectedYearId
+                                    'academic_year_id' => $selectedYearId,
                                 ],
                                 [
                                     'name' => $d['kelas'],
@@ -536,6 +539,73 @@ class StudentController extends Controller
         });
 
         return redirect()->route('students.index')->with('success', 'Data siswa berhasil diperbarui secara massal.');
+    }
+
+    /**
+     * Handle batch photo upload, matching filenames containing NISN to students.
+     */
+    public function uploadPhotos(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'photos' => ['required', 'array', 'min:1'],
+            'photos.*' => ['required', 'image', 'mimes:jpeg,png,jpg,webp', 'max:5120'],
+        ], [
+            'photos.required' => 'Pilih minimal 1 file foto.',
+            'photos.*.image' => 'File harus berupa gambar.',
+            'photos.*.mimes' => 'Format foto harus jpeg, png, jpg, atau webp.',
+            'photos.*.max' => 'Ukuran foto maksimal 5MB per file.',
+        ]);
+
+        $uploadDir = public_path('uploads/students');
+        if (! File::isDirectory($uploadDir)) {
+            File::makeDirectory($uploadDir, 0755, true);
+        }
+
+        $allNisns = Student::pluck('nisn')->toArray();
+        $matched = 0;
+        $unmatched = [];
+
+        foreach ($request->file('photos') as $photo) {
+            $originalName = pathinfo($photo->getClientOriginalName(), PATHINFO_FILENAME);
+
+            $foundNisn = null;
+            foreach ($allNisns as $nisn) {
+                if (str_contains($originalName, $nisn)) {
+                    $foundNisn = $nisn;
+                    break;
+                }
+            }
+
+            if (! $foundNisn) {
+                $unmatched[] = $photo->getClientOriginalName();
+
+                continue;
+            }
+
+            $extension = $photo->getClientOriginalExtension();
+            $filename = $foundNisn.'.'.$extension;
+            $photo->move($uploadDir, $filename);
+
+            Student::where('nisn', $foundNisn)->update([
+                'foto' => '/uploads/students/'.$filename,
+            ]);
+
+            $matched++;
+        }
+
+        $total = count($request->file('photos'));
+        $msg = "{$matched} dari {$total} foto berhasil dicocokkan dan disimpan.";
+
+        if (count($unmatched) > 0) {
+            $failedList = implode(', ', array_slice($unmatched, 0, 5));
+            $msg .= ' File tidak cocok: '.$failedList;
+            if (count($unmatched) > 5) {
+                $msg .= ' dan '.(count($unmatched) - 5).' lainnya';
+            }
+            $msg .= '.';
+        }
+
+        return back()->with($matched > 0 ? 'success' : 'error', $msg);
     }
 
     /**

@@ -67,6 +67,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/students/inline-update', [StudentController::class, 'inlineUpdate'])->name('students.inline-update');
     Route::get('/students/template', [StudentController::class, 'downloadTemplate'])->name('students.template');
     Route::post('/students/import', [StudentController::class, 'import'])->name('students.import');
+    Route::post('/students/upload-photos', [StudentController::class, 'uploadPhotos'])->name('students.upload-photos');
     Route::get('/students/{nisn}', [StudentController::class, 'show'])->name('students.show');
 
     // Administrasi & Cetak Berkas Siswa

@@ -333,11 +333,26 @@ const signatoryDate = computed(() => {
                 </table>
             </div>
 
-            <!-- Bagian Tanda Tangan Kepala Sekolah (Pas foto dihapus, posisi dialignment ke kanan) -->
-            <div class="flex justify-end pb-12 pr-32">
-                
+            <!-- Bagian Pas Foto + Tanda Tangan -->
+            <div class="flex justify-between pb-12 px-4">
+                <!-- Pas Foto 3x4 -->
+                <div class="flex flex-col items-center">
+                    <div
+                        class="border border-black flex items-center justify-center overflow-hidden"
+                        style="width: 3cm; height: 4cm;"
+                    >
+                        <img
+                            v-if="student?.photo_url"
+                            :src="student.photo_url"
+                            :alt="student?.nama"
+                            class="w-full h-full object-cover"
+                        />
+                        <span v-else class="text-[9px] text-gray-400 text-center leading-tight px-1">Pas Foto<br/>3 x 4</span>
+                    </div>
+                </div>
+
                 <!-- Tanda Tangan dengan Space Cukup untuk TTD Basah -->
-                <div class="text-left text-sm">
+                <div class="text-left text-sm pr-16">
                     <p>{{ signatory.tempat_penandatangan || signatory.tempat_titimangsa || 'Karanganyar' }}, {{ signatoryDate }}</p>
                     <p>Kepala Sekolah</p>
                     

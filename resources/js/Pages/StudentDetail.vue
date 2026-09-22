@@ -63,9 +63,17 @@ function hitungUsia(tanggalLahir) {
             <!-- Header -->
             <div class="flex items-center justify-between px-6 py-4 border-b border-outline-variant/30 bg-surface-container-low">
                 <div class="flex items-center gap-4">
-                    <div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xl">
-                        {{ student.nama ? student.nama.charAt(0) : '?' }}
-                    </div>
+                    <div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
+                            <img
+                                v-if="student.photo_url"
+                                :src="student.photo_url"
+                                :alt="student.nama"
+                                class="w-full h-full object-cover"
+                            />
+                            <span v-else class="text-primary font-bold text-xl">
+                                {{ student.nama ? student.nama.charAt(0) : '?' }}
+                            </span>
+                        </div>
                     <div>
                         <h3 class="text-lg sm:text-xl font-bold text-on-surface">{{ student.nama }}</h3>
                         <p class="text-xs sm:text-sm text-on-surface-variant">NISN: {{ student.nisn }} &middot; Kelas {{ student.kelas }}</p>
@@ -96,6 +104,30 @@ function hitungUsia(tanggalLahir) {
 
                             <!-- TAB: Identitas -->
                             <div v-if="activeTab === 'identitas'" class="space-y-4">
+                                <!-- Student Photo -->
+                                <div v-if="student.photo_url" class="flex items-start gap-5 mb-6 p-4 bg-surface-container-low rounded-2xl border border-outline-variant/20">
+                                    <div class="w-[120px] h-[160px] rounded-xl overflow-hidden border-2 border-outline-variant/30 shadow-sm shrink-0 bg-surface-container">
+                                        <img
+                                            :src="student.photo_url"
+                                            :alt="`Foto ${student.nama}`"
+                                            class="w-full h-full object-cover"
+                                        />
+                                    </div>
+                                    <div class="pt-1">
+                                        <h4 class="text-sm font-bold text-on-surface">{{ student.nama }}</h4>
+                                        <p class="text-xs text-on-surface-variant mt-0.5">NISN: {{ student.nisn }}</p>
+                                        <p class="text-xs text-on-surface-variant">Kelas: {{ student.kelas || '-' }}</p>
+                                        <span :class="[
+                                            'inline-flex items-center mt-2 px-2 py-0.5 rounded-md text-[10px] font-semibold',
+                                            student.program === 'Boarding' ? 'bg-error/10 text-error' :
+                                            student.program === 'Fullday' ? 'bg-secondary/10 text-secondary' :
+                                            'bg-outline-variant/10 text-on-surface-variant'
+                                        ]">
+                                            {{ student.program || 'Umum' }}
+                                        </span>
+                                    </div>
+                                </div>
+
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
                                     <div>
                                         <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Nama Lengkap</label>

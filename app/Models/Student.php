@@ -36,7 +36,20 @@ class Student extends Model
         'kecamatan',
         'kabupaten',
         'provinsi',
+        'foto',
     ];
+
+    /**
+     * Get the publicly accessible URL for the student's photo.
+     */
+    public function getPhotoUrlAttribute(): ?string
+    {
+        if (! $this->foto) {
+            return null;
+        }
+
+        return $this->foto;
+    }
 
     protected function casts(): array
     {
