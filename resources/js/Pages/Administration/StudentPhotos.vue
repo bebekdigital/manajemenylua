@@ -160,12 +160,14 @@ function handlePrint(settings) {
     <Head title="Cetak Foto Siswa" />
 
     <!-- LAYOUT PRINT (Hanya tampil saat isPrinting = true) -->
-    <div v-if="isPrinting" class="print-only-container bg-white h-screen w-screen overflow-visible">
-        <PrintPhotoLayout :students="studentsToPrint" :settings="printSettings" />
-    </div>
+    <Teleport to="body">
+        <div v-if="isPrinting" class="print-only-container bg-white w-screen">
+            <PrintPhotoLayout :students="studentsToPrint" :settings="printSettings" />
+        </div>
+    </Teleport>
 
     <!-- LAYOUT APLIKASI (Sembunyi saat isPrinting = true) -->
-    <div v-else class="flex-1 overflow-y-auto p-4 md:p-margin-desktop bg-surface-container-lowest relative pb-24">
+    <div v-show="!isPrinting" class="flex-1 overflow-y-auto p-4 md:p-margin-desktop bg-surface-container-lowest relative pb-24">
         <!-- Back + Header -->
         <div class="mb-6">
             <Link
@@ -344,11 +346,10 @@ function handlePrint(settings) {
     body {
         background-color: white !important;
     }
-    /* Sembunyikan modal Teleport yang nempel langsung di body */
-    body > div:not(#app) {
+    #app {
         display: none !important;
     }
-    #app > div:not(.print-only-container) {
+    body > div:not(.print-only-container) {
         display: none !important;
     }
 }
