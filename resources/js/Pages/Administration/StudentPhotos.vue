@@ -274,10 +274,10 @@ function handlePrint(settings) {
                 ]"
             >
                 <!-- Checkbox -->
-                <div v-if="isSelectionMode" class="absolute top-2 left-2 z-10 w-6 h-6 rounded-md bg-white/90 backdrop-blur border shadow flex items-center justify-center transition-colors"
-                     :class="selectedNisns.includes(student.nisn) ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-outline-variant text-transparent group-hover:text-on-surface-variant/30'"
+                <div v-if="isSelectionMode" class="absolute top-2 left-2 z-10 w-6 h-6 rounded-md bg-white backdrop-blur border shadow flex items-center justify-center transition-colors"
+                     :class="selectedNisns.includes(student.nisn) ? 'border-emerald-500 text-emerald-600 ring-1 ring-emerald-500' : 'border-outline-variant text-transparent group-hover:text-on-surface-variant/30'"
                 >
-                    <span class="material-symbols-outlined text-[18px] font-bold">check</span>
+                    <span class="material-symbols-outlined text-[20px] font-black">check</span>
                 </div>
 
                 <!-- Hover link overlay if not in selection mode -->
