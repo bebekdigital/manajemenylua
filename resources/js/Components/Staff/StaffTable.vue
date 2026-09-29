@@ -59,170 +59,177 @@ const visiblePages = computed(() => {
     return pages;
 });
 
-function getInitials(name) {
-    const parts = name.split(' ');
-    if (parts.length >= 2) {
-        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-    }
-    return name.substring(0, 2).toUpperCase();
-}
-
 function getStatusColor(status) {
     const map = {
         'Aktif': 'bg-emerald-100 text-emerald-700',
-        'Non-Aktif': 'bg-slate-100 text-slate-500',
+        'Non-Aktif': 'bg-slate-200 text-slate-500',
         'Pensiun': 'bg-amber-100 text-amber-700',
         'Cuti': 'bg-blue-100 text-blue-700',
     };
     return map[status] ?? 'bg-outline-variant/10 text-on-surface-variant';
 }
+
+function getJenjangColor(jenjang) {
+    const map = {
+        'GTY': 'bg-primary/10 text-primary',
+        'GTT': 'bg-secondary/10 text-secondary',
+        'PTY': 'bg-tertiary/10 text-tertiary',
+        'PTT': 'bg-orange-100 text-orange-700',
+    };
+    return map[jenjang] ?? 'bg-outline-variant/10 text-on-surface-variant';
+}
 </script>
 
 <template>
-    <div class="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-        <!-- Desktop Table -->
-        <div class="hidden md:block overflow-x-auto">
-            <table class="w-full text-sm">
+    <div class="bg-surface-container-lowest rounded-xl border border-primary/10 shadow-[0px_4px_20px_rgba(0,40,20,0.08)] overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
                 <thead>
-                    <tr class="bg-slate-50 border-b border-slate-200">
-                        <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider w-10">#</th>
-                        <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Pegawai</th>
-                        <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">NIPY</th>
-                        <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">JK</th>
-                        <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Unit / Jabatan</th>
-                        <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
-                        <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">No. WA</th>
-                        <th class="px-4 py-3 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Aksi</th>
+                    <tr class="border-b border-emerald-700 bg-emerald-600">
+                        <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider w-10 sm:w-12">No</th>
+                        <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">NIPY</th>
+                        <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">Nama Lengkap</th>
+                        <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider w-10 sm:w-14">JK</th>
+                        <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">TTL</th>
+                        <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">Unit</th>
+                        <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">Jabatan</th>
+                        <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">Jenjang</th>
+                        <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">Status</th>
+                        <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">No WA</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100">
-                    <tr v-if="employees.length === 0">
-                        <td colspan="8" class="px-4 py-16 text-center">
-                            <div class="flex flex-col items-center gap-3 text-on-surface-variant">
-                                <span class="material-symbols-outlined text-5xl text-outline/60">badge</span>
-                                <p class="text-sm font-medium">Belum ada data pegawai</p>
-                                <p class="text-xs text-outline">Import data melalui template Excel untuk memulai</p>
-                            </div>
-                        </td>
-                    </tr>
+                <tbody class="divide-y divide-outline-variant/10">
                     <tr
                         v-for="(emp, index) in employees"
                         :key="emp.nipy"
-                        class="hover:bg-slate-50/70 transition-colors group"
+                        class="hover:bg-surface-container-high/50 transition-colors group"
                     >
-                        <td class="px-4 py-3 text-xs text-slate-400 font-mono">
+                        <!-- No -->
+                        <td class="p-2.5 sm:p-4 text-[12px] sm:text-sm text-on-surface-variant">
                             {{ startEntry + index }}
                         </td>
-                        <td class="px-4 py-3">
-                            <div class="flex items-center gap-3">
-                                <div class="w-9 h-9 rounded-xl bg-primary/10 text-primary font-bold text-xs flex items-center justify-center shrink-0">
-                                    {{ getInitials(emp.nama) }}
-                                </div>
-                                <div>
-                                    <p class="text-sm font-semibold text-on-surface leading-tight">{{ emp.nama }}</p>
-                                    <p class="text-xs text-on-surface-variant mt-0.5">{{ emp.ttl || '-' }}</p>
-                                </div>
+                        <!-- NIPY -->
+                        <td class="p-2.5 sm:p-4 text-[12px] sm:text-sm text-on-surface-variant font-mono whitespace-nowrap">
+                            {{ emp.nipy }}
+                        </td>
+                        <!-- Nama Lengkap + eye icon -->
+                        <td class="p-2.5 sm:p-4">
+                            <div class="flex items-center gap-2">
+                                <Link
+                                    :href="`/staff/${emp.nipy}`"
+                                    class="inline-flex items-center justify-center p-1 sm:p-1.5 text-primary bg-primary/10 hover:bg-primary/20 rounded-md transition-colors shrink-0"
+                                    title="Detail Pegawai"
+                                >
+                                    <span class="material-symbols-outlined text-[16px] sm:text-[18px]">visibility</span>
+                                </Link>
+                                <span class="text-[12px] sm:text-sm font-semibold text-on-surface whitespace-nowrap">{{ emp.nama }}</span>
                             </div>
                         </td>
-                        <td class="px-4 py-3 font-mono text-xs text-slate-600">{{ emp.nipy }}</td>
-                        <td class="px-4 py-3 text-xs text-slate-600">
-                            {{ emp.jk === 'L' ? 'Laki-laki' : emp.jk === 'P' ? 'Perempuan' : '-' }}
+                        <!-- JK -->
+                        <td class="p-2.5 sm:p-4 text-[12px] sm:text-sm text-on-surface text-center">
+                            {{ emp.jk || '-' }}
                         </td>
-                        <td class="px-4 py-3">
-                            <p class="text-xs font-medium text-on-surface">{{ emp.unit || '-' }}</p>
-                            <p class="text-xs text-on-surface-variant mt-0.5">{{ emp.jabatan || '-' }}</p>
+                        <!-- TTL -->
+                        <td class="p-2.5 sm:p-4 text-[12px] sm:text-sm text-on-surface-variant whitespace-nowrap">
+                            {{ emp.ttl || '-' }}
                         </td>
-                        <td class="px-4 py-3">
+                        <!-- Unit -->
+                        <td class="p-2.5 sm:p-4 text-[12px] sm:text-sm text-on-surface-variant whitespace-nowrap">
+                            {{ emp.unit || '-' }}
+                        </td>
+                        <!-- Jabatan -->
+                        <td class="p-2.5 sm:p-4 text-[12px] sm:text-sm text-on-surface-variant whitespace-nowrap">
+                            {{ emp.jabatan || '-' }}
+                        </td>
+                        <!-- Jenjang Kepegawaian -->
+                        <td class="p-2.5 sm:p-4 text-center">
+                            <span
+                                v-if="emp.jenjang_kepegawaian"
+                                :class="['inline-flex items-center justify-center px-1.5 py-0.5 sm:px-2 sm:py-0.5 rounded-md text-[11px] sm:text-xs font-semibold', getJenjangColor(emp.jenjang_kepegawaian)]"
+                            >
+                                {{ emp.jenjang_kepegawaian }}
+                            </span>
+                            <span v-else class="text-[12px] sm:text-sm text-on-surface-variant">-</span>
+                        </td>
+                        <!-- Status Keaktifan -->
+                        <td class="p-2.5 sm:p-4 text-center">
                             <span
                                 v-if="emp.status_keaktifan"
-                                :class="['inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold', getStatusColor(emp.status_keaktifan)]"
+                                :class="['inline-flex items-center gap-1 px-1.5 py-0.5 sm:px-2 sm:py-0.5 rounded-full text-[11px] sm:text-xs font-semibold', getStatusColor(emp.status_keaktifan)]"
                             >
+                                <span class="w-1.5 h-1.5 rounded-full bg-current shrink-0"></span>
                                 {{ emp.status_keaktifan }}
                             </span>
-                            <span v-else class="text-xs text-slate-400">-</span>
+                            <span v-else class="text-[12px] sm:text-sm text-on-surface-variant">-</span>
                         </td>
-                        <td class="px-4 py-3 text-xs text-slate-600">{{ emp.no_wa || '-' }}</td>
-                        <td class="px-4 py-3 text-center">
-                            <Link
-                                :href="`/staff/${emp.nipy}`"
-                                class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-primary bg-primary/8 hover:bg-primary/15 transition-colors"
-                            >
-                                <span class="material-symbols-outlined text-[14px]">open_in_new</span>
-                                Detail
-                            </Link>
+                        <!-- No WA -->
+                        <td class="p-2.5 sm:p-4 text-[12px] sm:text-sm text-on-surface-variant whitespace-nowrap">
+                            {{ emp.no_wa || '-' }}
+                        </td>
+                    </tr>
+
+                    <!-- Empty state -->
+                    <tr v-if="employees.length === 0">
+                        <td colspan="10" class="p-12 text-center">
+                            <span class="material-symbols-outlined text-5xl text-outline-variant mb-4 block">search_off</span>
+                            <p class="font-body-lg text-body-lg text-on-surface-variant">Tidak ada data pegawai ditemukan.</p>
+                            <p class="font-body-sm text-body-sm text-outline mt-1">Coba ubah filter atau kata kunci pencarian.</p>
                         </td>
                     </tr>
                 </tbody>
             </table>
         </div>
 
-        <!-- Mobile Card List -->
-        <div class="md:hidden divide-y divide-slate-100">
-            <div v-if="employees.length === 0" class="p-10 text-center">
-                <span class="material-symbols-outlined text-4xl text-outline/60 block mb-2">badge</span>
-                <p class="text-sm text-on-surface-variant">Belum ada data pegawai</p>
-            </div>
-            <Link
-                v-for="emp in employees"
-                :key="emp.nipy"
-                :href="`/staff/${emp.nipy}`"
-                class="flex items-center gap-3 p-4 hover:bg-slate-50 transition-colors active:bg-slate-100"
-            >
-                <div class="w-11 h-11 rounded-xl bg-primary/10 text-primary font-bold text-sm flex items-center justify-center shrink-0">
-                    {{ getInitials(emp.nama) }}
-                </div>
-                <div class="flex-1 min-w-0">
-                    <p class="text-sm font-semibold text-on-surface truncate">{{ emp.nama }}</p>
-                    <p class="text-xs text-on-surface-variant mt-0.5">NIPY: {{ emp.nipy }} · {{ emp.jabatan || 'Jabatan belum diisi' }}</p>
-                </div>
-                <span
-                    v-if="emp.status_keaktifan"
-                    :class="['inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold shrink-0', getStatusColor(emp.status_keaktifan)]"
-                >
-                    {{ emp.status_keaktifan }}
+        <!-- Pagination Footer -->
+        <div class="p-3 sm:p-4 border-t border-outline-variant/30 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 bg-surface-container-lowest">
+            <div class="flex flex-wrap items-center gap-3">
+                <span class="text-[12px] sm:text-sm sm:font-body-sm text-on-surface-variant">
+                    <template v-if="perPage === 0">
+                        Menampilkan seluruh <strong class="text-on-surface font-semibold">{{ totalEntries }}</strong> data
+                    </template>
+                    <template v-else-if="totalEntries === 0">
+                        Menampilkan <strong class="text-on-surface font-semibold">0</strong> data
+                    </template>
+                    <template v-else>
+                        Menampilkan <strong class="text-on-surface font-semibold">{{ startEntry }} - {{ endEntry }}</strong> dari <strong class="text-on-surface font-semibold">{{ totalEntries }}</strong> data
+                    </template>
                 </span>
-            </Link>
-        </div>
+            </div>
 
-        <!-- Pagination -->
-        <div
-            v-if="totalPages > 1 || employees.length > 0"
-            class="px-4 py-3 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3"
-        >
-            <p class="text-xs text-slate-500">
-                Menampilkan <span class="font-semibold text-slate-700">{{ startEntry }}–{{ endEntry }}</span>
-                dari <span class="font-semibold text-slate-700">{{ totalEntries }}</span> pegawai
-            </p>
-
-            <div v-if="totalPages > 1" class="flex items-center gap-1">
+            <!-- Page Buttons -->
+            <div v-if="perPage > 0 && totalPages > 1" class="flex items-center gap-1.5 sm:gap-1.5">
                 <button
+                    :disabled="currentPage <= 1"
+                    class="p-1.5 sm:p-2 rounded-md sm:rounded-lg border border-outline-variant/60 text-on-surface-variant hover:border-primary hover:text-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                     @click="$emit('page-change', currentPage - 1)"
-                    :disabled="currentPage === 1"
-                    class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-500 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    title="Halaman sebelumnya"
                 >
-                    <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+                    <span class="material-symbols-outlined text-[18px] sm:text-sm">chevron_left</span>
                 </button>
-                <template v-for="page in visiblePages" :key="page">
+
+                <template v-for="(page, i) in visiblePages" :key="i">
+                    <span v-if="page === '...'" class="px-2 py-1 text-on-surface-variant text-[12px] sm:text-xs font-bold">...</span>
                     <button
-                        v-if="page !== '...'"
-                        @click="$emit('page-change', page)"
+                        v-else
                         :class="[
-                            'w-8 h-8 rounded-lg text-xs font-semibold transition-colors',
+                            'px-2.5 py-1 sm:px-3 sm:py-1 rounded-md sm:rounded-lg text-[12px] sm:text-sm font-semibold transition-all cursor-pointer',
                             page === currentPage
-                                ? 'bg-primary text-on-primary'
-                                : 'text-slate-600 hover:bg-slate-100'
+                                ? 'bg-primary text-on-primary shadow-xs'
+                                : 'border border-outline-variant/60 text-on-surface-variant hover:border-primary hover:text-primary'
                         ]"
+                        @click="$emit('page-change', page)"
                     >
                         {{ page }}
                     </button>
-                    <span v-else class="w-8 h-8 flex items-center justify-center text-xs text-slate-400">…</span>
                 </template>
+
                 <button
+                    :disabled="currentPage >= totalPages"
+                    class="p-1.5 sm:p-2 rounded-md sm:rounded-lg border border-outline-variant/60 text-on-surface-variant hover:border-primary hover:text-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                     @click="$emit('page-change', currentPage + 1)"
-                    :disabled="currentPage === totalPages"
-                    class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-500 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    title="Halaman berikutnya"
                 >
-                    <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+                    <span class="material-symbols-outlined text-[18px] sm:text-sm">chevron_right</span>
                 </button>
             </div>
         </div>
