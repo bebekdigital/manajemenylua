@@ -109,6 +109,7 @@ class DocumentTemplate extends Model
                     ['no' => 17, 'label' => 'Alamat Wali', 'value' => '{{Alamat Wali}}', 'type' => 'text'],
                     ['no' => 18, 'label' => 'Nomor Telepon Wali', 'value' => '{{HP Wali}}', 'type' => 'text'],
                     ['no' => 19, 'label' => 'Pekerjaan Wali', 'value' => '{{Pekerjaan Wali}}', 'type' => 'text'],
+                    ['no' => 20, 'label' => 'Sumber Informasi PSB', 'value' => '{{Info PSB}}', 'type' => 'text'],
                 ],
             ],
             'options' => [
@@ -136,6 +137,7 @@ class DocumentTemplate extends Model
                     'alamat_wali' => true,
                     'telepon_wali' => true,
                     'pekerjaan_wali' => true,
+                    'sumber_info_psb' => true,
                 ],
             ],
         ];

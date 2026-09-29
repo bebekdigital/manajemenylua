@@ -58,6 +58,7 @@ const columns = {
         { key: 'anak_ke', label: 'Anak Ke', type: 'number', width: 'w-24' },
         { key: 'diterima_di_jenjang', label: 'Diterima di Jenjang', type: 'text', width: 'w-40' },
         { key: 'tanggal_diterima', label: 'Tgl Diterima', type: 'date', width: 'w-36' },
+        { key: 'info_psb', label: 'Sumber Info PSB', type: 'select', options: ['Media Sosial', 'Brosur/Flyer', 'Website Sekolah', 'Rekomendasi Teman', 'Rekomendasi Keluarga', 'Alumni', 'Pameran Pendidikan', 'Spanduk/Banner', 'Lainnya'], width: 'w-44' },
     ],
     alamat: [
         { key: 'jalan', label: 'Jalan', type: 'text', width: 'w-48' },

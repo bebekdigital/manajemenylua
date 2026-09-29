@@ -87,6 +87,7 @@ class StudentImportService
                     'anak_ke' => $this->cleanInteger($row['O'] ?? null),
                     'diterima_di_jenjang' => $this->cleanString($row['P'] ?? null),
                     'tanggal_diterima' => $this->parseDate($row['Q'] ?? null),
+                    'info_psb' => $this->cleanString($row['R'] ?? null),
                 ];
 
                 $student = Student::where('nisn', $nisn)->first();

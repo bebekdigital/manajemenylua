@@ -427,6 +427,19 @@ function hitungUsia(tanggalLahir) {
                                         <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Tanggal Diterima</label>
                                         <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.formatted_tanggal_diterima || '-' }}</p>
                                     </div>
+                                    <div class="md:col-span-2">
+                                        <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Sumber Informasi PSB</label>
+                                        <p class="mt-0.5">
+                                            <span
+                                                v-if="student.info_psb"
+                                                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-semibold bg-primary/10 text-primary"
+                                            >
+                                                <span class="material-symbols-outlined text-[13px]">campaign</span>
+                                                {{ student.info_psb }}
+                                            </span>
+                                            <span v-else class="text-xs sm:text-sm font-medium text-on-surface">-</span>
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
 

@@ -111,6 +111,7 @@ class StudentController extends Controller
                     'diterima_di_jenjang' => $student->diterima_di_jenjang,
                     'tanggal_diterima' => $student->tanggal_diterima ? $student->tanggal_diterima->format('Y-m-d') : null,
                     'formatted_tanggal_diterima' => $student->tanggal_diterima ? $student->tanggal_diterima->translatedFormat('d F Y') : null,
+                    'info_psb' => $student->info_psb,
                     'jalan' => $student->jalan,
                     'rt_rw' => $student->rt_rw,
                     'dusun' => $student->dusun,
@@ -215,6 +216,7 @@ class StudentController extends Controller
             'diterima_di_jenjang' => $studentModel->diterima_di_jenjang,
             'tanggal_diterima' => $studentModel->tanggal_diterima ? $studentModel->tanggal_diterima->format('Y-m-d') : null,
             'formatted_tanggal_diterima' => $studentModel->tanggal_diterima ? $studentModel->tanggal_diterima->translatedFormat('d F Y') : null,
+            'info_psb' => $studentModel->info_psb,
             'jalan' => $studentModel->jalan,
             'rt_rw' => $studentModel->rt_rw,
             'dusun' => $studentModel->dusun,
@@ -332,6 +334,7 @@ class StudentController extends Controller
                     'anak_ke' => $student->anak_ke,
                     'diterima_di_jenjang' => $student->diterima_di_jenjang,
                     'tanggal_diterima' => $student->tanggal_diterima ? $student->tanggal_diterima->format('Y-m-d') : null,
+                    'info_psb' => $student->info_psb,
                     // Alamat
                     'jalan' => $student->jalan,
                     'rt_rw' => $student->rt_rw,
@@ -407,6 +410,7 @@ class StudentController extends Controller
             'students.*.anak_ke' => ['nullable', 'integer'],
             'students.*.diterima_di_jenjang' => ['nullable', 'string'],
             'students.*.tanggal_diterima' => ['nullable', 'date'],
+            'students.*.info_psb' => ['nullable', 'string'],
             'students.*.jalan' => ['nullable', 'string'],
             'students.*.rt_rw' => ['nullable', 'string'],
             'students.*.dusun' => ['nullable', 'string'],
@@ -464,6 +468,7 @@ class StudentController extends Controller
                     'anak_ke' => $d['anak_ke'] ?? $student->anak_ke,
                     'diterima_di_jenjang' => $d['diterima_di_jenjang'] ?? $student->diterima_di_jenjang,
                     'tanggal_diterima' => $d['tanggal_diterima'] ?? $student->tanggal_diterima,
+                    'info_psb' => $d['info_psb'] ?? $student->info_psb,
                     'jalan' => $d['jalan'] ?? $student->jalan,
                     'rt_rw' => $d['rt_rw'] ?? $student->rt_rw,
                     'dusun' => $d['dusun'] ?? $student->dusun,
@@ -794,6 +799,7 @@ class StudentController extends Controller
             'O' => ['Anak ke', 10],
             'P' => ['Diterima di Jenjang/Kelas', 25],
             'Q' => ['Tanggal Diterima (YYYY-MM-DD)', 30],
+            'R' => ['Sumber Info PSB', 30],
         ];
 
         $this->applySheetHeaders($sheet, $headers, '004B23');
@@ -805,9 +811,10 @@ class StudentController extends Controller
             'L', 'Karanganyar', '2014-03-15', 'Islam',
             '081234567001', 'TK Aisyiyah Colomadu',
             'Anak Kandung', '1', '7', '2024-07-15',
+            'Rekomendasi Teman',
         ]], null, 'A2');
 
-        $this->styleExampleRow($sheet, 2, 'A', 'Q');
+        $this->styleExampleRow($sheet, 2, 'A', 'R');
         $sheet->freezePane('A2');
     }
 

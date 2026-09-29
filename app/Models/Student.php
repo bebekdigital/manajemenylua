@@ -29,6 +29,7 @@ class Student extends Model
         'anak_ke',
         'diterima_di_jenjang',
         'tanggal_diterima',
+        'info_psb',
         'jalan',
         'rt_rw',
         'dusun',
