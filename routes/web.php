@@ -3,6 +3,7 @@
 use App\Http\Controllers\AcademicYearController;
 use App\Http\Controllers\AdministrationController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\UserController;
@@ -70,6 +71,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/students/upload-photos', [StudentController::class, 'uploadPhotos'])->name('students.upload-photos');
     Route::get('/students/photo/{filename}', [StudentController::class, 'showPhoto'])->name('students.photo');
     Route::get('/students/{nisn}', [StudentController::class, 'show'])->name('students.show');
+
+    // Data Pegawai
+    Route::get('/staff', [EmployeeController::class, 'index'])->name('staff.index');
+    Route::get('/staff/template', [EmployeeController::class, 'downloadTemplate'])->name('staff.template');
+    Route::post('/staff/import', [EmployeeController::class, 'import'])->name('staff.import');
+    Route::get('/staff/{nipy}', [EmployeeController::class, 'show'])->name('staff.show');
 
     // Administrasi & Cetak Berkas Siswa
     Route::get('/administration', [AdministrationController::class, 'index'])->name('administration.index');
