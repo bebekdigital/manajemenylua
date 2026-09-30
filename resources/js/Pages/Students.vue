@@ -37,7 +37,18 @@ const activeUnitTab = ref('all');
 
 const unitTabStudents = computed(() => {
     if (activeUnitTab.value === 'all') return props.students;
-    return props.students.filter(s => s.unit && s.unit.includes(activeUnitTab.value));
+    
+    return props.students.filter(s => {
+        if (!s.unit) return false;
+        const u = s.unit.toUpperCase();
+        if (activeUnitTab.value === 'SDIT') {
+            return u.includes('SDIT') || u.includes('SD IT');
+        }
+        if (activeUnitTab.value === 'SMPIT') {
+            return u.includes('SMPIT') || u.includes('SMP IT');
+        }
+        return false;
+    });
 });
 
 const activeUnitTabLabel = computed(() => {
@@ -155,7 +166,18 @@ function onPageChange(page) {
 
 function unitStudentCount(unitId) {
     if (unitId === 'all') return props.students.length;
-    return props.students.filter(s => s.unit && s.unit.includes(unitId)).length;
+    
+    return props.students.filter(s => {
+        if (!s.unit) return false;
+        const u = s.unit.toUpperCase();
+        if (unitId === 'SDIT') {
+            return u.includes('SDIT') || u.includes('SD IT');
+        }
+        if (unitId === 'SMPIT') {
+            return u.includes('SMPIT') || u.includes('SMP IT');
+        }
+        return false;
+    }).length;
 }
 </script>
 
