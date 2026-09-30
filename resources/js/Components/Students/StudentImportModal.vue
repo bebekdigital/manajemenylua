@@ -7,6 +7,14 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    unit: {
+        type: String,
+        default: '',
+    },
+    unitLabel: {
+        type: String,
+        default: '',
+    },
 });
 
 const emit = defineEmits(['close', 'success']);
@@ -17,6 +25,7 @@ const isDragging = ref(false);
 
 const form = useForm({
     file: null,
+    unit: '',
 });
 
 function formatFileSize(bytes) {
@@ -68,6 +77,7 @@ function removeFile() {
 function submitImport() {
     if (!form.file) return;
 
+    form.unit = props.unit;
     form.post('/students/import', {
         preserveScroll: true,
         onSuccess: () => {
@@ -106,9 +116,9 @@ function closeModal() {
                         <span class="material-symbols-outlined text-2xl">upload_file</span>
                     </div>
                     <div>
-                        <h3 class="text-lg font-bold text-on-surface">Import Data Siswa</h3>
+                        <h3 class="text-lg font-bold text-on-surface">Import Data Siswa — {{ unitLabel }}</h3>
                         <p class="text-xs text-on-surface-variant mt-0.5">
-                            Unggah file Excel multi-sheet untuk memperbarui atau menambahkan data peserta didik.
+                            Data yang diimport akan masuk ke unit <strong class="text-primary">{{ unitLabel }}</strong>.
                         </p>
                     </div>
                 </div>
@@ -129,7 +139,7 @@ function closeModal() {
                     <span class="material-symbols-outlined text-primary text-[20px] shrink-0 mt-0.5">info</span>
                     <div class="space-y-1">
                         <p>
-                            Gunakan format file resmi dengan 5 sheet: <strong>Data Siswa, Alamat, Keluarga, Saudara,</strong> dan <strong>Data Akademik</strong>. Kunci relasi antar sheet adalah <strong>NISN</strong>.
+                            Gunakan format file resmi dengan 5 sheet: <strong>Data Siswa, Alamat, Keluarga, Saudara,</strong> dan <strong>Data Akademik</strong>. Kunci relasi antar sheet adalah <strong>NISN</strong>. Hanya siswa dengan unit <strong>{{ unitLabel }}</strong> yang akan diproses.
                         </p>
                         <div class="pt-1">
                             <a

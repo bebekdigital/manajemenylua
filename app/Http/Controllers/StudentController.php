@@ -32,19 +32,25 @@ class StudentController extends Controller
     {
         $request->validate([
             'file' => ['required', 'file', 'mimes:xlsx,xls', 'max:10240'],
+            'unit' => ['nullable', 'string'],
         ], [
             'file.required' => 'File Excel template wajib diunggah.',
             'file.mimes' => 'Format file harus berupa .xlsx atau .xls.',
             'file.max' => 'Ukuran file tidak boleh melebihi 10MB.',
         ]);
 
-        $result = $importService->import($request->file('file'));
+        $unit = $request->input('unit');
+        $result = $importService->import($request->file('file'), $unit);
 
         if (! $result['success']) {
             return back()->with('error', 'Gagal mengimpor data: '.($result['errors'][0] ?? 'Terjadi kesalahan sistem.'));
         }
 
         $summaryMsg = "Berhasil memproses {$result['total_students']} siswa ({$result['created_count']} baru, {$result['updated_count']} diperbarui), {$result['family_count']} data keluarga, {$result['siblings_count']} saudara kandung, dan {$result['academic_records_count']} catatan akademik.";
+
+        if ($result['skipped_count'] > 0) {
+            $summaryMsg .= " ({$result['skipped_count']} siswa dilewati karena bukan unit yang dipilih.)";
+        }
 
         return back()
             ->with('success', $summaryMsg)

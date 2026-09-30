@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { Head, usePage, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import StudentToolbar from '@/Components/Students/StudentToolbar.vue';
@@ -23,6 +23,33 @@ const props = defineProps({
 });
 
 const page = usePage();
+
+// ============================================================
+// Unit Tabs
+// ============================================================
+const unitTabs = [
+    { id: 'SDIT Ulil Albab Gondangrejo', label: 'SDIT', icon: 'school', color: 'emerald' },
+    { id: 'SMPIT Ulil Albab Gondangrejo', label: 'SMPIT', icon: 'domain', color: 'blue' },
+];
+
+const activeUnitTab = ref(unitTabs[0].id);
+
+const unitTabStudents = computed(() => {
+    return props.students.filter(s => s.unit === activeUnitTab.value);
+});
+
+const activeUnitTabLabel = computed(() => {
+    return unitTabs.find(t => t.id === activeUnitTab.value)?.label ?? '';
+});
+
+function switchUnitTab(unitId) {
+    activeUnitTab.value = unitId;
+    searchQuery.value = '';
+    gradeFilter.value = '';
+    unitFilter.value = '';
+    statusFilter.value = '';
+    currentPage.value = 1;
+}
 
 // ============================================================
 // Search & Filter State
@@ -52,7 +79,7 @@ function onImportSuccess() {
 }
 
 const filteredStudents = computed(() => {
-    let result = props.students;
+    let result = unitTabStudents.value;
 
     // Search filter
     if (searchQuery.value) {
@@ -62,11 +89,6 @@ const filteredStudents = computed(() => {
             s.nisn.includes(query) ||
             (s.nipd && s.nipd.includes(query))
         );
-    }
-
-    // Unit filter
-    if (unitFilter.value) {
-        result = result.filter(s => s.unit === unitFilter.value);
     }
 
     // Grade filter
@@ -128,6 +150,10 @@ function onResetFilters() {
 function onPageChange(page) {
     currentPage.value = page;
 }
+
+function unitStudentCount(unitId) {
+    return props.students.filter(s => s.unit === unitId).length;
+}
 </script>
 
 <template>
@@ -187,6 +213,41 @@ function onPageChange(page) {
             </div>
         </div>
 
+        <!-- Unit Tabs -->
+        <div class="mb-5">
+            <div class="flex gap-2">
+                <button
+                    v-for="tab in unitTabs"
+                    :key="tab.id"
+                    type="button"
+                    @click="switchUnitTab(tab.id)"
+                    :class="[
+                        'group relative inline-flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl font-semibold text-xs sm:text-sm transition-all duration-200 cursor-pointer border',
+                        activeUnitTab === tab.id
+                            ? tab.color === 'emerald'
+                                ? 'bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-500/25'
+                                : 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/25'
+                            : tab.color === 'emerald'
+                                ? 'bg-white text-emerald-700 border-emerald-200 hover:bg-emerald-50 hover:border-emerald-300'
+                                : 'bg-white text-blue-700 border-blue-200 hover:bg-blue-50 hover:border-blue-300'
+                    ]"
+                >
+                    <span class="material-symbols-outlined text-[18px] sm:text-[20px]">{{ tab.icon }}</span>
+                    <span>{{ tab.label }}</span>
+                    <span :class="[
+                        'inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full text-[10px] sm:text-[11px] font-bold leading-none',
+                        activeUnitTab === tab.id
+                            ? 'bg-white/25 text-white'
+                            : tab.color === 'emerald'
+                                ? 'bg-emerald-100 text-emerald-700'
+                                : 'bg-blue-100 text-blue-700'
+                    ]">
+                        {{ unitStudentCount(tab.id) }}
+                    </span>
+                </button>
+            </div>
+        </div>
+
         <!-- Flash Notification Banners -->
         <div
             v-if="flashSuccess"
@@ -232,8 +293,8 @@ function onPageChange(page) {
 
         <!-- Search & Filters Toolbar -->
         <StudentToolbar
-            :students="students"
-            :total-count="students.length"
+            :students="unitTabStudents"
+            :total-count="unitTabStudents.length"
             :filtered-count="totalEntries"
             :per-page="perPage"
             @update:per-page="onPerPageChange"
@@ -259,6 +320,8 @@ function onPageChange(page) {
     <!-- Import Modal -->
     <StudentImportModal
         :show="showImportModal"
+        :unit="activeUnitTab"
+        :unit-label="activeUnitTabLabel"
         @close="showImportModal = false"
         @success="onImportSuccess"
     />

@@ -29,7 +29,7 @@ class StudentImportService
      *     warnings: array<string>
      * }
      */
-    public function import(UploadedFile|string $file): array
+    public function import(UploadedFile|string $file, ?string $filterUnit = null): array
     {
         $filePath = $file instanceof UploadedFile ? $file->getRealPath() : $file;
 
@@ -39,6 +39,7 @@ class StudentImportService
 
         $createdCount = 0;
         $updatedCount = 0;
+        $skippedCount = 0;
         $academicRecordsCount = 0;
         $familyCount = 0;
         $siblingsCount = 0;
@@ -89,6 +90,13 @@ class StudentImportService
                     'tanggal_diterima' => $this->parseDate($row['Q'] ?? null),
                     'info_psb' => $this->cleanString($row['R'] ?? null),
                 ];
+
+                // Filter by unit when specified
+                if ($filterUnit && $studentData['unit'] !== $filterUnit) {
+                    $skippedCount++;
+
+                    continue;
+                }
 
                 $student = Student::where('nisn', $nisn)->first();
 
@@ -304,6 +312,7 @@ class StudentImportService
                 'success' => true,
                 'created_count' => $createdCount,
                 'updated_count' => $updatedCount,
+                'skipped_count' => $skippedCount,
                 'total_students' => $createdCount + $updatedCount,
                 'academic_records_count' => $academicRecordsCount,
                 'family_count' => $familyCount,
@@ -318,6 +327,7 @@ class StudentImportService
                 'success' => false,
                 'created_count' => 0,
                 'updated_count' => 0,
+                'skipped_count' => 0,
                 'total_students' => 0,
                 'academic_records_count' => 0,
                 'family_count' => 0,

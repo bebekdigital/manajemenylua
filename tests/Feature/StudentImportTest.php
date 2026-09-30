@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\AcademicYear;
 use App\Models\Student;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -18,6 +19,7 @@ class StudentImportTest extends TestCase
     {
         parent::setUp();
         $this->seed();
+        $this->actingAs(User::first());
     }
 
     public function test_rejects_non_excel_file(): void
@@ -58,8 +60,8 @@ class StudentImportTest extends TestCase
         $sheet3 = $spreadsheet->createSheet();
         $sheet3->setTitle('3. Data Keluarga');
         $sheet3->fromArray([
-            ['NISN', 'Nama Ayah', 'NIK Ayah', 'Thn Lahir Ayah', 'Pendidikan Ayah', 'Pekerjaan Ayah', 'Penghasilan Ayah', 'Nama Ibu', 'NIK Ibu', 'Thn Lahir Ibu', 'Pendidikan Ibu', 'Pekerjaan Ibu', 'Penghasilan Ibu', 'Nama Wali', 'NIK Wali', 'Thn Lahir Wali', 'Hubungan Wali', 'Pendidikan Wali', 'Pekerjaan Wali', 'Penghasilan Wali'],
-            ['0099990001', 'Sulaiman Fatih', '3313150101750001', '1975', 'S1', 'Wiraswasta', 'Rp 5.000.000 - Rp 10.000.000', 'Khadijah', '3313150101800001', '1980', 'S1', 'Guru', 'Rp 3.000.000 - Rp 5.000.000', '', '', '', '', '', '', ''],
+            ['NISN', 'Nama Ayah', 'NIK Ayah', 'Thn Lahir Ayah', 'Pendidikan Ayah', 'Pekerjaan Ayah', 'Penghasilan Ayah', 'Status Ayah', 'Nama Ibu', 'NIK Ibu', 'Thn Lahir Ibu', 'Pendidikan Ibu', 'Pekerjaan Ibu', 'Penghasilan Ibu', 'Status Ibu', 'Memiliki Bisnis', 'Jenis Bisnis', 'Nama Wali', 'NIK Wali', 'Thn Lahir Wali', 'Hubungan Wali', 'Pendidikan Wali', 'Pekerjaan Wali', 'Penghasilan Wali'],
+            ['0099990001', 'Sulaiman Fatih', '3313150101750001', '1975', 'S1', 'Wiraswasta', 'Rp 5.000.000 - Rp 10.000.000', 'Hidup', 'Khadijah', '3313150101800001', '1980', 'S1', 'Guru', 'Rp 3.000.000 - Rp 5.000.000', 'Hidup', 'Tidak', '', '', '', '', '', '', '', ''],
         ]);
 
         // Sheet 4: 4. Saudara Kandung
