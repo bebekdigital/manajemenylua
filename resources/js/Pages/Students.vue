@@ -28,14 +28,16 @@ const page = usePage();
 // Unit Tabs
 // ============================================================
 const unitTabs = [
-    { id: 'SDIT Ulil Albab Gondangrejo', label: 'SDIT', icon: 'school', color: 'emerald' },
-    { id: 'SMPIT Ulil Albab Gondangrejo', label: 'SMPIT', icon: 'domain', color: 'blue' },
+    { id: 'all', label: 'Semua', icon: 'groups', color: 'slate' },
+    { id: 'SDIT', label: 'SDIT', icon: 'school', color: 'emerald' },
+    { id: 'SMPIT', label: 'SMPIT', icon: 'domain', color: 'blue' },
 ];
 
-const activeUnitTab = ref(unitTabs[0].id);
+const activeUnitTab = ref('all');
 
 const unitTabStudents = computed(() => {
-    return props.students.filter(s => s.unit === activeUnitTab.value);
+    if (activeUnitTab.value === 'all') return props.students;
+    return props.students.filter(s => s.unit && s.unit.includes(activeUnitTab.value));
 });
 
 const activeUnitTabLabel = computed(() => {
@@ -152,7 +154,8 @@ function onPageChange(page) {
 }
 
 function unitStudentCount(unitId) {
-    return props.students.filter(s => s.unit === unitId).length;
+    if (unitId === 'all') return props.students.length;
+    return props.students.filter(s => s.unit && s.unit.includes(unitId)).length;
 }
 </script>
 
