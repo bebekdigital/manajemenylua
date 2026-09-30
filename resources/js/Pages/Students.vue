@@ -186,8 +186,8 @@ function unitStudentCount(unitId) {
 
     <div class="flex-1 overflow-y-auto p-4 md:p-margin-desktop">
         <!-- Page Header -->
-        <div class="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-outline-variant/30 pb-0">
-            <div class="pb-4 sm:pb-3">
+        <div class="mb-6 flex flex-col sm:flex-row sm:items-end justify-start gap-4 sm:gap-12 border-b border-outline-variant/30 pb-0">
+            <div class="pb-4 sm:pb-3 shrink-0">
                 <h2 class="text-xl sm:text-2xl text-primary font-bold leading-tight">
                     Database Siswa
                 </h2>
