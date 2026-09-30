@@ -186,8 +186,8 @@ function unitStudentCount(unitId) {
 
     <div class="flex-1 overflow-y-auto p-4 md:p-margin-desktop">
         <!-- Page Header -->
-        <div class="mb-6 flex flex-col sm:flex-row sm:items-center justify-start gap-4 sm:gap-6">
-            <div>
+        <div class="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-outline-variant/30 pb-0">
+            <div class="pb-4 sm:pb-3">
                 <h2 class="text-xl sm:text-2xl text-primary font-bold leading-tight">
                     Database Siswa
                 </h2>
@@ -196,30 +196,27 @@ function unitStudentCount(unitId) {
                 </p>
             </div>
             
-            <!-- Vertical Divider (Hidden on mobile) -->
-            <div class="hidden sm:block w-px h-12 bg-outline-variant/40 mx-2"></div>
-            
-            <!-- Unit Tabs Segmented Control -->
-            <div class="flex items-center p-1 bg-surface-container-low border border-slate-200/80 rounded-xl sm:rounded-2xl shadow-inner shrink-0">
+            <!-- Unit Tabs (Tab Kotak2 Style) -->
+            <div class="flex overflow-x-auto">
                 <button
                     v-for="tab in unitTabs"
                     :key="tab.id"
                     type="button"
                     @click="switchUnitTab(tab.id)"
                     :class="[
-                        'group relative inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl font-semibold text-xs sm:text-sm transition-all duration-200 cursor-pointer',
+                        'flex items-center gap-2 px-3 sm:px-5 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap border-b-2',
                         activeUnitTab === tab.id
-                            ? 'bg-gradient-to-b from-emerald-500 to-primary text-white shadow-[0_2px_5px_rgba(0,0,0,0.2),_inset_0_1px_0_rgba(255,255,255,0.3)] border border-primary ring-1 ring-black/10 transform -translate-y-[1px]'
-                            : 'bg-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-200/50 border border-transparent'
+                            ? 'text-primary border-primary'
+                            : 'text-on-surface-variant border-transparent hover:text-on-surface hover:border-outline-variant'
                     ]"
                 >
-                    <span class="material-symbols-outlined text-[16px] sm:text-[18px]" :class="activeUnitTab === tab.id ? 'drop-shadow-sm' : ''">{{ tab.icon }}</span>
-                    <span :class="activeUnitTab === tab.id ? 'drop-shadow-sm' : ''">{{ tab.label }}</span>
+                    <span class="material-symbols-outlined text-[16px] sm:text-[18px]">{{ tab.icon }}</span>
+                    <span>{{ tab.label }}</span>
                     <span :class="[
-                        'inline-flex items-center justify-center min-w-[20px] h-[20px] px-1.5 rounded-full text-[10px] font-bold leading-none transition-colors duration-200',
+                        'inline-flex items-center justify-center min-w-[20px] h-[20px] px-1.5 rounded-full text-[10px] font-bold leading-none',
                         activeUnitTab === tab.id
-                            ? 'bg-white/20 text-white shadow-inner border border-white/20'
-                            : 'bg-slate-200 text-slate-600 group-hover:bg-slate-300'
+                            ? 'bg-primary/10 text-primary'
+                            : 'bg-outline-variant/20 text-on-surface-variant'
                     ]">
                         {{ unitStudentCount(tab.id) }}
                     </span>
