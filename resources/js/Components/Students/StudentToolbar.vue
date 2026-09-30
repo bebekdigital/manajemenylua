@@ -140,29 +140,20 @@ function resetAll() {
 <template>
     <div class="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-5 mb-4 sm:mb-6 shadow-sm border border-slate-200 flex flex-col gap-3 sm:gap-4">
         <!-- Main Row: Search and Filters -->
-        <div class="flex flex-col xl:flex-row gap-3 sm:gap-4 items-start xl:items-center justify-between w-full">
+        <div class="flex flex-col lg:flex-row gap-3 sm:gap-4 items-start lg:items-center justify-between w-full">
             
-            <!-- Left Side: Filter Unit & Kelas -->
-            <div class="flex flex-wrap items-center gap-2 w-full xl:w-auto flex-grow justify-start">
+            <!-- Left Side: Filter Kelas -->
+            <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto flex-grow justify-start">
                 <!-- Filter Label -->
                 <div class="hidden sm:flex items-center gap-1.5 text-on-surface-variant mr-1 w-full sm:w-auto">
                     <span class="material-symbols-outlined text-[16px] sm:text-[18px] text-primary">tune</span>
                     <span class="text-[10px] sm:text-xs font-bold uppercase tracking-wider">Filter:</span>
                 </div>
 
-                <!-- Unit Filter -->
-                <div class="relative w-[calc(50%-4px)] sm:w-auto sm:min-w-[110px] xl:min-w-[100px] flex-grow sm:flex-grow-0">
-                    <select
-                        v-model="selectedUnit"
-                        class="w-full pl-2 sm:pl-3 pr-6 sm:pr-8 py-2 sm:py-2 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg sm:rounded-xl text-[12px] sm:text-sm font-medium text-slate-700 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 cursor-pointer transition-colors"
-                        @change="onUnitChange"
-                    >
-                        <option v-for="u in units" :key="u.value" :value="u.value">{{ u.label }}</option>
-                    </select>
-                </div>
+                <!-- Unit Filter Removed (Handled by Unit Tabs) -->
 
                 <!-- Grade Filter (Dinamis sesuai unit) -->
-                <div class="relative w-[calc(50%-4px)] sm:w-auto sm:min-w-[100px] xl:min-w-[90px] flex-grow sm:flex-grow-0">
+                <div class="relative w-[calc(50%-4px)] sm:w-auto sm:min-w-[100px] lg:min-w-[90px] flex-grow sm:flex-grow-0">
                     <select
                         v-model="selectedGrade"
                         class="w-full pl-2 sm:pl-3 pr-6 sm:pr-8 py-2 sm:py-2 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg sm:rounded-xl text-[12px] sm:text-sm font-medium text-slate-700 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 cursor-pointer transition-colors"
@@ -190,9 +181,9 @@ function resetAll() {
             </div>
 
             <!-- Right Side: Search & Tampilkan Data -->
-            <div class="flex items-center gap-2 w-full xl:w-auto shrink-0 justify-between flex-nowrap">
+            <div class="flex items-center gap-2 w-full lg:w-auto shrink-0 justify-between flex-nowrap">
                 <!-- Search Bar with Clear Button -->
-                <div class="relative flex-1 min-w-0 sm:flex-none sm:w-64 xl:w-56 2xl:w-72">
+                <div class="relative flex-1 min-w-0 sm:flex-none sm:w-64 lg:w-56 2xl:w-72">
                     <span class="material-symbols-outlined absolute left-2.5 sm:left-3.5 top-1/2 -translate-y-1/2 text-outline text-[18px] sm:text-[20px] pointer-events-none">
                         search
                     </span>

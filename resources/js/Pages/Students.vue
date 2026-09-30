@@ -229,7 +229,7 @@ function unitStudentCount(unitId) {
         </div>
 
         <!-- Action Buttons & Filters Row -->
-        <div class="mb-5 flex flex-col xl:flex-row gap-4 xl:items-start">
+        <div class="mb-5 flex flex-col lg:flex-row gap-4 lg:items-center">
             
             <!-- Action Buttons (Dropdowns) -->
             <div class="flex items-center gap-3 shrink-0 relative z-30">
