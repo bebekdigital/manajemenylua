@@ -195,7 +195,48 @@ function unitStudentCount(unitId) {
                     Kelola dan tinjau seluruh data peserta didik sesuai Tahun Ajaran aktif
                 </p>
             </div>
-        <!-- Action Buttons (Moved from top right) -->
+            
+            <!-- Unit Tabs (Moved to top right) -->
+            <div class="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
+                <button
+                    v-for="tab in unitTabs"
+                    :key="tab.id"
+                    type="button"
+                    @click="switchUnitTab(tab.id)"
+                    :class="[
+                        'group relative inline-flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl font-semibold text-xs transition-all duration-200 cursor-pointer border',
+                        activeUnitTab === tab.id
+                            ? tab.color === 'emerald'
+                                ? 'bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-500/25'
+                                : tab.color === 'slate'
+                                    ? 'bg-slate-700 text-white border-slate-700 shadow-md shadow-slate-500/25'
+                                    : 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/25'
+                            : tab.color === 'emerald'
+                                ? 'bg-white text-emerald-700 border-emerald-200 hover:bg-emerald-50 hover:border-emerald-300'
+                                : tab.color === 'slate'
+                                    ? 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
+                                    : 'bg-white text-blue-700 border-blue-200 hover:bg-blue-50 hover:border-blue-300'
+                    ]"
+                >
+                    <span class="material-symbols-outlined text-[16px] sm:text-[18px]">{{ tab.icon }}</span>
+                    <span>{{ tab.label }}</span>
+                    <span :class="[
+                        'inline-flex items-center justify-center min-w-[20px] h-[20px] px-1.5 rounded-full text-[10px] font-bold leading-none',
+                        activeUnitTab === tab.id
+                            ? 'bg-white/25 text-white'
+                            : tab.color === 'emerald'
+                                ? 'bg-emerald-100 text-emerald-700'
+                                : tab.color === 'slate'
+                                    ? 'bg-slate-100 text-slate-700'
+                                    : 'bg-blue-100 text-blue-700'
+                    ]">
+                        {{ unitStudentCount(tab.id) }}
+                    </span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Action Buttons (Moved to below header) -->
         <div class="mb-5 flex items-center gap-2 flex-wrap sm:flex-nowrap">
             <Link
                 href="/students/inline-edit"
@@ -236,46 +277,6 @@ function unitStudentCount(unitId) {
                 <span>Import Data Siswa</span>
             </button>
         </div>
-        </div>
-
-            <!-- Unit Tabs (Moved from below) -->
-            <div class="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
-                <button
-                    v-for="tab in unitTabs"
-                    :key="tab.id"
-                    type="button"
-                    @click="switchUnitTab(tab.id)"
-                    :class="[
-                        'group relative inline-flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl font-semibold text-xs transition-all duration-200 cursor-pointer border',
-                        activeUnitTab === tab.id
-                            ? tab.color === 'emerald'
-                                ? 'bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-500/25'
-                                : tab.color === 'slate'
-                                    ? 'bg-slate-700 text-white border-slate-700 shadow-md shadow-slate-500/25'
-                                    : 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/25'
-                            : tab.color === 'emerald'
-                                ? 'bg-white text-emerald-700 border-emerald-200 hover:bg-emerald-50 hover:border-emerald-300'
-                                : tab.color === 'slate'
-                                    ? 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
-                                    : 'bg-white text-blue-700 border-blue-200 hover:bg-blue-50 hover:border-blue-300'
-                    ]"
-                >
-                    <span class="material-symbols-outlined text-[16px] sm:text-[18px]">{{ tab.icon }}</span>
-                    <span>{{ tab.label }}</span>
-                    <span :class="[
-                        'inline-flex items-center justify-center min-w-[20px] h-[20px] px-1.5 rounded-full text-[10px] font-bold leading-none',
-                        activeUnitTab === tab.id
-                            ? 'bg-white/25 text-white'
-                            : tab.color === 'emerald'
-                                ? 'bg-emerald-100 text-emerald-700'
-                                : tab.color === 'slate'
-                                    ? 'bg-slate-100 text-slate-700'
-                                    : 'bg-blue-100 text-blue-700'
-                    ]">
-                        {{ unitStudentCount(tab.id) }}
-                    </span>
-                </button>
-            </div>
 
         <!-- Flash Notification Banners -->
         <div
