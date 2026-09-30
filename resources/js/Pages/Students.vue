@@ -228,147 +228,111 @@ function unitStudentCount(unitId) {
             </div>
         </div>
 
-        <!-- Action Buttons (Moved to below header) -->
-        <div class="mb-5 flex items-center gap-3 flex-wrap sm:flex-nowrap">
-            <!-- Edit Data Dropdown -->
-            <div class="relative">
-                <button
-                    type="button"
-                    @click="showEditDropdown = !showEditDropdown"
-                    class="inline-flex items-center justify-between gap-2 px-3 py-1.5 sm:px-4 sm:py-2.5 rounded-lg sm:rounded-xl border border-primary text-primary bg-primary/10 hover:bg-primary/20 active:bg-primary/30 font-semibold text-[11px] sm:text-sm transition-all shadow-2xs hover:shadow-sm"
-                >
-                    <div class="flex items-center gap-1.5">
-                        <span class="material-symbols-outlined text-[16px] sm:text-[18px]">edit</span>
-                        <span>Edit Data</span>
-                    </div>
-                    <span class="material-symbols-outlined text-[16px] sm:text-[18px] transition-transform duration-200" :class="{ 'rotate-180': showEditDropdown }">expand_more</span>
-                </button>
-
-                <!-- Overlay -->
-                <div v-if="showEditDropdown" @click="showEditDropdown = false" class="fixed inset-0 z-40"></div>
-
-                <!-- Dropdown Menu -->
-                <div v-show="showEditDropdown" class="absolute left-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-200 z-50 overflow-hidden py-1">
-                    <Link
-                        href="/students/inline-edit"
-                        class="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-700 hover:bg-primary/10 hover:text-primary transition-colors w-full text-left"
-                        @click="showEditDropdown = false"
-                        title="Edit langsung data siswa secara massal"
-                    >
-                        <span class="material-symbols-outlined text-[18px]">edit_note</span>
-                        Edit Massal
-                    </Link>
+        <!-- Action Buttons & Filters Row -->
+        <div class="mb-5 flex flex-col xl:flex-row gap-4 xl:items-start">
+            
+            <!-- Action Buttons (Dropdowns) -->
+            <div class="flex items-center gap-3 shrink-0 relative z-30">
+                <!-- Edit Data Dropdown -->
+                <div class="relative">
                     <button
                         type="button"
-                        @click="showPhotoUploadModal = true; showEditDropdown = false"
-                        class="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-700 hover:bg-primary/10 hover:text-primary transition-colors w-full text-left"
-                        title="Upload foto siswa secara batch berdasarkan NISN"
+                        @click="showEditDropdown = !showEditDropdown"
+                        class="inline-flex items-center justify-between gap-2 px-3 py-1.5 sm:px-4 sm:py-2.5 rounded-lg sm:rounded-xl border border-primary text-primary bg-primary/10 hover:bg-primary/20 active:bg-primary/30 font-semibold text-[11px] sm:text-sm transition-all shadow-2xs hover:shadow-sm"
                     >
-                        <span class="material-symbols-outlined text-[18px]">add_a_photo</span>
-                        Upload Foto
+                        <div class="flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-[16px] sm:text-[18px]">edit</span>
+                            <span>Edit Data</span>
+                        </div>
+                        <span class="material-symbols-outlined text-[16px] sm:text-[18px] transition-transform duration-200" :class="{ 'rotate-180': showEditDropdown }">expand_more</span>
                     </button>
-                </div>
-            </div>
 
-            <!-- Template Dropdown -->
-            <div class="relative">
-                <button
-                    type="button"
-                    @click="showTemplateDropdown = !showTemplateDropdown"
-                    class="inline-flex items-center justify-between gap-2 px-3 py-1.5 sm:px-4 sm:py-2.5 rounded-lg sm:rounded-xl bg-primary hover:bg-primary-container text-on-primary font-semibold text-[11px] sm:text-sm transition-all shadow-xs hover:shadow-md cursor-pointer"
-                >
-                    <div class="flex items-center gap-1.5">
-                        <span class="material-symbols-outlined text-[16px] sm:text-[18px]">description</span>
-                        <span>Template</span>
+                    <!-- Overlay -->
+                    <div v-if="showEditDropdown" @click="showEditDropdown = false" class="fixed inset-0 z-40"></div>
+
+                    <!-- Dropdown Menu -->
+                    <div v-show="showEditDropdown" class="absolute left-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-200 z-50 overflow-hidden py-1">
+                        <Link
+                            href="/students/inline-edit"
+                            class="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-700 hover:bg-primary/10 hover:text-primary transition-colors w-full text-left"
+                            @click="showEditDropdown = false"
+                            title="Edit langsung data siswa secara massal"
+                        >
+                            <span class="material-symbols-outlined text-[18px]">edit_note</span>
+                            Edit Massal
+                        </Link>
+                        <button
+                            type="button"
+                            @click="showPhotoUploadModal = true; showEditDropdown = false"
+                            class="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-700 hover:bg-primary/10 hover:text-primary transition-colors w-full text-left"
+                            title="Upload foto siswa secara batch berdasarkan NISN"
+                        >
+                            <span class="material-symbols-outlined text-[18px]">add_a_photo</span>
+                            Upload Foto
+                        </button>
                     </div>
-                    <span class="material-symbols-outlined text-[16px] sm:text-[18px] transition-transform duration-200" :class="{ 'rotate-180': showTemplateDropdown }">expand_more</span>
-                </button>
+                </div>
 
-                <!-- Overlay -->
-                <div v-if="showTemplateDropdown" @click="showTemplateDropdown = false" class="fixed inset-0 z-40"></div>
-
-                <!-- Dropdown Menu -->
-                <div v-show="showTemplateDropdown" class="absolute left-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-slate-200 z-50 overflow-hidden py-1">
-                    <a
-                        href="/students/template"
-                        download
-                        class="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-700 hover:bg-primary/10 hover:text-primary transition-colors w-full text-left"
-                        @click="showTemplateDropdown = false"
-                        title="Download template XLSX resmi untuk import data siswa"
-                    >
-                        <span class="material-symbols-outlined text-[18px]">download</span>
-                        Download Template
-                    </a>
+                <!-- Template Dropdown -->
+                <div class="relative">
                     <button
                         type="button"
-                        @click="showImportModal = true; showTemplateDropdown = false"
-                        class="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-700 hover:bg-primary/10 hover:text-primary transition-colors w-full text-left"
-                        title="Import data siswa dari file template Excel"
+                        @click="showTemplateDropdown = !showTemplateDropdown"
+                        class="inline-flex items-center justify-between gap-2 px-3 py-1.5 sm:px-4 sm:py-2.5 rounded-lg sm:rounded-xl bg-primary hover:bg-primary-container text-on-primary font-semibold text-[11px] sm:text-sm transition-all shadow-xs hover:shadow-md cursor-pointer"
                     >
-                        <span class="material-symbols-outlined text-[18px]">upload_file</span>
-                        Import Data Siswa
+                        <div class="flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-[16px] sm:text-[18px]">description</span>
+                            <span>Template</span>
+                        </div>
+                        <span class="material-symbols-outlined text-[16px] sm:text-[18px] transition-transform duration-200" :class="{ 'rotate-180': showTemplateDropdown }">expand_more</span>
                     </button>
+
+                    <!-- Overlay -->
+                    <div v-if="showTemplateDropdown" @click="showTemplateDropdown = false" class="fixed inset-0 z-40"></div>
+
+                    <!-- Dropdown Menu -->
+                    <div v-show="showTemplateDropdown" class="absolute left-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-slate-200 z-50 overflow-hidden py-1">
+                        <a
+                            href="/students/template"
+                            download
+                            class="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-700 hover:bg-primary/10 hover:text-primary transition-colors w-full text-left"
+                            @click="showTemplateDropdown = false"
+                            title="Download template XLSX resmi untuk import data siswa"
+                        >
+                            <span class="material-symbols-outlined text-[18px]">download</span>
+                            Download Template
+                        </a>
+                        <button
+                            type="button"
+                            @click="showImportModal = true; showTemplateDropdown = false"
+                            class="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-700 hover:bg-primary/10 hover:text-primary transition-colors w-full text-left"
+                            title="Import data siswa dari file template Excel"
+                        >
+                            <span class="material-symbols-outlined text-[18px]">upload_file</span>
+                            Import Data Siswa
+                        </button>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Flash Notification Banners -->
-        <div
-            v-if="flashSuccess"
-            class="mb-5 p-4 bg-primary/10 border border-primary/30 rounded-2xl flex items-start justify-between gap-3 animate-in fade-in duration-200"
-        >
-            <div class="flex items-start gap-3">
-                <span class="material-symbols-outlined text-primary text-2xl shrink-0 mt-0.5">check_circle</span>
-                <div>
-                    <h4 class="text-sm font-bold text-primary">Import Berhasil</h4>
-                    <p class="text-xs text-on-surface-variant mt-0.5 leading-relaxed">{{ flashSuccess }}</p>
-                </div>
+            <!-- Search & Filters Toolbar -->
+            <div class="flex-grow w-full relative z-20">
+                <StudentToolbar
+                    class="!mb-0"
+                    :students="unitTabStudents"
+                    :total-count="unitTabStudents.length"
+                    :filtered-count="totalEntries"
+                    :per-page="perPage"
+                    @update:per-page="onPerPageChange"
+                    @search="onSearch"
+                    @filter-unit="onFilterUnit"
+                    @filter-grade="onFilterGrade"
+                    @filter-status="onFilterStatus"
+                    @reset-filters="onResetFilters"
+                    @open-import="showImportModal = true"
+                />
             </div>
-            <button
-                type="button"
-                @click="dismissedFlash = true"
-                class="text-on-surface-variant hover:text-on-surface p-1 rounded-full hover:bg-primary/15 transition-colors cursor-pointer"
-                title="Tutup notifikasi"
-            >
-                <span class="material-symbols-outlined text-lg">close</span>
-            </button>
         </div>
-
-        <div
-            v-if="flashError"
-            class="mb-5 p-4 bg-error/10 border border-error/30 rounded-2xl flex items-start justify-between gap-3 animate-in fade-in duration-200"
-        >
-            <div class="flex items-start gap-3">
-                <span class="material-symbols-outlined text-error text-2xl shrink-0 mt-0.5">error</span>
-                <div>
-                    <h4 class="text-sm font-bold text-error">Import Gagal</h4>
-                    <p class="text-xs text-on-surface-variant mt-0.5 leading-relaxed">{{ flashError }}</p>
-                </div>
-            </div>
-            <button
-                type="button"
-                @click="dismissedFlash = true"
-                class="text-on-surface-variant hover:text-on-surface p-1 rounded-full hover:bg-error/15 transition-colors cursor-pointer"
-                title="Tutup notifikasi"
-            >
-                <span class="material-symbols-outlined text-lg">close</span>
-            </button>
-        </div>
-
-        <!-- Search & Filters Toolbar -->
-        <StudentToolbar
-            :students="unitTabStudents"
-            :total-count="unitTabStudents.length"
-            :filtered-count="totalEntries"
-            :per-page="perPage"
-            @update:per-page="onPerPageChange"
-            @search="onSearch"
-            @filter-unit="onFilterUnit"
-            @filter-grade="onFilterGrade"
-            @filter-status="onFilterStatus"
-            @reset-filters="onResetFilters"
-            @open-import="showImportModal = true"
-        />
 
         <!-- Student Data Table -->
         <StudentTable
