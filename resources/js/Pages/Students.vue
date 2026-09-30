@@ -195,83 +195,87 @@ function unitStudentCount(unitId) {
                     Kelola dan tinjau seluruh data peserta didik sesuai Tahun Ajaran aktif
                 </p>
             </div>
-            <!-- Action Buttons -->
-            <div class="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
-                <Link
-                    href="/students/inline-edit"
-                    class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2.5 rounded-lg sm:rounded-xl border border-primary text-primary bg-primary/10 hover:bg-primary/20 active:bg-primary/30 font-semibold text-[11px] sm:text-sm transition-all shadow-2xs hover:shadow-sm"
-                    title="Edit langsung data siswa secara massal"
-                >
-                    <span class="material-symbols-outlined text-[16px] sm:text-[18px]">edit_note</span>
-                    <span>Edit Data</span>
-                </Link>
+        <!-- Action Buttons (Moved from top right) -->
+        <div class="mb-5 flex items-center gap-2 flex-wrap sm:flex-nowrap">
+            <Link
+                href="/students/inline-edit"
+                class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2.5 rounded-lg sm:rounded-xl border border-primary text-primary bg-primary/10 hover:bg-primary/20 active:bg-primary/30 font-semibold text-[11px] sm:text-sm transition-all shadow-2xs hover:shadow-sm"
+                title="Edit langsung data siswa secara massal"
+            >
+                <span class="material-symbols-outlined text-[16px] sm:text-[18px]">edit_note</span>
+                <span>Edit Data</span>
+            </Link>
 
-                <button
-                    type="button"
-                    @click="showPhotoUploadModal = true"
-                    class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2.5 rounded-lg sm:rounded-xl border border-tertiary/50 text-tertiary bg-tertiary/10 hover:bg-tertiary/20 active:bg-tertiary/30 font-semibold text-[11px] sm:text-sm transition-all shadow-2xs hover:shadow-sm cursor-pointer"
-                    title="Upload foto siswa secara batch berdasarkan NISN"
-                >
-                    <span class="material-symbols-outlined text-[16px] sm:text-[18px]">add_a_photo</span>
-                    <span>Upload Foto</span>
-                </button>
+            <button
+                type="button"
+                @click="showPhotoUploadModal = true"
+                class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2.5 rounded-lg sm:rounded-xl border border-tertiary/50 text-tertiary bg-tertiary/10 hover:bg-tertiary/20 active:bg-tertiary/30 font-semibold text-[11px] sm:text-sm transition-all shadow-2xs hover:shadow-sm cursor-pointer"
+                title="Upload foto siswa secara batch berdasarkan NISN"
+            >
+                <span class="material-symbols-outlined text-[16px] sm:text-[18px]">add_a_photo</span>
+                <span>Upload Foto</span>
+            </button>
 
-                <a
-                    href="/students/template"
-                    download
-                    class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2.5 rounded-lg sm:rounded-xl border border-yellow-300 text-yellow-800 bg-yellow-100 hover:bg-yellow-200 active:bg-yellow-300 font-semibold text-[11px] sm:text-sm transition-all shadow-2xs hover:shadow-sm"
-                    title="Download template XLSX resmi untuk import data siswa"
-                >
-                    <span class="material-symbols-outlined text-[16px] sm:text-[18px]">download</span>
-                    <span>Download Template</span>
-                </a>
+            <a
+                href="/students/template"
+                download
+                class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2.5 rounded-lg sm:rounded-xl border border-yellow-300 text-yellow-800 bg-yellow-100 hover:bg-yellow-200 active:bg-yellow-300 font-semibold text-[11px] sm:text-sm transition-all shadow-2xs hover:shadow-sm"
+                title="Download template XLSX resmi untuk import data siswa"
+            >
+                <span class="material-symbols-outlined text-[16px] sm:text-[18px]">download</span>
+                <span>Download Template</span>
+            </a>
 
-                <button
-                    type="button"
-                    @click="showImportModal = true"
-                    class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2.5 rounded-lg sm:rounded-xl bg-primary hover:bg-primary-container text-on-primary font-semibold text-[11px] sm:text-sm transition-all shadow-xs hover:shadow-md cursor-pointer"
-                    title="Import data siswa dari file template Excel"
-                >
-                    <span class="material-symbols-outlined text-[16px] sm:text-[18px]">upload_file</span>
-                    <span>Import Data Siswa</span>
-                </button>
-            </div>
+            <button
+                type="button"
+                @click="showImportModal = true"
+                class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2.5 rounded-lg sm:rounded-xl bg-primary hover:bg-primary-container text-on-primary font-semibold text-[11px] sm:text-sm transition-all shadow-xs hover:shadow-md cursor-pointer"
+                title="Import data siswa dari file template Excel"
+            >
+                <span class="material-symbols-outlined text-[16px] sm:text-[18px]">upload_file</span>
+                <span>Import Data Siswa</span>
+            </button>
+        </div>
         </div>
 
-        <!-- Unit Tabs -->
-        <div class="mb-5">
-            <div class="flex gap-2">
+            <!-- Unit Tabs (Moved from below) -->
+            <div class="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
                 <button
                     v-for="tab in unitTabs"
                     :key="tab.id"
                     type="button"
                     @click="switchUnitTab(tab.id)"
                     :class="[
-                        'group relative inline-flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl font-semibold text-xs sm:text-sm transition-all duration-200 cursor-pointer border',
+                        'group relative inline-flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl font-semibold text-xs transition-all duration-200 cursor-pointer border',
                         activeUnitTab === tab.id
                             ? tab.color === 'emerald'
                                 ? 'bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-500/25'
-                                : 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/25'
+                                : tab.color === 'slate'
+                                    ? 'bg-slate-700 text-white border-slate-700 shadow-md shadow-slate-500/25'
+                                    : 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/25'
                             : tab.color === 'emerald'
                                 ? 'bg-white text-emerald-700 border-emerald-200 hover:bg-emerald-50 hover:border-emerald-300'
-                                : 'bg-white text-blue-700 border-blue-200 hover:bg-blue-50 hover:border-blue-300'
+                                : tab.color === 'slate'
+                                    ? 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
+                                    : 'bg-white text-blue-700 border-blue-200 hover:bg-blue-50 hover:border-blue-300'
                     ]"
                 >
-                    <span class="material-symbols-outlined text-[18px] sm:text-[20px]">{{ tab.icon }}</span>
+                    <span class="material-symbols-outlined text-[16px] sm:text-[18px]">{{ tab.icon }}</span>
                     <span>{{ tab.label }}</span>
                     <span :class="[
-                        'inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full text-[10px] sm:text-[11px] font-bold leading-none',
+                        'inline-flex items-center justify-center min-w-[20px] h-[20px] px-1.5 rounded-full text-[10px] font-bold leading-none',
                         activeUnitTab === tab.id
                             ? 'bg-white/25 text-white'
                             : tab.color === 'emerald'
                                 ? 'bg-emerald-100 text-emerald-700'
-                                : 'bg-blue-100 text-blue-700'
+                                : tab.color === 'slate'
+                                    ? 'bg-slate-100 text-slate-700'
+                                    : 'bg-blue-100 text-blue-700'
                     ]">
                         {{ unitStudentCount(tab.id) }}
                     </span>
                 </button>
             </div>
-        </div>
 
         <!-- Flash Notification Banners -->
         <div
