@@ -28,9 +28,9 @@ const page = usePage();
 // Unit Tabs
 // ============================================================
 const unitTabs = [
-    { id: 'all', label: 'Semua', icon: 'groups', color: 'slate' },
-    { id: 'SDIT', label: 'SDIT', icon: 'school', color: 'primary' },
-    { id: 'SMPIT', label: 'SMPIT', icon: 'domain', color: 'secondary' },
+    { id: 'all', label: 'Semua', icon: 'groups' },
+    { id: 'SDIT', label: 'SDIT', icon: 'school' },
+    { id: 'SMPIT', label: 'SMPIT', icon: 'domain' },
 ];
 
 const activeUnitTab = ref('all');
@@ -186,7 +186,7 @@ function unitStudentCount(unitId) {
 
     <div class="flex-1 overflow-y-auto p-4 md:p-margin-desktop">
         <!-- Page Header -->
-        <div class="mb-6 flex flex-col sm:flex-row sm:items-center justify-start gap-6 sm:gap-10">
+        <div class="mb-6 flex flex-col sm:flex-row sm:items-center justify-start gap-5 sm:gap-8">
             <div>
                 <h2 class="text-xl sm:text-2xl text-primary font-bold leading-tight">
                     Database Siswa
@@ -196,39 +196,27 @@ function unitStudentCount(unitId) {
                 </p>
             </div>
             
-            <!-- Unit Tabs (Moved to top right) -->
-            <div class="flex items-center gap-3 shrink-0 flex-wrap sm:flex-nowrap">
+            <!-- Unit Tabs Segmented Control -->
+            <div class="flex items-center p-1 bg-white border border-slate-200 rounded-xl sm:rounded-2xl shadow-sm shrink-0">
                 <button
                     v-for="tab in unitTabs"
                     :key="tab.id"
                     type="button"
                     @click="switchUnitTab(tab.id)"
                     :class="[
-                        'group relative inline-flex items-center gap-2.5 px-4 sm:px-6 py-2.5 sm:py-3.5 rounded-xl font-bold text-sm sm:text-base transition-all duration-200 cursor-pointer border',
+                        'group relative inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl font-semibold text-xs sm:text-sm transition-all duration-200 cursor-pointer',
                         activeUnitTab === tab.id
-                            ? tab.color === 'primary'
-                                ? 'bg-primary text-on-primary border-primary shadow-md shadow-primary/25'
-                                : tab.color === 'slate'
-                                    ? 'bg-tertiary text-on-tertiary border-tertiary shadow-md shadow-tertiary/25'
-                                    : 'bg-secondary text-on-secondary border-secondary shadow-md shadow-secondary/25'
-                            : tab.color === 'primary'
-                                ? 'bg-white text-primary border-primary/30 hover:bg-primary/5 hover:border-primary/50'
-                                : tab.color === 'slate'
-                                    ? 'bg-white text-tertiary border-tertiary/30 hover:bg-surface-variant hover:border-tertiary/50'
-                                    : 'bg-white text-secondary border-secondary/30 hover:bg-secondary/5 hover:border-secondary/50'
+                            ? 'bg-primary text-on-primary shadow-sm'
+                            : 'bg-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                     ]"
                 >
-                    <span class="material-symbols-outlined text-[20px] sm:text-[24px]">{{ tab.icon }}</span>
+                    <span class="material-symbols-outlined text-[16px] sm:text-[18px]">{{ tab.icon }}</span>
                     <span>{{ tab.label }}</span>
                     <span :class="[
-                        'inline-flex items-center justify-center min-w-[24px] h-[24px] px-2 rounded-full text-[11px] sm:text-xs font-bold leading-none',
+                        'inline-flex items-center justify-center min-w-[20px] h-[20px] px-1.5 rounded-full text-[10px] font-bold leading-none transition-colors duration-200',
                         activeUnitTab === tab.id
                             ? 'bg-white/25 text-white'
-                            : tab.color === 'primary'
-                                ? 'bg-primary/10 text-primary'
-                                : tab.color === 'slate'
-                                    ? 'bg-surface-variant text-tertiary'
-                                    : 'bg-secondary/20 text-secondary'
+                            : 'bg-slate-200 text-slate-700 group-hover:bg-slate-300'
                     ]">
                         {{ unitStudentCount(tab.id) }}
                     </span>
