@@ -43,7 +43,6 @@ const columns = {
         { key: 'tanggal_lahir', label: 'Tgl Lahir', type: 'date', width: 'w-36' },
         { key: 'agama', label: 'Agama', type: 'select', options: ['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha', 'Konghucu'], width: 'w-28' },
         { key: 'no_wa', label: 'No WA', type: 'text', width: 'w-32' },
-        { key: 'sekolah_asal', label: 'Sekolah Asal', type: 'text', width: 'w-40' },
     ],
     akademik: [
         { key: 'unit', label: 'Unit', type: 'text', width: 'w-44' },
@@ -54,6 +53,7 @@ const columns = {
         { key: 'student_status', label: 'Status Siswa', type: 'select', options: ['aktif', 'mutasi_masuk', 'mutasi_keluar', 'lulus', 'mengulang', 'dropout'], width: 'w-32' },
     ],
     registrasi: [
+        { key: 'sekolah_asal', label: 'Sekolah Asal', type: 'text', width: 'w-40' },
         { key: 'status_keluarga', label: 'Status Keluarga', type: 'text', width: 'w-36' },
         { key: 'anak_ke', label: 'Anak Ke', type: 'number', width: 'w-24' },
         { key: 'diterima_di_jenjang', label: 'Diterima di Jenjang', type: 'text', width: 'w-40' },
