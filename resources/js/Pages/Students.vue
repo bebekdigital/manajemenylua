@@ -82,6 +82,44 @@ const dismissedFlash = ref(false);
 // Dropdown states
 const showEditDropdown = ref(false);
 const showTemplateDropdown = ref(false);
+const isDownloadingTemplate = ref(false);
+
+const downloadTemplate = async () => {
+    showTemplateDropdown.value = false;
+    isDownloadingTemplate.value = true;
+    try {
+        const url = `/students/template?tab=${activeUnitTab.value}`;
+        const response = await fetch(url, { method: 'GET' });
+        if (!response.ok) throw new Error('Network response was not ok');
+        
+        let filename = 'Template_Data_Siswa.xlsx';
+        const disposition = response.headers.get('Content-Disposition');
+        if (disposition && disposition.indexOf('attachment') !== -1) {
+            const matches = /filename="([^"]*)"/.exec(disposition);
+            if (matches != null && matches[1]) filename = matches[1];
+            else {
+                const matches2 = /filename=([^;]*)/.exec(disposition);
+                if (matches2 != null && matches2[1]) filename = matches2[1];
+            }
+        }
+        
+        const blob = await response.blob();
+        const blobUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = blobUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(blobUrl);
+        document.body.removeChild(a);
+    } catch (error) {
+        console.error('Error downloading template:', error);
+        alert('Gagal mendownload template. Silakan coba lagi.');
+    } finally {
+        isDownloadingTemplate.value = false;
+    }
+};
 
 const flashSuccess = computed(() => {
     return !dismissedFlash.value ? page.props.flash?.success : null;
@@ -360,4 +398,15 @@ function unitStudentCount(unitId) {
         @close="showPhotoUploadModal = false"
         @success="() => { dismissedFlash = false; }"
     />
+    <!-- Loading Overlay for Template Download -->
+    <div v-if="isDownloadingTemplate" class="fixed inset-0 z-[100] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl p-6 sm:p-8 max-w-sm w-full shadow-2xl flex flex-col items-center text-center">
+            <div class="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-6 relative">
+                <div class="absolute inset-0 rounded-full border-4 border-primary/30 border-t-primary animate-spin"></div>
+                <span class="material-symbols-outlined text-primary text-3xl">download</span>
+            </div>
+            <h3 class="text-lg font-bold text-slate-800 mb-2">Menyiapkan Template...</h3>
+            <p class="text-slate-600 text-sm">Mohon tunggu sebentar, file Excel sedang dibuat. Waktu pembuatan bergantung pada ukuran data.</p>
+        </div>
+    </div>
 </template>
