@@ -28,7 +28,11 @@ const tabs = [
 
 function getAlamatLengkap(s) {
     if (!s) return '-';
-    return [s.jalan, s.rt_rw, s.dusun, s.desa, s.kecamatan, s.kabupaten, s.provinsi]
+    let alamat = s.jalan ? s.jalan : '';
+    if (s.rt && s.rw) alamat += `, RT ${s.rt} / RW ${s.rw}`;
+    else if (s.rt) alamat += `, RT ${s.rt}`;
+    else if (s.rw) alamat += `, RW ${s.rw}`;
+    return [alamat, s.dusun, s.desa, s.kecamatan, s.kabupaten, s.provinsi]
         .filter(Boolean)
         .join(', ');
 }
@@ -180,6 +184,10 @@ function hitungUsia(tanggalLahir) {
                                         <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">No. WhatsApp</label>
                                         <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.no_wa || '-' }}</p>
                                     </div>
+                                    <div>
+                                        <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Email</label>
+                                        <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.email || '-' }}</p>
+                                    </div>
                                 </div>
                             </div>
 
@@ -194,9 +202,15 @@ function hitungUsia(tanggalLahir) {
                                         <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Jalan</label>
                                         <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.jalan || '-' }}</p>
                                     </div>
-                                    <div>
-                                        <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">RT / RW</label>
-                                        <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.rt_rw || '-' }}</p>
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">RT</label>
+                                            <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.rt || '-' }}</p>
+                                        </div>
+                                        <div>
+                                            <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">RW</label>
+                                            <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.rw || '-' }}</p>
+                                        </div>
                                     </div>
                                     <div>
                                         <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Dusun</label>
@@ -217,6 +231,18 @@ function hitungUsia(tanggalLahir) {
                                     <div>
                                         <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Provinsi</label>
                                         <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.provinsi || '-' }}</p>
+                                    </div>
+                                    <div>
+                                        <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Jenis Tinggal</label>
+                                        <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.jenis_tinggal || '-' }}</p>
+                                    </div>
+                                    <div>
+                                        <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Alat Transportasi</label>
+                                        <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.alat_transportasi || '-' }}</p>
+                                    </div>
+                                    <div>
+                                        <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Jarak Rumah ke Sekolah</label>
+                                        <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.jarak_rumah || '-' }}</p>
                                     </div>
                                 </div>
                             </div>
@@ -266,20 +292,8 @@ function hitungUsia(tanggalLahir) {
                                             <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.ayah?.penghasilan || '-' }}</p>
                                         </div>
                                         <div>
-                                            <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Status</label>
-                                            <p class="mt-0.5">
-                                                <span
-                                                    v-if="student.ayah?.status"
-                                                    :class="[
-                                                        'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold',
-                                                        student.ayah.status === 'Meninggal' ? 'bg-slate-200 text-slate-600' : 'bg-emerald-100 text-emerald-700'
-                                                    ]"
-                                                >
-                                                    <span class="material-symbols-outlined text-[12px]">{{ student.ayah.status === 'Meninggal' ? 'sentiment_sad' : 'favorite' }}</span>
-                                                    {{ student.ayah.status }}
-                                                </span>
-                                                <span v-else class="text-xs sm:text-sm font-medium text-on-surface">-</span>
-                                            </p>
+                                            <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">NIK</label>
+                                            <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5 font-mono">{{ student.ayah?.nik || '-' }}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -308,20 +322,8 @@ function hitungUsia(tanggalLahir) {
                                             <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.ibu?.penghasilan || '-' }}</p>
                                         </div>
                                         <div>
-                                            <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Status</label>
-                                            <p class="mt-0.5">
-                                                <span
-                                                    v-if="student.ibu?.status"
-                                                    :class="[
-                                                        'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold',
-                                                        student.ibu.status === 'Meninggal' ? 'bg-slate-200 text-slate-600' : 'bg-pink-100 text-pink-700'
-                                                    ]"
-                                                >
-                                                    <span class="material-symbols-outlined text-[12px]">{{ student.ibu.status === 'Meninggal' ? 'sentiment_sad' : 'favorite' }}</span>
-                                                    {{ student.ibu.status }}
-                                                </span>
-                                                <span v-else class="text-xs sm:text-sm font-medium text-on-surface">-</span>
-                                            </p>
+                                            <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">NIK</label>
+                                            <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5 font-mono">{{ student.ibu?.nik || '-' }}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -378,6 +380,10 @@ function hitungUsia(tanggalLahir) {
                                         <div>
                                             <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Penghasilan</label>
                                             <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.wali.penghasilan || '-' }}</p>
+                                        </div>
+                                        <div>
+                                            <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">NIK</label>
+                                            <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5 font-mono">{{ student.wali.nik || '-' }}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -448,17 +454,9 @@ function hitungUsia(tanggalLahir) {
                                 <div>
                                     <h4 class="text-xs sm:text-sm font-bold text-primary mb-2 sm:mb-3 flex items-center gap-2">
                                         <span class="material-symbols-outlined text-[18px]">account_balance</span>
-                                        Status Bantuan Pemerintah
+                                        Status Bantuan Pemerintah & Kesejahteraan
                                     </h4>
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <!-- Status Desil -->
-                                        <div class="p-4 rounded-xl border border-outline-variant/30 bg-surface-container-low">
-                                            <div class="flex items-center justify-between mb-2">
-                                                <span class="text-sm font-semibold text-on-surface">Status Desil (1-10)</span>
-                                            </div>
-                                            <p class="text-lg font-bold text-primary mt-1">{{ student.bantuan?.desil || '-' }}</p>
-                                        </div>
-
                                         <!-- PIP -->
                                         <div class="p-4 rounded-xl border border-outline-variant/30 bg-surface-container-low">
                                             <div class="flex items-center justify-between mb-2">
@@ -488,8 +486,20 @@ function hitungUsia(tanggalLahir) {
                                                     {{ student.bantuan?.kip ? 'Memiliki' : 'Tidak' }}
                                                 </span>
                                             </div>
-                                            <p class="text-xs text-on-surface-variant">No. KIP: {{ student.bantuan?.no_kip || '-' }}</p>
+                                            <div class="flex flex-col gap-1 mt-2">
+                                                <p class="text-xs text-on-surface-variant">No. KIP: <span class="font-mono text-on-surface">{{ student.bantuan?.no_kip || '-' }}</span></p>
+                                                <p class="text-xs text-on-surface-variant">Nama di KIP: <span class="text-on-surface">{{ student.bantuan?.nama_di_kip || '-' }}</span></p>
+                                            </div>
                                         </div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h4 class="text-xs sm:text-sm font-bold text-primary mb-2 sm:mb-3 flex items-center gap-2 mt-4">
+                                        <span class="material-symbols-outlined text-[18px]">accessible</span>
+                                        Kebutuhan Khusus
+                                    </h4>
+                                    <div class="p-4 rounded-xl border border-outline-variant/30 bg-surface-container-low">
+                                        <p class="text-sm font-medium text-on-surface">{{ student.kebutuhan_khusus || 'Tidak ada' }}</p>
                                     </div>
                                 </div>
                             </div>

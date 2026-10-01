@@ -217,11 +217,12 @@ class StudentController extends Controller
             'unit' => $studentModel->unit,
             'program' => $studentModel->program,
             'photo_url' => $studentModel->photo_url,
-            'jenjang' => $record?->jenjang,
+            'jenjang' => $record?->jenjang ?? $studentModel->jenjang,
             'tingkat' => $record?->tingkat,
             'kelas' => $classroom?->name,
             'student_status' => $record?->student_status ?? 'aktif',
             'no_wa' => $studentModel->no_wa,
+            'email' => $studentModel->email,
             'sekolah_asal' => $studentModel->sekolah_asal,
             'status_keluarga' => $studentModel->status_keluarga,
             'anak_ke' => $studentModel->anak_ke,
@@ -230,25 +231,30 @@ class StudentController extends Controller
             'formatted_tanggal_diterima' => $studentModel->tanggal_diterima ? $studentModel->tanggal_diterima->translatedFormat('d F Y') : null,
             'info_psb' => $studentModel->info_psb,
             'jalan' => $studentModel->jalan,
-            'rt_rw' => $studentModel->rt_rw,
+            'rt' => $studentModel->rt,
+            'rw' => $studentModel->rw,
             'dusun' => $studentModel->dusun,
             'desa' => $studentModel->desa,
             'kecamatan' => $studentModel->kecamatan,
             'kabupaten' => $studentModel->kabupaten,
             'provinsi' => $studentModel->provinsi,
+            'jenis_tinggal' => $studentModel->jenis_tinggal,
+            'alat_transportasi' => $studentModel->alat_transportasi,
+            'jarak_rumah' => $studentModel->jarak_rumah,
+            'kebutuhan_khusus' => $studentModel->kebutuhan_khusus,
             'ayah' => $family ? [
                 'nama' => $family->ayah_nama,
                 'tahun_lahir' => $family->ayah_tahun_lahir,
                 'pekerjaan' => $family->ayah_pekerjaan,
                 'penghasilan' => $family->ayah_penghasilan,
-                'status' => $family->ayah_status,
+                'nik' => $family->ayah_nik,
             ] : null,
             'ibu' => $family ? [
                 'nama' => $family->ibu_nama,
                 'tahun_lahir' => $family->ibu_tahun_lahir,
                 'pekerjaan' => $family->ibu_pekerjaan,
                 'penghasilan' => $family->ibu_penghasilan,
-                'status' => $family->ibu_status,
+                'nik' => $family->ibu_nik,
             ] : null,
             'bisnis' => $family ? [
                 'has_bisnis' => $family->has_bisnis ?? false,
@@ -259,17 +265,18 @@ class StudentController extends Controller
                 'hubungan' => $family->wali_hubungan,
                 'pekerjaan' => $family->wali_pekerjaan,
                 'penghasilan' => $family->wali_penghasilan,
+                'nik' => $family->wali_nik,
             ] : null,
             'saudara' => $studentModel->siblings->map(fn ($s) => [
                 'nama' => $s->nama,
                 'tanggal_lahir' => $s->tanggal_lahir?->format('Y-m-d'),
             ])->toArray(),
             'bantuan' => [
-                'desil' => $record?->desil,
-                'pip' => $record?->status_pip ?? false,
-                'pip_keterangan' => $record?->pip_keterangan,
-                'kip' => $record?->status_kip ?? false,
-                'no_kip' => $record?->no_kip,
+                'pip' => $studentModel->status_pip ?? false,
+                'pip_keterangan' => $studentModel->pip_keterangan,
+                'kip' => $studentModel->status_kip ?? false,
+                'no_kip' => $studentModel->no_kip,
+                'nama_di_kip' => $studentModel->nama_di_kip,
             ],
         ];
 
@@ -800,10 +807,7 @@ class StudentController extends Controller
         $this->buildDropdownsSheet($spreadsheet, $units, $programs, $classes);
         $this->buildSheet1($spreadsheet, $jenjang);
         $this->buildSheet2($spreadsheet);
-        $this->buildSheet3($spreadsheet);
-        $this->buildSheet4($spreadsheet);
-        $this->buildSheet5($spreadsheet, $jenjang);
-        $this->buildSheetPanduan($spreadsheet);
+        $this->buildSheet3($spreadsheet, $jenjang);
 
         // Remove default sheet 0 if it was created by new Spreadsheet but we shifted things.
         // Actually createSheet(0) shifts existing sheets, so index 1 is now Sheet 1.
@@ -862,133 +866,119 @@ class StudentController extends Controller
             'A' => ['NISN', 12],
             'B' => ['Nama Lengkap', 30],
             'C' => ['NIPD', 12],
-            'D' => ['NIK', 18],
-            'E' => ['No KK', 18],
-            'F' => ['Unit', 35],
-            'G' => ['Program', 12],
-            'H' => ['JK (L/P)', 10],
-            'I' => ['Tempat Lahir', 20],
-            'J' => ['Tanggal Lahir (YYYY-MM-DD)', 24],
+            'D' => ['Jenjang', 12],
+            'E' => ['Unit', 35],
+            'F' => ['Program', 12],
+            'G' => ['JK (L/P)', 10],
+            'H' => ['Tempat Lahir', 20],
+            'I' => ['Tanggal Lahir (YYYY-MM-DD)', 24],
+            'J' => ['NIK', 18],
             'K' => ['Agama', 12],
-            'L' => ['No WA', 16],
-            'M' => ['Sekolah Asal', 30],
-            'N' => ['Status Keluarga', 20],
-            'O' => ['Anak ke', 10],
-            'P' => ['Diterima di Jenjang/Kelas', 25],
-            'Q' => ['Tanggal Diterima (YYYY-MM-DD)', 30],
-            'R' => ['Sumber Info PSB', 30],
+            'L' => ['Jalan', 20],
+            'M' => ['RT', 6],
+            'N' => ['RW', 6],
+            'O' => ['Dusun', 18],
+            'P' => ['Desa/Kelurahan', 20],
+            'Q' => ['Kecamatan', 20],
+            'R' => ['Kabupaten', 20],
+            'S' => ['Provinsi', 20],
+            'T' => ['Jenis Tinggal', 20],
+            'U' => ['Alat Transportasi', 20],
+            'V' => ['No. WA', 16],
+            'W' => ['Email', 25],
+            'X' => ['Nama Ayah', 25],
+            'Y' => ['Tahun Lahir Ayah', 16],
+            'Z' => ['Pendidikan Ayah', 18],
+            'AA' => ['Pekerjaan Ayah', 20],
+            'AB' => ['Penghasilan Ayah', 28],
+            'AC' => ['NIK Ayah', 18],
+            'AD' => ['Nama Ibu', 25],
+            'AE' => ['Tahun Lahir Ibu', 16],
+            'AF' => ['Pendidikan Ibu', 18],
+            'AG' => ['Pekerjaan Ibu', 20],
+            'AH' => ['Penghasilan Ibu', 28],
+            'AI' => ['NIK Ibu', 18],
+            'AJ' => ['Nama Wali', 25],
+            'AK' => ['Tahun Lahir Wali', 16],
+            'AL' => ['Pendidikan Wali', 18],
+            'AM' => ['Pekerjaan Wali', 20],
+            'AN' => ['Penghasilan Wali', 28],
+            'AO' => ['NIK Wali', 18],
+            'AP' => ['Hubungan Wali', 18],
+            'AQ' => ['Penerima KIP (Ya/Tidak)', 25],
+            'AR' => ['Nomor KIP', 20],
+            'AS' => ['Nama di KIP', 25],
+            'AT' => ['Kelayakan PIP (Ya/Tidak)', 25],
+            'AU' => ['Alasan Layak PIP', 30],
+            'AV' => ['Kebutuhan Khusus', 20],
+            'AW' => ['Sekolah Asal', 30],
+            'AX' => ['Anak ke -', 10],
+            'AY' => ['No KK', 18],
+            'AZ' => ['Jarak Rumah ke Sekolah', 25],
         ];
 
         $this->applySheetHeaders($sheet, $headers, '004B23');
 
         $unitExample = ($jenjang === 'SMP') ? 'SMPIT Ulil Albab' : 'SDIT Ulil Albab';
-        $diterimaKelas = ($jenjang === 'SMP') ? '7' : '1';
 
         $sheet->fromArray([[
             '0051234001', 'Ahmad Fauzi Rahman', '10231001',
-            '3313151503140001', '3313150101080001',
-            $unitExample, 'Umum',
-            'L', 'Karanganyar', '2014-03-15', 'Islam',
-            '081234567001', 'TK Aisyiyah Colomadu',
-            'Anak Kandung', '1', $diterimaKelas, '2024-07-15',
-            'Rekomendasi Teman',
+            $jenjang ?? 'SD', $unitExample, 'Umum',
+            'L', 'Karanganyar', '2014-03-15',
+            '3313150101080001', 'Islam', 'Jl. Lawu No. 12',
+            '03', '05', 'Ngemplak', 'Colomadu', 'Colomadu', 'Karanganyar', 'Jawa Tengah',
+            'Bersama Orang Tua', 'Jalan Kaki', '081234567001', 'email@contoh.com',
+            'Fauzi Hidayat', '1980', 'SMA/SMK', 'Wiraswasta', 'Rp 3.000.000 - Rp 5.000.000', '',
+            'Siti Rahmawati', '1984', 'SMA/SMK', 'Ibu Rumah Tangga', 'Kurang dari Rp 1.000.000', '',
+            '', '', '', '', '', '', '',
+            'Ya', '6071012345670001', 'Ahmad Fauzi Rahman',
+            'Ya', 'Penerima PIP tahap 1', 'Tidak ada',
+            'TK Aisyiyah Colomadu', '1', '3313151503140001', 'Kurang dari 1 km'
         ]], null, 'A2');
 
         for ($row = 2; $row <= 1000; $row++) {
-            $valUnit = $sheet->getCell('F'.$row)->getDataValidation();
+            // Dropdown/fixed for Jenjang
+            if ($jenjang) {
+                if ($row > 2) {
+                    $sheet->setCellValue('D'.$row, $jenjang);
+                }
+                $valJenjang = $sheet->getCell('D'.$row)->getDataValidation();
+                $valJenjang->setType(DataValidation::TYPE_LIST);
+                $valJenjang->setShowDropDown(true);
+                $valJenjang->setShowErrorMessage(true);
+                $valJenjang->setErrorStyle(DataValidation::STYLE_STOP);
+                $valJenjang->setErrorTitle('Invalid Input');
+                $valJenjang->setError('Pilihan Jenjang dikunci (fixed) berdasarkan template.');
+                $valJenjang->setFormula1('"'.$jenjang.'"');
+            }
+
+            $valUnit = $sheet->getCell('E'.$row)->getDataValidation();
             $valUnit->setType(DataValidation::TYPE_LIST);
             $valUnit->setAllowBlank(true);
             $valUnit->setShowDropDown(true);
             $valUnit->setFormula1('Dropdowns!$A$2:$A$200');
 
-            $valProgram = $sheet->getCell('G'.$row)->getDataValidation();
+            $valProgram = $sheet->getCell('F'.$row)->getDataValidation();
             $valProgram->setType(DataValidation::TYPE_LIST);
             $valProgram->setAllowBlank(true);
             $valProgram->setShowDropDown(true);
             $valProgram->setFormula1('Dropdowns!$B$2:$B$200');
+
+            $valJk = $sheet->getCell('G'.$row)->getDataValidation();
+            $valJk->setType(DataValidation::TYPE_LIST);
+            $valJk->setAllowBlank(true);
+            $valJk->setShowDropDown(true);
+            $valJk->setFormula1('"L,P"');
         }
 
-        $this->styleExampleRow($sheet, 2, 'A', 'R');
+        $this->styleExampleRow($sheet, 2, 'A', 'AZ');
         $sheet->freezePane('A2');
     }
 
     private function buildSheet2(Spreadsheet $spreadsheet): void
     {
         $sheet = $spreadsheet->createSheet();
-        $sheet->setTitle('2. Alamat');
-
-        $headers = [
-            'A' => ['NISN', 12],
-            'B' => ['Jalan', 30],
-            'C' => ['RT/RW', 14],
-            'D' => ['Dusun', 18],
-            'E' => ['Desa/Kelurahan', 20],
-            'F' => ['Kecamatan', 20],
-            'G' => ['Kabupaten/Kota', 20],
-            'H' => ['Provinsi', 20],
-        ];
-
-        $this->applySheetHeaders($sheet, $headers, '1565C0');
-
-        $sheet->fromArray([[
-            '0051234001', 'Jl. Lawu No. 12', 'RT 03 / RW 05',
-            'Ngemplak', 'Colomadu', 'Colomadu', 'Karanganyar', 'Jawa Tengah',
-        ]], null, 'A2');
-
-        $this->styleExampleRow($sheet, 2, 'A', 'H');
-        $sheet->freezePane('A2');
-    }
-
-    private function buildSheet3(Spreadsheet $spreadsheet): void
-    {
-        $sheet = $spreadsheet->createSheet();
-        $sheet->setTitle('3. Data Keluarga');
-
-        $headers = [
-            'A' => ['NISN', 12],
-            'B' => ['Nama Ayah', 25],
-            'C' => ['NIK Ayah', 18],
-            'D' => ['Thn Lahir Ayah', 16],
-            'E' => ['Pendidikan Ayah', 18],
-            'F' => ['Pekerjaan Ayah', 20],
-            'G' => ['Penghasilan Ayah', 28],
-            'H' => ['Status Ayah (Hidup/Meninggal)', 30],
-            'I' => ['Nama Ibu', 25],
-            'J' => ['NIK Ibu', 18],
-            'K' => ['Thn Lahir Ibu', 16],
-            'L' => ['Pendidikan Ibu', 18],
-            'M' => ['Pekerjaan Ibu', 20],
-            'N' => ['Penghasilan Ibu', 28],
-            'O' => ['Status Ibu (Hidup/Meninggal)', 30],
-            'P' => ['Memiliki Bisnis/Usaha (Ya/Tidak)', 32],
-            'Q' => ['Jenis Bisnis/Usaha', 30],
-            'R' => ['Nama Wali', 25],
-            'S' => ['NIK Wali', 18],
-            'T' => ['Thn Lahir Wali', 16],
-            'U' => ['Hubungan Wali', 18],
-            'V' => ['Pendidikan Wali', 18],
-            'W' => ['Pekerjaan Wali', 20],
-            'X' => ['Penghasilan Wali', 28],
-        ];
-
-        $this->applySheetHeaders($sheet, $headers, '6A1E99');
-
-        $sheet->fromArray([[
-            '0051234001',
-            'Fauzi Hidayat', '', '1980', 'SMA/SMK', 'Wiraswasta', 'Rp 3.000.000 - Rp 5.000.000', 'Hidup',
-            'Siti Rahmawati', '', '1984', 'SMA/SMK', 'Ibu Rumah Tangga', 'Kurang dari Rp 1.000.000', 'Hidup',
-            'Ya', 'Warung Makan',
-            '', '', '', '', '', '', '',
-        ]], null, 'A2');
-
-        $this->styleExampleRow($sheet, 2, 'A', 'X');
-        $sheet->freezePane('B2');
-    }
-
-    private function buildSheet4(Spreadsheet $spreadsheet): void
-    {
-        $sheet = $spreadsheet->createSheet();
-        $sheet->setTitle('4. Saudara Kandung');
+        $sheet->setTitle('2. Data Saudara');
 
         $headers = [
             'A' => ['NISN Siswa', 12],
@@ -1008,24 +998,19 @@ class StudentController extends Controller
         $sheet->freezePane('A2');
     }
 
-    private function buildSheet5(Spreadsheet $spreadsheet, ?string $jenjang = null): void
+    private function buildSheet3(Spreadsheet $spreadsheet, ?string $jenjang = null): void
     {
         $sheet = $spreadsheet->createSheet();
-        $sheet->setTitle('5. Data Akademik (per TA)');
+        $sheet->setTitle('3. Data Akademik (per TA)');
 
         $headers = [
             'A' => ['NISN', 12],
-            'B' => ['Tahun Ajaran', 14],
-            'C' => ['Semester', 12],
-            'D' => ['Jenjang', 16],
+            'B' => ['Nama Lengkap', 30],
+            'C' => ['Tahun Ajaran', 14],
+            'D' => ['Semester', 12],
             'E' => ['Kelas/Rombel', 16],
             'F' => ['Tingkat', 14],
-            'G' => ['Status Siswa', 16],
-            'H' => ['Desil (1-10)', 14],
-            'I' => ['Status PIP (Ya/Tidak)', 20],
-            'J' => ['Keterangan PIP', 28],
-            'K' => ['Status KIP (Ya/Tidak)', 20],
-            'L' => ['No KIP', 20],
+            'G' => ['Status Aktif', 16],
         ];
 
         $this->applySheetHeaders($sheet, $headers, '004D40');
@@ -1033,8 +1018,7 @@ class StudentController extends Controller
         $kelasExample = ($jenjang === 'SMP') ? '7A' : '5A';
 
         $sheet->fromArray([[
-            '0051234001', '2025/2026', 'Ganjil', $jenjang ?? 'SD', $kelasExample, '',
-            'aktif', '3', 'Ya', 'Penerima PIP tahap 1 TA 2025/2026', 'Ya', '6071012345670001',
+            '0051234001', 'Ahmad Fauzi Rahman', '2025/2026', 'Ganjil', $kelasExample, '', 'aktif'
         ]], null, 'A2');
 
         for ($row = 2; $row <= 1000; $row++) {
@@ -1056,90 +1040,13 @@ class StudentController extends Controller
             $valClass->setAllowBlank(true);
             $valClass->setShowDropDown(true);
             $valClass->setFormula1('Dropdowns!$C$2:$C$200');
-
-            // Dropdown/fixed for Jenjang
-            if ($jenjang) {
-                if ($row > 2) { // row 2 already set by fromArray but let's be safe
-                    $sheet->setCellValue('D'.$row, $jenjang);
-                }
-                $valJenjang = $sheet->getCell('D'.$row)->getDataValidation();
-                $valJenjang->setType(DataValidation::TYPE_LIST);
-                $valJenjang->setShowDropDown(true);
-                $valJenjang->setShowErrorMessage(true);
-                $valJenjang->setErrorStyle(DataValidation::STYLE_STOP);
-                $valJenjang->setErrorTitle('Invalid Input');
-                $valJenjang->setError('Pilihan Jenjang dikunci (fixed) berdasarkan template.');
-                $valJenjang->setFormula1('"'.$jenjang.'"');
-            }
         }
 
-        $this->styleExampleRow($sheet, 2, 'A', 'L');
+        $this->styleExampleRow($sheet, 2, 'A', 'G');
         $sheet->freezePane('A2');
     }
 
-    private function buildSheetPanduan(Spreadsheet $spreadsheet): void
-    {
-        $sheet = $spreadsheet->createSheet();
-        $sheet->setTitle('0. Panduan');
-        $sheet->getColumnDimension('A')->setWidth(6);
-        $sheet->getColumnDimension('B')->setWidth(72);
 
-        $sheet->setCellValue('A1', 'PANDUAN PENGISIAN TEMPLATE IMPORT DATA SISWA');
-        $sheet->mergeCells('A1:B1');
-        $sheet->getStyle('A1')->applyFromArray([
-            'font' => ['bold' => true, 'size' => 14, 'color' => ['rgb' => 'FFFFFF']],
-            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '004B23']],
-            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
-        ]);
-        $sheet->getRowDimension(1)->setRowHeight(40);
-
-        $panduan = [
-            ['', ''],
-            ['', 'CARA PENGGUNAAN'],
-            ['1.', 'Isi data mulai dari baris ke-2 pada setiap sheet. JANGAN mengubah baris header (baris 1).'],
-            ['2.', 'Baris berwarna hijau muda adalah CONTOH. Hapus baris contoh sebelum mengisi data Anda.'],
-            ['3.', 'Kolom NISN adalah kunci utama antar sheet. Pastikan NISN konsisten di semua sheet.'],
-            ['4.', 'Urutan: Sheet 1 - Sheet 2 - Sheet 3 - Sheet 4 - Sheet 5.'],
-            ['', ''],
-            ['', 'DESKRIPSI SHEET'],
-            ['1.', 'Sheet "1. Data Siswa" - Data identitas tetap siswa (tidak berubah meski naik kelas).'],
-            ['2.', 'Sheet "2. Alamat" - Data alamat domisili siswa (satu baris per siswa).'],
-            ['3.', 'Sheet "3. Data Keluarga" - Data orang tua / wali.'],
-            ['4.', 'Sheet "4. Saudara Kandung" - Satu baris per saudara.'],
-            ['5.', 'Sheet "5. Data Akademik" - Data DINAMIS per Tahun Ajaran (kelas, status, bantuan).'],
-            ['', ''],
-            ['', 'CATATAN PENTING'],
-            ['*', 'Format tanggal: YYYY-MM-DD (contoh: 2014-03-15).'],
-            ['*', 'NISN harus unik. Tidak boleh ada NISN ganda di Sheet 1.'],
-            ['*', 'Data Akademik boleh lebih dari 1 baris per siswa (untuk Tahun Ajaran berbeda).'],
-            ['', ''],
-            ['', 'UNIT & PROGRAM'],
-            ['*', 'SDIT Ulil Albab Gondangrejo  ->  Program: Umum'],
-            ['*', 'SMPIT Ulil Albab Gondangrejo ->  Program: Fullday'],
-            ['*', 'PPTQ Ulil Albab Gondangrejo  ->  Program: Boarding'],
-        ];
-
-        $row = 2;
-        foreach ($panduan as [$no, $text]) {
-            $sheet->setCellValue("A{$row}", $no);
-            $sheet->setCellValue("B{$row}", $text);
-
-            if ($no === '' && $text !== '') {
-                $sheet->getStyle("A{$row}:B{$row}")->applyFromArray([
-                    'font' => ['bold' => true],
-                    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'E8F5E9']],
-                ]);
-            }
-
-            $sheet->getRowDimension($row)->setRowHeight(18);
-            $row++;
-        }
-
-        $sheet->getStyle('A2:B'.$row)->applyFromArray([
-            'font' => ['size' => 10],
-            'alignment' => ['wrapText' => true, 'vertical' => Alignment::VERTICAL_CENTER],
-        ]);
-    }
 
     /**
      * Apply styled header row.
