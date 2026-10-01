@@ -266,6 +266,27 @@ function unitStudentCount(unitId) {
             </div>
         </div>
 
+
+        <!-- Flash Messages -->
+        <div v-if="flashSuccess" class="mb-6 p-4 bg-primary/10 border border-primary/20 rounded-xl flex items-start gap-3">
+            <span class="material-symbols-outlined text-primary shrink-0 mt-0.5">check_circle</span>
+            <div class="flex-1 text-sm text-primary font-medium">
+                {{ flashSuccess }}
+            </div>
+            <button @click="dismissedFlash = true" class="text-primary/70 hover:text-primary transition-colors">
+                <span class="material-symbols-outlined text-xl">close</span>
+            </button>
+        </div>
+        <div v-if="flashError" class="mb-6 p-4 bg-error/10 border border-error/20 rounded-xl flex items-start gap-3">
+            <span class="material-symbols-outlined text-error shrink-0 mt-0.5">error</span>
+            <div class="flex-1 text-sm text-error font-medium">
+                {{ flashError }}
+            </div>
+            <button @click="dismissedFlash = true" class="text-error/70 hover:text-error transition-colors">
+                <span class="material-symbols-outlined text-xl">close</span>
+            </button>
+        </div>
+
         <!-- Action Buttons & Filters Row -->
         <div class="mb-5 flex flex-col lg:flex-row gap-4 lg:items-center">
             
