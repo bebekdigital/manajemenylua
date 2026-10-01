@@ -139,6 +139,7 @@ class StudentImportService
                 }
 
                 $studentMap[$nisn] = $student;
+                $studentMap[$nisn]->jenjang_from_excel = $studentData['jenjang'] ?? 'SD';
 
                 // Handle Family Data
                 $familyData = [
@@ -268,7 +269,7 @@ class StudentImportService
                             $classroom = Classroom::create([
                                 'academic_year_id' => $academicYear->id,
                                 'unit' => $student->unit,
-                                'jenjang' => $student->jenjang ?? 'SD',
+                                'jenjang' => $student->jenjang_from_excel ?? 'SD',
                                 'grade' => $tingkat,
                                 'name' => $kelasName,
                                 'capacity' => 30,
@@ -282,7 +283,7 @@ class StudentImportService
                         ],
                         [
                             'classroom_id' => $classroom?->id,
-                            'jenjang' => $student->jenjang ?? 'SD',
+                            'jenjang' => $student->jenjang_from_excel ?? 'SD',
                             'tingkat' => $tingkat,
                             'program' => $program,
                             'student_status' => $studentStatus,
