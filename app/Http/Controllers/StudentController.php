@@ -798,7 +798,7 @@ class StudentController extends Controller
             ->setTitle('Template Import Data Siswa');
 
         $this->buildDropdownsSheet($spreadsheet, $units, $programs, $classes);
-        $this->buildSheet1($spreadsheet);
+        $this->buildSheet1($spreadsheet, $jenjang);
         $this->buildSheet2($spreadsheet);
         $this->buildSheet3($spreadsheet);
         $this->buildSheet4($spreadsheet);
@@ -814,7 +814,8 @@ class StudentController extends Controller
         $writer->save('php://output');
         $content = ob_get_clean();
 
-        $filename = 'template_import_siswa_'.date('Ymd').'.xlsx';
+        $tabSuffix = ($tab !== 'all') ? strtoupper($tab) : 'Semua';
+        $filename = 'template_import_siswa_'.$tabSuffix.'_'.date('Ymd').'.xlsx';
 
         return response($content, 200, [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -852,7 +853,7 @@ class StudentController extends Controller
     // XLSX Template Sheet Builders
     // ----------------------------------------------------------------
 
-    private function buildSheet1(Spreadsheet $spreadsheet): void
+    private function buildSheet1(Spreadsheet $spreadsheet, ?string $jenjang = null): void
     {
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('1. Data Siswa');
@@ -880,13 +881,16 @@ class StudentController extends Controller
 
         $this->applySheetHeaders($sheet, $headers, '004B23');
 
+        $unitExample = ($jenjang === 'SMP') ? 'SMPIT Ulil Albab' : 'SDIT Ulil Albab';
+        $diterimaKelas = ($jenjang === 'SMP') ? '7' : '1';
+
         $sheet->fromArray([[
             '0051234001', 'Ahmad Fauzi Rahman', '10231001',
             '3313151503140001', '3313150101080001',
-            'SDIT Ulil Albab Gondangrejo', 'Umum',
+            $unitExample, 'Umum',
             'L', 'Karanganyar', '2014-03-15', 'Islam',
             '081234567001', 'TK Aisyiyah Colomadu',
-            'Anak Kandung', '1', '7', '2024-07-15',
+            'Anak Kandung', '1', $diterimaKelas, '2024-07-15',
             'Rekomendasi Teman',
         ]], null, 'A2');
 
@@ -1026,8 +1030,10 @@ class StudentController extends Controller
 
         $this->applySheetHeaders($sheet, $headers, '004D40');
 
+        $kelasExample = ($jenjang === 'SMP') ? '7A' : '5A';
+
         $sheet->fromArray([[
-            '0051234001', '2025/2026', 'Ganjil', $jenjang ?? 'SD', '5A', '',
+            '0051234001', '2025/2026', 'Ganjil', $jenjang ?? 'SD', $kelasExample, '',
             'aktif', '3', 'Ya', 'Penerima PIP tahap 1 TA 2025/2026', 'Ya', '6071012345670001',
         ]], null, 'A2');
 
