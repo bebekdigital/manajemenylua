@@ -1041,6 +1041,15 @@ class StudentController extends Controller
             // Formula for Tingkat based on Kelas
             $sheet->setCellValue('F'.$row, '=IF(E'.$row.'="","",IFERROR(VALUE(LEFT(E'.$row.', IF(ISNUMBER(VALUE(MID(E'.$row.',2,1))), 2, 1))), ""))');
 
+            // Fixed/locked for Tingkat
+            $valTingkat = $sheet->getCell('F'.$row)->getDataValidation();
+            $valTingkat->setType(DataValidation::TYPE_CUSTOM);
+            $valTingkat->setShowErrorMessage(true);
+            $valTingkat->setErrorStyle(DataValidation::STYLE_STOP);
+            $valTingkat->setErrorTitle('Kolom Otomatis');
+            $valTingkat->setError('Kolom Tingkat ini berisi rumus otomatis dan tidak boleh diedit manual.');
+            $valTingkat->setFormula1('""');
+
             // Dropdown for Kelas/Rombel
             $valClass = $sheet->getCell('E'.$row)->getDataValidation();
             $valClass->setType(DataValidation::TYPE_LIST);
