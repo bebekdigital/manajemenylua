@@ -110,9 +110,9 @@ class StudentController extends Controller
                     'no_kk' => $student->no_kk,
                     'agama' => $student->agama,
                     'unit' => $student->unit,
-                    'program' => $student->program,
+                    'program' => $record?->program ?? $student->program,
                     'photo_url' => $student->photo_url,
-                    'jenjang' => $record?->jenjang,
+                    'jenjang' => $record?->jenjang ?? $student->jenjang,
                     'tingkat' => $record?->tingkat,
                     'kelas' => $classroom?->name,
                     'student_status' => $record?->student_status ?? 'aktif',
@@ -215,7 +215,7 @@ class StudentController extends Controller
             'no_kk' => $studentModel->no_kk,
             'agama' => $studentModel->agama,
             'unit' => $studentModel->unit,
-            'program' => $studentModel->program,
+            'program' => $record?->program ?? $studentModel->program,
             'photo_url' => $studentModel->photo_url,
             'jenjang' => $record?->jenjang ?? $studentModel->jenjang,
             'tingkat' => $record?->tingkat,
@@ -343,8 +343,8 @@ class StudentController extends Controller
                     'sekolah_asal' => $student->sekolah_asal,
                     // Akademik
                     'unit' => $student->unit,
-                    'program' => $student->program,
-                    'jenjang' => $record?->jenjang,
+                    'program' => $record?->program ?? $student->program,
+                    'jenjang' => $record?->jenjang ?? $student->jenjang,
                     'tingkat' => $record?->tingkat,
                     'kelas' => $classroom?->name,
                     'student_status' => $record?->student_status ?? 'aktif',
@@ -868,53 +868,52 @@ class StudentController extends Controller
             'C' => ['NIPD', 12],
             'D' => ['Jenjang', 12],
             'E' => ['Unit', 35],
-            'F' => ['Program', 12],
-            'G' => ['JK (L/P)', 10],
-            'H' => ['Tempat Lahir', 20],
-            'I' => ['Tanggal Lahir (YYYY-MM-DD)', 24],
-            'J' => ['NIK', 18],
-            'K' => ['Agama', 12],
-            'L' => ['Jalan', 20],
-            'M' => ['RT', 6],
-            'N' => ['RW', 6],
-            'O' => ['Dusun', 18],
-            'P' => ['Desa/Kelurahan', 20],
-            'Q' => ['Kecamatan', 20],
-            'R' => ['Kabupaten', 20],
-            'S' => ['Provinsi', 20],
-            'T' => ['Jenis Tinggal', 20],
-            'U' => ['Alat Transportasi', 20],
-            'V' => ['No. WA', 16],
-            'W' => ['Email', 25],
-            'X' => ['Nama Ayah', 25],
-            'Y' => ['Tahun Lahir Ayah', 16],
-            'Z' => ['Pendidikan Ayah', 18],
-            'AA' => ['Pekerjaan Ayah', 20],
-            'AB' => ['Penghasilan Ayah', 28],
-            'AC' => ['NIK Ayah', 18],
-            'AD' => ['Nama Ibu', 25],
-            'AE' => ['Tahun Lahir Ibu', 16],
-            'AF' => ['Pendidikan Ibu', 18],
-            'AG' => ['Pekerjaan Ibu', 20],
-            'AH' => ['Penghasilan Ibu', 28],
-            'AI' => ['NIK Ibu', 18],
-            'AJ' => ['Nama Wali', 25],
-            'AK' => ['Tahun Lahir Wali', 16],
-            'AL' => ['Pendidikan Wali', 18],
-            'AM' => ['Pekerjaan Wali', 20],
-            'AN' => ['Penghasilan Wali', 28],
-            'AO' => ['NIK Wali', 18],
-            'AP' => ['Hubungan Wali', 18],
-            'AQ' => ['Penerima KIP (Ya/Tidak)', 25],
-            'AR' => ['Nomor KIP', 20],
-            'AS' => ['Nama di KIP', 25],
-            'AT' => ['Kelayakan PIP (Ya/Tidak)', 25],
-            'AU' => ['Alasan Layak PIP', 30],
-            'AV' => ['Kebutuhan Khusus', 20],
-            'AW' => ['Sekolah Asal', 30],
-            'AX' => ['Anak ke -', 10],
-            'AY' => ['No KK', 18],
-            'AZ' => ['Jarak Rumah ke Sekolah', 25],
+            'F' => ['JK (L/P)', 10],
+            'G' => ['Tempat Lahir', 20],
+            'H' => ['Tanggal Lahir (YYYY-MM-DD)', 24],
+            'I' => ['NIK', 18],
+            'J' => ['Agama', 12],
+            'K' => ['Jalan', 20],
+            'L' => ['RT', 6],
+            'M' => ['RW', 6],
+            'N' => ['Dusun', 18],
+            'O' => ['Desa/Kelurahan', 20],
+            'P' => ['Kecamatan', 20],
+            'Q' => ['Kabupaten', 20],
+            'R' => ['Provinsi', 20],
+            'S' => ['Jenis Tinggal', 20],
+            'T' => ['Alat Transportasi', 20],
+            'U' => ['No. WA', 16],
+            'V' => ['Email', 25],
+            'W' => ['Nama Ayah', 25],
+            'X' => ['Tahun Lahir Ayah', 16],
+            'Y' => ['Pendidikan Ayah', 18],
+            'Z' => ['Pekerjaan Ayah', 20],
+            'AA' => ['Penghasilan Ayah', 28],
+            'AB' => ['NIK Ayah', 18],
+            'AC' => ['Nama Ibu', 25],
+            'AD' => ['Tahun Lahir Ibu', 16],
+            'AE' => ['Pendidikan Ibu', 18],
+            'AF' => ['Pekerjaan Ibu', 20],
+            'AG' => ['Penghasilan Ibu', 28],
+            'AH' => ['NIK Ibu', 18],
+            'AI' => ['Nama Wali', 25],
+            'AJ' => ['Tahun Lahir Wali', 16],
+            'AK' => ['Pendidikan Wali', 18],
+            'AL' => ['Pekerjaan Wali', 20],
+            'AM' => ['Penghasilan Wali', 28],
+            'AN' => ['NIK Wali', 18],
+            'AO' => ['Hubungan Wali', 18],
+            'AP' => ['Penerima KIP (Ya/Tidak)', 25],
+            'AQ' => ['Nomor KIP', 20],
+            'AR' => ['Nama di KIP', 25],
+            'AS' => ['Kelayakan PIP (Ya/Tidak)', 25],
+            'AT' => ['Alasan Layak PIP', 30],
+            'AU' => ['Kebutuhan Khusus', 20],
+            'AV' => ['Sekolah Asal', 30],
+            'AW' => ['Anak ke -', 10],
+            'AX' => ['No KK', 18],
+            'AY' => ['Jarak Rumah ke Sekolah', 25],
         ];
 
         $this->applySheetHeaders($sheet, $headers, '004B23');
@@ -923,7 +922,7 @@ class StudentController extends Controller
 
         $sheet->fromArray([[
             '0051234001', 'Ahmad Fauzi Rahman', '10231001',
-            $jenjang ?? 'SD', $unitExample, 'Umum',
+            $jenjang ?? 'SD', $unitExample,
             'L', 'Karanganyar', '2014-03-15',
             '3313150101080001', 'Islam', 'Jl. Lawu No. 12',
             '03', '05', 'Ngemplak', 'Colomadu', 'Colomadu', 'Karanganyar', 'Jawa Tengah',
@@ -933,7 +932,7 @@ class StudentController extends Controller
             '', '', '', '', '', '', '',
             'Ya', '6071012345670001', 'Ahmad Fauzi Rahman',
             'Ya', 'Penerima PIP tahap 1', 'Tidak ada',
-            'TK Aisyiyah Colomadu', '1', '3313151503140001', 'Kurang dari 1 km'
+            'TK Aisyiyah Colomadu', '1', '3313151503140001', 'Kurang dari 1 km',
         ]], null, 'A2');
 
         for ($row = 2; $row <= 1000; $row++) {
@@ -958,20 +957,14 @@ class StudentController extends Controller
             $valUnit->setShowDropDown(true);
             $valUnit->setFormula1('Dropdowns!$A$2:$A$200');
 
-            $valProgram = $sheet->getCell('F'.$row)->getDataValidation();
-            $valProgram->setType(DataValidation::TYPE_LIST);
-            $valProgram->setAllowBlank(true);
-            $valProgram->setShowDropDown(true);
-            $valProgram->setFormula1('Dropdowns!$B$2:$B$200');
-
-            $valJk = $sheet->getCell('G'.$row)->getDataValidation();
+            $valJk = $sheet->getCell('F'.$row)->getDataValidation();
             $valJk->setType(DataValidation::TYPE_LIST);
             $valJk->setAllowBlank(true);
             $valJk->setShowDropDown(true);
             $valJk->setFormula1('"L,P"');
         }
 
-        $this->styleExampleRow($sheet, 2, 'A', 'AZ');
+        $this->styleExampleRow($sheet, 2, 'A', 'AY');
         $sheet->freezePane('A2');
     }
 
@@ -1008,9 +1001,10 @@ class StudentController extends Controller
             'B' => ['Nama Lengkap', 30],
             'C' => ['Tahun Ajaran', 14],
             'D' => ['Semester', 12],
-            'E' => ['Kelas/Rombel', 16],
-            'F' => ['Tingkat', 14],
-            'G' => ['Status Aktif', 16],
+            'E' => ['Program', 14],
+            'F' => ['Kelas/Rombel', 16],
+            'G' => ['Tingkat', 14],
+            'H' => ['Status Aktif', 16],
         ];
 
         $this->applySheetHeaders($sheet, $headers, '004D40');
@@ -1018,15 +1012,22 @@ class StudentController extends Controller
         $kelasExample = ($jenjang === 'SMP') ? '7A' : '5A';
 
         $sheet->fromArray([[
-            '0051234001', 'Ahmad Fauzi Rahman', '2025/2026', 'Ganjil', $kelasExample, '', 'aktif'
+            '0051234001', 'Ahmad Fauzi Rahman', '2025/2026', 'Ganjil', 'Umum', $kelasExample, '', 'aktif',
         ]], null, 'A2');
 
         for ($row = 2; $row <= 1000; $row++) {
+            // Dropdown for Program
+            $valProgram = $sheet->getCell('E'.$row)->getDataValidation();
+            $valProgram->setType(DataValidation::TYPE_LIST);
+            $valProgram->setAllowBlank(true);
+            $valProgram->setShowDropDown(true);
+            $valProgram->setFormula1('Dropdowns!$B$2:$B$200');
+
             // Formula for Tingkat based on Kelas
-            $sheet->setCellValue('F'.$row, '=IF(E'.$row.'="","",IFERROR(VALUE(LEFT(E'.$row.', IF(ISNUMBER(VALUE(MID(E'.$row.',2,1))), 2, 1))), ""))');
+            $sheet->setCellValue('G'.$row, '=IF(F'.$row.'="","",IFERROR(VALUE(LEFT(F'.$row.', IF(ISNUMBER(VALUE(MID(F'.$row.',2,1))), 2, 1))), ""))');
 
             // Fixed/locked for Tingkat
-            $valTingkat = $sheet->getCell('F'.$row)->getDataValidation();
+            $valTingkat = $sheet->getCell('G'.$row)->getDataValidation();
             $valTingkat->setType(DataValidation::TYPE_CUSTOM);
             $valTingkat->setShowErrorMessage(true);
             $valTingkat->setErrorStyle(DataValidation::STYLE_STOP);
@@ -1035,18 +1036,16 @@ class StudentController extends Controller
             $valTingkat->setFormula1('""');
 
             // Dropdown for Kelas/Rombel
-            $valClass = $sheet->getCell('E'.$row)->getDataValidation();
+            $valClass = $sheet->getCell('F'.$row)->getDataValidation();
             $valClass->setType(DataValidation::TYPE_LIST);
             $valClass->setAllowBlank(true);
             $valClass->setShowDropDown(true);
             $valClass->setFormula1('Dropdowns!$C$2:$C$200');
         }
 
-        $this->styleExampleRow($sheet, 2, 'A', 'G');
+        $this->styleExampleRow($sheet, 2, 'A', 'H');
         $sheet->freezePane('A2');
     }
-
-
 
     /**
      * Apply styled header row.

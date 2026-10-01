@@ -16,6 +16,7 @@ class StudentAcademicRecord extends Model
         'classroom_id',
         'jenjang',
         'tingkat',
+        'program',
         'student_status',
         'desil',
         'status_pip',

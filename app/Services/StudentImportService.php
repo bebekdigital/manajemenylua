@@ -76,39 +76,39 @@ class StudentImportService
                     'nipd' => $this->cleanString($row['C'] ?? null),
                     'jenjang' => $this->cleanString($row['D'] ?? null),
                     'unit' => $this->cleanString($row['E'] ?? null) ?? 'SDIT Ulil Albab Gondangrejo',
-                    'program' => $this->cleanString($row['F'] ?? null) ?? 'Umum',
-                    'jk' => $this->parseGender($row['G'] ?? null),
-                    'tempat_lahir' => $this->cleanString($row['H'] ?? null),
-                    'tanggal_lahir' => $this->parseDate($row['I'] ?? null),
-                    'nik' => $this->cleanString($row['J'] ?? null),
-                    'agama' => $this->cleanString($row['K'] ?? null) ?? 'Islam',
-                    'jalan' => $this->cleanString($row['L'] ?? null),
-                    'rt' => $this->cleanString($row['M'] ?? null),
-                    'rw' => $this->cleanString($row['N'] ?? null),
-                    'dusun' => $this->cleanString($row['O'] ?? null),
-                    'desa' => $this->cleanString($row['P'] ?? null),
-                    'kecamatan' => $this->cleanString($row['Q'] ?? null),
-                    'kabupaten' => $this->cleanString($row['R'] ?? null),
-                    'provinsi' => $this->cleanString($row['S'] ?? null),
-                    'jenis_tinggal' => $this->cleanString($row['T'] ?? null),
-                    'alat_transportasi' => $this->cleanString($row['U'] ?? null),
-                    'no_wa' => $this->cleanString($row['V'] ?? null),
-                    'email' => $this->cleanString($row['W'] ?? null),
-                    'status_kip' => strtolower($this->cleanString($row['AQ'] ?? null) ?? '') === 'ya',
-                    'no_kip' => $this->cleanString($row['AR'] ?? null),
-                    'nama_di_kip' => $this->cleanString($row['AS'] ?? null),
-                    'status_pip' => strtolower($this->cleanString($row['AT'] ?? null) ?? '') === 'ya',
-                    'pip_keterangan' => $this->cleanString($row['AU'] ?? null),
-                    'kebutuhan_khusus' => $this->cleanString($row['AV'] ?? null),
-                    'sekolah_asal' => $this->cleanString($row['AW'] ?? null),
-                    'anak_ke' => $this->cleanInteger($row['AX'] ?? null),
-                    'no_kk' => $this->cleanString($row['AY'] ?? null),
-                    'jarak_rumah' => $this->cleanString($row['AZ'] ?? null),
+                    'jk' => $this->parseGender($row['F'] ?? null),
+                    'tempat_lahir' => $this->cleanString($row['G'] ?? null),
+                    'tanggal_lahir' => $this->parseDate($row['H'] ?? null),
+                    'nik' => $this->cleanString($row['I'] ?? null),
+                    'agama' => $this->cleanString($row['J'] ?? null) ?? 'Islam',
+                    'jalan' => $this->cleanString($row['K'] ?? null),
+                    'rt' => $this->cleanString($row['L'] ?? null),
+                    'rw' => $this->cleanString($row['M'] ?? null),
+                    'dusun' => $this->cleanString($row['N'] ?? null),
+                    'desa' => $this->cleanString($row['O'] ?? null),
+                    'kecamatan' => $this->cleanString($row['P'] ?? null),
+                    'kabupaten' => $this->cleanString($row['Q'] ?? null),
+                    'provinsi' => $this->cleanString($row['R'] ?? null),
+                    'jenis_tinggal' => $this->cleanString($row['S'] ?? null),
+                    'alat_transportasi' => $this->cleanString($row['T'] ?? null),
+                    'no_wa' => $this->cleanString($row['U'] ?? null),
+                    'email' => $this->cleanString($row['V'] ?? null),
+                    'status_kip' => strtolower($this->cleanString($row['AP'] ?? null) ?? '') === 'ya',
+                    'no_kip' => $this->cleanString($row['AQ'] ?? null),
+                    'nama_di_kip' => $this->cleanString($row['AR'] ?? null),
+                    'status_pip' => strtolower($this->cleanString($row['AS'] ?? null) ?? '') === 'ya',
+                    'pip_keterangan' => $this->cleanString($row['AT'] ?? null),
+                    'kebutuhan_khusus' => $this->cleanString($row['AU'] ?? null),
+                    'sekolah_asal' => $this->cleanString($row['AV'] ?? null),
+                    'anak_ke' => $this->cleanInteger($row['AW'] ?? null),
+                    'no_kk' => $this->cleanString($row['AX'] ?? null),
+                    'jarak_rumah' => $this->cleanString($row['AY'] ?? null),
                 ];
 
                 // Filter by unit when specified
                 if ($filterUnit && $studentData['unit'] !== $filterUnit) {
                     $skippedCount++;
+
                     continue;
                 }
 
@@ -126,25 +126,25 @@ class StudentImportService
 
                 // Handle Family Data
                 $familyData = [
-                    'ayah_nama' => $this->cleanString($row['X'] ?? null),
-                    'ayah_tahun_lahir' => $this->cleanInteger($row['Y'] ?? null),
-                    'ayah_pendidikan' => $this->cleanString($row['Z'] ?? null),
-                    'ayah_pekerjaan' => $this->cleanString($row['AA'] ?? null),
-                    'ayah_penghasilan' => $this->cleanString($row['AB'] ?? null),
-                    'ayah_nik' => $this->cleanString($row['AC'] ?? null),
-                    'ibu_nama' => $this->cleanString($row['AD'] ?? null),
-                    'ibu_tahun_lahir' => $this->cleanInteger($row['AE'] ?? null),
-                    'ibu_pendidikan' => $this->cleanString($row['AF'] ?? null),
-                    'ibu_pekerjaan' => $this->cleanString($row['AG'] ?? null),
-                    'ibu_penghasilan' => $this->cleanString($row['AH'] ?? null),
-                    'ibu_nik' => $this->cleanString($row['AI'] ?? null),
-                    'wali_nama' => $this->cleanString($row['AJ'] ?? null),
-                    'wali_tahun_lahir' => $this->cleanInteger($row['AK'] ?? null),
-                    'wali_pendidikan' => $this->cleanString($row['AL'] ?? null),
-                    'wali_pekerjaan' => $this->cleanString($row['AM'] ?? null),
-                    'wali_penghasilan' => $this->cleanString($row['AN'] ?? null),
-                    'wali_nik' => $this->cleanString($row['AO'] ?? null),
-                    'wali_hubungan' => $this->cleanString($row['AP'] ?? null),
+                    'ayah_nama' => $this->cleanString($row['W'] ?? null),
+                    'ayah_tahun_lahir' => $this->cleanInteger($row['X'] ?? null),
+                    'ayah_pendidikan' => $this->cleanString($row['Y'] ?? null),
+                    'ayah_pekerjaan' => $this->cleanString($row['Z'] ?? null),
+                    'ayah_penghasilan' => $this->cleanString($row['AA'] ?? null),
+                    'ayah_nik' => $this->cleanString($row['AB'] ?? null),
+                    'ibu_nama' => $this->cleanString($row['AC'] ?? null),
+                    'ibu_tahun_lahir' => $this->cleanInteger($row['AD'] ?? null),
+                    'ibu_pendidikan' => $this->cleanString($row['AE'] ?? null),
+                    'ibu_pekerjaan' => $this->cleanString($row['AF'] ?? null),
+                    'ibu_penghasilan' => $this->cleanString($row['AG'] ?? null),
+                    'ibu_nik' => $this->cleanString($row['AH'] ?? null),
+                    'wali_nama' => $this->cleanString($row['AI'] ?? null),
+                    'wali_tahun_lahir' => $this->cleanInteger($row['AJ'] ?? null),
+                    'wali_pendidikan' => $this->cleanString($row['AK'] ?? null),
+                    'wali_pekerjaan' => $this->cleanString($row['AL'] ?? null),
+                    'wali_penghasilan' => $this->cleanString($row['AM'] ?? null),
+                    'wali_nik' => $this->cleanString($row['AN'] ?? null),
+                    'wali_hubungan' => $this->cleanString($row['AO'] ?? null),
                 ];
 
                 $hasAnyFamilyData = array_filter($familyData, fn ($val) => ! is_null($val) && $val !== '');
@@ -231,9 +231,10 @@ class StudentImportService
                     }
 
                     $student = $studentMap[$nisn];
-                    $kelasName = $this->cleanString($row['E'] ?? null);
-                    $tingkat = $this->cleanInteger($row['F'] ?? null) ?? 1;
-                    $studentStatus = strtolower($this->cleanString($row['G'] ?? null) ?? 'aktif');
+                    $program = $this->cleanString($row['E'] ?? null) ?? 'Umum';
+                    $kelasName = $this->cleanString($row['F'] ?? null);
+                    $tingkat = $this->cleanInteger($row['G'] ?? null) ?? 1;
+                    $studentStatus = strtolower($this->cleanString($row['H'] ?? null) ?? 'aktif');
 
                     // Find or create classroom
                     $classroom = null;
@@ -263,6 +264,7 @@ class StudentImportService
                             'classroom_id' => $classroom?->id,
                             'jenjang' => $student->jenjang ?? 'SD',
                             'tingkat' => $tingkat,
+                            'program' => $program,
                             'student_status' => $studentStatus,
                         ]
                     );
