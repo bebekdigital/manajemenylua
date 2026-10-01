@@ -59,7 +59,7 @@ function switchUnitTab(unitId) {
     searchQuery.value = '';
     gradeFilter.value = '';
     unitFilter.value = '';
-    statusFilter.value = '';
+    statusFilter.value = 'aktif';
     currentPage.value = 1;
 }
 
@@ -69,7 +69,7 @@ function switchUnitTab(unitId) {
 const searchQuery = ref('');
 const gradeFilter = ref('');
 const unitFilter = ref('');
-const statusFilter = ref('');
+const statusFilter = ref('aktif');
 const currentPage = ref(1);
 const perPage = ref(10);
 
@@ -151,8 +151,14 @@ const filteredStudents = computed(() => {
     }
 
     // Status filter
-    if (statusFilter.value) {
-        result = result.filter(s => s.student_status === statusFilter.value);
+    if (statusFilter.value && statusFilter.value !== 'semua') {
+        if (statusFilter.value === 'aktif') {
+            result = result.filter(s => !s.student_status || s.student_status.toLowerCase() === 'aktif');
+        } else if (statusFilter.value === 'tidak_aktif') {
+            result = result.filter(s => s.student_status && s.student_status.toLowerCase() !== 'aktif');
+        } else {
+            result = result.filter(s => s.student_status === statusFilter.value);
+        }
     }
 
     return result;
@@ -197,7 +203,7 @@ function onResetFilters() {
     searchQuery.value = '';
     unitFilter.value = '';
     gradeFilter.value = '';
-    statusFilter.value = '';
+    statusFilter.value = 'aktif';
     currentPage.value = 1;
 }
 

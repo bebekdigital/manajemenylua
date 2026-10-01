@@ -81,13 +81,16 @@ function hitungUsia(tanggalLahir) {
                     <div>
                         <h3 class="text-lg sm:text-xl font-bold text-on-surface">{{ student.nama }}</h3>
                         <p class="text-xs sm:text-sm text-on-surface-variant">NISN: {{ student.nisn }} &middot; Kelas {{ student.kelas }}</p>
-                        <span v-if="student.program" :class="[
-                            'inline-flex items-center mt-1.5 px-2 py-0.5 rounded-md text-[10px] font-semibold',
-                            student.program === 'Boarding' ? 'bg-error/10 text-error' :
-                            student.program === 'Fullday' ? 'bg-secondary/10 text-secondary' :
-                            'bg-outline-variant/10 text-on-surface-variant'
+                        <span :class="[
+                            'inline-flex items-center mt-1.5 px-2 py-0.5 rounded-md text-[10px] font-semibold border',
+                            (student.student_status || 'aktif').toLowerCase() === 'aktif' 
+                                ? 'bg-primary/10 text-primary border-primary/20' 
+                                : 'bg-error/10 text-error border-error/20'
                         ]">
-                            {{ student.program }}
+                            <span class="w-1.5 h-1.5 rounded-full mr-1.5"
+                                :class="(student.student_status || 'aktif').toLowerCase() === 'aktif' ? 'bg-primary' : 'bg-error'"
+                            ></span>
+                            {{ (student.student_status || 'aktif').toLowerCase() === 'aktif' ? 'Aktif' : 'Tidak Aktif' }}
                         </span>
                     </div>
                 </div>
