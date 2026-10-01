@@ -295,6 +295,10 @@ function hitungUsia(tanggalLahir) {
                                             <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">NIK</label>
                                             <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5 font-mono">{{ student.ayah?.nik || '-' }}</p>
                                         </div>
+                                        <div>
+                                            <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Status</label>
+                                            <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.ayah?.status || '-' }}</p>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -324,6 +328,10 @@ function hitungUsia(tanggalLahir) {
                                         <div>
                                             <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">NIK</label>
                                             <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5 font-mono">{{ student.ibu?.nik || '-' }}</p>
+                                        </div>
+                                        <div>
+                                            <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Status</label>
+                                            <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.ibu?.status || '-' }}</p>
                                         </div>
                                     </div>
                                 </div>

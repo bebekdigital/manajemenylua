@@ -248,6 +248,7 @@ class StudentController extends Controller
                 'pekerjaan' => $family->ayah_pekerjaan,
                 'penghasilan' => $family->ayah_penghasilan,
                 'nik' => $family->ayah_nik,
+                'status' => $family->ayah_status,
             ] : null,
             'ibu' => $family ? [
                 'nama' => $family->ibu_nama,
@@ -255,6 +256,7 @@ class StudentController extends Controller
                 'pekerjaan' => $family->ibu_pekerjaan,
                 'penghasilan' => $family->ibu_penghasilan,
                 'nik' => $family->ibu_nik,
+                'status' => $family->ibu_status,
             ] : null,
             'bisnis' => $family ? [
                 'has_bisnis' => $family->has_bisnis ?? false,
@@ -891,29 +893,31 @@ class StudentController extends Controller
             'Z' => ['Pekerjaan Ayah', 20],
             'AA' => ['Penghasilan Ayah', 28],
             'AB' => ['NIK Ayah', 18],
-            'AC' => ['Nama Ibu', 25],
-            'AD' => ['Tahun Lahir Ibu', 16],
-            'AE' => ['Pendidikan Ibu', 18],
-            'AF' => ['Pekerjaan Ibu', 20],
-            'AG' => ['Penghasilan Ibu', 28],
-            'AH' => ['NIK Ibu', 18],
-            'AI' => ['Nama Wali', 25],
-            'AJ' => ['Tahun Lahir Wali', 16],
-            'AK' => ['Pendidikan Wali', 18],
-            'AL' => ['Pekerjaan Wali', 20],
-            'AM' => ['Penghasilan Wali', 28],
-            'AN' => ['NIK Wali', 18],
-            'AO' => ['Hubungan Wali', 18],
-            'AP' => ['Penerima KIP (Ya/Tidak)', 25],
-            'AQ' => ['Nomor KIP', 20],
-            'AR' => ['Nama di KIP', 25],
-            'AS' => ['Kelayakan PIP (Ya/Tidak)', 25],
-            'AT' => ['Alasan Layak PIP', 30],
-            'AU' => ['Kebutuhan Khusus', 20],
-            'AV' => ['Sekolah Asal', 30],
-            'AW' => ['Anak ke -', 10],
-            'AX' => ['No KK', 18],
-            'AY' => ['Jarak Rumah ke Sekolah', 25],
+            'AC' => ['Status Ayah (Hidup/Meninggal)', 28],
+            'AD' => ['Nama Ibu', 25],
+            'AE' => ['Tahun Lahir Ibu', 16],
+            'AF' => ['Pendidikan Ibu', 18],
+            'AG' => ['Pekerjaan Ibu', 20],
+            'AH' => ['Penghasilan Ibu', 28],
+            'AI' => ['NIK Ibu', 18],
+            'AJ' => ['Status Ibu (Hidup/Meninggal)', 28],
+            'AK' => ['Nama Wali', 25],
+            'AL' => ['Tahun Lahir Wali', 16],
+            'AM' => ['Pendidikan Wali', 18],
+            'AN' => ['Pekerjaan Wali', 20],
+            'AO' => ['Penghasilan Wali', 28],
+            'AP' => ['NIK Wali', 18],
+            'AQ' => ['Hubungan Wali', 18],
+            'AR' => ['Penerima KIP (Ya/Tidak)', 25],
+            'AS' => ['Nomor KIP', 20],
+            'AT' => ['Nama di KIP', 25],
+            'AU' => ['Kelayakan PIP (Ya/Tidak)', 25],
+            'AV' => ['Alasan Layak PIP', 30],
+            'AW' => ['Kebutuhan Khusus', 20],
+            'AX' => ['Sekolah Asal', 30],
+            'AY' => ['Anak ke -', 10],
+            'AZ' => ['No KK', 18],
+            'BA' => ['Jarak Rumah ke Sekolah', 25],
         ];
 
         $this->applySheetHeaders($sheet, $headers, '004B23');
@@ -962,9 +966,21 @@ class StudentController extends Controller
             $valJk->setAllowBlank(true);
             $valJk->setShowDropDown(true);
             $valJk->setFormula1('"L,P"');
+
+            $valStatusAyah = $sheet->getCell('AC'.$row)->getDataValidation();
+            $valStatusAyah->setType(DataValidation::TYPE_LIST);
+            $valStatusAyah->setAllowBlank(true);
+            $valStatusAyah->setShowDropDown(true);
+            $valStatusAyah->setFormula1('"Hidup,Meninggal"');
+
+            $valStatusIbu = $sheet->getCell('AJ'.$row)->getDataValidation();
+            $valStatusIbu->setType(DataValidation::TYPE_LIST);
+            $valStatusIbu->setAllowBlank(true);
+            $valStatusIbu->setShowDropDown(true);
+            $valStatusIbu->setFormula1('"Hidup,Meninggal"');
         }
 
-        $this->styleExampleRow($sheet, 2, 'A', 'AY');
+        $this->styleExampleRow($sheet, 2, 'A', 'BA');
         $sheet->freezePane('A2');
     }
 
