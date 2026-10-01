@@ -11,6 +11,10 @@ const props = defineProps({
         type: Object,
         default: null,
     },
+    schoolUnit: {
+        type: Object,
+        default: null,
+    }
 });
 
 const emit = defineEmits(['close', 'success']);
@@ -20,7 +24,7 @@ const form = useForm({
 });
 
 const isEditing = computed(() => !!props.editing);
-const modalTitle = computed(() => isEditing.value ? 'Edit Program Sekolah' : 'Tambah Program Sekolah');
+const modalTitle = computed(() => isEditing.value ? 'Edit Program' : 'Tambah Program');
 
 watch(
     () => props.show,
@@ -43,7 +47,7 @@ function submit() {
             onSuccess: () => emit('success'),
         });
     } else {
-        form.post('/portal/school-programs', {
+        form.post(`/portal/school-units/${props.schoolUnit.id}/programs`, {
             preserveScroll: true,
             onSuccess: () => emit('success'),
         });
@@ -83,6 +87,11 @@ function submit() {
                         </div>
 
                         <form @submit.prevent="submit" class="px-6 py-5 space-y-5">
+                            <div v-if="schoolUnit && !isEditing" class="p-3 bg-surface-container-low rounded-xl border border-outline-variant/40 text-sm">
+                                <span class="text-on-surface-variant">Menambahkan program untuk unit: </span>
+                                <strong class="text-on-surface">{{ schoolUnit.name }}</strong>
+                            </div>
+
                             <div>
                                 <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
                                     Nama Program <span class="text-error">*</span>

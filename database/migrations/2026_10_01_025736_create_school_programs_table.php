@@ -13,8 +13,12 @@ return new class extends Migration
     {
         Schema::create('school_programs', function (Blueprint $table) {
             $table->id();
-            $table->string('name')->unique();
+            $table->foreignId('school_unit_id')->constrained()->cascadeOnDelete();
+            $table->string('name');
             $table->timestamps();
+
+            // A unit shouldn't have duplicate program names
+            $table->unique(['school_unit_id', 'name']);
         });
     }
 

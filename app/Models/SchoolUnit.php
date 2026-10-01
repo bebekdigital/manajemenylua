@@ -12,4 +12,9 @@ class SchoolUnit extends Model
     {
         return $this->belongsTo(SchoolLevel::class, 'school_level_id');
     }
+
+    public function programs()
+    {
+        return $this->hasMany(SchoolProgram::class);
+    }
 }
