@@ -28,12 +28,11 @@ const page = usePage();
 // Unit Tabs
 // ============================================================
 const unitTabs = [
-    { id: 'all', label: 'Semua', icon: 'groups' },
     { id: 'SDIT', label: 'SDIT', icon: 'school' },
     { id: 'SMPIT', label: 'SMPIT', icon: 'domain' },
 ];
 
-const activeUnitTab = ref('all');
+const activeUnitTab = ref('SDIT');
 
 const unitTabStudents = computed(() => {
     if (activeUnitTab.value === 'all') return props.students;

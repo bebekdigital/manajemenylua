@@ -107,10 +107,25 @@ class StudentImportService
                 ];
 
                 // Filter by unit when specified
-                if ($filterUnit && $studentData['unit'] !== $filterUnit) {
-                    $skippedCount++;
-
-                    continue;
+                if ($filterUnit && $filterUnit !== 'all') {
+                    $u = strtoupper($studentData['unit'] ?? '');
+                    if ($filterUnit === 'SDIT') {
+                        if (!str_contains($u, 'SDIT') && !str_contains($u, 'SD IT')) {
+                            $skippedCount++;
+                            continue;
+                        }
+                    } elseif ($filterUnit === 'SMPIT') {
+                        if (!str_contains($u, 'SMPIT') && !str_contains($u, 'SMP IT')) {
+                            $skippedCount++;
+                            continue;
+                        }
+                    } else {
+                        // Fallback generic check
+                        if (!str_contains($u, strtoupper($filterUnit))) {
+                            $skippedCount++;
+                            continue;
+                        }
+                    }
                 }
 
                 $student = Student::where('nisn', $nisn)->first();
