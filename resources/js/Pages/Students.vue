@@ -238,7 +238,7 @@ function unitStudentCount(unitId) {
                     <button
                         type="button"
                         @click="showEditDropdown = !showEditDropdown"
-                        class="inline-flex items-center justify-between gap-2 px-3 py-1.5 sm:px-4 sm:py-2.5 rounded-lg sm:rounded-xl border border-primary text-primary bg-primary/10 hover:bg-primary/20 active:bg-primary/30 font-semibold text-[11px] sm:text-sm transition-all shadow-2xs hover:shadow-sm"
+                        class="inline-flex items-center justify-between gap-2 px-3 py-1.5 sm:px-4 sm:py-2.5 rounded-lg sm:rounded-xl border border-amber-500 text-amber-700 bg-amber-50 hover:bg-amber-100 active:bg-amber-200 font-semibold text-[11px] sm:text-sm transition-all shadow-2xs hover:shadow-sm"
                     >
                         <div class="flex items-center gap-1.5">
                             <span class="material-symbols-outlined text-[16px] sm:text-[18px]">edit</span>
