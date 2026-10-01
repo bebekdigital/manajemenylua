@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\AcademicYear;
 use App\Models\Classroom;
 use App\Models\SchoolClass;
+use App\Models\SchoolLevel;
 use App\Models\SchoolProgram;
 use App\Models\SchoolUnit;
 use App\Models\Student;
