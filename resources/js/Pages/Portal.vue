@@ -22,6 +22,17 @@ const props = defineProps({
 
 const page = usePage();
 
+const activeTab = ref('pendidikan');
+const tabs = computed(() => {
+    const list = [
+        { id: 'pendidikan', label: 'Pendidikan', icon: 'school' }
+    ];
+    if (page.props.auth?.user?.role === 'superadmin') {
+        list.push({ id: 'pengguna', label: 'Pengguna', icon: 'manage_accounts' });
+    }
+    return list;
+});
+
 const showFormModal = ref(false);
 const editingYear = ref(null);
 
@@ -186,8 +197,29 @@ function formatDate(dateStr) {
             </button>
         </div>
 
-        <!-- Academic Year Section -->
-        <div class="bg-surface-container-lowest rounded-2xl border border-primary/10 shadow-[0px_4px_20px_rgba(0,40,20,0.06)] overflow-hidden">
+        <!-- Tabs -->
+        <div class="mb-6 flex border-b border-outline-variant/30 overflow-x-auto">
+            <button
+                v-for="tab in tabs"
+                :key="tab.id"
+                type="button"
+                @click="activeTab = tab.id"
+                :class="[
+                    'flex items-center gap-2 px-5 py-3 text-sm font-medium transition-colors whitespace-nowrap border-b-2 rounded-t-lg',
+                    activeTab === tab.id
+                        ? 'text-primary border-primary bg-gradient-to-t from-primary/20 to-transparent'
+                        : 'text-on-surface-variant border-transparent hover:text-on-surface hover:border-outline-variant'
+                ]"
+            >
+                <span class="material-symbols-outlined text-[18px]">{{ tab.icon }}</span>
+                <span>{{ tab.label }}</span>
+            </button>
+        </div>
+
+        <!-- Tab Content: Pendidikan -->
+        <div v-show="activeTab === 'pendidikan'" class="space-y-8 animate-in fade-in duration-300">
+            <!-- Academic Year Section -->
+            <div class="bg-surface-container-lowest rounded-2xl border border-primary/10 shadow-[0px_4px_20px_rgba(0,40,20,0.06)] overflow-hidden">
             <!-- Section Header -->
             <div class="flex items-center justify-between px-5 py-4 border-b border-outline-variant/30">
                 <div class="flex items-center gap-3">
@@ -324,9 +356,60 @@ function formatDate(dateStr) {
                 </button>
             </div>
         </div>
+
+            <!-- School Levels & Units Section -->
+            <div class="bg-surface-container-lowest rounded-2xl border border-primary/10 shadow-[0px_4px_20px_rgba(0,40,20,0.06)] overflow-hidden">
+                <!-- Section Header -->
+                <div class="flex items-center justify-between px-5 py-4 border-b border-outline-variant/30">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                            <span class="material-symbols-outlined text-primary text-xl">domain</span>
+                        </div>
+                        <div>
+                            <h3 class="text-base font-bold text-on-surface">Jenjang & Unit Sekolah</h3>
+                            <p class="text-xs text-on-surface-variant">Kelola jenjang pendidikan dan unit di bawah naungan yayasan</p>
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-container text-on-primary font-semibold text-sm transition-all shadow-xs hover:shadow-md cursor-pointer"
+                    >
+                        <span class="material-symbols-outlined text-[18px]">add</span>
+                        <span>Tambah Jenjang</span>
+                    </button>
+                </div>
+
+                <!-- Table -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="bg-surface-container-low/50">
+                                <th class="text-left px-5 py-3 font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Jenjang</th>
+                                <th class="text-left px-5 py-3 font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Daftar Unit</th>
+                                <th class="text-center px-5 py-3 font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-outline-variant/20">
+                            <!-- Temporary Data -->
+                            <tr v-for="jenjang in ['TK', 'SD', 'SMP', 'SMA']" :key="jenjang" class="hover:bg-surface-container-low/40 transition-colors">
+                                <td class="px-5 py-3.5"><span class="font-semibold text-on-surface">{{ jenjang }}</span></td>
+                                <td class="px-5 py-3.5 text-on-surface-variant italic">Belum ada unit ditambahkan</td>
+                                <td class="px-5 py-3.5 text-center">
+                                    <button type="button" class="p-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer" title="Edit Unit">
+                                        <span class="material-symbols-outlined text-[18px]">edit</span>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
         
-        <!-- User Management Section (Superadmin Only) -->
-        <div v-if="$page.props.auth?.user?.role === 'superadmin'" class="bg-surface-container-lowest rounded-2xl border border-primary/10 shadow-[0px_4px_20px_rgba(0,40,20,0.06)] overflow-hidden mt-8">
+        <!-- Tab Content: Pengguna -->
+        <div v-show="activeTab === 'pengguna'" class="space-y-8 animate-in fade-in duration-300">
+            <!-- User Management Section (Superadmin Only) -->
+            <div v-if="$page.props.auth?.user?.role === 'superadmin'" class="bg-surface-container-lowest rounded-2xl border border-primary/10 shadow-[0px_4px_20px_rgba(0,40,20,0.06)] overflow-hidden">
             <!-- Section Header -->
             <div class="flex items-center justify-between px-5 py-4 border-b border-outline-variant/30">
                 <div class="flex items-center gap-3">
@@ -425,6 +508,7 @@ function formatDate(dateStr) {
             <div v-if="users.length === 0" class="px-5 py-10 text-center text-on-surface-variant">
                 Belum ada data pengguna lainnya.
             </div>
+        </div>
         </div>
     </div>
 
