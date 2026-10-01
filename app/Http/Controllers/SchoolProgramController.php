@@ -36,7 +36,7 @@ class SchoolProgramController extends Controller
             ->where('name', $validated['name'])
             ->where('id', '!=', $schoolProgram->id)
             ->exists();
-            
+
         if ($exists) {
             return back()->with('error', 'Program sudah ada di unit ini.');
         }

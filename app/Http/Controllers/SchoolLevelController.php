@@ -25,7 +25,7 @@ class SchoolLevelController extends Controller
     public function update(Request $request, SchoolLevel $schoolLevel)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:school_levels,name,' . $schoolLevel->id,
+            'name' => 'required|string|max:255|unique:school_levels,name,'.$schoolLevel->id,
             'order' => 'integer|min:0',
         ]);
 

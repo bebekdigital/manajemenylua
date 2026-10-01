@@ -24,7 +24,7 @@ class SchoolUnitController extends Controller
     public function update(Request $request, SchoolUnit $schoolUnit)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:school_units,name,' . $schoolUnit->id,
+            'name' => 'required|string|max:255|unique:school_units,name,'.$schoolUnit->id,
         ]);
 
         $schoolUnit->update([

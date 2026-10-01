@@ -256,8 +256,8 @@ class StudentImportService
 
                     $student = $studentMap[$nisn];
                     $jenjang = strtoupper($this->cleanString($row['D'] ?? null) ?? 'SD');
-                    $tingkat = $this->cleanInteger($row['E'] ?? null) ?? 1;
-                    $kelasName = $this->cleanString($row['F'] ?? null);
+                    $kelasName = $this->cleanString($row['E'] ?? null);
+                    $tingkat = $this->cleanInteger($row['F'] ?? null) ?? 1;
                     $studentStatus = strtolower($this->cleanString($row['G'] ?? null) ?? 'aktif');
                     $desil = $this->cleanInteger($row['H'] ?? null);
                     $statusPip = $this->parseBoolean($row['I'] ?? null);

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\AcademicYear;
+use App\Models\SchoolLevel;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -29,7 +31,7 @@ class AcademicYearController extends Controller
                 'classrooms_count' => $year->classrooms()->count(),
             ]);
 
-        $users = \App\Models\User::orderBy('name')->get()->map(fn ($user) => [
+        $users = User::orderBy('name')->get()->map(fn ($user) => [
             'id' => $user->id,
             'name' => $user->name,
             'username' => $user->username,
@@ -38,7 +40,7 @@ class AcademicYearController extends Controller
             'created_at' => $user->created_at?->format('Y-m-d H:i'),
         ]);
 
-        $schoolLevels = \App\Models\SchoolLevel::with(['units.programs', 'units.classes'])->orderBy('order')->get();
+        $schoolLevels = SchoolLevel::with(['units.programs', 'units.classes'])->orderBy('order')->get();
 
         return Inertia::render('Portal', [
             'academicYears' => $academicYears,

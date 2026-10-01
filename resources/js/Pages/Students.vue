@@ -293,7 +293,7 @@ function unitStudentCount(unitId) {
                     <!-- Dropdown Menu -->
                     <div v-show="showTemplateDropdown" class="absolute left-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-slate-200 z-50 overflow-hidden py-1">
                         <a
-                            href="/students/template"
+                            :href="`/students/template?tab=${activeUnitTab}`"
                             download
                             class="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-700 hover:bg-primary/10 hover:text-primary transition-colors w-full text-left"
                             @click="showTemplateDropdown = false"

@@ -29,7 +29,7 @@ class UserController extends Controller
         ]);
 
         if (empty($validated['email'])) {
-            $validated['email'] = $validated['username'] . '@ulilalbabkra.sch.id';
+            $validated['email'] = $validated['username'].'@ulilalbabkra.sch.id';
         }
 
         $validated['password'] = Hash::make($validated['password']);
@@ -57,10 +57,10 @@ class UserController extends Controller
         ]);
 
         if (empty($validated['email'])) {
-            $validated['email'] = $validated['username'] . '@ulilalbabkra.sch.id';
+            $validated['email'] = $validated['username'].'@ulilalbabkra.sch.id';
         }
 
-        if (!empty($validated['password'])) {
+        if (! empty($validated['password'])) {
             $validated['password'] = Hash::make($validated['password']);
         } else {
             unset($validated['password']);

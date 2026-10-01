@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\AcademicYear;
 use App\Models\Classroom;
+use App\Models\SchoolClass;
+use App\Models\SchoolProgram;
+use App\Models\SchoolUnit;
 use App\Models\Student;
 use App\Models\StudentAcademicRecord;
 use App\Models\StudentFamily;
@@ -16,10 +19,12 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
+use PhpOffice\PhpSpreadsheet\Cell\DataValidation;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
@@ -749,20 +754,49 @@ class StudentController extends Controller
     /**
      * Stream the XLSX import template as a download.
      */
-    public function downloadTemplate(): HttpResponse
+    public function downloadTemplate(Request $request): HttpResponse
     {
+        $tab = $request->query('tab', 'all');
+
+        $units = collect();
+        $programs = collect();
+        $classes = collect();
+        $jenjang = null;
+
+        if ($tab !== 'all') {
+            $unit = SchoolUnit::where('name', 'like', "%{$tab}%")->with('level')->first();
+            if ($unit && $unit->level) {
+                $jenjang = $unit->level->name;
+                $units = SchoolUnit::where('school_level_id', $unit->school_level_id)->pluck('name');
+                $programs = SchoolProgram::whereHas('unit', fn ($q) => $q->where('school_level_id', $unit->school_level_id))->pluck('name');
+                $classes = SchoolClass::whereHas('unit', fn ($q) => $q->where('school_level_id', $unit->school_level_id))->pluck('name');
+            } else {
+                $units = SchoolUnit::pluck('name');
+                $programs = SchoolProgram::pluck('name');
+                $classes = SchoolClass::pluck('name');
+            }
+        } else {
+            $units = SchoolUnit::pluck('name');
+            $programs = SchoolProgram::pluck('name');
+            $classes = SchoolClass::pluck('name');
+        }
+
         $spreadsheet = new Spreadsheet;
         $spreadsheet->getProperties()
             ->setCreator('Sistem Manajemen Sekolah')
             ->setTitle('Template Import Data Siswa');
 
+        $this->buildDropdownsSheet($spreadsheet, $units, $programs, $classes);
         $this->buildSheet1($spreadsheet);
         $this->buildSheet2($spreadsheet);
         $this->buildSheet3($spreadsheet);
         $this->buildSheet4($spreadsheet);
-        $this->buildSheet5($spreadsheet);
+        $this->buildSheet5($spreadsheet, $jenjang);
         $this->buildSheetPanduan($spreadsheet);
-        $spreadsheet->setActiveSheetIndex(0);
+
+        // Remove default sheet 0 if it was created by new Spreadsheet but we shifted things.
+        // Actually createSheet(0) shifts existing sheets, so index 1 is now Sheet 1.
+        $spreadsheet->setActiveSheetIndex(1);
 
         ob_start();
         $writer = new Xlsx($spreadsheet);
@@ -776,6 +810,31 @@ class StudentController extends Controller
             'Content-Disposition' => "attachment; filename=\"{$filename}\"",
             'Cache-Control' => 'max-age=0',
         ]);
+    }
+
+    private function buildDropdownsSheet(Spreadsheet $spreadsheet, $units, $programs, $classes): void
+    {
+        // Insert as the very first sheet
+        $sheet = $spreadsheet->createSheet(0);
+        $sheet->setTitle('Dropdowns');
+
+        $sheet->setCellValue('A1', 'Units');
+        foreach ($units as $index => $val) {
+            $sheet->setCellValue('A'.($index + 2), $val);
+        }
+
+        $sheet->setCellValue('B1', 'Programs');
+        foreach ($programs as $index => $val) {
+            $sheet->setCellValue('B'.($index + 2), $val);
+        }
+
+        $sheet->setCellValue('C1', 'Classes');
+        foreach ($classes as $index => $val) {
+            $sheet->setCellValue('C'.($index + 2), $val);
+        }
+
+        // Hide the sheet
+        $sheet->setSheetState(Worksheet::SHEETSTATE_HIDDEN);
     }
 
     // ----------------------------------------------------------------
@@ -819,6 +878,20 @@ class StudentController extends Controller
             'Anak Kandung', '1', '7', '2024-07-15',
             'Rekomendasi Teman',
         ]], null, 'A2');
+
+        for ($row = 2; $row <= 1000; $row++) {
+            $valUnit = $sheet->getCell('F'.$row)->getDataValidation();
+            $valUnit->setType(DataValidation::TYPE_LIST);
+            $valUnit->setAllowBlank(true);
+            $valUnit->setShowDropDown(true);
+            $valUnit->setFormula1('Dropdowns!$A$2:$A$200');
+
+            $valProgram = $sheet->getCell('G'.$row)->getDataValidation();
+            $valProgram->setType(DataValidation::TYPE_LIST);
+            $valProgram->setAllowBlank(true);
+            $valProgram->setShowDropDown(true);
+            $valProgram->setFormula1('Dropdowns!$B$2:$B$200');
+        }
 
         $this->styleExampleRow($sheet, 2, 'A', 'R');
         $sheet->freezePane('A2');
@@ -920,7 +993,7 @@ class StudentController extends Controller
         $sheet->freezePane('A2');
     }
 
-    private function buildSheet5(Spreadsheet $spreadsheet): void
+    private function buildSheet5(Spreadsheet $spreadsheet, ?string $jenjang = null): void
     {
         $sheet = $spreadsheet->createSheet();
         $sheet->setTitle('5. Data Akademik (per TA)');
@@ -929,9 +1002,9 @@ class StudentController extends Controller
             'A' => ['NISN', 12],
             'B' => ['Tahun Ajaran', 14],
             'C' => ['Semester', 12],
-            'D' => ['Jenjang (SD/SMP)', 16],
-            'E' => ['Tingkat (1-9)', 14],
-            'F' => ['Kelas/Rombel', 16],
+            'D' => ['Jenjang', 16],
+            'E' => ['Kelas/Rombel', 16],
+            'F' => ['Tingkat', 14],
             'G' => ['Status Siswa', 16],
             'H' => ['Desil (1-10)', 14],
             'I' => ['Status PIP (Ya/Tidak)', 20],
@@ -943,9 +1016,32 @@ class StudentController extends Controller
         $this->applySheetHeaders($sheet, $headers, '004D40');
 
         $sheet->fromArray([[
-            '0051234001', '2025/2026', 'Ganjil', 'SD', '5', '5A',
+            '0051234001', '2025/2026', 'Ganjil', $jenjang ?? 'SD', '5A', '',
             'aktif', '3', 'Ya', 'Penerima PIP tahap 1 TA 2025/2026', 'Ya', '6071012345670001',
         ]], null, 'A2');
+
+        for ($row = 2; $row <= 1000; $row++) {
+            // Formula for Tingkat based on Kelas
+            $sheet->setCellValue('F'.$row, '=IF(E'.$row.'="","",IFERROR(VALUE(LEFT(E'.$row.', IF(ISNUMBER(VALUE(MID(E'.$row.',2,1))), 2, 1))), ""))');
+
+            // Dropdown for Kelas/Rombel
+            $valClass = $sheet->getCell('E'.$row)->getDataValidation();
+            $valClass->setType(DataValidation::TYPE_LIST);
+            $valClass->setAllowBlank(true);
+            $valClass->setShowDropDown(true);
+            $valClass->setFormula1('Dropdowns!$C$2:$C$200');
+
+            // Dropdown/fixed for Jenjang
+            if ($jenjang) {
+                if ($row > 2) { // row 2 already set by fromArray but let's be safe
+                    $sheet->setCellValue('D'.$row, $jenjang);
+                }
+                $valJenjang = $sheet->getCell('D'.$row)->getDataValidation();
+                $valJenjang->setType(DataValidation::TYPE_LIST);
+                $valJenjang->setShowDropDown(true);
+                $valJenjang->setFormula1('"'.$jenjang.'"');
+            }
+        }
 
         $this->styleExampleRow($sheet, 2, 'A', 'L');
         $sheet->freezePane('A2');
