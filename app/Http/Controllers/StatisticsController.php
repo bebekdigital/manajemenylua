@@ -17,6 +17,10 @@ class StatisticsController extends Controller
      */
     public function index(Request $request): Response
     {
+        // Auto-fix for any incorrect jenjang in classrooms table
+        Classroom::where('unit', 'LIKE', '%SMP%')->where('jenjang', 'SD')->update(['jenjang' => 'SMP']);
+        Classroom::where('unit', 'LIKE', '%SD%')->where('jenjang', 'SMP')->update(['jenjang' => 'SD']);
+
         $selectedYearId = $request->query('academic_year_id') ?? session('selected_academic_year_id');
         $selectedYear = $selectedYearId
             ? AcademicYear::find($selectedYearId)

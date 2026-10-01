@@ -274,6 +274,11 @@ class StudentImportService
                                 'name' => $kelasName,
                                 'capacity' => 30,
                             ]);
+                        } else {
+                            $excelJenjang = $student->jenjang_from_excel ?? 'SD';
+                            if ($classroom->jenjang !== $excelJenjang) {
+                                $classroom->update(['jenjang' => $excelJenjang]);
+                            }
                         }
                     }
 
