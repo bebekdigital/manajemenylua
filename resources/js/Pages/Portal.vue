@@ -488,73 +488,102 @@ function formatDate(dateStr) {
                     <table class="w-full text-sm">
                         <thead>
                             <tr class="bg-surface-container-low/50">
-                                <th class="text-left px-5 py-3 font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Jenjang</th>
-                                <th class="text-left px-5 py-3 font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Daftar Unit</th>
-                                <th class="text-center px-5 py-3 font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Aksi</th>
+                                <th class="text-left px-5 py-3 font-semibold text-on-surface-variant text-xs uppercase tracking-wider w-1/4">Jenjang</th>
+                                <th class="text-left px-5 py-3 font-semibold text-on-surface-variant text-xs uppercase tracking-wider w-1/3 border-l border-outline-variant/10">Unit Sekolah</th>
+                                <th class="text-left px-5 py-3 font-semibold text-on-surface-variant text-xs uppercase tracking-wider border-l border-outline-variant/10">Program Pendidikan</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-outline-variant/20">
-                            <tr v-for="level in schoolLevels" :key="level.id" class="hover:bg-surface-container-low/40 transition-colors">
-                                <td class="px-5 py-3.5 align-top">
-                                    <span class="font-semibold text-on-surface">{{ level.name }}</span>
-                                </td>
-                                <td class="px-5 py-3.5 align-top">
-                                    <div v-if="level.units && level.units.length > 0" class="flex flex-col gap-3">
-                                        <div v-for="unit in level.units" :key="unit.id" class="flex flex-col gap-2 p-3 bg-surface-variant/20 border border-outline-variant/40 rounded-xl">
-                                            <div class="flex items-center justify-between">
-                                                <span class="text-sm font-bold text-on-surface">{{ unit.name }}</span>
-                                                <div class="flex items-center gap-1">
-                                                    <button type="button" @click="openUnitEditModal(unit, level)" class="text-on-surface-variant hover:text-primary" title="Edit Unit">
+                            <template v-for="level in schoolLevels" :key="level.id">
+                                <!-- State: Belum ada unit -->
+                                <tr v-if="!level.units || level.units.length === 0" class="hover:bg-surface-container-low/40 transition-colors border-b border-outline-variant/20">
+                                    <td class="px-5 py-4 align-top border-r border-outline-variant/10">
+                                        <div class="font-bold text-on-surface text-base mb-2">{{ level.name }}</div>
+                                        <div class="flex items-center gap-1.5 flex-wrap">
+                                            <button type="button" @click="openLevelEditModal(level)" class="p-1.5 rounded-md bg-surface-container-high text-on-surface-variant hover:text-primary hover:bg-primary/10 transition-colors" title="Edit Jenjang">
+                                                <span class="material-symbols-outlined text-[16px]">edit</span>
+                                            </button>
+                                            <button type="button" @click="confirmLevelDelete(level)" class="p-1.5 rounded-md bg-surface-container-high text-on-surface-variant hover:text-error hover:bg-error/10 transition-colors" title="Hapus Jenjang">
+                                                <span class="material-symbols-outlined text-[16px]">delete</span>
+                                            </button>
+                                            <button type="button" @click="openUnitCreateModal(level)" class="inline-flex items-center gap-1 px-2 py-1.5 rounded-md bg-primary/10 text-primary hover:bg-primary hover:text-on-primary transition-colors text-xs font-semibold">
+                                                <span class="material-symbols-outlined text-[14px]">add</span> Unit Baru
+                                            </button>
+                                        </div>
+                                    </td>
+                                    <td colspan="2" class="px-5 py-4 align-middle text-on-surface-variant italic text-sm">
+                                        Belum ada unit sekolah ditambahkan.
+                                    </td>
+                                </tr>
+
+                                <!-- State: Ada unit -->
+                                <template v-else>
+                                    <tr v-for="(unit, index) in level.units" :key="unit.id" class="hover:bg-surface-container-low/40 transition-colors border-b border-outline-variant/10 group/row">
+                                        
+                                        <!-- Kolom Jenjang (Hanya di baris pertama, di-rowspan) -->
+                                        <td v-if="index === 0" :rowspan="level.units.length" class="px-5 py-4 align-top bg-surface-container-lowest border-r border-outline-variant/10 border-b border-outline-variant/20">
+                                            <div class="font-bold text-on-surface text-base mb-2">{{ level.name }}</div>
+                                            <div class="flex items-center gap-1.5 flex-wrap">
+                                                <button type="button" @click="openLevelEditModal(level)" class="p-1.5 rounded-md bg-surface-container-high text-on-surface-variant hover:text-primary hover:bg-primary/10 transition-colors" title="Edit Jenjang">
+                                                    <span class="material-symbols-outlined text-[16px]">edit</span>
+                                                </button>
+                                                <button type="button" @click="confirmLevelDelete(level)" class="p-1.5 rounded-md bg-surface-container-high text-on-surface-variant hover:text-error hover:bg-error/10 transition-colors" title="Hapus Jenjang">
+                                                    <span class="material-symbols-outlined text-[16px]">delete</span>
+                                                </button>
+                                                <button type="button" @click="openUnitCreateModal(level)" class="inline-flex items-center gap-1 px-2 py-1.5 rounded-md bg-primary/10 text-primary hover:bg-primary hover:text-on-primary transition-colors text-xs font-semibold">
+                                                    <span class="material-symbols-outlined text-[14px]">add</span> Unit Baru
+                                                </button>
+                                            </div>
+                                        </td>
+
+                                        <!-- Kolom Unit -->
+                                        <td class="px-5 py-4 align-top border-r border-outline-variant/10">
+                                            <div class="flex items-start justify-between gap-2">
+                                                <span class="font-semibold text-on-surface">{{ unit.name }}</span>
+                                                <div class="flex items-center gap-1 opacity-0 group-hover/row:opacity-100 transition-opacity shrink-0">
+                                                    <button type="button" @click="openUnitEditModal(unit, level)" class="p-1 rounded text-on-surface-variant hover:text-primary hover:bg-primary/10 transition-colors" title="Edit Unit">
                                                         <span class="material-symbols-outlined text-[16px]">edit</span>
                                                     </button>
-                                                    <button type="button" @click="confirmUnitDelete(unit)" class="text-on-surface-variant hover:text-error" title="Hapus Unit">
+                                                    <button type="button" @click="confirmUnitDelete(unit)" class="p-1 rounded text-on-surface-variant hover:text-error hover:bg-error/10 transition-colors" title="Hapus Unit">
                                                         <span class="material-symbols-outlined text-[16px]">close</span>
                                                     </button>
                                                 </div>
                                             </div>
-                                            
-                                            <!-- Programs under Unit -->
-                                            <div class="pl-2 border-l-2 border-outline-variant/30 flex flex-wrap gap-1.5 items-center">
-                                                <span class="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mr-1">Program:</span>
-                                                <div v-if="unit.programs && unit.programs.length > 0" class="flex flex-wrap gap-1.5">
-                                                    <div v-for="program in unit.programs" :key="program.id" class="inline-flex items-center gap-1 bg-surface-container-high border border-outline-variant/30 px-2 py-0.5 rounded-md">
-                                                        <span class="text-xs text-on-surface">{{ program.name }}</span>
-                                                        <button type="button" @click="openProgramEditModal(program, unit)" class="text-on-surface-variant hover:text-primary" title="Edit Program">
-                                                            <span class="material-symbols-outlined text-[12px]">edit</span>
-                                                        </button>
-                                                        <button type="button" @click="confirmProgramDelete(program)" class="text-on-surface-variant hover:text-error" title="Hapus Program">
-                                                            <span class="material-symbols-outlined text-[12px]">close</span>
-                                                        </button>
+                                        </td>
+
+                                        <!-- Kolom Program -->
+                                        <td class="px-5 py-4 align-top">
+                                            <div class="flex flex-col gap-2.5">
+                                                <div v-if="unit.programs && unit.programs.length > 0" class="flex flex-wrap gap-2">
+                                                    <div v-for="program in unit.programs" :key="program.id" class="group/pill inline-flex items-center gap-1 bg-surface-container-high border border-outline-variant/40 pl-2.5 pr-1 py-1 rounded-lg hover:border-primary/30 transition-colors">
+                                                        <span class="text-xs font-medium text-on-surface">{{ program.name }}</span>
+                                                        <div class="flex items-center ml-1">
+                                                            <button type="button" @click="openProgramEditModal(program, unit)" class="text-on-surface-variant hover:text-primary transition-colors p-0.5 rounded" title="Edit Program">
+                                                                <span class="material-symbols-outlined text-[14px]">edit</span>
+                                                            </button>
+                                                            <button type="button" @click="confirmProgramDelete(program)" class="text-on-surface-variant hover:text-error transition-colors p-0.5 rounded" title="Hapus Program">
+                                                                <span class="material-symbols-outlined text-[14px]">close</span>
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                                <span v-else class="text-xs text-on-surface-variant italic">Belum ada</span>
+                                                <div v-else class="text-xs text-on-surface-variant italic">Belum ada program.</div>
                                                 
-                                                <button type="button" @click="openProgramCreateModal(unit)" class="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:bg-primary/10 px-1.5 py-0.5 rounded-md transition-colors">
-                                                    <span class="material-symbols-outlined text-[12px]">add</span> Tambah Program
-                                                </button>
+                                                <div>
+                                                    <button type="button" @click="openProgramCreateModal(unit)" class="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:bg-primary/10 px-2 py-1 rounded-md transition-colors border border-primary/20 hover:border-primary/40">
+                                                        <span class="material-symbols-outlined text-[14px]">add</span> Tambah Program
+                                                    </button>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </div>
-                                    <div v-else class="text-on-surface-variant italic text-sm">Belum ada unit ditambahkan</div>
-                                    
-                                    <button type="button" @click="openUnitCreateModal(level)" class="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:bg-primary/10 px-2 py-1 rounded-lg transition-colors">
-                                        <span class="material-symbols-outlined text-[14px]">add</span> Tambah Unit Baru
-                                    </button>
-                                </td>
-                                <td class="px-5 py-3.5 text-center align-top">
-                                    <div class="flex items-center justify-center gap-1">
-                                        <button type="button" @click="openLevelEditModal(level)" class="p-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer" title="Edit Jenjang">
-                                            <span class="material-symbols-outlined text-[18px]">edit</span>
-                                        </button>
-                                        <button type="button" @click="confirmLevelDelete(level)" class="p-2 rounded-lg text-on-surface-variant hover:text-error hover:bg-error/10 transition-colors cursor-pointer" title="Hapus Jenjang">
-                                            <span class="material-symbols-outlined text-[18px]">delete</span>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </template>
+
                             <tr v-if="schoolLevels.length === 0">
-                                <td colspan="3" class="px-5 py-8 text-center text-on-surface-variant text-sm">
-                                    Belum ada jenjang pendidikan. Silakan tambah jenjang pertama Anda.
+                                <td colspan="3" class="px-5 py-12 text-center text-on-surface-variant">
+                                    <span class="material-symbols-outlined text-4xl mb-2 opacity-50">domain_disabled</span>
+                                    <p class="text-sm">Belum ada jenjang pendidikan.<br/>Silakan tambah jenjang pertama Anda.</p>
                                 </td>
                             </tr>
                         </tbody>
