@@ -7,6 +7,7 @@ import UserFormModal from '@/Components/Portal/UserFormModal.vue';
 import SchoolLevelFormModal from '@/Components/Portal/SchoolLevelFormModal.vue';
 import SchoolUnitFormModal from '@/Components/Portal/SchoolUnitFormModal.vue';
 import SchoolProgramFormModal from '@/Components/Portal/SchoolProgramFormModal.vue';
+import SchoolClassFormModal from '@/Components/Portal/SchoolClassFormModal.vue';
 
 defineOptions({
     layout: AppLayout,
@@ -137,6 +138,38 @@ function onProgramSuccess() {
 function confirmProgramDelete(program) {
     if (!confirm(`Yakin ingin menghapus Program "${program.name}"?`)) return;
     router.delete(`/portal/school-programs/${program.id}`, { preserveScroll: true });
+}
+
+const showClassModal = ref(false);
+const editingClass = ref(null);
+const selectedUnitForClass = ref(null);
+
+function openClassCreateModal(unit) {
+    editingClass.value = null;
+    selectedUnitForClass.value = unit;
+    showClassModal.value = true;
+}
+
+function openClassEditModal(cls, unit) {
+    editingClass.value = { ...cls };
+    selectedUnitForClass.value = unit;
+    showClassModal.value = true;
+}
+
+function closeClassModal() {
+    showClassModal.value = false;
+    editingClass.value = null;
+    selectedUnitForClass.value = null;
+}
+
+function onClassSuccess() {
+    closeClassModal();
+    dismissedFlash.value = false;
+}
+
+function confirmClassDelete(cls) {
+    if (!confirm(`Yakin ingin menghapus Kelas "${cls.name}"?`)) return;
+    router.delete(`/portal/school-classes/${cls.id}`, { preserveScroll: true });
 }
 
 const showUserModal = ref(false);
@@ -489,8 +522,9 @@ function formatDate(dateStr) {
                         <thead>
                             <tr class="bg-surface-container-low/50">
                                 <th class="text-left px-5 py-3 font-semibold text-on-surface-variant text-xs uppercase tracking-wider w-1/4">Jenjang</th>
-                                <th class="text-left px-5 py-3 font-semibold text-on-surface-variant text-xs uppercase tracking-wider w-1/3 border-l border-outline-variant/10">Unit Sekolah</th>
+                                <th class="text-left px-5 py-3 font-semibold text-on-surface-variant text-xs uppercase tracking-wider w-1/4 border-l border-outline-variant/10">Unit Sekolah</th>
                                 <th class="text-left px-5 py-3 font-semibold text-on-surface-variant text-xs uppercase tracking-wider border-l border-outline-variant/10">Program Pendidikan</th>
+                                <th class="text-left px-5 py-3 font-semibold text-on-surface-variant text-xs uppercase tracking-wider border-l border-outline-variant/10">Kelas</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-outline-variant/20">
@@ -511,7 +545,7 @@ function formatDate(dateStr) {
                                             </button>
                                         </div>
                                     </td>
-                                    <td colspan="2" class="px-5 py-4 align-middle text-on-surface-variant italic text-sm">
+                                    <td colspan="3" class="px-5 py-4 align-middle text-on-surface-variant italic text-sm">
                                         Belum ada unit sekolah ditambahkan.
                                     </td>
                                 </tr>
@@ -540,7 +574,7 @@ function formatDate(dateStr) {
                                         <td class="px-5 py-4 align-top border-r border-outline-variant/10">
                                             <div class="flex items-start justify-between gap-2">
                                                 <span class="font-semibold text-on-surface">{{ unit.name }}</span>
-                                                <div class="flex items-center gap-1 opacity-0 group-hover/row:opacity-100 transition-opacity shrink-0">
+                                                <div class="flex items-center gap-1 shrink-0">
                                                     <button type="button" @click="openUnitEditModal(unit, level)" class="p-1 rounded text-on-surface-variant hover:text-primary hover:bg-primary/10 transition-colors" title="Edit Unit">
                                                         <span class="material-symbols-outlined text-[16px]">edit</span>
                                                     </button>
@@ -552,7 +586,7 @@ function formatDate(dateStr) {
                                         </td>
 
                                         <!-- Kolom Program -->
-                                        <td class="px-5 py-4 align-top">
+                                        <td class="px-5 py-4 align-top border-r border-outline-variant/10">
                                             <div class="flex flex-col gap-2.5">
                                                 <div v-if="unit.programs && unit.programs.length > 0" class="flex flex-wrap gap-2">
                                                     <div v-for="program in unit.programs" :key="program.id" class="group/pill inline-flex items-center gap-1 bg-surface-container-high border border-outline-variant/40 pl-2.5 pr-1 py-1 rounded-lg hover:border-primary/30 transition-colors">
@@ -572,6 +606,32 @@ function formatDate(dateStr) {
                                                 <div>
                                                     <button type="button" @click="openProgramCreateModal(unit)" class="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:bg-primary/10 px-2 py-1 rounded-md transition-colors border border-primary/20 hover:border-primary/40">
                                                         <span class="material-symbols-outlined text-[14px]">add</span> Tambah Program
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </td>
+
+                                        <!-- Kolom Kelas -->
+                                        <td class="px-5 py-4 align-top">
+                                            <div class="flex flex-col gap-2.5">
+                                                <div v-if="unit.classes && unit.classes.length > 0" class="flex flex-wrap gap-2">
+                                                    <div v-for="cls in unit.classes" :key="cls.id" class="group/pill inline-flex items-center gap-1 bg-surface-container-high border border-outline-variant/40 pl-2.5 pr-1 py-1 rounded-lg hover:border-primary/30 transition-colors">
+                                                        <span class="text-xs font-medium text-on-surface">{{ cls.name }}</span>
+                                                        <div class="flex items-center ml-1">
+                                                            <button type="button" @click="openClassEditModal(cls, unit)" class="text-on-surface-variant hover:text-primary transition-colors p-0.5 rounded" title="Edit Kelas">
+                                                                <span class="material-symbols-outlined text-[14px]">edit</span>
+                                                            </button>
+                                                            <button type="button" @click="confirmClassDelete(cls)" class="text-on-surface-variant hover:text-error transition-colors p-0.5 rounded" title="Hapus Kelas">
+                                                                <span class="material-symbols-outlined text-[14px]">close</span>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div v-else class="text-xs text-on-surface-variant italic">Belum ada kelas.</div>
+                                                
+                                                <div>
+                                                    <button type="button" @click="openClassCreateModal(unit)" class="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:bg-primary/10 px-2 py-1 rounded-md transition-colors border border-primary/20 hover:border-primary/40">
+                                                        <span class="material-symbols-outlined text-[14px]">add</span> Tambah Kelas
                                                     </button>
                                                 </div>
                                             </div>
@@ -738,5 +798,14 @@ function formatDate(dateStr) {
         :school-unit="selectedUnitForProgram"
         @close="closeProgramModal"
         @success="onProgramSuccess"
+    />
+
+    <!-- School Class Form Modal -->
+    <SchoolClassFormModal
+        :show="showClassModal"
+        :editing="editingClass"
+        :school-unit="selectedUnitForClass"
+        @close="closeClassModal"
+        @success="onClassSuccess"
     />
 </template>

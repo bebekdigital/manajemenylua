@@ -120,4 +120,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/portal/school-units/{schoolUnit}/programs', [\App\Http\Controllers\SchoolProgramController::class, 'store'])->name('portal.school-programs.store');
     Route::put('/portal/school-programs/{schoolProgram}', [\App\Http\Controllers\SchoolProgramController::class, 'update'])->name('portal.school-programs.update');
     Route::delete('/portal/school-programs/{schoolProgram}', [\App\Http\Controllers\SchoolProgramController::class, 'destroy'])->name('portal.school-programs.destroy');
+
+    Route::post('/portal/school-units/{schoolUnit}/classes', [\App\Http\Controllers\SchoolClassController::class, 'store'])->name('portal.school-classes.store');
+    Route::put('/portal/school-classes/{schoolClass}', [\App\Http\Controllers\SchoolClassController::class, 'update'])->name('portal.school-classes.update');
+    Route::delete('/portal/school-classes/{schoolClass}', [\App\Http\Controllers\SchoolClassController::class, 'destroy'])->name('portal.school-classes.destroy');
 });

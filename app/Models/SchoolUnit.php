@@ -17,4 +17,9 @@ class SchoolUnit extends Model
     {
         return $this->hasMany(SchoolProgram::class);
     }
+
+    public function classes()
+    {
+        return $this->hasMany(SchoolClass::class);
+    }
 }
