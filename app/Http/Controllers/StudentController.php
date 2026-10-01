@@ -764,12 +764,22 @@ class StudentController extends Controller
         $jenjang = null;
 
         if ($tab !== 'all') {
-            $unit = SchoolUnit::where('name', 'like', "%{$tab}%")->with('level')->first();
-            if ($unit && $unit->level) {
-                $jenjang = $unit->level->name;
-                $units = SchoolUnit::where('school_level_id', $unit->school_level_id)->pluck('name');
-                $programs = SchoolProgram::whereHas('unit', fn ($q) => $q->where('school_level_id', $unit->school_level_id))->pluck('name');
-                $classes = SchoolClass::whereHas('unit', fn ($q) => $q->where('school_level_id', $unit->school_level_id))->pluck('name');
+            $mappedJenjang = null;
+            if ($tab === 'SDIT') {
+                $mappedJenjang = 'SD';
+            } elseif ($tab === 'SMPIT') {
+                $mappedJenjang = 'SMP';
+            } else {
+                $mappedJenjang = str_replace('IT', '', strtoupper($tab));
+            }
+
+            $level = SchoolLevel::where('name', $mappedJenjang)->orWhere('name', 'like', "%{$mappedJenjang}%")->first();
+
+            if ($level) {
+                $jenjang = $level->name;
+                $units = SchoolUnit::where('school_level_id', $level->id)->pluck('name');
+                $programs = SchoolProgram::whereHas('unit', fn ($q) => $q->where('school_level_id', $level->id))->pluck('name');
+                $classes = SchoolClass::whereHas('unit', fn ($q) => $q->where('school_level_id', $level->id))->pluck('name');
             } else {
                 $units = SchoolUnit::pluck('name');
                 $programs = SchoolProgram::pluck('name');
@@ -1039,6 +1049,10 @@ class StudentController extends Controller
                 $valJenjang = $sheet->getCell('D'.$row)->getDataValidation();
                 $valJenjang->setType(DataValidation::TYPE_LIST);
                 $valJenjang->setShowDropDown(true);
+                $valJenjang->setShowErrorMessage(true);
+                $valJenjang->setErrorStyle(DataValidation::STYLE_STOP);
+                $valJenjang->setErrorTitle('Invalid Input');
+                $valJenjang->setError('Pilihan Jenjang dikunci (fixed) berdasarkan template.');
                 $valJenjang->setFormula1('"'.$jenjang.'"');
             }
         }
