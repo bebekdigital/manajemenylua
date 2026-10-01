@@ -107,4 +107,13 @@ Route::middleware('auth')->group(function () {
     Route::post('/portal/users', [UserController::class, 'store'])->name('portal.users.store');
     Route::put('/portal/users/{user}', [UserController::class, 'update'])->name('portal.users.update');
     Route::delete('/portal/users/{user}', [UserController::class, 'destroy'])->name('portal.users.destroy');
+
+    // Portal Management - School Levels and Units
+    Route::post('/portal/school-levels', [\App\Http\Controllers\SchoolLevelController::class, 'store'])->name('portal.school-levels.store');
+    Route::put('/portal/school-levels/{schoolLevel}', [\App\Http\Controllers\SchoolLevelController::class, 'update'])->name('portal.school-levels.update');
+    Route::delete('/portal/school-levels/{schoolLevel}', [\App\Http\Controllers\SchoolLevelController::class, 'destroy'])->name('portal.school-levels.destroy');
+
+    Route::post('/portal/school-levels/{schoolLevel}/units', [\App\Http\Controllers\SchoolUnitController::class, 'store'])->name('portal.school-units.store');
+    Route::put('/portal/school-units/{schoolUnit}', [\App\Http\Controllers\SchoolUnitController::class, 'update'])->name('portal.school-units.update');
+    Route::delete('/portal/school-units/{schoolUnit}', [\App\Http\Controllers\SchoolUnitController::class, 'destroy'])->name('portal.school-units.destroy');
 });

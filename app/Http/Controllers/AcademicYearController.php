@@ -38,9 +38,12 @@ class AcademicYearController extends Controller
             'created_at' => $user->created_at?->format('Y-m-d H:i'),
         ]);
 
+        $schoolLevels = \App\Models\SchoolLevel::with('units')->orderBy('order')->get();
+
         return Inertia::render('Portal', [
             'academicYears' => $academicYears,
             'users' => $users,
+            'schoolLevels' => $schoolLevels,
         ]);
     }
 

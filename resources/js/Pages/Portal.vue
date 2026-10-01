@@ -4,6 +4,8 @@ import { Head, router, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AcademicYearFormModal from '@/Components/Portal/AcademicYearFormModal.vue';
 import UserFormModal from '@/Components/Portal/UserFormModal.vue';
+import SchoolLevelFormModal from '@/Components/Portal/SchoolLevelFormModal.vue';
+import SchoolUnitFormModal from '@/Components/Portal/SchoolUnitFormModal.vue';
 
 defineOptions({
     layout: AppLayout,
@@ -15,6 +17,10 @@ const props = defineProps({
         default: () => [],
     },
     users: {
+        type: Array,
+        default: () => [],
+    },
+    schoolLevels: {
         type: Array,
         default: () => [],
     },
@@ -35,6 +41,66 @@ const tabs = computed(() => {
 
 const showFormModal = ref(false);
 const editingYear = ref(null);
+
+const showLevelModal = ref(false);
+const editingLevel = ref(null);
+
+const showUnitModal = ref(false);
+const editingUnit = ref(null);
+const selectedLevelForUnit = ref(null);
+
+function openLevelCreateModal() {
+    editingLevel.value = null;
+    showLevelModal.value = true;
+}
+
+function openLevelEditModal(level) {
+    editingLevel.value = { ...level };
+    showLevelModal.value = true;
+}
+
+function closeLevelModal() {
+    showLevelModal.value = false;
+    editingLevel.value = null;
+}
+
+function onLevelSuccess() {
+    closeLevelModal();
+    dismissedFlash.value = false;
+}
+
+function confirmLevelDelete(level) {
+    if (!confirm(`Yakin ingin menghapus Jenjang "${level.name}"?`)) return;
+    router.delete(`/portal/school-levels/${level.id}`, { preserveScroll: true });
+}
+
+function openUnitCreateModal(level) {
+    editingUnit.value = null;
+    selectedLevelForUnit.value = level;
+    showUnitModal.value = true;
+}
+
+function openUnitEditModal(unit, level) {
+    editingUnit.value = { ...unit };
+    selectedLevelForUnit.value = level;
+    showUnitModal.value = true;
+}
+
+function closeUnitModal() {
+    showUnitModal.value = false;
+    editingUnit.value = null;
+    selectedLevelForUnit.value = null;
+}
+
+function onUnitSuccess() {
+    closeUnitModal();
+    dismissedFlash.value = false;
+}
+
+function confirmUnitDelete(unit) {
+    if (!confirm(`Yakin ingin menghapus Unit "${unit.name}"?`)) return;
+    router.delete(`/portal/school-units/${unit.id}`, { preserveScroll: true });
+}
 
 const showUserModal = ref(false);
 const editingUser = ref(null);
@@ -372,6 +438,7 @@ function formatDate(dateStr) {
                     </div>
                     <button
                         type="button"
+                        @click="openLevelCreateModal"
                         class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-container text-on-primary font-semibold text-sm transition-all shadow-xs hover:shadow-md cursor-pointer"
                     >
                         <span class="material-symbols-outlined text-[18px]">add</span>
@@ -390,14 +457,42 @@ function formatDate(dateStr) {
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-outline-variant/20">
-                            <!-- Temporary Data -->
-                            <tr v-for="jenjang in ['TK', 'SD', 'SMP', 'SMA']" :key="jenjang" class="hover:bg-surface-container-low/40 transition-colors">
-                                <td class="px-5 py-3.5"><span class="font-semibold text-on-surface">{{ jenjang }}</span></td>
-                                <td class="px-5 py-3.5 text-on-surface-variant italic">Belum ada unit ditambahkan</td>
-                                <td class="px-5 py-3.5 text-center">
-                                    <button type="button" class="p-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer" title="Edit Unit">
-                                        <span class="material-symbols-outlined text-[18px]">edit</span>
+                            <tr v-for="level in schoolLevels" :key="level.id" class="hover:bg-surface-container-low/40 transition-colors">
+                                <td class="px-5 py-3.5 align-top">
+                                    <span class="font-semibold text-on-surface">{{ level.name }}</span>
+                                </td>
+                                <td class="px-5 py-3.5 align-top">
+                                    <div v-if="level.units && level.units.length > 0" class="flex flex-wrap gap-2">
+                                        <div v-for="unit in level.units" :key="unit.id" class="inline-flex items-center gap-1.5 bg-surface-variant/40 border border-outline-variant/50 px-2.5 py-1 rounded-lg">
+                                            <span class="text-sm font-medium text-on-surface">{{ unit.name }}</span>
+                                            <button type="button" @click="openUnitEditModal(unit, level)" class="text-on-surface-variant hover:text-primary" title="Edit Unit">
+                                                <span class="material-symbols-outlined text-[14px]">edit</span>
+                                            </button>
+                                            <button type="button" @click="confirmUnitDelete(unit)" class="text-on-surface-variant hover:text-error" title="Hapus Unit">
+                                                <span class="material-symbols-outlined text-[14px]">close</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div v-else class="text-on-surface-variant italic text-sm">Belum ada unit ditambahkan</div>
+                                    
+                                    <button type="button" @click="openUnitCreateModal(level)" class="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:bg-primary/10 px-2 py-1 rounded-lg transition-colors">
+                                        <span class="material-symbols-outlined text-[14px]">add</span> Tambah Unit
                                     </button>
+                                </td>
+                                <td class="px-5 py-3.5 text-center align-top">
+                                    <div class="flex items-center justify-center gap-1">
+                                        <button type="button" @click="openLevelEditModal(level)" class="p-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer" title="Edit Jenjang">
+                                            <span class="material-symbols-outlined text-[18px]">edit</span>
+                                        </button>
+                                        <button type="button" @click="confirmLevelDelete(level)" class="p-2 rounded-lg text-on-surface-variant hover:text-error hover:bg-error/10 transition-colors cursor-pointer" title="Hapus Jenjang">
+                                            <span class="material-symbols-outlined text-[18px]">delete</span>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr v-if="schoolLevels.length === 0">
+                                <td colspan="3" class="px-5 py-8 text-center text-on-surface-variant text-sm">
+                                    Belum ada jenjang pendidikan. Silakan tambah jenjang pertama Anda.
                                 </td>
                             </tr>
                         </tbody>
@@ -526,5 +621,22 @@ function formatDate(dateStr) {
         :editing="editingUser"
         @close="closeUserModal"
         @success="onUserFormSuccess"
+    />
+
+    <!-- School Level Form Modal -->
+    <SchoolLevelFormModal
+        :show="showLevelModal"
+        :editing="editingLevel"
+        @close="closeLevelModal"
+        @success="onLevelSuccess"
+    />
+
+    <!-- School Unit Form Modal -->
+    <SchoolUnitFormModal
+        :show="showUnitModal"
+        :editing="editingUnit"
+        :school-level="selectedLevelForUnit"
+        @close="closeUnitModal"
+        @success="onUnitSuccess"
     />
 </template>
