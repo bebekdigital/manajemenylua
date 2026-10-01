@@ -181,8 +181,12 @@ function hitungUsia(tanggalLahir) {
                                         <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.agama }}</p>
                                     </div>
                                     <div>
-                                        <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">No. WhatsApp</label>
+                                        <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">No. WhatsApp 1</label>
                                         <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.no_wa || '-' }}</p>
+                                    </div>
+                                    <div>
+                                        <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">No. WhatsApp 2</label>
+                                        <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.no_wa_2 || '-' }}</p>
                                     </div>
                                     <div>
                                         <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Email</label>

@@ -24,6 +24,7 @@ class Student extends Model
         'tanggal_lahir',
         'agama',
         'no_wa',
+        'no_wa_2',
         'sekolah_asal',
         'status_keluarga',
         'anak_ke',

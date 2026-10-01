@@ -221,7 +221,10 @@ class StudentController extends Controller
             'tingkat' => $record?->tingkat,
             'kelas' => $classroom?->name,
             'student_status' => $record?->student_status ?? 'aktif',
+            'ket_tidak_aktif' => $record?->ket_tidak_aktif,
+            'tanggal_tidak_aktif' => $record?->tanggal_tidak_aktif ? $record->tanggal_tidak_aktif->format('Y-m-d') : null,
             'no_wa' => $studentModel->no_wa,
+            'no_wa_2' => $studentModel->no_wa_2,
             'email' => $studentModel->email,
             'sekolah_asal' => $studentModel->sekolah_asal,
             'status_keluarga' => $studentModel->status_keluarga,
@@ -885,39 +888,40 @@ class StudentController extends Controller
             'R' => ['Provinsi', 20],
             'S' => ['Jenis Tinggal', 20],
             'T' => ['Alat Transportasi', 20],
-            'U' => ['No. WA', 16],
-            'V' => ['Email', 25],
-            'W' => ['Nama Ayah', 25],
-            'X' => ['Tahun Lahir Ayah', 16],
-            'Y' => ['Pendidikan Ayah', 18],
-            'Z' => ['Pekerjaan Ayah', 20],
-            'AA' => ['Penghasilan Ayah', 28],
-            'AB' => ['NIK Ayah', 18],
-            'AC' => ['Status Ayah (Hidup/Meninggal)', 28],
-            'AD' => ['Nama Ibu', 25],
-            'AE' => ['Tahun Lahir Ibu', 16],
-            'AF' => ['Pendidikan Ibu', 18],
-            'AG' => ['Pekerjaan Ibu', 20],
-            'AH' => ['Penghasilan Ibu', 28],
-            'AI' => ['NIK Ibu', 18],
-            'AJ' => ['Status Ibu (Hidup/Meninggal)', 28],
-            'AK' => ['Nama Wali', 25],
-            'AL' => ['Tahun Lahir Wali', 16],
-            'AM' => ['Pendidikan Wali', 18],
-            'AN' => ['Pekerjaan Wali', 20],
-            'AO' => ['Penghasilan Wali', 28],
-            'AP' => ['NIK Wali', 18],
-            'AQ' => ['Hubungan Wali', 18],
-            'AR' => ['Penerima KIP (Ya/Tidak)', 25],
-            'AS' => ['Nomor KIP', 20],
-            'AT' => ['Nama di KIP', 25],
-            'AU' => ['Kelayakan PIP (Ya/Tidak)', 25],
-            'AV' => ['Alasan Layak PIP', 30],
-            'AW' => ['Kebutuhan Khusus', 20],
-            'AX' => ['Sekolah Asal', 30],
-            'AY' => ['Anak ke -', 10],
-            'AZ' => ['No KK', 18],
-            'BA' => ['Jarak Rumah ke Sekolah', 25],
+            'U' => ['No. WA 1', 16],
+            'V' => ['No. WA 2', 16],
+            'W' => ['Email', 25],
+            'X' => ['Nama Ayah', 25],
+            'Y' => ['Tahun Lahir Ayah', 16],
+            'Z' => ['Pendidikan Ayah', 18],
+            'AA' => ['Pekerjaan Ayah', 20],
+            'AB' => ['Penghasilan Ayah', 28],
+            'AC' => ['NIK Ayah', 18],
+            'AD' => ['Status Ayah (Hidup/Meninggal)', 28],
+            'AE' => ['Nama Ibu', 25],
+            'AF' => ['Tahun Lahir Ibu', 16],
+            'AG' => ['Pendidikan Ibu', 18],
+            'AH' => ['Pekerjaan Ibu', 20],
+            'AI' => ['Penghasilan Ibu', 28],
+            'AJ' => ['NIK Ibu', 18],
+            'AK' => ['Status Ibu (Hidup/Meninggal)', 28],
+            'AL' => ['Nama Wali', 25],
+            'AM' => ['Tahun Lahir Wali', 16],
+            'AN' => ['Pendidikan Wali', 18],
+            'AO' => ['Pekerjaan Wali', 20],
+            'AP' => ['Penghasilan Wali', 28],
+            'AQ' => ['NIK Wali', 18],
+            'AR' => ['Hubungan Wali', 18],
+            'AS' => ['Penerima KIP (Ya/Tidak)', 25],
+            'AT' => ['Nomor KIP', 20],
+            'AU' => ['Nama di KIP', 25],
+            'AV' => ['Kelayakan PIP (Ya/Tidak)', 25],
+            'AW' => ['Alasan Layak PIP', 30],
+            'AX' => ['Kebutuhan Khusus', 20],
+            'AY' => ['Sekolah Asal', 30],
+            'AZ' => ['Anak ke -', 10],
+            'BA' => ['No KK', 18],
+            'BB' => ['Jarak Rumah ke Sekolah', 25],
         ];
 
         $this->applySheetHeaders($sheet, $headers, '004B23');
@@ -967,20 +971,20 @@ class StudentController extends Controller
             $valJk->setShowDropDown(true);
             $valJk->setFormula1('"L,P"');
 
-            $valStatusAyah = $sheet->getCell('AC'.$row)->getDataValidation();
+            $valStatusAyah = $sheet->getCell('AD'.$row)->getDataValidation();
             $valStatusAyah->setType(DataValidation::TYPE_LIST);
             $valStatusAyah->setAllowBlank(true);
             $valStatusAyah->setShowDropDown(true);
             $valStatusAyah->setFormula1('"Hidup,Meninggal"');
 
-            $valStatusIbu = $sheet->getCell('AJ'.$row)->getDataValidation();
+            $valStatusIbu = $sheet->getCell('AK'.$row)->getDataValidation();
             $valStatusIbu->setType(DataValidation::TYPE_LIST);
             $valStatusIbu->setAllowBlank(true);
             $valStatusIbu->setShowDropDown(true);
             $valStatusIbu->setFormula1('"Hidup,Meninggal"');
         }
 
-        $this->styleExampleRow($sheet, 2, 'A', 'BA');
+        $this->styleExampleRow($sheet, 2, 'A', 'BB');
         $sheet->freezePane('A2');
     }
 
@@ -1021,6 +1025,8 @@ class StudentController extends Controller
             'F' => ['Kelas/Rombel', 16],
             'G' => ['Tingkat', 14],
             'H' => ['Status Aktif', 16],
+            'I' => ['Ket. Tidak Aktif', 20],
+            'J' => ['Tanggal Tidak Aktif', 24],
         ];
 
         $this->applySheetHeaders($sheet, $headers, '004D40');
@@ -1057,9 +1063,23 @@ class StudentController extends Controller
             $valClass->setAllowBlank(true);
             $valClass->setShowDropDown(true);
             $valClass->setFormula1('Dropdowns!$C$2:$C$200');
+
+            // Dropdown for Status Aktif
+            $valStatusAktif = $sheet->getCell('H'.$row)->getDataValidation();
+            $valStatusAktif->setType(DataValidation::TYPE_LIST);
+            $valStatusAktif->setAllowBlank(true);
+            $valStatusAktif->setShowDropDown(true);
+            $valStatusAktif->setFormula1('"Aktif,Tidak Aktif"');
+
+            // Dropdown for Ket Tidak Aktif
+            $valKetTidakAktif = $sheet->getCell('I'.$row)->getDataValidation();
+            $valKetTidakAktif->setType(DataValidation::TYPE_LIST);
+            $valKetTidakAktif->setAllowBlank(true);
+            $valKetTidakAktif->setShowDropDown(true);
+            $valKetTidakAktif->setFormula1('"Mutasi Keluar,Cuti,Dikeluarkan,Meninggal Dunia,Putus Sekolah,Lainnya"');
         }
 
-        $this->styleExampleRow($sheet, 2, 'A', 'H');
+        $this->styleExampleRow($sheet, 2, 'A', 'J');
         $sheet->freezePane('A2');
     }
 
