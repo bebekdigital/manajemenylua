@@ -148,6 +148,8 @@ class StudentImportService
                     'wali_penghasilan' => $this->cleanString($row['AP'] ?? null),
                     'wali_nik' => $this->cleanString($row['AQ'] ?? null),
                     'wali_hubungan' => $this->cleanString($row['AR'] ?? null),
+                    'has_bisnis' => strtolower($this->cleanString($row['BC'] ?? null) ?? '') === 'ya',
+                    'jenis_bisnis' => $this->cleanString($row['BD'] ?? null),
                 ];
 
                 $hasAnyFamilyData = array_filter($familyData, fn ($val) => ! is_null($val) && $val !== '');

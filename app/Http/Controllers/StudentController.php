@@ -922,6 +922,8 @@ class StudentController extends Controller
             'AZ' => ['Anak ke -', 10],
             'BA' => ['No KK', 18],
             'BB' => ['Jarak Rumah ke Sekolah', 25],
+            'BC' => ['Apakah Memiliki Usaha (Ya/Tidak)', 30],
+            'BD' => ['Jenis Usaha', 30],
         ];
 
         $this->applySheetHeaders($sheet, $headers, '004B23');
@@ -940,7 +942,7 @@ class StudentController extends Controller
             '', '', '', '', '', '', '',
             'Ya', '6071012345670001', 'Ahmad Fauzi Rahman',
             'Ya', 'Penerima PIP tahap 1', 'Tidak ada',
-            'TK Aisyiyah Colomadu', '1', '3313151503140001', 'Kurang dari 1 km',
+            'TK Aisyiyah Colomadu', '1', '3313151503140001', 'Kurang dari 1 km', 'Tidak', '-',
         ]], null, 'A2');
 
         for ($row = 2; $row <= 1000; $row++) {
@@ -982,9 +984,15 @@ class StudentController extends Controller
             $valStatusIbu->setAllowBlank(true);
             $valStatusIbu->setShowDropDown(true);
             $valStatusIbu->setFormula1('"Hidup,Meninggal"');
+
+            $valBisnis = $sheet->getCell('BC'.$row)->getDataValidation();
+            $valBisnis->setType(DataValidation::TYPE_LIST);
+            $valBisnis->setAllowBlank(true);
+            $valBisnis->setShowDropDown(true);
+            $valBisnis->setFormula1('"Ya,Tidak"');
         }
 
-        $this->styleExampleRow($sheet, 2, 'A', 'BB');
+        $this->styleExampleRow($sheet, 2, 'A', 'BD');
         $sheet->freezePane('A2');
     }
 
