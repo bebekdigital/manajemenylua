@@ -6,6 +6,7 @@ import AcademicYearFormModal from '@/Components/Portal/AcademicYearFormModal.vue
 import UserFormModal from '@/Components/Portal/UserFormModal.vue';
 import SchoolLevelFormModal from '@/Components/Portal/SchoolLevelFormModal.vue';
 import SchoolUnitFormModal from '@/Components/Portal/SchoolUnitFormModal.vue';
+import SchoolProgramFormModal from '@/Components/Portal/SchoolProgramFormModal.vue';
 
 defineOptions({
     layout: AppLayout,
@@ -21,6 +22,10 @@ const props = defineProps({
         default: () => [],
     },
     schoolLevels: {
+        type: Array,
+        default: () => [],
+    },
+    schoolPrograms: {
         type: Array,
         default: () => [],
     },
@@ -100,6 +105,34 @@ function onUnitSuccess() {
 function confirmUnitDelete(unit) {
     if (!confirm(`Yakin ingin menghapus Unit "${unit.name}"?`)) return;
     router.delete(`/portal/school-units/${unit.id}`, { preserveScroll: true });
+}
+
+const showProgramModal = ref(false);
+const editingProgram = ref(null);
+
+function openProgramCreateModal() {
+    editingProgram.value = null;
+    showProgramModal.value = true;
+}
+
+function openProgramEditModal(program) {
+    editingProgram.value = { ...program };
+    showProgramModal.value = true;
+}
+
+function closeProgramModal() {
+    showProgramModal.value = false;
+    editingProgram.value = null;
+}
+
+function onProgramSuccess() {
+    closeProgramModal();
+    dismissedFlash.value = false;
+}
+
+function confirmProgramDelete(program) {
+    if (!confirm(`Yakin ingin menghapus Program "${program.name}"?`)) return;
+    router.delete(`/portal/school-programs/${program.id}`, { preserveScroll: true });
 }
 
 const showUserModal = ref(false);
@@ -499,6 +532,64 @@ function formatDate(dateStr) {
                     </table>
                 </div>
             </div>
+
+            <!-- School Programs Section -->
+            <div class="bg-surface-container-lowest rounded-2xl border border-primary/10 shadow-[0px_4px_20px_rgba(0,40,20,0.06)] overflow-hidden">
+                <!-- Section Header -->
+                <div class="flex items-center justify-between px-5 py-4 border-b border-outline-variant/30">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                            <span class="material-symbols-outlined text-primary text-xl">school</span>
+                        </div>
+                        <div>
+                            <h3 class="text-base font-bold text-on-surface">Program Pendidikan</h3>
+                            <p class="text-xs text-on-surface-variant">Kelola program sekolah (Umum, Boarding, dll)</p>
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        @click="openProgramCreateModal"
+                        class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-container text-on-primary font-semibold text-sm transition-all shadow-xs hover:shadow-md cursor-pointer"
+                    >
+                        <span class="material-symbols-outlined text-[18px]">add</span>
+                        <span>Tambah Program</span>
+                    </button>
+                </div>
+
+                <!-- Table -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="bg-surface-container-low/50">
+                                <th class="text-left px-5 py-3 font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Nama Program</th>
+                                <th class="text-center px-5 py-3 font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-outline-variant/20">
+                            <tr v-for="program in schoolPrograms" :key="program.id" class="hover:bg-surface-container-low/40 transition-colors">
+                                <td class="px-5 py-3.5 align-top">
+                                    <span class="font-semibold text-on-surface">{{ program.name }}</span>
+                                </td>
+                                <td class="px-5 py-3.5 text-center align-top">
+                                    <div class="flex items-center justify-center gap-1">
+                                        <button type="button" @click="openProgramEditModal(program)" class="p-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer" title="Edit Program">
+                                            <span class="material-symbols-outlined text-[18px]">edit</span>
+                                        </button>
+                                        <button type="button" @click="confirmProgramDelete(program)" class="p-2 rounded-lg text-on-surface-variant hover:text-error hover:bg-error/10 transition-colors cursor-pointer" title="Hapus Program">
+                                            <span class="material-symbols-outlined text-[18px]">delete</span>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr v-if="schoolPrograms.length === 0">
+                                <td colspan="2" class="px-5 py-8 text-center text-on-surface-variant text-sm">
+                                    Belum ada program pendidikan. Silakan tambah program pertama Anda.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
         
         <!-- Tab Content: Pengguna -->
@@ -638,5 +729,13 @@ function formatDate(dateStr) {
         :school-level="selectedLevelForUnit"
         @close="closeUnitModal"
         @success="onUnitSuccess"
+    />
+
+    <!-- School Program Form Modal -->
+    <SchoolProgramFormModal
+        :show="showProgramModal"
+        :editing="editingProgram"
+        @close="closeProgramModal"
+        @success="onProgramSuccess"
     />
 </template>

@@ -39,11 +39,13 @@ class AcademicYearController extends Controller
         ]);
 
         $schoolLevels = \App\Models\SchoolLevel::with('units')->orderBy('order')->get();
+        $schoolPrograms = \App\Models\SchoolProgram::orderBy('name')->get();
 
         return Inertia::render('Portal', [
             'academicYears' => $academicYears,
             'users' => $users,
             'schoolLevels' => $schoolLevels,
+            'schoolPrograms' => $schoolPrograms,
         ]);
     }
 
