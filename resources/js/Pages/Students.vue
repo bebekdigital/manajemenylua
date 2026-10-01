@@ -208,9 +208,9 @@ function unitStudentCount(unitId) {
                     type="button"
                     @click="switchUnitTab(tab.id)"
                     :class="[
-                        'flex items-center gap-2 px-3 sm:px-5 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap border-b-2',
+                        'flex items-center gap-2 px-3 sm:px-5 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap border-b-2 rounded-t-lg',
                         activeUnitTab === tab.id
-                            ? 'text-primary border-primary'
+                            ? 'text-primary border-primary bg-gradient-to-t from-primary/20 to-transparent'
                             : 'text-on-surface-variant border-transparent hover:text-on-surface hover:border-outline-variant'
                     ]"
                 >
