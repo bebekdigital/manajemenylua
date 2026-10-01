@@ -9,6 +9,7 @@ use App\Http\Controllers\SchoolClassController;
 use App\Http\Controllers\SchoolLevelController;
 use App\Http\Controllers\SchoolProgramController;
 use App\Http\Controllers\SchoolUnitController;
+use App\Http\Controllers\StatisticsController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\UserController;
 use App\Models\User;
@@ -75,6 +76,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/students/upload-photos', [StudentController::class, 'uploadPhotos'])->name('students.upload-photos');
     Route::get('/students/photo/{filename}', [StudentController::class, 'showPhoto'])->name('students.photo');
     Route::get('/students/{nisn}', [StudentController::class, 'show'])->name('students.show');
+
+    // Statistik
+    Route::get('/statistics', [StatisticsController::class, 'index'])->name('statistics.index');
 
     // Data Pegawai
     Route::get('/staff', [EmployeeController::class, 'index'])->name('staff.index');

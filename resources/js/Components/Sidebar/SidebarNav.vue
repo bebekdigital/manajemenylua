@@ -14,7 +14,7 @@ const isDataMenuOpen = ref(false);
 const isMobileSubMenuOpen = ref(false);
 // Track which mobile item is "active/selected" for the label reveal effect
 const mobileActiveTab = ref(props.currentRoute === 'overview' ? 'overview'
-    : ['students', 'staff', 'administration'].includes(props.currentRoute) ? 'data'
+    : ['students', 'staff', 'administration', 'statistics'].includes(props.currentRoute) ? 'data'
     : props.currentRoute);
 
 function toggleDataMenu() {
@@ -59,28 +59,28 @@ function closeMobileSubMenu() {
                     @click="toggleDataMenu"
                     :class="[
                         'w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all cursor-pointer active:scale-95 duration-200',
-                        ['students', 'staff', 'administration'].includes(currentRoute)
+                        ['students', 'staff', 'administration', 'statistics'].includes(currentRoute)
                             ? 'bg-emerald-800 text-yellow-200 font-semibold shadow-sm'
                             : 'text-emerald-100/80 hover:bg-emerald-800 hover:text-yellow-200 font-medium'
                     ]"
                 >
                     <div class="flex items-center space-x-3">
-                        <span class="material-symbols-outlined text-[22px] transition-all duration-200" :class="{ 'filled-icon': ['students', 'staff', 'administration'].includes(currentRoute) }">folder</span>
+                        <span class="material-symbols-outlined text-[22px] transition-all duration-200" :class="{ 'filled-icon': ['students', 'staff', 'administration', 'statistics'].includes(currentRoute) }">folder</span>
                         <span>Database</span>
                     </div>
-                    <span class="material-symbols-outlined text-[18px] transition-transform duration-200" :class="{ 'rotate-180': isDataMenuOpen, 'filled-icon': ['students', 'staff', 'administration'].includes(currentRoute) }">expand_more</span>
+                    <span class="material-symbols-outlined text-[18px] transition-transform duration-200" :class="{ 'rotate-180': isDataMenuOpen, 'filled-icon': ['students', 'staff', 'administration', 'statistics'].includes(currentRoute) }">expand_more</span>
                 </button>
 
                 <!-- Sub Menu -->
                 <Transition
                     enter-active-class="transition-all duration-200 ease-out"
                     enter-from-class="max-h-0 opacity-0"
-                    enter-to-class="max-h-48 opacity-100"
+                    enter-to-class="max-h-64 opacity-100"
                     leave-active-class="transition-all duration-150 ease-in"
-                    leave-from-class="max-h-48 opacity-100"
+                    leave-from-class="max-h-64 opacity-100"
                     leave-to-class="max-h-0 opacity-0"
                 >
-                    <ul v-show="isDataMenuOpen || ['students', 'staff', 'administration'].includes(currentRoute)" class="mt-1 ml-4 pl-4 border-l border-emerald-700 space-y-0.5 overflow-hidden">
+                    <ul v-show="isDataMenuOpen || ['students', 'staff', 'administration', 'statistics'].includes(currentRoute)" class="mt-1 ml-4 pl-4 border-l border-emerald-700 space-y-0.5 overflow-hidden">
                         <li>
                             <Link href="/students" :class="['flex items-center space-x-2.5 px-3 py-2 rounded-lg transition-all cursor-pointer active:scale-95 duration-200 text-[13px]', currentRoute === 'students' ? 'bg-emerald-800 text-yellow-200 font-semibold shadow-sm' : 'text-emerald-100/60 hover:bg-emerald-800 hover:text-yellow-200 font-medium']">
                                 <span class="material-symbols-outlined text-[17px] transition-all duration-200" :class="{ 'filled-icon': currentRoute === 'students' }">groups</span>
@@ -97,6 +97,12 @@ function closeMobileSubMenu() {
                             <Link href="/administration" :class="['flex items-center space-x-2.5 px-3 py-2 rounded-lg transition-all cursor-pointer active:scale-95 duration-200 text-[13px]', currentRoute === 'administration' ? 'bg-emerald-800 text-yellow-200 font-semibold shadow-sm' : 'text-emerald-100/60 hover:bg-emerald-800 hover:text-yellow-200 font-medium']">
                                 <span class="material-symbols-outlined text-[17px] transition-all duration-200" :class="{ 'filled-icon': currentRoute === 'administration' }">description</span>
                                 <span>Administrasi</span>
+                            </Link>
+                        </li>
+                        <li>
+                            <Link href="/statistics" :class="['flex items-center space-x-2.5 px-3 py-2 rounded-lg transition-all cursor-pointer active:scale-95 duration-200 text-[13px]', currentRoute === 'statistics' ? 'bg-emerald-800 text-yellow-200 font-semibold shadow-sm' : 'text-emerald-100/60 hover:bg-emerald-800 hover:text-yellow-200 font-medium']">
+                                <span class="material-symbols-outlined text-[17px] transition-all duration-200" :class="{ 'filled-icon': currentRoute === 'statistics' }">bar_chart</span>
+                                <span>Statistik</span>
                             </Link>
                         </li>
                     </ul>
@@ -171,6 +177,14 @@ function closeMobileSubMenu() {
                         <span class="material-symbols-outlined text-[20px] filled-icon">description</span>
                         <span class="text-[10px] font-semibold mt-1 leading-tight">Administrasi</span>
                     </Link>
+                    <Link
+                        href="/statistics"
+                        @click="closeMobileSubMenu"
+                        :class="['flex flex-col items-center justify-center px-3 py-2 rounded-xl flex-1 transition-all', currentRoute === 'statistics' ? 'text-emerald-900 bg-emerald-50' : 'text-on-surface-variant active:text-emerald-900']"
+                    >
+                        <span class="material-symbols-outlined text-[20px] filled-icon">bar_chart</span>
+                        <span class="text-[10px] font-semibold mt-1 leading-tight">Statistik</span>
+                    </Link>
                 </div>
             </div>
         </Transition>
@@ -195,12 +209,12 @@ function closeMobileSubMenu() {
             <button
                 @click="handleMobileTab('data')"
                 class="flex flex-col items-center justify-center w-full py-1.5 transition-all duration-300 relative group cursor-pointer"
-                :class="mobileActiveTab === 'data' || ['students', 'staff', 'administration'].includes(currentRoute) ? 'text-emerald-900' : 'text-on-surface-variant hover:text-emerald-900'"
+                :class="mobileActiveTab === 'data' || ['students', 'staff', 'administration', 'statistics'].includes(currentRoute) ? 'text-emerald-900' : 'text-on-surface-variant hover:text-emerald-900'"
             >
-                <div class="flex items-center justify-center px-4 py-1 rounded-full transition-all duration-300" :class="mobileActiveTab === 'data' || ['students', 'staff', 'administration'].includes(currentRoute) ? 'bg-emerald-100' : 'bg-transparent'">
-                    <span class="material-symbols-outlined text-[22px] transition-all duration-300 group-active:scale-90" :class="{ 'filled-icon': mobileActiveTab === 'data' || ['students', 'staff', 'administration'].includes(currentRoute) }">folder</span>
+                <div class="flex items-center justify-center px-4 py-1 rounded-full transition-all duration-300" :class="mobileActiveTab === 'data' || ['students', 'staff', 'administration', 'statistics'].includes(currentRoute) ? 'bg-emerald-100' : 'bg-transparent'">
+                    <span class="material-symbols-outlined text-[22px] transition-all duration-300 group-active:scale-90" :class="{ 'filled-icon': mobileActiveTab === 'data' || ['students', 'staff', 'administration', 'statistics'].includes(currentRoute) }">folder</span>
                 </div>
-                <span class="text-[10px] mt-1 transition-all duration-300" :class="mobileActiveTab === 'data' || ['students', 'staff', 'administration'].includes(currentRoute) ? 'font-bold opacity-100' : 'font-medium opacity-80'">Database</span>
+                <span class="text-[10px] mt-1 transition-all duration-300" :class="mobileActiveTab === 'data' || ['students', 'staff', 'administration', 'statistics'].includes(currentRoute) ? 'font-bold opacity-100' : 'font-medium opacity-80'">Database</span>
             </button>
 
             <!-- Pembelajaran -->
