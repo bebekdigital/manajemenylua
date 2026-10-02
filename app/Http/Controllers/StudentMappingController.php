@@ -4,13 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\AcademicYear;
 use App\Models\Classroom;
-use App\Models\SchoolProgram;
 use App\Models\SchoolUnit;
 use App\Models\Student;
 use App\Models\StudentAcademicRecord;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
+use Inertia\Inertia;
 
 class StudentMappingController extends Controller
 {
@@ -18,7 +17,7 @@ class StudentMappingController extends Controller
     {
         $academicYears = AcademicYear::orderByDesc('name')->orderByRaw("FIELD(semester, 'Genap', 'Ganjil')")->get();
         $units = SchoolUnit::orderBy('id')->get();
-        
+
         return Inertia::render('Students/Mapping', [
             'academicYears' => $academicYears,
             'units' => $units,
@@ -29,7 +28,7 @@ class StudentMappingController extends Controller
     {
         $academicYearId = $request->query('academic_year_id');
         $unit = $request->query('unit');
-        
+
         $query = Classroom::query();
         if ($academicYearId) {
             $query->where('academic_year_id', $academicYearId);
@@ -37,9 +36,9 @@ class StudentMappingController extends Controller
         if ($unit) {
             $query->where('unit', $unit);
         }
-        
+
         return response()->json([
-            'classes' => $query->orderBy('grade')->orderBy('name')->get()
+            'classes' => $query->orderBy('grade')->orderBy('name')->get(),
         ]);
     }
 
@@ -47,13 +46,13 @@ class StudentMappingController extends Controller
     {
         $academicYearId = $request->query('academic_year_id');
         $classroomId = $request->query('classroom_id');
-        
+
         $records = StudentAcademicRecord::with(['student'])
             ->where('academic_year_id', $academicYearId)
             ->where('classroom_id', $classroomId)
             ->get();
-            
-        $students = $records->map(function($r) {
+
+        $students = $records->map(function ($r) {
             return [
                 'id' => $r->student->id,
                 'nisn' => $r->student->nisn,
@@ -62,9 +61,9 @@ class StudentMappingController extends Controller
                 'status' => $r->student_status,
             ];
         });
-        
+
         return response()->json([
-            'students' => $students
+            'students' => $students,
         ]);
     }
 
@@ -82,12 +81,14 @@ class StudentMappingController extends Controller
 
         $targetClassroom = Classroom::findOrFail($validated['target_classroom_id']);
         $students = Student::whereIn('id', $validated['student_ids'])->get()->keyBy('id');
-        
+
         DB::beginTransaction();
         try {
             foreach ($validated['student_ids'] as $studentId) {
                 $student = $students->get($studentId);
-                if (!$student) continue;
+                if (! $student) {
+                    continue;
+                }
 
                 // Ensure only 1 record per student per academic year exists
                 StudentAcademicRecord::updateOrCreate(
@@ -101,29 +102,28 @@ class StudentMappingController extends Controller
                         'tingkat' => $targetClassroom->grade,
                         'student_status' => $validated['status'],
                         'ket_tidak_aktif' => $validated['keterangan'] ?? null,
-                        'program' => !empty($validated['program']) ? $validated['program'] : ($student->program ?? 'Umum'),
+                        'program' => ! empty($validated['program']) ? $validated['program'] : ($student->program ?? 'Umum'),
                     ]
                 );
-                
+
                 // Update unit and program in students table if they move unit
                 $updateData = [
                     'unit' => $targetClassroom->unit,
-                    'kelas' => $targetClassroom->name,
-                    'jenjang' => $targetClassroom->jenjang,
-                    'tingkat' => $targetClassroom->grade
                 ];
-                if (!empty($validated['program'])) {
+                if (! empty($validated['program'])) {
                     $updateData['program'] = $validated['program'];
                 }
-                
+
                 Student::where('id', $studentId)->update($updateData);
             }
             DB::commit();
             session(['selected_academic_year_id' => $validated['target_academic_year_id']]);
-            return redirect()->route('students.index')->with('success', count($validated['student_ids']) . ' siswa berhasil dipetakan ke kelas baru.');
+
+            return redirect()->back()->with('success', count($validated['student_ids']).' siswa berhasil dipetakan ke kelas baru.');
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->back()->with('error', 'Gagal memetakan siswa: ' . $e->getMessage());
+
+            return redirect()->back()->with('error', 'Gagal memetakan siswa: '.$e->getMessage());
         }
     }
 }
