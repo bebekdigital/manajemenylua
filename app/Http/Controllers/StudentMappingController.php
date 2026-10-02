@@ -75,15 +75,20 @@ class StudentMappingController extends Controller
             'student_ids.*' => 'exists:students,id',
             'target_academic_year_id' => 'required|exists:academic_years,id',
             'target_classroom_id' => 'required|exists:classrooms,id',
+            'program' => 'nullable|string',
             'status' => 'required|string',
             'keterangan' => 'nullable|string',
         ]);
 
         $targetClassroom = Classroom::findOrFail($validated['target_classroom_id']);
+        $students = Student::whereIn('id', $validated['student_ids'])->get()->keyBy('id');
         
         DB::beginTransaction();
         try {
             foreach ($validated['student_ids'] as $studentId) {
+                $student = $students->get($studentId);
+                if (!$student) continue;
+
                 // Ensure only 1 record per student per academic year exists
                 StudentAcademicRecord::updateOrCreate(
                     [
@@ -96,16 +101,27 @@ class StudentMappingController extends Controller
                         'tingkat' => $targetClassroom->grade,
                         'student_status' => $validated['status'],
                         'ket_tidak_aktif' => $validated['keterangan'] ?? null,
+                        'program' => !empty($validated['program']) ? $validated['program'] : ($student->program ?? 'Umum'),
+                        'desil' => $student->desil,
+                        'status_pip' => $student->status_pip,
+                        'pip_keterangan' => $student->pip_keterangan,
+                        'status_kip' => $student->status_kip,
+                        'no_kip' => $student->no_kip,
                     ]
                 );
                 
-                // Update unit in students table if they move unit
-                Student::where('id', $studentId)->update([
+                // Update unit and program in students table if they move unit
+                $updateData = [
                     'unit' => $targetClassroom->unit,
                     'kelas' => $targetClassroom->name,
                     'jenjang' => $targetClassroom->jenjang,
                     'tingkat' => $targetClassroom->grade
-                ]);
+                ];
+                if (!empty($validated['program'])) {
+                    $updateData['program'] = $validated['program'];
+                }
+                
+                Student::where('id', $studentId)->update($updateData);
             }
             DB::commit();
             session(['selected_academic_year_id' => $validated['target_academic_year_id']]);

@@ -39,6 +39,7 @@ const form = useForm({
     student_ids: [],
     target_academic_year_id: '',
     target_classroom_id: '',
+    program: '',
     status: 'aktif',
     keterangan: ''
 });
@@ -223,6 +224,14 @@ const submitMapping = () => {
                         </select>
                     </div>
                     <div class="sm:col-span-2 border-t border-primary/10 pt-4 mt-2">
+                        <label class="block text-xs font-semibold text-on-surface-variant mb-1">Pilih Program</label>
+                        <select v-model="form.program" class="w-full text-sm rounded-lg border-outline-variant/50 focus:border-primary focus:ring-primary/20 bg-white shadow-sm mb-3">
+                            <option value="">-- Tetap (Sesuai Data Sebelumnya) --</option>
+                            <option value="Umum">Umum</option>
+                            <option value="Tahfidz">Tahfidz</option>
+                            <option value="Boarding">Boarding</option>
+                            <option value="Fullday">Fullday</option>
+                        </select>
                         <label class="block text-xs font-semibold text-on-surface-variant mb-1">Set Status Baru</label>
                         <select v-model="form.status" class="w-full text-sm rounded-lg border-outline-variant/50 focus:border-primary focus:ring-primary/20 bg-white shadow-sm">
                             <option value="aktif">Aktif</option>
