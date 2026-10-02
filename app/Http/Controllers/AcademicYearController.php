@@ -76,6 +76,7 @@ class AcademicYearController extends Controller
         // Sync Classes
         $selected = collect($request->input('selected_classes', []));
         $masterClasses = SchoolClass::with('unit')->get();
+        $validClassroomIds = [];
 
         foreach ($masterClasses as $mc) {
             $key = $mc->unit->name . '|' . $mc->name;
@@ -84,7 +85,7 @@ class AcademicYearController extends Controller
                 $grade = (int) filter_var($mc->name, FILTER_SANITIZE_NUMBER_INT);
                 if ($grade === 0) $grade = 1;
 
-                Classroom::firstOrCreate([
+                $classroom = Classroom::firstOrCreate([
                     'academic_year_id' => $academicYear->id,
                     'unit' => $mc->unit->name,
                     'name' => $mc->name,
@@ -93,17 +94,15 @@ class AcademicYearController extends Controller
                     'grade' => $grade,
                     'capacity' => 30
                 ]);
-            } else {
-                $classroom = Classroom::where('academic_year_id', $academicYear->id)
-                    ->where('unit', $mc->unit->name)
-                    ->where('name', $mc->name)
-                    ->first();
-                    
-                if ($classroom && $classroom->studentRecords()->count() === 0) {
-                    $classroom->delete();
-                }
+                $validClassroomIds[] = $classroom->id;
             }
         }
+
+        // Hapus semua kelas di TA ini yang TIDAk ada di list validClassroomIds DAN tidak punya siswa
+        Classroom::where('academic_year_id', $academicYear->id)
+            ->whereNotIn('id', $validClassroomIds)
+            ->doesntHave('studentRecords')
+            ->delete();
 
         return back()->with('success', "Tahun Ajaran {$validated['name']} {$validated['semester']} berhasil ditambahkan.");
     }
@@ -134,6 +133,7 @@ class AcademicYearController extends Controller
         // Sync Classes
         $selected = collect($request->input('selected_classes', []));
         $masterClasses = SchoolClass::with('unit')->get();
+        $validClassroomIds = [];
 
         foreach ($masterClasses as $mc) {
             $key = $mc->unit->name . '|' . $mc->name;
@@ -142,7 +142,7 @@ class AcademicYearController extends Controller
                 $grade = (int) filter_var($mc->name, FILTER_SANITIZE_NUMBER_INT);
                 if ($grade === 0) $grade = 1;
 
-                Classroom::firstOrCreate([
+                $classroom = Classroom::firstOrCreate([
                     'academic_year_id' => $academicYear->id,
                     'unit' => $mc->unit->name,
                     'name' => $mc->name,
@@ -151,17 +151,15 @@ class AcademicYearController extends Controller
                     'grade' => $grade,
                     'capacity' => 30
                 ]);
-            } else {
-                $classroom = Classroom::where('academic_year_id', $academicYear->id)
-                    ->where('unit', $mc->unit->name)
-                    ->where('name', $mc->name)
-                    ->first();
-                    
-                if ($classroom && $classroom->studentRecords()->count() === 0) {
-                    $classroom->delete();
-                }
+                $validClassroomIds[] = $classroom->id;
             }
         }
+
+        // Hapus semua kelas di TA ini yang TIDAk ada di list validClassroomIds DAN tidak punya siswa
+        Classroom::where('academic_year_id', $academicYear->id)
+            ->whereNotIn('id', $validClassroomIds)
+            ->doesntHave('studentRecords')
+            ->delete();
 
         return back()->with('success', 'Tahun Ajaran berhasil diperbarui.');
     }
