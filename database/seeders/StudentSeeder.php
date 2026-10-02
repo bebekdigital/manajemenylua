@@ -447,6 +447,26 @@ class StudentSeeder extends Seeder
 
             unset($data['_academic'], $data['_family'], $data['_siblings']);
 
+            // Move welfare and class info to student
+            $data['desil'] = $academicData['desil'] ?? null;
+            $data['status_pip'] = $academicData['status_pip'] ?? false;
+            $data['pip_keterangan'] = $academicData['pip_keterangan'] ?? null;
+            $data['status_kip'] = $academicData['status_kip'] ?? false;
+            $data['no_kip'] = $academicData['no_kip'] ?? null;
+            $data['jenjang'] = $academicData['jenjang'] ?? null;
+            $data['tingkat'] = $academicData['tingkat'] ?? null;
+
+            // Temporary mapping of 'kelas' for students table
+            $data['kelas'] = $academicData['kelas'] ?? null;
+
+            unset(
+                $academicData['desil'],
+                $academicData['status_pip'],
+                $academicData['pip_keterangan'],
+                $academicData['status_kip'],
+                $academicData['no_kip']
+            );
+
             $student = Student::create($data);
 
             // Create academic record linked to active TA (2025/2026 Ganjil)
@@ -480,11 +500,6 @@ class StudentSeeder extends Seeder
                         'jenjang' => $academicData['jenjang'],
                         'tingkat' => $prevGrade,
                         'student_status' => 'aktif',
-                        'desil' => $academicData['desil'] ?? null,
-                        'status_pip' => $academicData['status_pip'] ?? false,
-                        'pip_keterangan' => $academicData['pip_keterangan'] ?? null,
-                        'status_kip' => $academicData['status_kip'] ?? false,
-                        'no_kip' => $academicData['no_kip'] ?? null,
                     ]);
                 }
             }
