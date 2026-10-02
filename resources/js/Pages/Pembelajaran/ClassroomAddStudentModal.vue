@@ -125,13 +125,13 @@ watch([filterAngkatan, filterJk, searchQuery], () => {
 </script>
 
 <template>
-    <div v-if="show" class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-surface-variant/80 backdrop-blur-sm">
-        <div class="relative bg-surface-container-lowest rounded-2xl shadow-[0px_20px_50px_rgba(0,0,0,0.15)] border border-outline-variant/40 w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden">
+    <div v-if="show" class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 lg:p-8 bg-surface-variant/80 backdrop-blur-sm">
+        <div class="relative bg-surface-container-lowest rounded-2xl shadow-[0px_20px_50px_rgba(0,0,0,0.15)] border border-outline-variant/40 w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
             <!-- Header -->
-            <div class="px-6 pt-6 pb-4 border-b border-outline-variant/30 flex items-start justify-between gap-4 shrink-0">
+            <div class="p-4 sm:px-6 sm:py-5 border-b border-outline-variant/30 flex items-start justify-between gap-4 shrink-0">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                        <span class="material-symbols-outlined text-2xl">group_add</span>
+                    <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                        <span class="material-symbols-outlined text-xl sm:text-2xl">group_add</span>
                     </div>
                     <div>
                         <h3 class="text-lg font-bold text-on-surface">Tambah Siswa ke Kelas</h3>
@@ -151,23 +151,23 @@ watch([filterAngkatan, filterJk, searchQuery], () => {
             </div>
 
             <!-- Filters -->
-            <div class="px-6 py-4 border-b border-outline-variant/30 bg-surface/50 shrink-0">
-                <div class="flex flex-col sm:flex-row gap-3">
+            <div class="p-4 sm:px-6 sm:py-3 border-b border-outline-variant/30 bg-surface/50 shrink-0">
+                <div class="flex flex-col sm:flex-row gap-2 sm:gap-3">
                     <div class="flex-1 relative">
-                        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline-variant text-[18px]">search</span>
+                        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline-variant text-[16px] sm:text-[18px]">search</span>
                         <input
                             v-model="searchQuery"
                             type="text"
                             placeholder="Cari nama atau NISN..."
-                            class="w-full pl-9 pr-4 py-2 bg-white border border-outline-variant rounded-lg text-sm focus:ring-primary focus:border-primary shadow-sm"
+                            class="w-full pl-9 pr-4 py-1.5 sm:py-2 bg-white border border-outline-variant rounded-lg text-xs sm:text-sm focus:ring-primary focus:border-primary shadow-sm"
                         >
                     </div>
                     <div class="flex gap-2 shrink-0 flex-wrap">
-                        <select v-model="filterAngkatan" class="py-2 pl-3 pr-8 bg-white border border-outline-variant rounded-lg text-sm focus:ring-primary focus:border-primary shadow-sm">
+                        <select v-model="filterAngkatan" class="py-1.5 sm:py-2 pl-3 pr-8 bg-white border border-outline-variant rounded-lg text-xs sm:text-sm focus:ring-primary focus:border-primary shadow-sm">
                             <option value="">Semua Angkatan</option>
                             <option v-for="a in availableAngkatan" :key="a" :value="a">Angkatan {{ a }}</option>
                         </select>
-                        <select v-model="filterJk" class="py-2 pl-3 pr-8 bg-white border border-outline-variant rounded-lg text-sm focus:ring-primary focus:border-primary shadow-sm">
+                        <select v-model="filterJk" class="py-1.5 sm:py-2 pl-3 pr-8 bg-white border border-outline-variant rounded-lg text-xs sm:text-sm focus:ring-primary focus:border-primary shadow-sm">
                             <option value="">Semua L/P</option>
                             <option value="L">Laki-laki (L)</option>
                             <option value="P">Perempuan (P)</option>
@@ -177,19 +177,19 @@ watch([filterAngkatan, filterJk, searchQuery], () => {
             </div>
 
             <!-- Bulk Edit Options (Program & Status) -->
-            <div class="px-6 py-3 border-b border-outline-variant/30 bg-primary/5 shrink-0">
-                <div class="flex flex-wrap items-center gap-4">
-                    <span class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Setting Bulk:</span>
+            <div class="p-3 sm:px-6 sm:py-2.5 border-b border-outline-variant/30 bg-primary/5 shrink-0">
+                <div class="flex flex-wrap items-center gap-3 sm:gap-4">
+                    <span class="text-[10px] sm:text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Setting Bulk:</span>
                     <div class="flex items-center gap-2">
-                        <label class="text-sm font-medium text-on-surface-variant">Program:</label>
-                        <select v-model="bulkProgram" class="py-1.5 pl-3 pr-8 bg-white border border-outline-variant rounded-lg text-sm focus:ring-primary focus:border-primary shadow-sm">
+                        <label class="text-xs sm:text-sm font-medium text-on-surface-variant">Program:</label>
+                        <select v-model="bulkProgram" class="py-1 sm:py-1.5 pl-2 sm:pl-3 pr-8 bg-white border border-outline-variant rounded-md sm:rounded-lg text-xs sm:text-sm focus:ring-primary focus:border-primary shadow-sm">
                             <option value="Umum">Umum</option>
                             <option v-for="p in programs" :key="p" :value="p">{{ p }}</option>
                         </select>
                     </div>
                     <div class="flex items-center gap-2">
-                        <label class="text-sm font-medium text-on-surface-variant">Status:</label>
-                        <select v-model="bulkStatus" class="py-1.5 pl-3 pr-8 bg-white border border-outline-variant rounded-lg text-sm focus:ring-primary focus:border-primary shadow-sm">
+                        <label class="text-xs sm:text-sm font-medium text-on-surface-variant">Status:</label>
+                        <select v-model="bulkStatus" class="py-1 sm:py-1.5 pl-2 sm:pl-3 pr-8 bg-white border border-outline-variant rounded-md sm:rounded-lg text-xs sm:text-sm focus:ring-primary focus:border-primary shadow-sm">
                             <option v-for="s in statusOptions" :key="s.value" :value="s.value">{{ s.label }}</option>
                         </select>
                     </div>
@@ -198,22 +198,22 @@ watch([filterAngkatan, filterJk, searchQuery], () => {
 
             <!-- Table List -->
             <div class="flex-1 overflow-y-auto bg-white relative">
-                <table class="w-full text-left text-sm text-on-surface">
-                    <thead class="bg-surface-container sticky top-0 z-10 shadow-sm text-on-surface-variant text-xs uppercase font-semibold">
+                <table class="w-full text-left text-xs sm:text-sm text-on-surface">
+                    <thead class="bg-surface-container sticky top-0 z-10 shadow-sm text-on-surface-variant text-[10px] sm:text-xs uppercase font-semibold">
                         <tr>
-                            <th scope="col" class="px-4 py-3 w-12 text-center border-b border-outline-variant/50">
+                            <th scope="col" class="px-3 sm:px-4 py-2 sm:py-3 w-10 sm:w-12 text-center border-b border-outline-variant/50">
                                 <input
                                     type="checkbox"
-                                    class="rounded border-outline-variant text-primary focus:ring-primary w-4 h-4 cursor-pointer"
+                                    class="rounded border-outline-variant text-primary focus:ring-primary w-3.5 h-3.5 sm:w-4 sm:h-4 cursor-pointer"
                                     :checked="isAllSelected"
                                     @change="toggleAll"
                                     :disabled="availableStudentsToSelect.length === 0"
                                 >
                             </th>
-                            <th scope="col" class="px-4 py-3 border-b border-outline-variant/50 w-32">NISN</th>
-                            <th scope="col" class="px-4 py-3 border-b border-outline-variant/50">Nama Lengkap</th>
-                            <th scope="col" class="px-4 py-3 border-b border-outline-variant/50 w-24">J.K</th>
-                            <th scope="col" class="px-4 py-3 border-b border-outline-variant/50 w-32">Angkatan</th>
+                            <th scope="col" class="px-3 sm:px-4 py-2 sm:py-3 border-b border-outline-variant/50 w-28 sm:w-32">NISN</th>
+                            <th scope="col" class="px-3 sm:px-4 py-2 sm:py-3 border-b border-outline-variant/50">Nama Lengkap</th>
+                            <th scope="col" class="px-3 sm:px-4 py-2 sm:py-3 border-b border-outline-variant/50 w-20 sm:w-24">J.K</th>
+                            <th scope="col" class="px-3 sm:px-4 py-2 sm:py-3 border-b border-outline-variant/50 w-28 sm:w-32">Angkatan</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -223,26 +223,26 @@ watch([filterAngkatan, filterJk, searchQuery], () => {
                             class="border-b border-outline-variant/30 hover:bg-surface-container/50 transition-colors cursor-pointer"
                             @click="toggleStudent(student.id)"
                         >
-                            <td class="px-4 py-3 text-center">
+                            <td class="px-3 sm:px-4 py-2 sm:py-2.5 text-center">
                                 <input
                                     type="checkbox"
-                                    class="rounded border-outline-variant text-primary focus:ring-primary w-4 h-4 cursor-pointer"
+                                    class="rounded border-outline-variant text-primary focus:ring-primary w-3.5 h-3.5 sm:w-4 sm:h-4 cursor-pointer"
                                     :checked="selectedStudentIds.includes(student.id)"
                                     @click.stop
                                     @change="toggleStudent(student.id)"
                                 >
                             </td>
-                            <td class="px-4 py-3 font-medium font-mono">{{ student.nisn || '-' }}</td>
-                            <td class="px-4 py-3 font-semibold">{{ student.nama }}</td>
-                            <td class="px-4 py-3">
+                            <td class="px-3 sm:px-4 py-2 sm:py-2.5 font-medium font-mono text-[11px] sm:text-sm">{{ student.nisn || '-' }}</td>
+                            <td class="px-3 sm:px-4 py-2 sm:py-2.5 font-semibold text-xs sm:text-sm">{{ student.nama }}</td>
+                            <td class="px-3 sm:px-4 py-2 sm:py-2.5">
                                 <span :class="[
-                                    'inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold',
+                                    'inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-xs font-semibold',
                                     student.jk === 'L' ? 'bg-blue-100 text-blue-800' : 'bg-pink-100 text-pink-800'
                                 ]">
                                     {{ student.jk === 'L' ? 'Laki-laki' : 'Perempuan' }}
                                 </span>
                             </td>
-                            <td class="px-4 py-3">{{ student.angkatan || '-' }}</td>
+                            <td class="px-3 sm:px-4 py-2 sm:py-2.5 text-[11px] sm:text-sm">{{ student.angkatan || '-' }}</td>
                         </tr>
 
                         <!-- Empty State -->
@@ -264,16 +264,16 @@ watch([filterAngkatan, filterJk, searchQuery], () => {
             </div>
 
             <!-- Footer Actions -->
-            <div class="px-6 py-4 border-t border-outline-variant/30 bg-surface-container-lowest shrink-0 flex items-center justify-between">
-                <div class="text-sm font-semibold text-primary">
+            <div class="p-4 sm:px-6 sm:py-4 border-t border-outline-variant/30 bg-surface-container-lowest shrink-0 flex items-center justify-between">
+                <div class="text-xs sm:text-sm font-semibold text-primary">
                     {{ selectedStudentIds.length }} Siswa Terpilih
                 </div>
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-2 sm:gap-3">
                     <button
                         type="button"
                         @click="closeModal"
                         :disabled="isSubmitting"
-                        class="px-5 py-2.5 text-sm font-semibold text-on-surface-variant hover:text-on-surface hover:bg-surface-variant rounded-xl transition-all"
+                        class="px-3 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-on-surface-variant hover:text-on-surface hover:bg-surface-variant rounded-xl transition-all"
                     >
                         Batal
                     </button>
@@ -281,11 +281,11 @@ watch([filterAngkatan, filterJk, searchQuery], () => {
                         type="button"
                         @click="save"
                         :disabled="isSubmitting || selectedStudentIds.length === 0"
-                        class="px-5 py-2.5 text-sm font-semibold text-on-primary bg-primary rounded-xl hover:bg-primary/90 transition-all shadow-sm active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        class="px-3 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-on-primary bg-primary rounded-xl hover:bg-primary/90 transition-all shadow-sm active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 sm:gap-2"
                     >
-                        <span v-if="isSubmitting" class="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
-                        <span v-else class="material-symbols-outlined text-[18px]">check_circle</span>
-                        <span>Tambahkan ke Kelas</span>
+                        <span v-if="isSubmitting" class="material-symbols-outlined animate-spin text-[16px] sm:text-[18px]">progress_activity</span>
+                        <span v-else class="material-symbols-outlined text-[16px] sm:text-[18px]">check_circle</span>
+                        <span>Tambahkan<span class="hidden sm:inline"> ke Kelas</span></span>
                     </button>
                 </div>
             </div>
