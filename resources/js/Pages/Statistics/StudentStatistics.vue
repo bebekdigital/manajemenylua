@@ -151,12 +151,12 @@ watch(activeUnit, () => {
             <!-- Page Header -->
             <div class="mb-6 flex flex-col sm:flex-row sm:items-end justify-start gap-4 sm:gap-12 border-b border-outline-variant/30 pb-0">
                 <div class="pb-4 sm:pb-3 shrink-0">
-                    <h2 class="text-xl sm:text-2xl text-primary font-bold leading-tight">
+                    <h2 class="text-xl sm:text-2xl text-emerald-600 font-bold leading-tight">
                         Rincian Statistik
                     </h2>
                     <p class="font-body-md text-[13px] sm:text-sm text-on-surface-variant mt-1">
                         Ringkasan data statistik
-                        <span v-if="selectedAcademicYear" class="font-semibold text-primary">
+                        <span v-if="selectedAcademicYear" class="font-semibold text-emerald-600">
                             — TA {{ selectedAcademicYear.name }} ({{ selectedAcademicYear.semester }})
                         </span>
                     </p>
@@ -166,7 +166,7 @@ watch(activeUnit, () => {
                 <div class="flex overflow-x-auto -mb-px">
                     <button
                         type="button"
-                        class="flex items-center gap-2 px-3 sm:px-5 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap border-b-2 rounded-t-lg text-primary border-primary bg-gradient-to-t from-primary/20 to-transparent"
+                        class="flex items-center gap-2 px-3 sm:px-5 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap border-b-2 rounded-t-lg text-emerald-600 border-emerald-600 bg-gradient-to-t from-emerald-600/20 to-transparent"
                     >
                         <span class="material-symbols-outlined text-[16px] sm:text-[18px]">groups</span>
                         <span>Statistik Siswa</span>
