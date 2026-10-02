@@ -42,8 +42,7 @@ class PembelajaranController extends Controller
         }
 
         // Fetch students and their mapping for the selected academic year
-        $students = \App\Models\Student::select('id', 'nisn', 'nama', 'jk', 'angkatan', 'unit')
-            ->with(['academicRecords' => function ($query) use ($selectedAcademicYearId) {
+        $students = \App\Models\Student::with(['academicRecords' => function ($query) use ($selectedAcademicYearId) {
                 $query->where('academic_year_id', $selectedAcademicYearId);
             }])
             ->get()
@@ -54,9 +53,12 @@ class PembelajaranController extends Controller
                     'id' => $s->id,
                     'nisn' => $s->nisn,
                     'nama' => $s->nama,
+                    'nipd' => $s->nipd,
+                    'ttl' => $s->ttl,
                     'jk' => $s->jk,
                     'angkatan' => $s->angkatan,
                     'unit' => $s->unit,
+                    'jenjang' => $record ? $record->jenjang : null,
                     'student_status' => $record ? $record->student_status : 'aktif',
                     'classroom_id' => $record ? $record->classroom_id : null,
                 ];

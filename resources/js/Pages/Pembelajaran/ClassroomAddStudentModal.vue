@@ -85,6 +85,7 @@ function save() {
 
     form.post(route('students.mapping.store'), {
         preserveScroll: true,
+        preserveState: true,
         onSuccess: () => {
             selectedStudentIds.value = [];
             closeModal();

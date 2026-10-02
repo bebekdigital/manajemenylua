@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
-import { Head, router } from '@inertiajs/vue3';
+import { Head, router, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 
 defineOptions({
@@ -28,6 +28,15 @@ const props = defineProps({
 
 import StudentTable from '@/Components/Students/StudentTable.vue';
 import ClassroomAddStudentModal from './ClassroomAddStudentModal.vue';
+
+const page = usePage();
+const flashSuccess = computed(() => page.props.flash?.success);
+const flashError = computed(() => page.props.flash?.error);
+const dismissedFlash = ref(false);
+
+watch([flashSuccess, flashError], () => {
+    dismissedFlash.value = false;
+});
 
 const activeTab = ref('SDIT');
 const tabs = [
@@ -96,6 +105,27 @@ function switchTab(tabId) {
 
     <div class="flex-1 overflow-y-auto p-4 md:p-margin-desktop font-sans">
         <div class="max-w-7xl mx-auto w-full">
+            
+            <!-- Flash Messages -->
+            <div v-if="flashSuccess && !dismissedFlash" class="mb-6 p-4 bg-primary/10 border border-primary/20 rounded-xl flex items-start gap-3">
+                <span class="material-symbols-outlined text-primary shrink-0 mt-0.5">check_circle</span>
+                <div class="flex-1 text-sm text-primary font-medium">
+                    {{ flashSuccess }}
+                </div>
+                <button @click="dismissedFlash = true" class="text-primary/70 hover:text-primary transition-colors">
+                    <span class="material-symbols-outlined text-xl">close</span>
+                </button>
+            </div>
+            <div v-if="flashError && !dismissedFlash" class="mb-6 p-4 bg-error/10 border border-error/20 rounded-xl flex items-start gap-3">
+                <span class="material-symbols-outlined text-error shrink-0 mt-0.5">error</span>
+                <div class="flex-1 text-sm text-error font-medium">
+                    {{ flashError }}
+                </div>
+                <button @click="dismissedFlash = true" class="text-error/70 hover:text-error transition-colors">
+                    <span class="material-symbols-outlined text-xl">close</span>
+                </button>
+            </div>
+
             <!-- Page Header -->
             <div class="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-outline-variant/30">
                 <div class="flex items-end gap-6 pb-2">
