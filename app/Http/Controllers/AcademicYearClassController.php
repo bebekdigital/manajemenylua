@@ -10,14 +10,17 @@ use Illuminate\Http\Request;
 
 class AcademicYearClassController extends Controller
 {
-    public function getActiveClasses(AcademicYear $academicYear)
+    public function getActiveClasses($id)
     {
         $units = SchoolUnit::with('classes')->orderBy('id')->get();
         
-        $activeClassrooms = Classroom::where('academic_year_id', $academicYear->id)
-            ->get(['unit', 'name'])
-            ->map(fn($c) => $c->unit . '|' . $c->name)
-            ->toArray();
+        $activeClassrooms = [];
+        if ($id != 0) {
+            $activeClassrooms = Classroom::where('academic_year_id', $id)
+                ->get(['unit', 'name'])
+                ->map(fn($c) => $c->unit . '|' . $c->name)
+                ->toArray();
+        }
 
         return response()->json([
             'units' => $units,
