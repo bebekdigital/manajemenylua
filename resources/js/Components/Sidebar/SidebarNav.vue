@@ -50,7 +50,7 @@ function closeMobileSubMenu() {
         </div>
 
         <!-- Main Navigation Links -->
-        <ul class="flex-grow space-y-1 overflow-y-auto">
+        <ul class="flex-grow space-y-1 overflow-y-auto custom-scrollbar">
             <!-- Beranda -->
             <SidebarMenuItem href="/beranda" icon="home" label="Beranda" :active="currentRoute === 'overview'" />
 
@@ -301,5 +301,28 @@ function closeMobileSubMenu() {
 }
 .filled-icon {
     font-variation-settings: 'FILL' 1;
+}
+
+/* Custom Scrollbar for Sidebar */
+.custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #047857 transparent; /* emerald-700 */
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: #047857; /* emerald-700 */
+    border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: #059669; /* emerald-600 */
 }
 </style>
