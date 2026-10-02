@@ -30,7 +30,7 @@ class AcademicYearController extends Controller
                 'end_date' => $year->end_date?->format('Y-m-d'),
                 'is_active' => (bool) $year->is_active,
                 'students_count' => $year->studentRecords()->count(),
-                'classrooms_count' => $year->studentRecords()->whereNotNull('classroom_id')->distinct('classroom_id')->count('classroom_id'),
+                'classrooms_count' => $year->classrooms()->count(),
             ]);
 
         $users = User::orderBy('name')->get()->map(fn ($user) => [
