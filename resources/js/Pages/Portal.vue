@@ -180,43 +180,6 @@ const dismissedFlash = ref(false);
 const settingActiveId = ref(null);
 const deletingId = ref(null);
 
-const showSyncClassesModal = ref(false);
-const syncTargetYear = ref(null);
-const syncMasterUnits = ref([]);
-const selectedClasses = ref([]);
-const isSyncingClasses = ref(false);
-
-async function openSyncClassesModal(year) {
-    syncTargetYear.value = year;
-    showSyncClassesModal.value = true;
-    isSyncingClasses.value = true;
-    
-    try {
-        const res = await axios.get(`/portal/academic-years/${year.id}/active-classes`);
-        syncMasterUnits.value = res.data.units;
-        selectedClasses.value = res.data.active_classrooms;
-    } catch (e) {
-        alert('Gagal mengambil data kelas');
-    } finally {
-        isSyncingClasses.value = false;
-    }
-}
-
-function closeSyncClassesModal() {
-    showSyncClassesModal.value = false;
-    syncTargetYear.value = null;
-    syncMasterUnits.value = [];
-    selectedClasses.value = [];
-}
-
-function submitSyncClasses() {
-    router.post(`/portal/academic-years/${syncTargetYear.value.id}/sync-classes`, {
-        selected_classes: selectedClasses.value
-    }, {
-        preserveScroll: true,
-        onSuccess: () => closeSyncClassesModal()
-    });
-}
 
 
 const flashSuccess = computed(() => {
@@ -227,14 +190,31 @@ const flashError = computed(() => {
     return !dismissedFlash.value ? page.props.flash?.error : null;
 });
 
-function openCreateModal() {
+async function openCreateModal() {
     editingYear.value = null;
+    formYear.reset();
     showFormModal.value = true;
+    
+    // Fetch master units
+    try {
+        const res = await axios.get(`/portal/academic-years/0/active-classes`);
+        syncMasterUnits.value = res.data.units;
+    } catch (e) {}
 }
 
-function openEditModal(year) {
+async function openEditModal(year) {
     editingYear.value = { ...year };
+    
     showFormModal.value = true;
+    isSyncingClasses.value = true;
+    
+    try {
+        const res = await axios.get(`/portal/academic-years/${year.id}/active-classes`);
+        syncMasterUnits.value = res.data.units;
+        formYear.selected_classes = res.data.active_classrooms;
+    } catch (e) {} finally {
+        isSyncingClasses.value = false;
+    }
 }
 
 function closeFormModal() {
@@ -491,14 +471,7 @@ function formatDate(dateStr) {
                                     >
                                         <span class="material-symbols-outlined text-[18px]">edit</span>
                                     </button>
-                                    <button
-                                        type="button"
-                                        @click="openSyncClassesModal(year)"
-                                        class="p-2 rounded-lg text-on-surface-variant hover:text-indigo-600 hover:bg-indigo-50 transition-colors cursor-pointer"
-                                        title="Pilih Kelas Aktif di TA ini"
-                                    >
-                                        <span class="material-symbols-outlined text-[18px]">checklist</span>
-                                    </button>
+
                                     <button
                                         type="button"
                                         @click="confirmDelete(year)"
@@ -685,99 +658,9 @@ function formatDate(dateStr) {
                                         </td>
                                     </tr>
                                 
-        <!-- Sync Classes Modal -->
-        <div v-if="showSyncClassesModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div class="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-200">
-                <div class="px-6 py-4 border-b border-outline-variant/30 flex items-center justify-between shrink-0">
-                    <div>
-                        <h3 class="text-lg font-bold text-on-surface">Pilih Kelas Aktif</h3>
-                        <p class="text-xs text-on-surface-variant">Tahun Ajaran: {{ syncTargetYear?.name }} ({{ syncTargetYear?.semester }})</p>
-                    </div>
-                    <button @click="closeSyncClassesModal" class="p-2 rounded-full hover:bg-surface-container-low text-on-surface-variant transition-colors cursor-pointer">
-                        <span class="material-symbols-outlined text-[20px]">close</span>
-                    </button>
-                </div>
-                
-                <div class="p-6 overflow-y-auto flex-1">
-                    <div v-if="isSyncingClasses" class="py-12 flex justify-center text-primary">
-                        <span class="material-symbols-outlined animate-spin text-[32px]">progress_activity</span>
-                    </div>
-                    <div v-else class="space-y-6">
-                        <div v-for="unit in syncMasterUnits" :key="unit.id" class="border border-outline-variant/30 rounded-xl overflow-hidden">
-                            <div class="bg-surface-container-low px-4 py-2 font-bold text-sm border-b border-outline-variant/30 text-on-surface flex justify-between items-center">
-                                <span>Unit: {{ unit.name }}</span>
-                                <span class="text-xs font-normal text-on-surface-variant">{{ unit.classes.length }} Kelas Master</span>
-                            </div>
-                            <div class="p-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                <label v-for="cls in unit.classes" :key="cls.id" class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-surface-container-low transition-colors border border-transparent hover:border-outline-variant/30">
-                                    <input type="checkbox" :value="unit.name + '|' + cls.name" v-model="selectedClasses" class="rounded text-primary focus:ring-primary/30 border-outline-variant">
-                                    <span class="text-sm font-medium text-on-surface">Kelas {{ cls.name }}</span>
-                                </label>
-                                <div v-if="!unit.classes.length" class="text-xs text-on-surface-variant italic col-span-full">Belum ada master kelas di unit ini.</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="px-6 py-4 border-t border-outline-variant/30 flex justify-end gap-3 shrink-0 bg-surface-container-lowest rounded-b-2xl">
-                    <button @click="closeSyncClassesModal" class="px-5 py-2.5 rounded-xl font-semibold text-sm text-on-surface-variant hover:bg-surface-container-low transition-colors cursor-pointer">
-                        Batal
-                    </button>
-                    <button @click="submitSyncClasses" :disabled="isSyncingClasses" class="px-5 py-2.5 rounded-xl font-semibold text-sm bg-primary text-white hover:bg-primary-container disabled:opacity-50 transition-colors shadow-sm cursor-pointer">
-                        Simpan Kelas Aktif ({{ selectedClasses.length }})
-                    </button>
-                </div>
-            </div>
-        </div>
-
-</template>
+        </template>
                             
-        <!-- Sync Classes Modal -->
-        <div v-if="showSyncClassesModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div class="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-200">
-                <div class="px-6 py-4 border-b border-outline-variant/30 flex items-center justify-between shrink-0">
-                    <div>
-                        <h3 class="text-lg font-bold text-on-surface">Pilih Kelas Aktif</h3>
-                        <p class="text-xs text-on-surface-variant">Tahun Ajaran: {{ syncTargetYear?.name }} ({{ syncTargetYear?.semester }})</p>
-                    </div>
-                    <button @click="closeSyncClassesModal" class="p-2 rounded-full hover:bg-surface-container-low text-on-surface-variant transition-colors cursor-pointer">
-                        <span class="material-symbols-outlined text-[20px]">close</span>
-                    </button>
-                </div>
-                
-                <div class="p-6 overflow-y-auto flex-1">
-                    <div v-if="isSyncingClasses" class="py-12 flex justify-center text-primary">
-                        <span class="material-symbols-outlined animate-spin text-[32px]">progress_activity</span>
-                    </div>
-                    <div v-else class="space-y-6">
-                        <div v-for="unit in syncMasterUnits" :key="unit.id" class="border border-outline-variant/30 rounded-xl overflow-hidden">
-                            <div class="bg-surface-container-low px-4 py-2 font-bold text-sm border-b border-outline-variant/30 text-on-surface flex justify-between items-center">
-                                <span>Unit: {{ unit.name }}</span>
-                                <span class="text-xs font-normal text-on-surface-variant">{{ unit.classes.length }} Kelas Master</span>
-                            </div>
-                            <div class="p-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                <label v-for="cls in unit.classes" :key="cls.id" class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-surface-container-low transition-colors border border-transparent hover:border-outline-variant/30">
-                                    <input type="checkbox" :value="unit.name + '|' + cls.name" v-model="selectedClasses" class="rounded text-primary focus:ring-primary/30 border-outline-variant">
-                                    <span class="text-sm font-medium text-on-surface">Kelas {{ cls.name }}</span>
-                                </label>
-                                <div v-if="!unit.classes.length" class="text-xs text-on-surface-variant italic col-span-full">Belum ada master kelas di unit ini.</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="px-6 py-4 border-t border-outline-variant/30 flex justify-end gap-3 shrink-0 bg-surface-container-lowest rounded-b-2xl">
-                    <button @click="closeSyncClassesModal" class="px-5 py-2.5 rounded-xl font-semibold text-sm text-on-surface-variant hover:bg-surface-container-low transition-colors cursor-pointer">
-                        Batal
-                    </button>
-                    <button @click="submitSyncClasses" :disabled="isSyncingClasses" class="px-5 py-2.5 rounded-xl font-semibold text-sm bg-primary text-white hover:bg-primary-container disabled:opacity-50 transition-colors shadow-sm cursor-pointer">
-                        Simpan Kelas Aktif ({{ selectedClasses.length }})
-                    </button>
-                </div>
-            </div>
-        </div>
-
-</template>
+        </template>
 
                             <tr v-if="schoolLevels.length === 0">
                                 <td colspan="3" class="px-5 py-12 text-center text-on-surface-variant">
@@ -948,49 +831,4 @@ function formatDate(dateStr) {
         @success="onClassSuccess"
     />
 
-        <!-- Sync Classes Modal -->
-        <div v-if="showSyncClassesModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div class="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-200">
-                <div class="px-6 py-4 border-b border-outline-variant/30 flex items-center justify-between shrink-0">
-                    <div>
-                        <h3 class="text-lg font-bold text-on-surface">Pilih Kelas Aktif</h3>
-                        <p class="text-xs text-on-surface-variant">Tahun Ajaran: {{ syncTargetYear?.name }} ({{ syncTargetYear?.semester }})</p>
-                    </div>
-                    <button @click="closeSyncClassesModal" class="p-2 rounded-full hover:bg-surface-container-low text-on-surface-variant transition-colors cursor-pointer">
-                        <span class="material-symbols-outlined text-[20px]">close</span>
-                    </button>
-                </div>
-                
-                <div class="p-6 overflow-y-auto flex-1">
-                    <div v-if="isSyncingClasses" class="py-12 flex justify-center text-primary">
-                        <span class="material-symbols-outlined animate-spin text-[32px]">progress_activity</span>
-                    </div>
-                    <div v-else class="space-y-6">
-                        <div v-for="unit in syncMasterUnits" :key="unit.id" class="border border-outline-variant/30 rounded-xl overflow-hidden">
-                            <div class="bg-surface-container-low px-4 py-2 font-bold text-sm border-b border-outline-variant/30 text-on-surface flex justify-between items-center">
-                                <span>Unit: {{ unit.name }}</span>
-                                <span class="text-xs font-normal text-on-surface-variant">{{ unit.classes.length }} Kelas Master</span>
-                            </div>
-                            <div class="p-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                <label v-for="cls in unit.classes" :key="cls.id" class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-surface-container-low transition-colors border border-transparent hover:border-outline-variant/30">
-                                    <input type="checkbox" :value="unit.name + '|' + cls.name" v-model="selectedClasses" class="rounded text-primary focus:ring-primary/30 border-outline-variant">
-                                    <span class="text-sm font-medium text-on-surface">Kelas {{ cls.name }}</span>
-                                </label>
-                                <div v-if="!unit.classes.length" class="text-xs text-on-surface-variant italic col-span-full">Belum ada master kelas di unit ini.</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="px-6 py-4 border-t border-outline-variant/30 flex justify-end gap-3 shrink-0 bg-surface-container-lowest rounded-b-2xl">
-                    <button @click="closeSyncClassesModal" class="px-5 py-2.5 rounded-xl font-semibold text-sm text-on-surface-variant hover:bg-surface-container-low transition-colors cursor-pointer">
-                        Batal
-                    </button>
-                    <button @click="submitSyncClasses" :disabled="isSyncingClasses" class="px-5 py-2.5 rounded-xl font-semibold text-sm bg-primary text-white hover:bg-primary-container disabled:opacity-50 transition-colors shadow-sm cursor-pointer">
-                        Simpan Kelas Aktif ({{ selectedClasses.length }})
-                    </button>
-                </div>
-            </div>
-        </div>
-
-</template>
+        </template>

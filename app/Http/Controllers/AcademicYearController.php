@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\AcademicYear;
 use App\Models\SchoolLevel;
+use App\Models\SchoolClass;
+use App\Models\Classroom;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -69,7 +71,39 @@ class AcademicYearController extends Controller
             return back()->with('error', "Tahun Ajaran {$validated['name']} {$validated['semester']} sudah ada.");
         }
 
-        AcademicYear::create($validated);
+        $academicYear = AcademicYear::create($validated);
+
+        // Sync Classes
+        $selected = collect($request->input('selected_classes', []));
+        $masterClasses = SchoolClass::with('unit')->get();
+
+        foreach ($masterClasses as $mc) {
+            $key = $mc->unit->name . '|' . $mc->name;
+            if ($selected->contains($key)) {
+                $jenjang = str_starts_with($mc->name, '7') || str_starts_with($mc->name, '8') || str_starts_with($mc->name, '9') ? 'SMP' : 'SD';
+                $grade = (int) filter_var($mc->name, FILTER_SANITIZE_NUMBER_INT);
+                if ($grade === 0) $grade = 1;
+
+                Classroom::firstOrCreate([
+                    'academic_year_id' => $academicYear->id,
+                    'unit' => $mc->unit->name,
+                    'name' => $mc->name,
+                ], [
+                    'jenjang' => $jenjang,
+                    'grade' => $grade,
+                    'capacity' => 30
+                ]);
+            } else {
+                $classroom = Classroom::where('academic_year_id', $academicYear->id)
+                    ->where('unit', $mc->unit->name)
+                    ->where('name', $mc->name)
+                    ->first();
+                    
+                if ($classroom && $classroom->studentRecords()->count() === 0) {
+                    $classroom->delete();
+                }
+            }
+        }
 
         return back()->with('success', "Tahun Ajaran {$validated['name']} {$validated['semester']} berhasil ditambahkan.");
     }
@@ -96,6 +130,38 @@ class AcademicYearController extends Controller
         }
 
         $academicYear->update($validated);
+
+        // Sync Classes
+        $selected = collect($request->input('selected_classes', []));
+        $masterClasses = SchoolClass::with('unit')->get();
+
+        foreach ($masterClasses as $mc) {
+            $key = $mc->unit->name . '|' . $mc->name;
+            if ($selected->contains($key)) {
+                $jenjang = str_starts_with($mc->name, '7') || str_starts_with($mc->name, '8') || str_starts_with($mc->name, '9') ? 'SMP' : 'SD';
+                $grade = (int) filter_var($mc->name, FILTER_SANITIZE_NUMBER_INT);
+                if ($grade === 0) $grade = 1;
+
+                Classroom::firstOrCreate([
+                    'academic_year_id' => $academicYear->id,
+                    'unit' => $mc->unit->name,
+                    'name' => $mc->name,
+                ], [
+                    'jenjang' => $jenjang,
+                    'grade' => $grade,
+                    'capacity' => 30
+                ]);
+            } else {
+                $classroom = Classroom::where('academic_year_id', $academicYear->id)
+                    ->where('unit', $mc->unit->name)
+                    ->where('name', $mc->name)
+                    ->first();
+                    
+                if ($classroom && $classroom->studentRecords()->count() === 0) {
+                    $classroom->delete();
+                }
+            }
+        }
 
         return back()->with('success', 'Tahun Ajaran berhasil diperbarui.');
     }
