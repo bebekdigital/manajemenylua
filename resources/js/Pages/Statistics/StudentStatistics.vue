@@ -180,20 +180,28 @@ watch(activeUnit, () => {
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
 
             <!-- Page Header -->
-            <div class="mb-6 sm:mb-8">
-                <div class="flex items-center gap-3 mb-1">
-                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-md">
-                        <span class="material-symbols-outlined text-white text-[22px] filled-icon">bar_chart</span>
-                    </div>
-                    <div>
-                        <h1 class="text-xl sm:text-2xl font-bold text-on-surface leading-tight">Statistik Siswa</h1>
-                        <p class="text-xs sm:text-sm text-on-surface-variant mt-0.5">
-                            Ringkasan data siswa
-                            <span v-if="selectedAcademicYear" class="font-semibold text-primary">
-                                — TA {{ selectedAcademicYear.name }} ({{ selectedAcademicYear.semester }})
-                            </span>
-                        </p>
-                    </div>
+            <div class="mb-6 flex flex-col sm:flex-row sm:items-end justify-start gap-4 sm:gap-12 border-b border-outline-variant/30 pb-0">
+                <div class="pb-4 sm:pb-3 shrink-0">
+                    <h2 class="text-xl sm:text-2xl text-primary font-bold leading-tight">
+                        Rincian Statistik
+                    </h2>
+                    <p class="font-body-md text-[13px] sm:text-sm text-on-surface-variant mt-1">
+                        Ringkasan data statistik
+                        <span v-if="selectedAcademicYear" class="font-semibold text-primary">
+                            — TA {{ selectedAcademicYear.name }} ({{ selectedAcademicYear.semester }})
+                        </span>
+                    </p>
+                </div>
+                
+                <!-- Category Tabs (Tab Kotak2 Style) -->
+                <div class="flex overflow-x-auto">
+                    <button
+                        type="button"
+                        class="flex items-center gap-2 px-3 sm:px-5 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap border-b-2 rounded-t-lg text-primary border-primary bg-gradient-to-t from-primary/20 to-transparent"
+                    >
+                        <span class="material-symbols-outlined text-[16px] sm:text-[18px]">groups</span>
+                        <span>Statistik Siswa</span>
+                    </button>
                 </div>
             </div>
 
