@@ -11,6 +11,7 @@ const props = defineProps({
 });
 
 const isDataMenuOpen = ref(false);
+const isPembelajaranOpen = ref(false);
 const isMobileSubMenuOpen = ref(false);
 // Track which mobile item is "active/selected" for the label reveal effect
 const mobileActiveTab = ref(props.currentRoute === 'overview' ? 'overview'
@@ -109,8 +110,42 @@ function closeMobileSubMenu() {
                 </Transition>
             </li>
 
-            <!-- Pembelajaran -->
-            <SidebarMenuItem href="#" icon="menu_book" label="Pembelajaran" :active="currentRoute === 'pembelajaran'" />
+            <!-- Pembelajaran (with sub-menu) -->
+            <li>
+                <button
+                    @click="isPembelajaranOpen = !isPembelajaranOpen"
+                    :class="[
+                        'w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all cursor-pointer active:scale-95 duration-200',
+                        currentRoute === 'pembelajaran'
+                            ? 'bg-emerald-800 text-yellow-200 font-semibold shadow-sm'
+                            : 'text-emerald-100/80 hover:bg-emerald-800 hover:text-yellow-200 font-medium'
+                    ]"
+                >
+                    <div class="flex items-center space-x-3">
+                        <span class="material-symbols-outlined text-[22px] transition-all duration-200" :class="{ 'filled-icon': currentRoute === 'pembelajaran' }">menu_book</span>
+                        <span>Pembelajaran</span>
+                    </div>
+                    <span class="material-symbols-outlined text-[18px] transition-transform duration-200" :class="{ 'rotate-180': isPembelajaranOpen, 'filled-icon': currentRoute === 'pembelajaran' }">expand_more</span>
+                </button>
+
+                <Transition
+                    enter-active-class="transition-all duration-200 ease-out"
+                    enter-from-class="max-h-0 opacity-0"
+                    enter-to-class="max-h-64 opacity-100"
+                    leave-active-class="transition-all duration-150 ease-in"
+                    leave-from-class="max-h-64 opacity-100"
+                    leave-to-class="max-h-0 opacity-0"
+                >
+                    <ul v-show="isPembelajaranOpen || currentRoute === 'pembelajaran'" class="mt-1 ml-4 pl-4 border-l border-emerald-700 space-y-0.5 overflow-hidden">
+                        <li>
+                            <Link href="/pembelajaran/kelas" :class="['flex items-center space-x-2.5 px-3 py-2 rounded-lg transition-all cursor-pointer active:scale-95 duration-200 text-[13px]', currentRoute === 'pembelajaran' ? 'bg-emerald-800 text-yellow-200 font-semibold shadow-sm' : 'text-emerald-100/60 hover:bg-emerald-800 hover:text-yellow-200 font-medium']">
+                                <span class="material-symbols-outlined text-[17px] transition-all duration-200" :class="{ 'filled-icon': currentRoute === 'pembelajaran' }">meeting_room</span>
+                                <span>Kelas</span>
+                            </Link>
+                        </li>
+                    </ul>
+                </Transition>
+            </li>
 
             <!-- Kesiswaan -->
             <SidebarMenuItem href="#" icon="diversity_3" label="Kesiswaan" :active="currentRoute === 'kesiswaan'" />
@@ -219,7 +254,7 @@ function closeMobileSubMenu() {
 
             <!-- Pembelajaran -->
             <Link
-                href="#"
+                href="/pembelajaran/kelas"
                 @click="handleMobileTab('pembelajaran')"
                 class="flex flex-col items-center justify-center w-full py-1.5 transition-all duration-300 relative group"
                 :class="mobileActiveTab === 'pembelajaran' ? 'text-emerald-900' : 'text-on-surface-variant hover:text-emerald-900'"

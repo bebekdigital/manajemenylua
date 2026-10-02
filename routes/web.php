@@ -1,10 +1,11 @@
 <?php
 
-use App\Http\Controllers\AcademicYearController;
 use App\Http\Controllers\AcademicYearClassController;
+use App\Http\Controllers\AcademicYearController;
 use App\Http\Controllers\AdministrationController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\PembelajaranController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SchoolClassController;
 use App\Http\Controllers\SchoolLevelController;
@@ -14,6 +15,7 @@ use App\Http\Controllers\StatisticsController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\StudentMappingController;
 use App\Http\Controllers\UserController;
+use App\Models\StudentAcademicRecord;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
@@ -78,10 +80,10 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/students/mapping', [StudentMappingController::class, 'index'])->name('students.mapping.index');
     Route::post('/students/mapping', [StudentMappingController::class, 'store'])->name('students.mapping.store');
-    
+
     // DEBUG ROUTE
-    Route::get('/debug-mapping', function() {
-        return App\Models\StudentAcademicRecord::all();
+    Route::get('/debug-mapping', function () {
+        return StudentAcademicRecord::all();
     });
     Route::get('/api/students/mapping/classes', [StudentMappingController::class, 'getClasses'])->name('students.mapping.classes');
     Route::get('/api/students/mapping/students', [StudentMappingController::class, 'getStudents'])->name('students.mapping.students');
@@ -105,6 +107,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/administration/identity-document/template', [AdministrationController::class, 'updateTemplate'])->name('administration.template.update');
     Route::post('/administration/identity-document/template/reset', [AdministrationController::class, 'resetTemplate'])->name('administration.template.reset');
     Route::get('/administration/student-photos', [AdministrationController::class, 'studentPhotos'])->name('administration.student-photos');
+
+    // Pembelajaran
+    Route::get('/pembelajaran/kelas', [PembelajaranController::class, 'classrooms'])->name('pembelajaran.classrooms');
 
     Route::post('/academic-years/switch', function (Request $request) {
         $validated = $request->validate([
