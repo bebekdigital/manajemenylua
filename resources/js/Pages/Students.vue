@@ -244,7 +244,7 @@ function unitStudentCount(unitId) {
             </div>
             
             <!-- Unit Tabs (Tab Kotak2 Style) -->
-            <div class="flex overflow-x-auto">
+            <div class="flex overflow-x-auto -mb-px">
                 <button
                     v-for="tab in unitTabs"
                     :key="tab.id"
