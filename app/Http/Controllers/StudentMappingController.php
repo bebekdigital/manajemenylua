@@ -108,6 +108,7 @@ class StudentMappingController extends Controller
                 ]);
             }
             DB::commit();
+            session(['selected_academic_year_id' => $validated['target_academic_year_id']]);
             return redirect()->route('students.index')->with('success', count($validated['student_ids']) . ' siswa berhasil dipetakan ke kelas baru.');
         } catch (\Exception $e) {
             DB::rollBack();
