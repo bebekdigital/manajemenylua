@@ -317,7 +317,7 @@ function unitStudentCount(unitId) {
                     <div v-if="showEditDropdown" @click="showEditDropdown = false" class="fixed inset-0 z-40"></div>
 
                     <!-- Dropdown Menu -->
-                    <div v-show="showEditDropdown" class="absolute left-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-200 z-50 overflow-hidden py-1">
+                    <div v-show="showEditDropdown" class="absolute left-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-slate-200 z-50 overflow-hidden py-1">
                         <Link
                             href="/students/inline-edit"
                             class="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-700 hover:bg-primary/10 hover:text-primary transition-colors w-full text-left"
@@ -326,6 +326,14 @@ function unitStudentCount(unitId) {
                         >
                             <span class="material-symbols-outlined text-[18px]">edit_note</span>
                             Edit Massal
+                        </Link>
+                        <Link
+                            href="/students/mapping"
+                            class="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-700 hover:bg-primary/10 hover:text-primary transition-colors w-full text-left"
+                            @click="showEditDropdown = false"
+                        >
+                            <span class="material-symbols-outlined text-[18px]">route</span>
+                            Petakan Riwayat (Bulking)
                         </Link>
                         <button
                             type="button"
