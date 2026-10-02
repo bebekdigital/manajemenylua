@@ -11,6 +11,7 @@ use App\Http\Controllers\SchoolProgramController;
 use App\Http\Controllers\SchoolUnitController;
 use App\Http\Controllers\StatisticsController;
 use App\Http\Controllers\StudentController;
+use App\Http\Controllers\StudentMappingController;
 use App\Http\Controllers\UserController;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -73,6 +74,11 @@ Route::middleware('auth')->group(function () {
     Route::post('/students/inline-update', [StudentController::class, 'inlineUpdate'])->name('students.inline-update');
     Route::get('/students/template', [StudentController::class, 'downloadTemplate'])->name('students.template');
     Route::post('/students/import', [StudentController::class, 'import'])->name('students.import');
+
+    Route::get('/students/mapping', [StudentMappingController::class, 'index'])->name('students.mapping.index');
+    Route::post('/students/mapping', [StudentMappingController::class, 'store'])->name('students.mapping.store');
+    Route::get('/api/students/mapping/classes', [StudentMappingController::class, 'getClasses'])->name('students.mapping.classes');
+    Route::get('/api/students/mapping/students', [StudentMappingController::class, 'getStudents'])->name('students.mapping.students');
     Route::post('/students/upload-photos', [StudentController::class, 'uploadPhotos'])->name('students.upload-photos');
     Route::get('/students/photo/{filename}', [StudentController::class, 'showPhoto'])->name('students.photo');
     Route::get('/students/{nisn}', [StudentController::class, 'show'])->name('students.show');
