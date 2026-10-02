@@ -754,7 +754,6 @@ class StudentController extends Controller
         $this->buildDropdownsSheet($spreadsheet, $units, $programs, $classes);
         $this->buildSheet1($spreadsheet, $jenjang);
         $this->buildSheet2($spreadsheet);
-        $this->buildSheet3($spreadsheet, $jenjang);
 
         // Remove default sheet 0 if it was created by new Spreadsheet but we shifted things.
         // Actually createSheet(0) shifts existing sheets, so index 1 is now Sheet 1.
@@ -958,78 +957,6 @@ class StudentController extends Controller
 
         $this->styleExampleRow($sheet, 2, 'A', 'C');
         $this->styleExampleRow($sheet, 3, 'A', 'C');
-        $sheet->freezePane('A2');
-    }
-
-    private function buildSheet3(Spreadsheet $spreadsheet, ?string $jenjang = null): void
-    {
-        $sheet = $spreadsheet->createSheet();
-        $sheet->setTitle('3. Data Akademik (per TA)');
-
-        $headers = [
-            'A' => ['NISN', 12],
-            'B' => ['Nama Lengkap', 30],
-            'C' => ['Tahun Ajaran', 14],
-            'D' => ['Semester', 12],
-            'E' => ['Program', 14],
-            'F' => ['Kelas/Rombel', 16],
-            'G' => ['Tingkat', 14],
-            'H' => ['Status Aktif', 16],
-            'I' => ['Ket. Tidak Aktif', 20],
-            'J' => ['Tanggal Tidak Aktif', 24],
-        ];
-
-        $this->applySheetHeaders($sheet, $headers, '004D40');
-
-        $kelasExample = ($jenjang === 'SMP') ? '7A' : '5A';
-
-        $sheet->fromArray([[
-            '0051234001', 'Ahmad Fauzi Rahman', '2025/2026', 'Ganjil', 'Umum', $kelasExample, '', 'aktif',
-        ]], null, 'A2');
-
-        for ($row = 2; $row <= 1000; $row++) {
-            // Dropdown for Program
-            $valProgram = $sheet->getCell('E'.$row)->getDataValidation();
-            $valProgram->setType(DataValidation::TYPE_LIST);
-            $valProgram->setAllowBlank(true);
-            $valProgram->setShowDropDown(true);
-            $valProgram->setFormula1('Dropdowns!$B$2:$B$200');
-
-            // Formula for Tingkat based on Kelas
-            $sheet->setCellValue('G'.$row, '=IF(F'.$row.'="","",IFERROR(VALUE(LEFT(F'.$row.', IF(ISNUMBER(VALUE(MID(F'.$row.',2,1))), 2, 1))), ""))');
-
-            // Fixed/locked for Tingkat
-            $valTingkat = $sheet->getCell('G'.$row)->getDataValidation();
-            $valTingkat->setType(DataValidation::TYPE_CUSTOM);
-            $valTingkat->setShowErrorMessage(true);
-            $valTingkat->setErrorStyle(DataValidation::STYLE_STOP);
-            $valTingkat->setErrorTitle('Kolom Otomatis');
-            $valTingkat->setError('Kolom Tingkat ini berisi rumus otomatis dan tidak boleh diedit manual.');
-            $valTingkat->setFormula1('""');
-
-            // Dropdown for Kelas/Rombel
-            $valClass = $sheet->getCell('F'.$row)->getDataValidation();
-            $valClass->setType(DataValidation::TYPE_LIST);
-            $valClass->setAllowBlank(true);
-            $valClass->setShowDropDown(true);
-            $valClass->setFormula1('Dropdowns!$C$2:$C$200');
-
-            // Dropdown for Status Aktif
-            $valStatusAktif = $sheet->getCell('H'.$row)->getDataValidation();
-            $valStatusAktif->setType(DataValidation::TYPE_LIST);
-            $valStatusAktif->setAllowBlank(true);
-            $valStatusAktif->setShowDropDown(true);
-            $valStatusAktif->setFormula1('"Aktif,Tidak Aktif"');
-
-            // Dropdown for Ket Tidak Aktif
-            $valKetTidakAktif = $sheet->getCell('I'.$row)->getDataValidation();
-            $valKetTidakAktif->setType(DataValidation::TYPE_LIST);
-            $valKetTidakAktif->setAllowBlank(true);
-            $valKetTidakAktif->setShowDropDown(true);
-            $valKetTidakAktif->setFormula1('"Mutasi Keluar,Cuti,Dikeluarkan,Meninggal Dunia,Putus Sekolah,Lainnya"');
-        }
-
-        $this->styleExampleRow($sheet, 2, 'A', 'J');
         $sheet->freezePane('A2');
     }
 
