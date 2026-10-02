@@ -1,6 +1,7 @@
 <script setup>
 import { ref, watch, computed } from 'vue';
 import { router } from '@inertiajs/vue3';
+import axios from 'axios';
 
 const props = defineProps({
     show: {
@@ -20,9 +21,13 @@ const form = ref({
     semester: 'Ganjil',
     start_date: '',
     end_date: '',
+    selected_classes: [],
 });
 
 const isSubmitting = ref(false);
+const syncMasterUnits = ref([]);
+const isSyncingClasses = ref(false);
+
 const errors = ref({});
 
 const isEditing = computed(() => !!props.editing);
@@ -31,20 +36,32 @@ const modalTitle = computed(() => isEditing.value ? 'Edit Tahun Ajaran' : 'Tamba
 watch(() => props.show, (newVal) => {
     if (newVal) {
         errors.value = {};
+        isSyncingClasses.value = true;
         if (props.editing) {
             form.value = {
                 name: props.editing.name || '',
                 semester: props.editing.semester || 'Ganjil',
                 start_date: props.editing.start_date || '',
                 end_date: props.editing.end_date || '',
+                selected_classes: [],
             };
+            axios.get(`/portal/academic-years/${props.editing.id}/active-classes`).then(res => {
+                syncMasterUnits.value = res.data.units;
+                form.value.selected_classes = res.data.active_classrooms;
+                isSyncingClasses.value = false;
+            }).catch(e => isSyncingClasses.value = false);
         } else {
             form.value = {
                 name: '',
                 semester: 'Ganjil',
                 start_date: '',
                 end_date: '',
+                selected_classes: [],
             };
+            axios.get(`/portal/academic-years/0/active-classes`).then(res => {
+                syncMasterUnits.value = res.data.units;
+                isSyncingClasses.value = false;
+            }).catch(e => isSyncingClasses.value = false);
         }
     }
 });
@@ -196,6 +213,29 @@ function submit() {
                                         :class="{ 'border-error': errors.end_date }"
                                     />
                                     <p v-if="errors.end_date" class="text-xs text-error mt-1">{{ errors.end_date }}</p>
+                                </div>
+                            </div>
+                            
+                            <div class="pt-4 border-t border-outline-variant/30">
+                                <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-3">
+                                    Pilih Kelas Aktif (Checklist)
+                                </label>
+                                <div v-if="isSyncingClasses" class="py-6 flex justify-center text-primary">
+                                    <span class="material-symbols-outlined animate-spin text-[24px]">progress_activity</span>
+                                </div>
+                                <div v-else class="space-y-4 max-h-[30vh] overflow-y-auto pr-2 custom-scrollbar">
+                                    <div v-for="unit in syncMasterUnits" :key="unit.id" class="border border-outline-variant/30 rounded-xl overflow-hidden">
+                                        <div class="bg-surface-container-low px-4 py-2 font-bold text-sm border-b border-outline-variant/30 text-on-surface flex justify-between items-center">
+                                            <span>Unit: {{ unit.name }}</span>
+                                        </div>
+                                        <div class="p-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                            <label v-for="cls in unit.classes" :key="cls.id" class="flex items-center gap-2 cursor-pointer p-1.5 rounded-lg hover:bg-surface-container-low transition-colors border border-transparent hover:border-outline-variant/30">
+                                                <input type="checkbox" :value="unit.name + '|' + cls.name" v-model="form.selected_classes" class="rounded text-primary focus:ring-primary/30 border-outline-variant">
+                                                <span class="text-xs font-medium text-on-surface">Kelas {{ cls.name }}</span>
+                                            </label>
+                                            <div v-if="!unit.classes.length" class="text-xs text-on-surface-variant italic col-span-full">Belum ada master kelas di unit ini.</div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
