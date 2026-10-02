@@ -179,6 +179,7 @@ const deletingUserId = ref(null);
 const dismissedFlash = ref(false);
 const settingActiveId = ref(null);
 const deletingId = ref(null);
+const generatingId = ref(null);
 
 const flashSuccess = computed(() => {
     return !dismissedFlash.value ? page.props.flash?.success : null;
@@ -242,6 +243,20 @@ function confirmUserDelete(user) {
         onFinish: () => {
             deletingUserId.value = null;
         },
+    });
+}
+
+function generateClasses(year) {
+    if (!confirm(`Generate seluruh kelas dari Master Data untuk TA "${year.name} ${year.semester}"?\n(Kelas yang sudah ada tidak akan dihapus)`)) {
+        return;
+    }
+    generatingId.value = year.id;
+    dismissedFlash.value = false;
+    router.post(`/portal/academic-years/${year.id}/generate-classes`, {}, {
+        preserveScroll: true,
+        onFinish: () => {
+            generatingId.value = null;
+        }
     });
 }
 
@@ -451,6 +466,16 @@ function formatDate(dateStr) {
                                         title="Edit Tahun Ajaran"
                                     >
                                         <span class="material-symbols-outlined text-[18px]">edit</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        @click="generateClasses(year)"
+                                        :disabled="generatingId === year.id"
+                                        class="p-2 rounded-lg text-on-surface-variant hover:text-emerald-600 hover:bg-emerald-50 transition-colors cursor-pointer"
+                                        title="Generate/Sinkronisasi Kelas dari Master Data"
+                                    >
+                                        <span v-if="generatingId === year.id" class="material-symbols-outlined text-[18px] animate-spin">sync</span>
+                                        <span v-else class="material-symbols-outlined text-[18px]">auto_awesome</span>
                                     </button>
                                     <button
                                         type="button"

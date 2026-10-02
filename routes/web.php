@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AcademicYearController;
+use App\Http\Controllers\AcademicYearClassController;
 use App\Http\Controllers\AdministrationController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\EmployeeController;
