@@ -14,7 +14,6 @@ class StudentAcademicRecord extends Model
         'student_id',
         'academic_year_id',
         'classroom_id',
-        'jenjang',
         'tingkat',
         'program',
         'student_status',
@@ -26,6 +25,7 @@ class StudentAcademicRecord extends Model
     {
         return [
             'tingkat' => 'integer',
+            'tanggal_tidak_aktif' => 'date',
         ];
     }
 

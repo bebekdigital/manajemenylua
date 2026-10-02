@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AcademicYear;
 use App\Models\Classroom;
+use App\Models\SchoolProgram;
 use App\Models\Student;
 use App\Models\StudentAcademicRecord;
 use Illuminate\Http\Request;
@@ -32,8 +33,8 @@ class PembelajaranController extends Controller
                 'id' => $c->id,
                 'name' => $c->name,
                 'jenjang' => $c->jenjang,
+                'grade' => $c->grade,
                 'unit' => $c->unit,
-                'tingkat' => $c->tingkat,
                 'academic_year_id' => $c->academic_year_id,
             ]);
 
@@ -44,34 +45,43 @@ class PembelajaranController extends Controller
             $selectedAcademicYearId = $activeYear ? $activeYear->id : ($academicYears->first()['id'] ?? null);
         }
 
-        // Fetch students and their mapping for the selected academic year
+        // Fetch students with their academic records for the selected TA
         $students = Student::with(['academicRecords' => function ($query) use ($selectedAcademicYearId) {
-            $query->where('academic_year_id', $selectedAcademicYearId);
+            $query->where('academic_year_id', $selectedAcademicYearId)
+                ->with('classroom');
         }])
             ->get()
             ->map(function ($s) {
                 $record = $s->academicRecords->first();
+                $classroom = $record?->classroom;
 
                 return [
                     'id' => $s->id,
                     'nisn' => $s->nisn,
                     'nama' => $s->nama,
                     'nipd' => $s->nipd,
-                    'ttl' => $s->ttl,
                     'jk' => $s->jk,
                     'angkatan' => $s->angkatan,
                     'unit' => $s->unit,
-                    'jenjang' => $record ? $record->jenjang : null,
-                    'student_status' => $record ? $record->student_status : 'aktif',
+                    'tingkat' => $classroom ? $classroom->grade : null,
+                    'kelas' => $classroom ? $classroom->name : null,
+                    'program' => $record ? $record->program : null,
+                    'student_status' => $record ? $record->student_status : null,
+                    'ket_tidak_aktif' => $record ? $record->ket_tidak_aktif : null,
+                    'tanggal_tidak_aktif' => $record?->tanggal_tidak_aktif?->format('Y-m-d'),
                     'classroom_id' => $record ? $record->classroom_id : null,
                 ];
             });
+
+        // Get programs from Pengaturan
+        $programs = SchoolProgram::orderBy('name')->pluck('name')->toArray();
 
         return Inertia::render('Pembelajaran/Classrooms', [
             'classrooms' => $classrooms,
             'academicYears' => $academicYears,
             'initialAcademicYearId' => (int) $selectedAcademicYearId,
             'students' => $students,
+            'programs' => $programs,
         ]);
     }
 
@@ -85,6 +95,8 @@ class PembelajaranController extends Controller
             'student_ids.*' => 'integer',
             'target_academic_year_id' => 'required|integer',
             'target_classroom_id' => 'required|integer',
+            'program' => 'nullable|string',
+            'student_status' => 'nullable|string',
         ]);
 
         $classroom = Classroom::find($validated['target_classroom_id']);
@@ -92,6 +104,8 @@ class PembelajaranController extends Controller
             return redirect()->back()->with('error', 'Kelas tidak ditemukan.');
         }
 
+        $status = $validated['student_status'] ?? 'aktif';
+        $program = $validated['program'] ?? 'Umum';
         $count = 0;
 
         DB::beginTransaction();
@@ -104,9 +118,9 @@ class PembelajaranController extends Controller
                     ],
                     [
                         'classroom_id' => $classroom->id,
-                        'jenjang' => $classroom->jenjang,
                         'tingkat' => $classroom->grade,
-                        'student_status' => 'aktif',
+                        'program' => $program,
+                        'student_status' => $status,
                     ]
                 );
                 $count++;

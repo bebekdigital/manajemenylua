@@ -10,6 +10,10 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    programs: {
+        type: Array,
+        default: () => [],
+    },
 });
 
 const emit = defineEmits(['close', 'success']);
@@ -18,22 +22,30 @@ const filterAngkatan = ref('');
 const filterJk = ref('');
 const searchQuery = ref('');
 
+// Bulk edit fields
+const bulkProgram = ref('Umum');
+const bulkStatus = ref('aktif');
+
+const statusOptions = [
+    { value: 'aktif', label: 'Aktif' },
+    { value: 'mutasi_masuk', label: 'Mutasi Masuk' },
+    { value: 'mutasi_keluar', label: 'Mutasi Keluar' },
+    { value: 'lulus', label: 'Lulus' },
+    { value: 'mengulang', label: 'Mengulang' },
+    { value: 'dropout', label: 'Dropout' },
+];
+
 const selectedStudentIds = ref([]);
 
-// Get unique list of "angkatan" from the available students
 const availableAngkatan = computed(() => {
     const angkatans = new Set(props.students.map(s => s.angkatan).filter(a => a));
-    return Array.from(angkatans).sort((a, b) => b - a); // Descending order
+    return Array.from(angkatans).sort((a, b) => b - a);
 });
 
-// Filter students that are NOT already in THIS class
-// And match the selected filters
 const availableStudentsToSelect = computed(() => {
     return props.students.filter(student => {
-        // Exclude students who are already in this specific class
-        if (student.classroom_id === props.classId) return false;
+        if (student.classroom_id == props.classId) return false;
 
-        // Apply filters
         if (filterAngkatan.value && student.angkatan != filterAngkatan.value) return false;
         if (filterJk.value && student.jk !== filterJk.value) return false;
         if (searchQuery.value) {
@@ -48,7 +60,7 @@ const availableStudentsToSelect = computed(() => {
 });
 
 const isAllSelected = computed(() => {
-    return availableStudentsToSelect.value.length > 0 && 
+    return availableStudentsToSelect.value.length > 0 &&
            availableStudentsToSelect.value.every(s => selectedStudentIds.value.includes(s.id));
 });
 
@@ -83,6 +95,8 @@ function save() {
         student_ids: selectedStudentIds.value,
         target_academic_year_id: props.academicYearId,
         target_classroom_id: props.classId,
+        program: bulkProgram.value,
+        student_status: bulkStatus.value,
     }, {
         preserveScroll: true,
         onSuccess: () => {
@@ -105,7 +119,6 @@ function closeModal() {
     emit('close');
 }
 
-// Reset selection when filters change so we don't submit hidden selections by mistake
 watch([filterAngkatan, filterJk, searchQuery], () => {
     selectedStudentIds.value = [];
 });
@@ -113,7 +126,7 @@ watch([filterAngkatan, filterJk, searchQuery], () => {
 
 <template>
     <div v-if="show" class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-surface-variant/80 backdrop-blur-sm">
-        <div class="relative bg-surface-container-lowest rounded-2xl shadow-[0px_20px_50px_rgba(0,0,0,0.15)] border border-outline-variant/40 w-full max-w-4xl max-h-full flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        <div class="relative bg-surface-container-lowest rounded-2xl shadow-[0px_20px_50px_rgba(0,0,0,0.15)] border border-outline-variant/40 w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden">
             <!-- Header -->
             <div class="px-6 pt-6 pb-4 border-b border-outline-variant/30 flex items-start justify-between gap-4 shrink-0">
                 <div class="flex items-center gap-3">
@@ -139,7 +152,7 @@ watch([filterAngkatan, filterJk, searchQuery], () => {
 
             <!-- Filters -->
             <div class="px-6 py-4 border-b border-outline-variant/30 bg-surface/50 shrink-0">
-                <div class="flex flex-col sm:flex-row gap-4">
+                <div class="flex flex-col sm:flex-row gap-3">
                     <div class="flex-1 relative">
                         <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline-variant text-[18px]">search</span>
                         <input
@@ -149,21 +162,35 @@ watch([filterAngkatan, filterJk, searchQuery], () => {
                             class="w-full pl-9 pr-4 py-2 bg-white border border-outline-variant rounded-lg text-sm focus:ring-primary focus:border-primary shadow-sm"
                         >
                     </div>
-                    <div class="flex gap-2 shrink-0">
-                        <select
-                            v-model="filterAngkatan"
-                            class="py-2 pl-3 pr-8 bg-white border border-outline-variant rounded-lg text-sm focus:ring-primary focus:border-primary shadow-sm"
-                        >
+                    <div class="flex gap-2 shrink-0 flex-wrap">
+                        <select v-model="filterAngkatan" class="py-2 pl-3 pr-8 bg-white border border-outline-variant rounded-lg text-sm focus:ring-primary focus:border-primary shadow-sm">
                             <option value="">Semua Angkatan</option>
                             <option v-for="a in availableAngkatan" :key="a" :value="a">Angkatan {{ a }}</option>
                         </select>
-                        <select
-                            v-model="filterJk"
-                            class="py-2 pl-3 pr-8 bg-white border border-outline-variant rounded-lg text-sm focus:ring-primary focus:border-primary shadow-sm"
-                        >
+                        <select v-model="filterJk" class="py-2 pl-3 pr-8 bg-white border border-outline-variant rounded-lg text-sm focus:ring-primary focus:border-primary shadow-sm">
                             <option value="">Semua L/P</option>
                             <option value="L">Laki-laki (L)</option>
                             <option value="P">Perempuan (P)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bulk Edit Options (Program & Status) -->
+            <div class="px-6 py-3 border-b border-outline-variant/30 bg-primary/5 shrink-0">
+                <div class="flex flex-wrap items-center gap-4">
+                    <span class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Setting Bulk:</span>
+                    <div class="flex items-center gap-2">
+                        <label class="text-sm font-medium text-on-surface-variant">Program:</label>
+                        <select v-model="bulkProgram" class="py-1.5 pl-3 pr-8 bg-white border border-outline-variant rounded-lg text-sm focus:ring-primary focus:border-primary shadow-sm">
+                            <option value="Umum">Umum</option>
+                            <option v-for="p in programs" :key="p" :value="p">{{ p }}</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label class="text-sm font-medium text-on-surface-variant">Status:</label>
+                        <select v-model="bulkStatus" class="py-1.5 pl-3 pr-8 bg-white border border-outline-variant rounded-lg text-sm focus:ring-primary focus:border-primary shadow-sm">
+                            <option v-for="s in statusOptions" :key="s.value" :value="s.value">{{ s.label }}</option>
                         </select>
                     </div>
                 </div>
@@ -205,8 +232,8 @@ watch([filterAngkatan, filterJk, searchQuery], () => {
                                     @change="toggleStudent(student.id)"
                                 >
                             </td>
-                            <td class="px-4 py-3 font-medium">{{ student.nisn || '-' }}</td>
-                            <td class="px-4 py-3">{{ student.nama }}</td>
+                            <td class="px-4 py-3 font-medium font-mono">{{ student.nisn || '-' }}</td>
+                            <td class="px-4 py-3 font-semibold">{{ student.nama }}</td>
                             <td class="px-4 py-3">
                                 <span :class="[
                                     'inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold',
