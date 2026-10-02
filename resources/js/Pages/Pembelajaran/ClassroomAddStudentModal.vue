@@ -125,7 +125,8 @@ watch([filterAngkatan, filterJk, searchQuery], () => {
 </script>
 
 <template>
-    <div v-if="show" class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 lg:p-8 bg-surface-variant/80 backdrop-blur-sm">
+    <Teleport to="body">
+        <div v-if="show" class="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 lg:p-8 bg-surface-variant/80 backdrop-blur-sm">
         <div class="relative bg-surface-container-lowest rounded-2xl shadow-[0px_20px_50px_rgba(0,0,0,0.15)] border border-outline-variant/40 w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
             <!-- Header -->
             <div class="p-4 sm:px-6 sm:py-5 border-b border-outline-variant/30 flex items-start justify-between gap-4 shrink-0">
@@ -290,5 +291,6 @@ watch([filterAngkatan, filterJk, searchQuery], () => {
                 </div>
             </div>
         </div>
-    </div>
+        </div>
+    </Teleport>
 </template>
