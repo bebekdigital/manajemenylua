@@ -462,6 +462,43 @@ function hitungUsia(tanggalLahir) {
                                         </p>
                                     </div>
                                 </div>
+                                
+                                <div class="mt-6" v-if="student.riwayat_keaktifan && student.riwayat_keaktifan.length > 0">
+                                    <h4 class="text-xs sm:text-sm font-bold text-primary mb-3 flex items-center gap-2">
+                                        <span class="material-symbols-outlined text-[18px]">history</span>
+                                        Riwayat Keaktifan Siswa
+                                    </h4>
+                                    <div class="overflow-x-auto rounded-xl border border-outline-variant/30">
+                                        <table class="w-full text-left text-sm border-collapse">
+                                            <thead>
+                                                <tr class="bg-surface-container-low border-b border-outline-variant/30">
+                                                    <th class="p-3 font-semibold text-on-surface w-24">Unit</th>
+                                                    <th class="p-3 font-semibold text-on-surface">TA / Semester</th>
+                                                    <th class="p-3 font-semibold text-on-surface">Kelas / Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="divide-y divide-outline-variant/30">
+                                                <tr v-for="riwayat in student.riwayat_keaktifan" :key="riwayat.id">
+                                                    <td class="p-3 text-on-surface-variant font-medium">
+                                                        {{ riwayat.unit }}
+                                                    </td>
+                                                    <td class="p-3 text-on-surface-variant">
+                                                        {{ riwayat.academic_year }} ({{ riwayat.semester }})
+                                                    </td>
+                                                    <td class="p-3">
+                                                        <span v-if="riwayat.status === 'aktif'" class="text-emerald-600 font-bold">
+                                                            {{ riwayat.kelas || 'Aktif' }}
+                                                        </span>
+                                                        <span v-else class="text-error font-medium capitalize">
+                                                            {{ riwayat.status.replace('_', ' ') }} 
+                                                            {{ riwayat.keterangan ? `- ${riwayat.keterangan}` : '' }}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
                             </div>
 
                             <!-- TAB: Kesejahteraan -->

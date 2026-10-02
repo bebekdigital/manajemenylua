@@ -191,18 +191,19 @@ class StudentController extends Controller
             : (AcademicYear::current() ?? AcademicYear::first());
 
         $studentModel = Student::with([
-            'academicRecords' => function ($query) use ($selectedYear) {
-                if ($selectedYear) {
-                    $query->where('academic_year_id', $selectedYear->id);
-                }
-                $query->with('classroom');
-            },
+            'academicRecords.classroom',
+            'academicRecords.academicYear',
             'family',
             'siblings',
         ])->where('nisn', $nisn)->firstOrFail();
 
         $family = $studentModel->family;
-        $record = $studentModel->academicRecords->first();
+        
+        // Find the record for the selected year, or fallback to the most recent if not found
+        $record = $selectedYear 
+            ? $studentModel->academicRecords->firstWhere('academic_year_id', $selectedYear->id)
+            : $studentModel->academicRecords->first();
+            
         $classroom = $record?->classroom;
 
         $studentData = [
@@ -276,6 +277,15 @@ class StudentController extends Controller
                 'nama' => $s->nama,
                 'tanggal_lahir' => $s->tanggal_lahir?->format('Y-m-d'),
             ])->toArray(),
+            'riwayat_keaktifan' => $studentModel->academicRecords->map(fn ($r) => [
+                'id' => $r->id,
+                'academic_year' => $r->academicYear?->name,
+                'semester' => $r->academicYear?->semester,
+                'unit' => $r->classroom?->unit ?? $studentModel->unit,
+                'kelas' => $r->classroom?->name,
+                'status' => $r->student_status,
+                'keterangan' => $r->ket_tidak_aktif,
+            ])->sortBy(fn($r) => $r['academic_year'] . '-' . $r['semester'])->values()->toArray(),
             'bantuan' => [
                 'pip' => $studentModel->status_pip ?? false,
                 'pip_keterangan' => $studentModel->pip_keterangan,
