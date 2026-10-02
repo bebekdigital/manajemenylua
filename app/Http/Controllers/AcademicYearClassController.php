@@ -12,7 +12,7 @@ class AcademicYearClassController extends Controller
 {
     public function getActiveClasses(AcademicYear $academicYear)
     {
-        $units = SchoolUnit::with('classes')->orderBy('order')->get();
+        $units = SchoolUnit::with('classes')->orderBy('id')->get();
         
         $activeClassrooms = Classroom::where('academic_year_id', $academicYear->id)
             ->get(['unit', 'name'])
