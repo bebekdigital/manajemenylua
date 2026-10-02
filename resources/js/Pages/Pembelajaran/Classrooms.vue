@@ -68,7 +68,7 @@ const showAddStudentModal = ref(false);
 
 const classStudents = computed(() => {
     if (!selectedClassId.value) return [];
-    return props.students.filter(s => s.classroom_id === selectedClassId.value);
+    return props.students.filter(s => s.classroom_id == selectedClassId.value);
 });
 
 // Pagination states for the StudentTable

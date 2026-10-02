@@ -18,6 +18,8 @@ class StudentAcademicRecord extends Model
         'tingkat',
         'program',
         'student_status',
+        'ket_tidak_aktif',
+        'tanggal_tidak_aktif',
     ];
 
     protected function casts(): array
