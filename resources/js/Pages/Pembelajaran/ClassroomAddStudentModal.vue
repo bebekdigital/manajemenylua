@@ -73,7 +73,6 @@ const form = useForm({
     student_ids: [],
     target_academic_year_id: null,
     target_classroom_id: null,
-    status: 'aktif',
 });
 
 function save() {
@@ -83,13 +82,15 @@ function save() {
     form.target_academic_year_id = props.academicYearId;
     form.target_classroom_id = props.classId;
 
-    form.post(route('students.mapping.store'), {
+    form.post(route('pembelajaran.classrooms.add-students'), {
         preserveScroll: true,
-        preserveState: true,
         onSuccess: () => {
             selectedStudentIds.value = [];
             closeModal();
             emit('success');
+        },
+        onError: (errors) => {
+            console.error('Validation errors:', errors);
         },
     });
 }

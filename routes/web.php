@@ -110,6 +110,7 @@ Route::middleware('auth')->group(function () {
 
     // Pembelajaran
     Route::get('/pembelajaran/kelas', [PembelajaranController::class, 'classrooms'])->name('pembelajaran.classrooms');
+    Route::post('/pembelajaran/kelas/add-students', [PembelajaranController::class, 'addStudents'])->name('pembelajaran.classrooms.add-students');
 
     Route::post('/academic-years/switch', function (Request $request) {
         $validated = $request->validate([
