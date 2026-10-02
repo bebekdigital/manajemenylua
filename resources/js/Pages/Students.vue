@@ -233,18 +233,19 @@ function unitStudentCount(unitId) {
 
     <div class="flex-1 overflow-y-auto p-4 md:p-margin-desktop">
         <!-- Page Header -->
-        <div class="mb-6 flex flex-col sm:flex-row sm:items-end justify-start gap-4 sm:gap-12 border-b border-outline-variant/30 pb-0">
-            <div class="pb-4 sm:pb-3 shrink-0">
-                <h2 class="text-xl sm:text-2xl text-primary font-bold leading-tight">
-                    Database Siswa
-                </h2>
-                <p class="font-body-md text-[13px] sm:text-sm text-on-surface-variant mt-1">
-                    Kelola dan tinjau seluruh data peserta didik sesuai Tahun Ajaran aktif
-                </p>
-            </div>
-            
-            <!-- Unit Tabs (Tab Kotak2 Style) -->
-            <div class="flex overflow-x-auto -mb-px">
+        <div class="mb-6 border-b border-outline-variant/30">
+            <div class="flex flex-col sm:flex-row sm:items-end justify-start gap-4 sm:gap-12">
+                <div class="pb-3 shrink-0">
+                    <h2 class="text-xl sm:text-2xl text-primary font-bold leading-tight">
+                        Database Siswa
+                    </h2>
+                    <p class="font-body-md text-[13px] sm:text-sm text-on-surface-variant mt-1">
+                        Kelola dan tinjau seluruh data peserta didik sesuai Tahun Ajaran aktif
+                    </p>
+                </div>
+                
+                <!-- Unit Tabs (Tab Kotak2 Style) -->
+                <div class="flex overflow-x-auto -mb-px">
                 <button
                     v-for="tab in unitTabs"
                     :key="tab.id"
@@ -268,6 +269,7 @@ function unitStudentCount(unitId) {
                         {{ unitStudentCount(tab.id) }}
                     </span>
                 </button>
+                </div>
             </div>
         </div>
 
