@@ -103,6 +103,55 @@ function statusColor(status) {
     };
     return map[status] || 'bg-gray-100 text-gray-600';
 }
+
+// Bulk selection for delete
+const selectedIds = ref([]);
+const isDeleting = ref(false);
+
+const isAllClassSelected = computed(() => {
+    return classStudents.value.length > 0 && classStudents.value.every(s => selectedIds.value.includes(s.id));
+});
+
+function toggleSelectAll() {
+    if (isAllClassSelected.value) {
+        selectedIds.value = [];
+    } else {
+        selectedIds.value = classStudents.value.map(s => s.id);
+    }
+}
+
+function toggleSelectStudent(id) {
+    const idx = selectedIds.value.indexOf(id);
+    if (idx === -1) {
+        selectedIds.value.push(id);
+    } else {
+        selectedIds.value.splice(idx, 1);
+    }
+}
+
+watch(selectedClassId, () => {
+    selectedIds.value = [];
+});
+
+function removeSelected() {
+    if (selectedIds.value.length === 0) return;
+    if (!confirm(`Hapus ${selectedIds.value.length} siswa dari kelas ini?`)) return;
+
+    isDeleting.value = true;
+    router.post('/pembelajaran/kelas/remove-students', {
+        student_ids: selectedIds.value,
+        academic_year_id: selectedAcademicYearId.value,
+    }, {
+        preserveScroll: true,
+        onSuccess: () => {
+            selectedIds.value = [];
+            isDeleting.value = false;
+        },
+        onFinish: () => {
+            isDeleting.value = false;
+        },
+    });
+}
 </script>
 
 <template>
@@ -195,13 +244,26 @@ function statusColor(status) {
                         <h3 class="font-bold text-on-surface text-lg">Daftar Siswa — {{ selectedClassName }}</h3>
                         <p class="text-xs text-on-surface-variant mt-0.5">{{ classStudents.length }} siswa</p>
                     </div>
-                    <button
-                        @click="showAddStudentModal = true"
-                        class="flex items-center gap-1.5 px-3 py-2 bg-primary text-on-primary rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors shadow-sm"
-                    >
-                        <span class="material-symbols-outlined text-[18px]">add</span>
-                        <span>Tambah Siswa</span>
-                    </button>
+                    <div class="flex items-center gap-2">
+                        <!-- Delete Button (visible when selected) -->
+                        <button
+                            v-if="selectedIds.length > 0"
+                            @click="removeSelected"
+                            :disabled="isDeleting"
+                            class="flex items-center gap-1.5 px-3 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors shadow-sm disabled:opacity-50"
+                        >
+                            <span v-if="isDeleting" class="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
+                            <span v-else class="material-symbols-outlined text-[18px]">delete</span>
+                            <span>Hapus ({{ selectedIds.length }})</span>
+                        </button>
+                        <button
+                            @click="showAddStudentModal = true"
+                            class="flex items-center gap-1.5 px-3 py-2 bg-primary text-on-primary rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors shadow-sm"
+                        >
+                            <span class="material-symbols-outlined text-[18px]">add</span>
+                            <span>Tambah Siswa</span>
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Custom Table -->
@@ -209,6 +271,15 @@ function statusColor(status) {
                     <table class="w-full text-left text-sm">
                         <thead>
                             <tr class="bg-gradient-to-r from-primary to-primary/80">
+                                <th class="p-3 w-12 text-center">
+                                    <input
+                                        type="checkbox"
+                                        class="rounded border-white/50 text-white focus:ring-white/50 w-4 h-4 cursor-pointer"
+                                        :checked="isAllClassSelected"
+                                        @change="toggleSelectAll"
+                                        :disabled="classStudents.length === 0"
+                                    >
+                                </th>
                                 <th class="p-3 text-xs font-semibold text-white uppercase tracking-wider w-12">No</th>
                                 <th class="p-3 text-xs font-semibold text-white uppercase tracking-wider">NISN</th>
                                 <th class="p-3 text-xs font-semibold text-white uppercase tracking-wider">Nama Lengkap</th>
@@ -225,8 +296,20 @@ function statusColor(status) {
                             <tr
                                 v-for="(student, index) in classStudents"
                                 :key="student.id"
-                                class="hover:bg-surface-container-high/50 transition-colors"
+                                :class="[
+                                    'hover:bg-surface-container-high/50 transition-colors cursor-pointer',
+                                    selectedIds.includes(student.id) ? 'bg-primary/5' : ''
+                                ]"
+                                @click="toggleSelectStudent(student.id)"
                             >
+                                <td class="p-3 text-center" @click.stop>
+                                    <input
+                                        type="checkbox"
+                                        class="rounded border-outline-variant text-primary focus:ring-primary w-4 h-4 cursor-pointer"
+                                        :checked="selectedIds.includes(student.id)"
+                                        @change="toggleSelectStudent(student.id)"
+                                    >
+                                </td>
                                 <td class="p-3 text-on-surface-variant">{{ index + 1 }}</td>
                                 <td class="p-3 text-on-surface-variant font-mono">{{ student.nisn }}</td>
                                 <td class="p-3 font-semibold text-on-surface whitespace-nowrap">{{ student.nama }}</td>
@@ -249,7 +332,7 @@ function statusColor(status) {
 
                             <!-- Empty state -->
                             <tr v-if="classStudents.length === 0">
-                                <td colspan="10" class="p-12 text-center">
+                                <td colspan="11" class="p-12 text-center">
                                     <span class="material-symbols-outlined text-5xl text-outline-variant mb-4 block">group_off</span>
                                     <p class="font-medium text-on-surface-variant">Belum ada siswa di kelas ini.</p>
                                     <p class="text-xs text-outline mt-1">Klik tombol "Tambah Siswa" untuk menambahkan.</p>

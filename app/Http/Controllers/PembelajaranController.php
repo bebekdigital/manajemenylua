@@ -135,4 +135,22 @@ class PembelajaranController extends Controller
             return redirect()->back()->with('error', 'Gagal menambahkan siswa: '.$e->getMessage());
         }
     }
+
+    /**
+     * Bulk-remove students from a classroom for a given academic year.
+     */
+    public function removeStudents(Request $request)
+    {
+        $validated = $request->validate([
+            'student_ids' => 'required|array|min:1',
+            'student_ids.*' => 'integer',
+            'academic_year_id' => 'required|integer',
+        ]);
+
+        $count = StudentAcademicRecord::whereIn('student_id', $validated['student_ids'])
+            ->where('academic_year_id', $validated['academic_year_id'])
+            ->delete();
+
+        return redirect()->back()->with('success', $count.' siswa berhasil dihapus dari kelas.');
+    }
 }
