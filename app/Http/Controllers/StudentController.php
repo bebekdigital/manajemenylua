@@ -810,60 +810,60 @@ class StudentController extends Controller
             'A' => ['NISN', 12],
             'B' => ['Nama Lengkap', 30],
             'C' => ['NIPD', 12],
-            'D' => ['Jenjang', 12],
-            'E' => ['Unit', 35],
-            'F' => ['JK (L/P)', 10],
-            'G' => ['Tempat Lahir', 20],
-            'H' => ['Tanggal Lahir (YYYY-MM-DD)', 24],
-            'I' => ['NIK', 18],
-            'J' => ['Agama', 12],
-            'K' => ['Jalan', 20],
-            'L' => ['RT', 6],
-            'M' => ['RW', 6],
-            'N' => ['Dusun', 18],
-            'O' => ['Desa/Kelurahan', 20],
-            'P' => ['Kecamatan', 20],
-            'Q' => ['Kabupaten', 20],
-            'R' => ['Provinsi', 20],
-            'S' => ['Jenis Tinggal', 20],
-            'T' => ['Alat Transportasi', 20],
-            'U' => ['No. WA 1', 16],
-            'V' => ['No. WA 2', 16],
-            'W' => ['Email', 25],
-            'X' => ['Nama Ayah', 25],
-            'Y' => ['Tahun Lahir Ayah', 16],
-            'Z' => ['Pendidikan Ayah', 18],
-            'AA' => ['Pekerjaan Ayah', 20],
-            'AB' => ['Penghasilan Ayah', 28],
-            'AC' => ['NIK Ayah', 18],
-            'AD' => ['Status Ayah (Hidup/Meninggal)', 28],
-            'AE' => ['Nama Ibu', 25],
-            'AF' => ['Tahun Lahir Ibu', 16],
-            'AG' => ['Pendidikan Ibu', 18],
-            'AH' => ['Pekerjaan Ibu', 20],
-            'AI' => ['Penghasilan Ibu', 28],
-            'AJ' => ['NIK Ibu', 18],
-            'AK' => ['Status Ibu (Hidup/Meninggal)', 28],
-            'AL' => ['Nama Wali', 25],
-            'AM' => ['Tahun Lahir Wali', 16],
-            'AN' => ['Pendidikan Wali', 18],
-            'AO' => ['Pekerjaan Wali', 20],
-            'AP' => ['Penghasilan Wali', 28],
-            'AQ' => ['NIK Wali', 18],
-            'AR' => ['Hubungan Wali', 18],
-            'AS' => ['Penerima KIP (Ya/Tidak)', 25],
-            'AT' => ['Nomor KIP', 20],
-            'AU' => ['Nama di KIP', 25],
-            'AV' => ['Kelayakan PIP (Ya/Tidak)', 25],
-            'AW' => ['Alasan Layak PIP', 30],
-            'AX' => ['Kebutuhan Khusus', 20],
-            'AY' => ['Sekolah Asal', 30],
-            'AZ' => ['Anak ke -', 10],
-            'BA' => ['No KK', 18],
-            'BB' => ['Jarak Rumah ke Sekolah', 25],
-            'BC' => ['Apakah Memiliki Usaha (Ya/Tidak)', 30],
-            'BD' => ['Jenis Usaha', 30],
-            'BE' => ['Angkatan', 15],
+            'D' => ['Angkatan', 15],
+            'E' => ['Jenjang', 12],
+            'F' => ['Unit', 35],
+            'G' => ['JK (L/P)', 10],
+            'H' => ['Tempat Lahir', 20],
+            'I' => ['Tanggal Lahir (YYYY-MM-DD)', 24],
+            'J' => ['NIK', 18],
+            'K' => ['Agama', 12],
+            'L' => ['Jalan', 20],
+            'M' => ['RT', 6],
+            'N' => ['RW', 6],
+            'O' => ['Dusun', 18],
+            'P' => ['Desa/Kelurahan', 20],
+            'Q' => ['Kecamatan', 20],
+            'R' => ['Kabupaten', 20],
+            'S' => ['Provinsi', 20],
+            'T' => ['Jenis Tinggal', 20],
+            'U' => ['Alat Transportasi', 20],
+            'V' => ['No. WA 1', 16],
+            'W' => ['No. WA 2', 16],
+            'X' => ['Email', 25],
+            'Y' => ['Nama Ayah', 25],
+            'Z' => ['Tahun Lahir Ayah', 16],
+            'AA' => ['Pendidikan Ayah', 18],
+            'AB' => ['Pekerjaan Ayah', 20],
+            'AC' => ['Penghasilan Ayah', 28],
+            'AD' => ['NIK Ayah', 18],
+            'AE' => ['Status Ayah (Hidup/Meninggal)', 28],
+            'AF' => ['Nama Ibu', 25],
+            'AG' => ['Tahun Lahir Ibu', 16],
+            'AH' => ['Pendidikan Ibu', 18],
+            'AI' => ['Pekerjaan Ibu', 20],
+            'AJ' => ['Penghasilan Ibu', 28],
+            'AK' => ['NIK Ibu', 18],
+            'AL' => ['Status Ibu (Hidup/Meninggal)', 28],
+            'AM' => ['Nama Wali', 25],
+            'AN' => ['Tahun Lahir Wali', 16],
+            'AO' => ['Pendidikan Wali', 18],
+            'AP' => ['Pekerjaan Wali', 20],
+            'AQ' => ['Penghasilan Wali', 28],
+            'AR' => ['NIK Wali', 18],
+            'AS' => ['Hubungan Wali', 18],
+            'AT' => ['Penerima KIP (Ya/Tidak)', 25],
+            'AU' => ['Nomor KIP', 20],
+            'AV' => ['Nama di KIP', 25],
+            'AW' => ['Kelayakan PIP (Ya/Tidak)', 25],
+            'AX' => ['Alasan Layak PIP', 30],
+            'AY' => ['Kebutuhan Khusus', 20],
+            'AZ' => ['Sekolah Asal', 30],
+            'BA' => ['Anak ke -', 10],
+            'BB' => ['No KK', 18],
+            'BC' => ['Jarak Rumah ke Sekolah', 25],
+            'BD' => ['Apakah Memiliki Usaha (Ya/Tidak)', 30],
+            'BE' => ['Jenis Usaha', 30],
         ];
 
         $this->applySheetHeaders($sheet, $headers, '004B23');
@@ -872,7 +872,7 @@ class StudentController extends Controller
 
         $sheet->fromArray([[
             '0051234001', 'Ahmad Fauzi Rahman', '10231001',
-            $jenjang ?? 'SD', $unitExample,
+            '2025/2026', $jenjang ?? 'SD', $unitExample,
             'L', 'Karanganyar', '2014-03-15',
             '3313150101080001', 'Islam', 'Jl. Lawu No. 12',
             '03', '05', 'Ngemplak', 'Colomadu', 'Colomadu', 'Karanganyar', 'Jawa Tengah',
@@ -882,16 +882,16 @@ class StudentController extends Controller
             '', '', '', '', '', '', '',
             'Ya', '6071012345670001', 'Ahmad Fauzi Rahman',
             'Ya', 'Penerima PIP tahap 1', 'Tidak ada',
-            'TK Aisyiyah Colomadu', '1', '3313151503140001', 'Kurang dari 1 km', 'Tidak', '-', '2025/2026',
+            'TK Aisyiyah Colomadu', '1', '3313151503140001', 'Kurang dari 1 km', 'Tidak', '-',
         ]], null, 'A2');
 
         for ($row = 2; $row <= 1000; $row++) {
             // Dropdown/fixed for Jenjang
             if ($jenjang) {
                 if ($row > 2) {
-                    $sheet->setCellValue('D'.$row, $jenjang);
+                    $sheet->setCellValue('E'.$row, $jenjang);
                 }
-                $valJenjang = $sheet->getCell('D'.$row)->getDataValidation();
+                $valJenjang = $sheet->getCell('E'.$row)->getDataValidation();
                 $valJenjang->setType(DataValidation::TYPE_LIST);
                 $valJenjang->setShowDropDown(true);
                 $valJenjang->setShowErrorMessage(true);
@@ -901,31 +901,31 @@ class StudentController extends Controller
                 $valJenjang->setFormula1('"'.$jenjang.'"');
             }
 
-            $valUnit = $sheet->getCell('E'.$row)->getDataValidation();
+            $valUnit = $sheet->getCell('F'.$row)->getDataValidation();
             $valUnit->setType(DataValidation::TYPE_LIST);
             $valUnit->setAllowBlank(true);
             $valUnit->setShowDropDown(true);
             $valUnit->setFormula1('Dropdowns!$A$2:$A$200');
 
-            $valJk = $sheet->getCell('F'.$row)->getDataValidation();
+            $valJk = $sheet->getCell('G'.$row)->getDataValidation();
             $valJk->setType(DataValidation::TYPE_LIST);
             $valJk->setAllowBlank(true);
             $valJk->setShowDropDown(true);
             $valJk->setFormula1('"L,P"');
 
-            $valStatusAyah = $sheet->getCell('AD'.$row)->getDataValidation();
+            $valStatusAyah = $sheet->getCell('AE'.$row)->getDataValidation();
             $valStatusAyah->setType(DataValidation::TYPE_LIST);
             $valStatusAyah->setAllowBlank(true);
             $valStatusAyah->setShowDropDown(true);
             $valStatusAyah->setFormula1('"Hidup,Meninggal"');
 
-            $valStatusIbu = $sheet->getCell('AK'.$row)->getDataValidation();
+            $valStatusIbu = $sheet->getCell('AL'.$row)->getDataValidation();
             $valStatusIbu->setType(DataValidation::TYPE_LIST);
             $valStatusIbu->setAllowBlank(true);
             $valStatusIbu->setShowDropDown(true);
             $valStatusIbu->setFormula1('"Hidup,Meninggal"');
 
-            $valBisnis = $sheet->getCell('BC'.$row)->getDataValidation();
+            $valBisnis = $sheet->getCell('BD'.$row)->getDataValidation();
             $valBisnis->setType(DataValidation::TYPE_LIST);
             $valBisnis->setAllowBlank(true);
             $valBisnis->setShowDropDown(true);
