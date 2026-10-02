@@ -245,17 +245,17 @@ function unitStudentCount(unitId) {
                 
                 <!-- Unit Tabs (Rounded Style) -->
                 <div class="flex pb-3 overflow-x-auto">
-                    <div class="flex p-1.5 bg-surface-variant/30 border border-outline-variant/30 rounded-full shrink-0">
+                    <div class="flex p-1.5 bg-surface-container-high shadow-inner border border-outline-variant/20 rounded-full shrink-0">
                         <button
                             v-for="tab in unitTabs"
                             :key="tab.id"
                             type="button"
                             @click="switchUnitTab(tab.id)"
                             :class="[
-                                'flex items-center gap-2 px-5 sm:px-8 py-2 text-xs sm:text-sm font-semibold transition-all duration-200 rounded-full cursor-pointer',
+                                'flex items-center gap-2 px-5 sm:px-8 py-2 text-xs sm:text-sm font-bold transition-all duration-300 rounded-full cursor-pointer',
                                 activeUnitTab === tab.id
-                                    ? 'bg-primary text-on-primary shadow-sm'
-                                    : 'text-on-surface-variant hover:text-primary hover:bg-surface-variant/50'
+                                    ? 'bg-emerald-500 text-white shadow-md scale-[1.02]'
+                                    : 'text-on-surface-variant hover:text-emerald-600 hover:bg-white/40'
                             ]"
                         >
                             <span class="material-symbols-outlined text-[16px] sm:text-[18px] transition-all" :class="{ 'filled-icon': activeUnitTab === tab.id }">{{ tab.icon }}</span>
