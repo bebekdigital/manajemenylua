@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
-import { useForm } from '@inertiajs/vue3';
+import { router } from '@inertiajs/vue3';
 
 const props = defineProps({
     show: Boolean,
@@ -69,28 +69,34 @@ function toggleStudent(id) {
     }
 }
 
-const form = useForm({
-    student_ids: [],
-    target_academic_year_id: null,
-    target_classroom_id: null,
-});
+const isSubmitting = ref(false);
+const submitError = ref('');
 
 function save() {
     if (selectedStudentIds.value.length === 0) return;
+    if (isSubmitting.value) return;
 
-    form.student_ids = selectedStudentIds.value;
-    form.target_academic_year_id = props.academicYearId;
-    form.target_classroom_id = props.classId;
+    isSubmitting.value = true;
+    submitError.value = '';
 
-    form.post(route('pembelajaran.classrooms.add-students'), {
+    router.post('/pembelajaran/kelas/add-students', {
+        student_ids: selectedStudentIds.value,
+        target_academic_year_id: props.academicYearId,
+        target_classroom_id: props.classId,
+    }, {
         preserveScroll: true,
         onSuccess: () => {
+            isSubmitting.value = false;
             selectedStudentIds.value = [];
             closeModal();
             emit('success');
         },
         onError: (errors) => {
-            console.error('Validation errors:', errors);
+            isSubmitting.value = false;
+            submitError.value = Object.values(errors).flat().join(', ');
+        },
+        onFinish: () => {
+            isSubmitting.value = false;
         },
     });
 }
@@ -124,7 +130,7 @@ watch([filterAngkatan, filterJk, searchQuery], () => {
                 <button
                     type="button"
                     @click="closeModal"
-                    :disabled="form.processing"
+                    :disabled="isSubmitting"
                     class="text-outline hover:text-on-surface p-1 rounded-full hover:bg-surface-variant transition-colors disabled:opacity-50"
                 >
                     <span class="material-symbols-outlined text-xl">close</span>
@@ -224,6 +230,12 @@ watch([filterAngkatan, filterJk, searchQuery], () => {
                 </table>
             </div>
 
+            <!-- Error Banner -->
+            <div v-if="submitError" class="px-6 py-3 bg-red-50 border-t border-red-200 text-red-700 text-sm font-medium flex items-center gap-2 shrink-0">
+                <span class="material-symbols-outlined text-[18px]">error</span>
+                {{ submitError }}
+            </div>
+
             <!-- Footer Actions -->
             <div class="px-6 py-4 border-t border-outline-variant/30 bg-surface-container-lowest shrink-0 flex items-center justify-between">
                 <div class="text-sm font-semibold text-primary">
@@ -233,7 +245,7 @@ watch([filterAngkatan, filterJk, searchQuery], () => {
                     <button
                         type="button"
                         @click="closeModal"
-                        :disabled="form.processing"
+                        :disabled="isSubmitting"
                         class="px-5 py-2.5 text-sm font-semibold text-on-surface-variant hover:text-on-surface hover:bg-surface-variant rounded-xl transition-all"
                     >
                         Batal
@@ -241,10 +253,10 @@ watch([filterAngkatan, filterJk, searchQuery], () => {
                     <button
                         type="button"
                         @click="save"
-                        :disabled="form.processing || selectedStudentIds.length === 0"
+                        :disabled="isSubmitting || selectedStudentIds.length === 0"
                         class="px-5 py-2.5 text-sm font-semibold text-on-primary bg-primary rounded-xl hover:bg-primary/90 transition-all shadow-sm active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     >
-                        <span v-if="form.processing" class="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
+                        <span v-if="isSubmitting" class="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
                         <span v-else class="material-symbols-outlined text-[18px]">check_circle</span>
                         <span>Tambahkan ke Kelas</span>
                     </button>
