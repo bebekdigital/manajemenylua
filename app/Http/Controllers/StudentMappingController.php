@@ -84,51 +84,46 @@ class StudentMappingController extends Controller
         $students = Student::whereIn('id', $validated['student_ids'])->get()->keyBy('id');
         
         DB::beginTransaction();
-        try {
-            foreach ($validated['student_ids'] as $studentId) {
-                $student = $students->get($studentId);
-                if (!$student) continue;
+        foreach ($validated['student_ids'] as $studentId) {
+            $student = $students->get($studentId);
+            if (!$student) continue;
 
-                // Ensure only 1 record per student per academic year exists
-                StudentAcademicRecord::updateOrCreate(
-                    [
-                        'student_id' => $studentId,
-                        'academic_year_id' => $validated['target_academic_year_id'],
-                    ],
-                    [
-                        'classroom_id' => $validated['target_classroom_id'],
-                        'jenjang' => $targetClassroom->jenjang,
-                        'tingkat' => $targetClassroom->grade,
-                        'student_status' => $validated['status'],
-                        'ket_tidak_aktif' => $validated['keterangan'] ?? null,
-                        'program' => !empty($validated['program']) ? $validated['program'] : ($student->program ?? 'Umum'),
-                        'desil' => $student->desil,
-                        'status_pip' => $student->status_pip,
-                        'pip_keterangan' => $student->pip_keterangan,
-                        'status_kip' => $student->status_kip,
-                        'no_kip' => $student->no_kip,
-                    ]
-                );
-                
-                // Update unit and program in students table if they move unit
-                $updateData = [
-                    'unit' => $targetClassroom->unit,
-                    'kelas' => $targetClassroom->name,
+            // Ensure only 1 record per student per academic year exists
+            StudentAcademicRecord::updateOrCreate(
+                [
+                    'student_id' => $studentId,
+                    'academic_year_id' => $validated['target_academic_year_id'],
+                ],
+                [
+                    'classroom_id' => $validated['target_classroom_id'],
                     'jenjang' => $targetClassroom->jenjang,
-                    'tingkat' => $targetClassroom->grade
-                ];
-                if (!empty($validated['program'])) {
-                    $updateData['program'] = $validated['program'];
-                }
-                
-                Student::where('id', $studentId)->update($updateData);
+                    'tingkat' => $targetClassroom->grade,
+                    'student_status' => $validated['status'],
+                    'ket_tidak_aktif' => $validated['keterangan'] ?? null,
+                    'program' => !empty($validated['program']) ? $validated['program'] : ($student->program ?? 'Umum'),
+                    'desil' => $student->desil,
+                    'status_pip' => $student->status_pip,
+                    'pip_keterangan' => $student->pip_keterangan,
+                    'status_kip' => $student->status_kip,
+                    'no_kip' => $student->no_kip,
+                ]
+            );
+            
+            // Update unit and program in students table if they move unit
+            $updateData = [
+                'unit' => $targetClassroom->unit,
+                'kelas' => $targetClassroom->name,
+                'jenjang' => $targetClassroom->jenjang,
+                'tingkat' => $targetClassroom->grade
+            ];
+            if (!empty($validated['program'])) {
+                $updateData['program'] = $validated['program'];
             }
-            DB::commit();
-            session(['selected_academic_year_id' => $validated['target_academic_year_id']]);
-            return redirect()->route('students.index')->with('success', count($validated['student_ids']) . ' siswa berhasil dipetakan ke kelas baru.');
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return redirect()->back()->with('error', 'Gagal memetakan siswa: ' . $e->getMessage());
+            
+            Student::where('id', $studentId)->update($updateData);
         }
+        DB::commit();
+        session(['selected_academic_year_id' => $validated['target_academic_year_id']]);
+        return redirect()->route('students.index')->with('success', count($validated['student_ids']) . ' siswa berhasil dipetakan ke kelas baru.');
     }
 }
