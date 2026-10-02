@@ -68,37 +68,15 @@ class StudentController extends Controller
      */
     public function index(Request $request): Response
     {
-        $selectedYearId = $request->query('academic_year_id') ?? session('selected_academic_year_id');
-        $selectedYear = $selectedYearId
-            ? AcademicYear::find($selectedYearId)
-            : (AcademicYear::current() ?? AcademicYear::first());
-
-        if ($selectedYear && session('selected_academic_year_id') !== $selectedYear->id) {
-            session(['selected_academic_year_id' => $selectedYear->id]);
-        }
-
         $students = Student::with([
-            'academicRecords' => function ($query) use ($selectedYear) {
-                if ($selectedYear) {
-                    $query->where('academic_year_id', $selectedYear->id);
-                }
-                $query->with('classroom');
-            },
             'family',
             'siblings',
         ])
-            ->when($selectedYear, function ($query) use ($selectedYear) {
-                $query->whereHas('academicRecords', function ($q) use ($selectedYear) {
-                    $q->where('academic_year_id', $selectedYear->id);
-                });
-            })
             ->orderBy('unit')
             ->orderBy('nama')
             ->get()
             ->map(function (Student $student) {
                 $family = $student->family;
-                $record = $student->academicRecords->first();
-                $classroom = $record?->classroom;
 
                 return [
                     'nisn' => $student->nisn,
@@ -110,12 +88,12 @@ class StudentController extends Controller
                     'no_kk' => $student->no_kk,
                     'agama' => $student->agama,
                     'unit' => $student->unit,
-                    'program' => $record?->program ?? $student->program,
+                    'program' => $student->program,
                     'photo_url' => $student->photo_url,
-                    'jenjang' => $record?->jenjang ?? $student->jenjang,
-                    'tingkat' => $record?->tingkat,
-                    'kelas' => $classroom?->name,
-                    'student_status' => $record?->student_status ?? 'aktif',
+                    'jenjang' => $student->jenjang,
+                    'tingkat' => $student->tingkat,
+                    'kelas' => $student->kelas,
+                    'student_status' => 'aktif', // Will be added to students table later if needed
                     'no_wa' => $student->no_wa,
                     'sekolah_asal' => $student->sekolah_asal,
                     'status_keluarga' => $student->status_keluarga,
@@ -171,12 +149,6 @@ class StudentController extends Controller
 
         return Inertia::render('Students', [
             'students' => $students,
-            'selectedAcademicYear' => $selectedYear ? [
-                'id' => $selectedYear->id,
-                'name' => $selectedYear->name,
-                'semester' => $selectedYear->semester,
-                'is_active' => (bool) $selectedYear->is_active,
-            ] : null,
         ]);
     }
 
@@ -185,11 +157,6 @@ class StudentController extends Controller
      */
     public function show(string $nisn, Request $request): Response
     {
-        $selectedYearId = $request->query('academic_year_id') ?? session('selected_academic_year_id');
-        $selectedYear = $selectedYearId
-            ? AcademicYear::find($selectedYearId)
-            : (AcademicYear::current() ?? AcademicYear::first());
-
         $studentModel = Student::with([
             'academicRecords.classroom',
             'academicRecords.academicYear',
@@ -198,13 +165,6 @@ class StudentController extends Controller
         ])->where('nisn', $nisn)->firstOrFail();
 
         $family = $studentModel->family;
-        
-        // Find the record for the selected year, or fallback to the most recent if not found
-        $record = $selectedYear 
-            ? $studentModel->academicRecords->firstWhere('academic_year_id', $selectedYear->id)
-            : $studentModel->academicRecords->first();
-            
-        $classroom = $record?->classroom;
 
         $studentData = [
             'nisn' => $studentModel->nisn,
@@ -216,14 +176,14 @@ class StudentController extends Controller
             'no_kk' => $studentModel->no_kk,
             'agama' => $studentModel->agama,
             'unit' => $studentModel->unit,
-            'program' => $record?->program ?? $studentModel->program,
+            'program' => $studentModel->program,
             'photo_url' => $studentModel->photo_url,
-            'jenjang' => $record?->jenjang ?? $studentModel->jenjang,
-            'tingkat' => $record?->tingkat,
-            'kelas' => $classroom?->name,
-            'student_status' => $record?->student_status ?? 'aktif',
-            'ket_tidak_aktif' => $record?->ket_tidak_aktif,
-            'tanggal_tidak_aktif' => $record?->tanggal_tidak_aktif ? $record->tanggal_tidak_aktif->format('Y-m-d') : null,
+            'jenjang' => $studentModel->jenjang,
+            'tingkat' => $studentModel->tingkat,
+            'kelas' => $studentModel->kelas,
+            'student_status' => 'aktif',
+            'ket_tidak_aktif' => null,
+            'tanggal_tidak_aktif' => null,
             'no_wa' => $studentModel->no_wa,
             'no_wa_2' => $studentModel->no_wa_2,
             'email' => $studentModel->email,
@@ -285,7 +245,7 @@ class StudentController extends Controller
                 'kelas' => $r->classroom?->name,
                 'status' => $r->student_status,
                 'keterangan' => $r->ket_tidak_aktif,
-            ])->sortBy(fn($r) => $r['academic_year'] . '-' . $r['semester'])->values()->toArray(),
+            ])->sortBy(fn ($r) => $r['academic_year'].'-'.$r['semester'])->values()->toArray(),
             'bantuan' => [
                 'pip' => $studentModel->status_pip ?? false,
                 'pip_keterangan' => $studentModel->pip_keterangan,
@@ -311,37 +271,15 @@ class StudentController extends Controller
      */
     public function inlineEdit(Request $request): Response
     {
-        $selectedYearId = $request->query('academic_year_id') ?? session('selected_academic_year_id');
-        $selectedYear = $selectedYearId
-            ? AcademicYear::find($selectedYearId)
-            : (AcademicYear::current() ?? AcademicYear::first());
-
-        if ($selectedYear && session('selected_academic_year_id') !== $selectedYear->id) {
-            session(['selected_academic_year_id' => $selectedYear->id]);
-        }
-
         $students = Student::with([
-            'academicRecords' => function ($query) use ($selectedYear) {
-                if ($selectedYear) {
-                    $query->where('academic_year_id', $selectedYear->id);
-                }
-                $query->with('classroom');
-            },
             'family',
             'siblings',
         ])
-            ->when($selectedYear, function ($query) use ($selectedYear) {
-                $query->whereHas('academicRecords', function ($q) use ($selectedYear) {
-                    $q->where('academic_year_id', $selectedYear->id);
-                });
-            })
             ->orderBy('unit')
             ->orderBy('nama')
             ->get()
             ->map(function (Student $student) {
                 $family = $student->family;
-                $record = $student->academicRecords->first();
-                $classroom = $record?->classroom;
 
                 return [
                     // Identitas
@@ -358,11 +296,11 @@ class StudentController extends Controller
                     'sekolah_asal' => $student->sekolah_asal,
                     // Akademik
                     'unit' => $student->unit,
-                    'program' => $record?->program ?? $student->program,
-                    'jenjang' => $record?->jenjang ?? $student->jenjang,
-                    'tingkat' => $record?->tingkat,
-                    'kelas' => $classroom?->name,
-                    'student_status' => $record?->student_status ?? 'aktif',
+                    'program' => $student->program,
+                    'jenjang' => $student->jenjang,
+                    'tingkat' => $student->tingkat,
+                    'kelas' => $student->kelas,
+                    'student_status' => 'aktif',
                     // Registrasi
                     'status_keluarga' => $student->status_keluarga,
                     'anak_ke' => $student->anak_ke,
@@ -397,22 +335,16 @@ class StudentController extends Controller
                     'wali_pekerjaan' => $family?->wali_pekerjaan,
                     'wali_penghasilan' => $family?->wali_penghasilan,
                     // Bantuan
-                    'desil' => $record?->desil,
-                    'status_pip' => $record?->status_pip ?? false,
-                    'pip_keterangan' => $record?->pip_keterangan,
-                    'status_kip' => $record?->status_kip ?? false,
-                    'no_kip' => $record?->no_kip,
+                    'desil' => $student->desil,
+                    'status_pip' => $student->status_pip ?? false,
+                    'pip_keterangan' => $student->pip_keterangan,
+                    'status_kip' => $student->status_kip ?? false,
+                    'no_kip' => $student->no_kip,
                 ];
             });
 
         return Inertia::render('Students/InlineEdit', [
             'students' => $students,
-            'selectedAcademicYear' => $selectedYear ? [
-                'id' => $selectedYear->id,
-                'name' => $selectedYear->name,
-                'semester' => $selectedYear->semester,
-                'is_active' => (bool) $selectedYear->is_active,
-            ] : null,
         ]);
     }
 

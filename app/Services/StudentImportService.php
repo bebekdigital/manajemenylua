@@ -2,8 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\AcademicYear;
-use App\Models\Classroom;
 use App\Models\Student;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -110,19 +108,22 @@ class StudentImportService
                 if ($filterUnit && $filterUnit !== 'all') {
                     $u = strtoupper($studentData['unit'] ?? '');
                     if ($filterUnit === 'SDIT') {
-                        if (!str_contains($u, 'SDIT') && !str_contains($u, 'SD IT')) {
+                        if (! str_contains($u, 'SDIT') && ! str_contains($u, 'SD IT')) {
                             $skippedCount++;
+
                             continue;
                         }
                     } elseif ($filterUnit === 'SMPIT') {
-                        if (!str_contains($u, 'SMPIT') && !str_contains($u, 'SMP IT')) {
+                        if (! str_contains($u, 'SMPIT') && ! str_contains($u, 'SMP IT')) {
                             $skippedCount++;
+
                             continue;
                         }
                     } else {
                         // Fallback generic check
-                        if (!str_contains($u, strtoupper($filterUnit))) {
+                        if (! str_contains($u, strtoupper($filterUnit))) {
                             $skippedCount++;
+
                             continue;
                         }
                     }
@@ -206,98 +207,8 @@ class StudentImportService
                 }
             }
 
-            // 3. Process Sheet 3: Data Akademik (per TA)
-            $sheetAkademik = $this->findSheet($spreadsheet, ['3. Data Akademik (per TA)', 'Data Akademik', 'Akademik'], 3);
-            if ($sheetAkademik) {
-                $rowsAkademik = $sheetAkademik->toArray(null, true, true, true);
-                array_shift($rowsAkademik);
-
-                // Fetch or create academic years dynamically to avoid N+1 queries later
-                $academicYears = [];
-
-                foreach ($rowsAkademik as $row) {
-                    $nisn = $this->cleanString($row['A'] ?? null);
-                    if (empty($nisn) || ! isset($studentMap[$nisn])) {
-                        continue;
-                    }
-
-                    $taName = $this->cleanString($row['C'] ?? null);
-                    $semester = $this->cleanString($row['D'] ?? null);
-
-                    if (empty($taName)) {
-                        $activeYear = AcademicYear::current() ?? AcademicYear::first();
-                        $taName = $activeYear?->name ?? '2025/2026';
-                        $semester = $activeYear?->semester ?? 'Ganjil';
-                    }
-
-                    if (empty($semester)) {
-                        $semester = 'Ganjil';
-                    }
-
-                    // Find or create AcademicYear
-                    $academicYear = AcademicYear::where('name', $taName)
-                        ->where('semester', $semester)
-                        ->first();
-
-                    if (! $academicYear) {
-                        [$startDate, $endDate] = $this->guessAcademicYearDates($taName, $semester);
-
-                        $academicYear = AcademicYear::create([
-                            'name' => $taName,
-                            'semester' => $semester,
-                            'start_date' => $startDate,
-                            'end_date' => $endDate,
-                            'is_active' => false,
-                        ]);
-                    }
-
-                    $student = $studentMap[$nisn];
-                    $program = $this->cleanString($row['E'] ?? null) ?? 'Umum';
-                    $kelasName = $this->cleanString($row['F'] ?? null);
-                    $tingkat = $this->cleanInteger($row['G'] ?? null) ?? 1;
-                    $studentStatus = strtolower($this->cleanString($row['H'] ?? null) ?? 'aktif');
-
-                    // Find or create classroom
-                    $classroom = null;
-                    if ($kelasName) {
-                        $classroom = Classroom::where('academic_year_id', $academicYear->id)
-                            ->where('unit', $student->unit)
-                            ->where('name', $kelasName)
-                            ->first();
-
-                        if (! $classroom) {
-                            $classroom = Classroom::create([
-                                'academic_year_id' => $academicYear->id,
-                                'unit' => $student->unit,
-                                'jenjang' => $student->jenjang_from_excel ?? 'SD',
-                                'grade' => $tingkat,
-                                'name' => $kelasName,
-                                'capacity' => 30,
-                            ]);
-                        } else {
-                            $excelJenjang = $student->jenjang_from_excel ?? 'SD';
-                            if ($classroom->jenjang !== $excelJenjang) {
-                                $classroom->update(['jenjang' => $excelJenjang]);
-                            }
-                        }
-                    }
-
-                    $student->academicRecords()->updateOrCreate(
-                        [
-                            'academic_year_id' => $academicYear->id,
-                        ],
-                        [
-                            'classroom_id' => $classroom?->id,
-                            'jenjang' => $student->jenjang_from_excel ?? 'SD',
-                            'tingkat' => $tingkat,
-                            'program' => $program,
-                            'student_status' => $studentStatus,
-                        ]
-                    );
-
-                    $academicRecordsCount++;
-                }
-            }
+            // Sheet 3 (Data Akademik) is no longer processed here.
+            // Academic data will be handled in the new Pembelajaran menu.
 
             DB::commit();
 
