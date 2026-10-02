@@ -151,12 +151,12 @@ watch(activeUnit, () => {
             <!-- Page Header -->
             <div class="mb-6 flex flex-col sm:flex-row sm:items-end justify-start gap-4 sm:gap-12 border-b border-outline-variant/30 pb-0">
                 <div class="pb-4 sm:pb-3 shrink-0">
-                    <h2 class="text-xl sm:text-2xl text-emerald-600 font-bold leading-tight">
+                    <h2 class="text-xl sm:text-2xl text-primary font-bold leading-tight">
                         Rincian Statistik
                     </h2>
                     <p class="font-body-md text-[13px] sm:text-sm text-on-surface-variant mt-1">
                         Ringkasan data statistik
-                        <span v-if="selectedAcademicYear" class="font-semibold text-emerald-600">
+                        <span v-if="selectedAcademicYear" class="font-semibold text-primary">
                             — TA {{ selectedAcademicYear.name }} ({{ selectedAcademicYear.semester }})
                         </span>
                     </p>
