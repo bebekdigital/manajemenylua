@@ -17,7 +17,7 @@ class StudentMappingController extends Controller
     public function index(Request $request)
     {
         $academicYears = AcademicYear::orderByDesc('name')->orderByRaw("FIELD(semester, 'Genap', 'Ganjil')")->get();
-        $units = SchoolUnit::orderBy('order')->get();
+        $units = SchoolUnit::orderBy('id')->get();
         
         return Inertia::render('Students/Mapping', [
             'academicYears' => $academicYears,
