@@ -44,7 +44,6 @@ return new class extends Migration
             $table->string('pip_keterangan')->nullable();
             $table->boolean('status_kip')->default(false);
             $table->string('no_kip')->nullable();
-            $table->string('nama_di_kip')->nullable();
 
             $table->timestamps();
         });
