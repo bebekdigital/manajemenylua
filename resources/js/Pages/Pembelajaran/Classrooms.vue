@@ -206,23 +206,25 @@ function removeSelected() {
                         <h2 class="text-xl sm:text-2xl text-primary font-bold leading-tight">Daftar Kelas</h2>
                         <p class="font-body-md text-[13px] sm:text-sm text-on-surface-variant mt-1">Kelola siswa per kelas</p>
                     </div>
-                    <!-- Unit Tabs -->
-                    <div class="flex overflow-x-auto -mb-px">
-                        <button
-                            v-for="tab in tabs"
-                            :key="tab.id"
-                            type="button"
-                            @click="switchTab(tab.id)"
-                            :class="[
-                                'flex items-center gap-2 px-3 sm:px-5 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap border-b-2 rounded-t-lg',
-                                activeTab === tab.id
-                                    ? 'text-emerald-600 border-emerald-600 bg-gradient-to-t from-emerald-600/20 to-transparent'
-                                    : 'text-on-surface-variant border-transparent hover:text-on-surface hover:border-outline-variant'
-                            ]"
-                        >
-                            <span class="material-symbols-outlined text-[16px] sm:text-[18px]">{{ tab.icon }}</span>
-                            <span>{{ tab.label }}</span>
-                        </button>
+                    <!-- Unit Tabs (Rounded Style) -->
+                    <div class="flex pb-3 overflow-x-auto">
+                        <div class="flex p-1.5 bg-surface-container-high shadow-inner border border-outline-variant/20 rounded-[9999px] shrink-0">
+                            <button
+                                v-for="tab in tabs"
+                                :key="tab.id"
+                                type="button"
+                                @click="switchTab(tab.id)"
+                                :class="[
+                                    'flex items-center gap-2 px-5 sm:px-8 py-2 text-xs sm:text-sm font-bold transition-all duration-300 rounded-[9999px] cursor-pointer',
+                                    activeTab === tab.id
+                                        ? 'bg-emerald-500 text-white shadow-md scale-[1.02]'
+                                        : 'text-on-surface-variant hover:text-emerald-600 hover:bg-white/40'
+                                ]"
+                            >
+                                <span class="material-symbols-outlined text-[16px] sm:text-[18px] transition-all" :class="{ 'filled-icon': activeTab === tab.id }">{{ tab.icon }}</span>
+                                <span>{{ tab.label }}</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
