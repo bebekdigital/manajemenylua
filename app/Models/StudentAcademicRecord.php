@@ -18,20 +18,12 @@ class StudentAcademicRecord extends Model
         'tingkat',
         'program',
         'student_status',
-        'desil',
-        'status_pip',
-        'pip_keterangan',
-        'status_kip',
-        'no_kip',
     ];
 
     protected function casts(): array
     {
         return [
             'tingkat' => 'integer',
-            'desil' => 'integer',
-            'status_pip' => 'boolean',
-            'status_kip' => 'boolean',
         ];
     }
 

@@ -26,12 +26,8 @@ return new class extends Migration
                 'dropout',
             ])->default('aktif');
 
-            // Kesejahteraan
-            $table->unsignedTinyInteger('desil')->nullable();
-            $table->boolean('status_pip')->default(false);
-            $table->string('pip_keterangan')->nullable();
-            $table->boolean('status_kip')->default(false);
-            $table->string('no_kip')->nullable();
+            // Kesejahteraan (Sudah dipindah ke tabel students)
+            // (Removed desil, status_pip, pip_keterangan, status_kip, no_kip)
 
             $table->timestamps();
 

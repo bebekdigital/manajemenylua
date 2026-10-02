@@ -102,11 +102,6 @@ class StudentMappingController extends Controller
                         'student_status' => $validated['status'],
                         'ket_tidak_aktif' => $validated['keterangan'] ?? null,
                         'program' => !empty($validated['program']) ? $validated['program'] : ($student->program ?? 'Umum'),
-                        'desil' => $student->desil,
-                        'status_pip' => (bool) $student->status_pip,
-                        'pip_keterangan' => $student->pip_keterangan,
-                        'status_kip' => (bool) $student->status_kip,
-                        'no_kip' => $student->no_kip,
                     ]
                 );
                 
