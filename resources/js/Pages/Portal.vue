@@ -190,31 +190,14 @@ const flashError = computed(() => {
     return !dismissedFlash.value ? page.props.flash?.error : null;
 });
 
-async function openCreateModal() {
+function openCreateModal() {
     editingYear.value = null;
-    formYear.reset();
     showFormModal.value = true;
-    
-    // Fetch master units
-    try {
-        const res = await axios.get(`/portal/academic-years/0/active-classes`);
-        syncMasterUnits.value = res.data.units;
-    } catch (e) {}
 }
 
-async function openEditModal(year) {
+function openEditModal(year) {
     editingYear.value = { ...year };
-    
     showFormModal.value = true;
-    isSyncingClasses.value = true;
-    
-    try {
-        const res = await axios.get(`/portal/academic-years/${year.id}/active-classes`);
-        syncMasterUnits.value = res.data.units;
-        formYear.selected_classes = res.data.active_classrooms;
-    } catch (e) {} finally {
-        isSyncingClasses.value = false;
-    }
 }
 
 function closeFormModal() {
