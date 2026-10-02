@@ -243,23 +243,25 @@ function unitStudentCount(unitId) {
                     </p>
                 </div>
                 
-                <!-- Unit Tabs (Tab Kotak2 Style) -->
-                <div class="flex overflow-x-auto -mb-px">
-                <button
-                    v-for="tab in unitTabs"
-                    :key="tab.id"
-                    type="button"
-                    @click="switchUnitTab(tab.id)"
-                    :class="[
-                        'flex items-center gap-2 px-3 sm:px-5 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap border-b-2 rounded-t-lg',
-                        activeUnitTab === tab.id
-                            ? 'text-emerald-600 border-emerald-600 bg-gradient-to-t from-emerald-600/20 to-transparent'
-                            : 'text-on-surface-variant border-transparent hover:text-on-surface hover:border-outline-variant'
-                    ]"
-                >
-                    <span class="material-symbols-outlined text-[16px] sm:text-[18px]">{{ tab.icon }}</span>
-                    <span>{{ tab.label }}</span>
-                </button>
+                <!-- Unit Tabs (Rounded Style) -->
+                <div class="flex pb-3 overflow-x-auto">
+                    <div class="flex p-1.5 bg-surface-variant/30 border border-outline-variant/30 rounded-full shrink-0">
+                        <button
+                            v-for="tab in unitTabs"
+                            :key="tab.id"
+                            type="button"
+                            @click="switchUnitTab(tab.id)"
+                            :class="[
+                                'flex items-center gap-2 px-5 sm:px-8 py-2 text-xs sm:text-sm font-semibold transition-all duration-200 rounded-full cursor-pointer',
+                                activeUnitTab === tab.id
+                                    ? 'bg-primary text-on-primary shadow-sm'
+                                    : 'text-on-surface-variant hover:text-primary hover:bg-surface-variant/50'
+                            ]"
+                        >
+                            <span class="material-symbols-outlined text-[16px] sm:text-[18px] transition-all" :class="{ 'filled-icon': activeUnitTab === tab.id }">{{ tab.icon }}</span>
+                            <span>{{ tab.label }}</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
