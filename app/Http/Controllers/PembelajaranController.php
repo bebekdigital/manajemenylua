@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AcademicYear;
 use App\Models\Classroom;
+use App\Models\Student;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -40,10 +41,32 @@ class PembelajaranController extends Controller
             $selectedAcademicYearId = $activeYear ? $activeYear->id : ($academicYears->first()['id'] ?? null);
         }
 
+        // Fetch students and their mapping for the selected academic year
+        $students = Student::select('id', 'nisn', 'nama', 'jk', 'angkatan', 'unit', 'student_status')
+            ->with(['academicRecords' => function ($query) use ($selectedAcademicYearId) {
+                $query->where('academic_year_id', $selectedAcademicYearId);
+            }])
+            ->get()
+            ->map(function ($s) {
+                $record = $s->academicRecords->first();
+
+                return [
+                    'id' => $s->id,
+                    'nisn' => $s->nisn,
+                    'nama' => $s->nama,
+                    'jk' => $s->jk,
+                    'angkatan' => $s->angkatan,
+                    'unit' => $s->unit,
+                    'student_status' => $s->student_status,
+                    'classroom_id' => $record ? $record->classroom_id : null,
+                ];
+            });
+
         return Inertia::render('Pembelajaran/Classrooms', [
             'classrooms' => $classrooms,
             'academicYears' => $academicYears,
             'initialAcademicYearId' => (int) $selectedAcademicYearId,
+            'students' => $students,
         ]);
     }
 }
