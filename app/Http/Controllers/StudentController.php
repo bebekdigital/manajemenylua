@@ -88,11 +88,9 @@ class StudentController extends Controller
                     'no_kk' => $student->no_kk,
                     'agama' => $student->agama,
                     'unit' => $student->unit,
-                    'program' => $student->program,
+                    'angkatan' => $student->angkatan,
                     'photo_url' => $student->photo_url,
                     'jenjang' => $student->jenjang,
-                    'tingkat' => $student->tingkat,
-                    'kelas' => $student->kelas,
                     'student_status' => 'aktif', // Will be added to students table later if needed
                     'no_wa' => $student->no_wa,
                     'sekolah_asal' => $student->sekolah_asal,
@@ -865,6 +863,7 @@ class StudentController extends Controller
             'BB' => ['Jarak Rumah ke Sekolah', 25],
             'BC' => ['Apakah Memiliki Usaha (Ya/Tidak)', 30],
             'BD' => ['Jenis Usaha', 30],
+            'BE' => ['Angkatan', 15],
         ];
 
         $this->applySheetHeaders($sheet, $headers, '004B23');
@@ -883,7 +882,7 @@ class StudentController extends Controller
             '', '', '', '', '', '', '',
             'Ya', '6071012345670001', 'Ahmad Fauzi Rahman',
             'Ya', 'Penerima PIP tahap 1', 'Tidak ada',
-            'TK Aisyiyah Colomadu', '1', '3313151503140001', 'Kurang dari 1 km', 'Tidak', '-',
+            'TK Aisyiyah Colomadu', '1', '3313151503140001', 'Kurang dari 1 km', 'Tidak', '-', '2025/2026',
         ]], null, 'A2');
 
         for ($row = 2; $row <= 1000; $row++) {
@@ -933,7 +932,7 @@ class StudentController extends Controller
             $valBisnis->setFormula1('"Ya,Tidak"');
         }
 
-        $this->styleExampleRow($sheet, 2, 'A', 'BD');
+        $this->styleExampleRow($sheet, 2, 'A', 'BE');
         $sheet->freezePane('A2');
     }
 

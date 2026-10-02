@@ -149,11 +149,6 @@ const filteredStudents = computed(() => {
         );
     }
 
-    // Grade filter
-    if (gradeFilter.value) {
-        result = result.filter(s => s.kelas && s.kelas === gradeFilter.value);
-    }
-
     // Status filter
     if (statusFilter.value && statusFilter.value !== 'semua') {
         if (statusFilter.value === 'aktif') {

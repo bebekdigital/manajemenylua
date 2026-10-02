@@ -93,9 +93,7 @@ function getAlamatLengkap(s) {
                             <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">NIPD</th>
                             <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">Jenjang</th>
                             <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">Unit</th>
-                            <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">Program</th>
-                            <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider w-14 sm:w-16">Tingkat</th>
-                            <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider w-14 sm:w-16">Kelas</th>
+                            <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">Angkatan</th>
                             <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider w-10 sm:w-14">JK</th>
                             <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">TTL</th>
                             <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">No WA</th>
@@ -143,27 +141,10 @@ function getAlamatLengkap(s) {
                         <td class="p-2.5 sm:p-4 text-[12px] sm:text-sm text-on-surface-variant whitespace-nowrap">
                             {{ student.unit || '-' }}
                         </td>
-                        <!-- Program -->
-                        <td class="p-2.5 sm:p-4 text-center">
-                            <span :class="[
-                                'inline-flex items-center justify-center px-1.5 py-0.5 sm:px-2 sm:py-0.5 rounded-md text-[11px] sm:text-xs font-semibold',
-                                student.program === 'Boarding' ? 'bg-error/10 text-error' :
-                                student.program === 'Fullday' ? 'bg-secondary/10 text-secondary' :
-                                'bg-outline-variant/10 text-on-surface-variant'
-                            ]">
-                                {{ student.program || 'Umum' }}
-                            </span>
-                        </td>
-                        <!-- Tingkat -->
-                        <td class="p-2.5 sm:p-4 text-center">
-                            <span class="inline-flex items-center justify-center px-1.5 py-0.5 sm:px-2 sm:py-0.5 bg-tertiary/10 text-tertiary rounded-md text-[11px] sm:text-xs font-semibold">
-                                {{ student.tingkat || '-' }}
-                            </span>
-                        </td>
-                        <!-- Kelas -->
-                        <td class="p-2.5 sm:p-4 text-center">
+                        <!-- Angkatan -->
+                        <td class="p-2.5 sm:p-4 text-[12px] sm:text-sm text-center">
                             <span class="inline-flex items-center justify-center px-1.5 py-0.5 sm:px-2 sm:py-0.5 bg-primary/10 text-primary rounded-md text-[11px] sm:text-xs font-semibold">
-                                {{ student.kelas }}
+                                {{ student.angkatan || '-' }}
                             </span>
                         </td>
                         <!-- JK -->

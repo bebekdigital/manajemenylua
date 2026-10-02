@@ -203,16 +203,6 @@ function resetAll() {
                     </div>
                 </div>
 
-                <!-- Grade Filter (Dinamis sesuai unit) -->
-                <div class="relative w-[calc(50%-4px)] sm:w-auto sm:min-w-[100px] lg:min-w-[90px] flex-grow sm:flex-grow-0 shrink-0">
-                    <select
-                        v-model="selectedGrade"
-                        class="w-full pl-2 sm:pl-3 pr-6 sm:pr-8 py-2 sm:py-2 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg sm:rounded-xl text-[12px] sm:text-sm font-medium text-slate-700 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 cursor-pointer transition-colors"
-                        @change="onGradeChange"
-                    >
-                        <option v-for="g in grades" :key="g.value" :value="g.value">{{ g.label }}</option>
-                    </select>
-                </div>
 
                 <!-- Extra Filters Slot -->
                 <slot name="extra-filters"></slot>
