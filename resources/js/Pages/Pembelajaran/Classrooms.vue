@@ -104,6 +104,29 @@ function statusColor(status) {
     return map[status] || 'bg-gray-100 text-gray-600';
 }
 
+const showTADropdown = ref(false);
+const showClassDropdown = ref(false);
+
+const selectedTaName = computed(() => {
+    const ta = props.academicYears.find(t => t.id === selectedAcademicYearId.value);
+    return ta ? `${ta.name} - ${ta.semester}` : 'Pilih T.A';
+});
+
+const selectedClassLabel = computed(() => {
+    const cls = availableClasses.value.find(c => c.id === selectedClassId.value);
+    return cls ? `Kelas ${cls.name}` : 'Pilih Kelas';
+});
+
+function unitStudentCount(unitId) {
+    return props.students.filter(s => {
+        if (!s.unit) return false;
+        const u = s.unit.toUpperCase();
+        if (unitId === 'SDIT') return u.includes('SDIT') || u.includes('SD IT');
+        if (unitId === 'SMPIT') return u.includes('SMPIT') || u.includes('SMP IT');
+        return false;
+    }).length;
+}
+
 // Bulk selection for delete
 const selectedIds = ref([]);
 const isDeleting = ref(false);
@@ -177,62 +200,112 @@ function removeSelected() {
             </div>
 
             <!-- Page Header -->
-            <div class="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-outline-variant/30">
-                <div class="flex items-end gap-6 pb-2">
-                    <div class="shrink-0">
+            <div class="mb-6 border-b border-outline-variant/30">
+                <div class="flex flex-col sm:flex-row sm:items-end justify-start gap-4 sm:gap-12">
+                    <div class="pb-3 shrink-0">
                         <h2 class="text-xl sm:text-2xl text-primary font-bold leading-tight">Daftar Kelas</h2>
                         <p class="font-body-md text-[13px] sm:text-sm text-on-surface-variant mt-1">Kelola siswa per kelas</p>
                     </div>
                     <!-- Unit Tabs -->
-                    <div class="flex space-x-1">
+                    <div class="flex overflow-x-auto -mb-px">
                         <button
                             v-for="tab in tabs"
                             :key="tab.id"
                             type="button"
                             @click="switchTab(tab.id)"
                             :class="[
-                                'px-4 py-2 text-sm font-semibold rounded-t-xl transition-colors border-b-2',
+                                'flex items-center gap-2 px-3 sm:px-5 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap border-b-2 rounded-t-lg',
                                 activeTab === tab.id
-                                    ? 'text-emerald-700 border-emerald-600 bg-emerald-50/50'
-                                    : 'text-on-surface-variant border-transparent hover:bg-surface-container hover:text-on-surface'
+                                    ? 'text-emerald-600 border-emerald-600 bg-gradient-to-t from-emerald-600/20 to-transparent'
+                                    : 'text-on-surface-variant border-transparent hover:text-on-surface hover:border-outline-variant'
                             ]"
                         >
-                            {{ tab.label }}
+                            <span class="material-symbols-outlined text-[16px] sm:text-[18px]">{{ tab.icon }}</span>
+                            <span>{{ tab.label }}</span>
+                            <span :class="[
+                                'inline-flex items-center justify-center min-w-[20px] h-[20px] px-1.5 rounded-full text-[10px] font-bold leading-none',
+                                activeTab === tab.id
+                                    ? 'bg-primary/10 text-primary'
+                                    : 'bg-outline-variant/20 text-on-surface-variant'
+                            ]">
+                                {{ unitStudentCount(tab.id) }}
+                            </span>
                         </button>
                     </div>
                 </div>
             </div>
 
-            <!-- Class Tabs and TA Filter -->
-            <div class="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div v-if="availableClasses.length > 0" class="flex gap-2 overflow-x-auto scrollbar-hide">
-                    <button
-                        v-for="kelas in availableClasses"
-                        :key="kelas.id"
-                        @click="selectedClassId = kelas.id"
-                        :class="[
-                            'px-4 py-2 rounded-full text-sm font-semibold transition-all whitespace-nowrap border',
-                            selectedClassId === kelas.id
-                                ? 'bg-primary text-on-primary border-primary shadow-sm'
-                                : 'bg-white text-on-surface-variant border-outline-variant/60 hover:border-primary hover:text-primary'
-                        ]"
-                    >
-                        {{ kelas.name }}
-                    </button>
-                </div>
-                <div v-else class="text-sm text-on-surface-variant italic">Belum ada kelas</div>
+            <!-- Action Buttons & Filters Row -->
+            <div class="mb-5 flex flex-col lg:flex-row gap-4 lg:items-center">
+                <div class="flex items-center gap-3 shrink-0 relative z-30 w-full">
+                    <!-- Filter Label -->
+                    <div class="hidden sm:flex items-center gap-1.5 text-on-surface-variant mr-1 shrink-0">
+                        <span class="material-symbols-outlined text-[16px] sm:text-[18px] text-primary">tune</span>
+                        <span class="text-[10px] sm:text-xs font-bold uppercase tracking-wider">Filter:</span>
+                    </div>
 
-                <!-- Filter Tahun Ajaran -->
-                <div class="flex items-center space-x-2 shrink-0">
-                    <span class="text-sm text-on-surface-variant font-medium">T.A:</span>
-                    <select
-                        v-model="selectedAcademicYearId"
-                        class="text-sm font-medium bg-white border border-outline-variant rounded-lg px-3 py-1.5 focus:ring-primary focus:border-primary shadow-sm"
-                    >
-                        <option v-for="ta in academicYears" :key="ta.id" :value="ta.id">
-                            {{ ta.name }} - {{ ta.semester }}
-                        </option>
-                    </select>
+                    <!-- Tahun Ajaran Dropdown -->
+                    <div class="relative w-[calc(50%-4px)] sm:w-auto sm:min-w-[150px] shrink-0">
+                        <button
+                            type="button"
+                            @click="showTADropdown = !showTADropdown"
+                            class="flex items-center justify-between w-full px-3 py-2 rounded-lg sm:rounded-xl text-[12px] sm:text-sm font-semibold border transition-all cursor-pointer bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
+                        >
+                            <div class="flex items-center gap-2">
+                                <span class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-emerald-500"></span>
+                                {{ selectedTaName }}
+                            </div>
+                            <span class="material-symbols-outlined text-[16px] sm:text-[18px] transition-transform duration-200" :class="{ 'rotate-180': showTADropdown }">expand_more</span>
+                        </button>
+                        
+                        <div v-if="showTADropdown" @click="showTADropdown = false" class="fixed inset-0 z-40"></div>
+                        
+                        <div v-show="showTADropdown" class="absolute z-50 top-full left-0 mt-1 w-full min-w-[200px] bg-white border border-slate-200 rounded-xl shadow-lg py-1 overflow-hidden">
+                            <button
+                                v-for="ta in academicYears" :key="ta.id"
+                                type="button"
+                                @click="selectedAcademicYearId = ta.id; showTADropdown = false"
+                                class="flex items-center gap-2 w-full px-3 py-2 text-[12px] sm:text-sm text-left hover:bg-slate-50 transition-colors font-medium text-slate-700"
+                            >
+                                <span class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full" :class="ta.id === selectedAcademicYearId ? 'bg-emerald-500' : 'bg-transparent'"></span>
+                                {{ ta.name }} - {{ ta.semester }}
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Kelas Dropdown -->
+                    <div class="relative w-[calc(50%-4px)] sm:w-auto sm:min-w-[150px] shrink-0">
+                        <button
+                            type="button"
+                            @click="showClassDropdown = !showClassDropdown"
+                            class="flex items-center justify-between w-full px-3 py-2 rounded-lg sm:rounded-xl text-[12px] sm:text-sm font-semibold border transition-all cursor-pointer bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100"
+                        >
+                            <div class="flex items-center gap-2">
+                                <span class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-indigo-500"></span>
+                                {{ selectedClassLabel }}
+                            </div>
+                            <span class="material-symbols-outlined text-[16px] sm:text-[18px] transition-transform duration-200" :class="{ 'rotate-180': showClassDropdown }">expand_more</span>
+                        </button>
+                        
+                        <div v-if="showClassDropdown" @click="showClassDropdown = false" class="fixed inset-0 z-40"></div>
+                        
+                        <div v-show="showClassDropdown" class="absolute z-50 top-full left-0 mt-1 w-full min-w-[150px] bg-white border border-slate-200 rounded-xl shadow-lg py-1 overflow-hidden max-h-60 overflow-y-auto">
+                            <template v-if="availableClasses.length > 0">
+                                <button
+                                    v-for="kelas in availableClasses" :key="kelas.id"
+                                    type="button"
+                                    @click="selectedClassId = kelas.id; showClassDropdown = false"
+                                    class="flex items-center gap-2 w-full px-3 py-2 text-[12px] sm:text-sm text-left hover:bg-slate-50 transition-colors font-medium text-slate-700"
+                                >
+                                    <span class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full" :class="kelas.id === selectedClassId ? 'bg-indigo-500' : 'bg-transparent'"></span>
+                                    Kelas {{ kelas.name }}
+                                </button>
+                            </template>
+                            <div v-else class="px-3 py-2 text-xs text-slate-500 italic">
+                                Belum ada kelas
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
