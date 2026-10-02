@@ -5,41 +5,64 @@ namespace App\Http\Controllers;
 use App\Models\AcademicYear;
 use App\Models\Classroom;
 use App\Models\SchoolClass;
+use App\Models\SchoolUnit;
 use Illuminate\Http\Request;
 
 class AcademicYearClassController extends Controller
 {
-    public function generate(AcademicYear $academicYear)
+    public function getActiveClasses(AcademicYear $academicYear)
     {
-        $schoolClasses = SchoolClass::with('unit')->get();
-        $count = 0;
+        $units = SchoolUnit::with('classes')->orderBy('order')->get();
+        
+        $activeClassrooms = Classroom::where('academic_year_id', $academicYear->id)
+            ->get(['unit', 'name'])
+            ->map(fn($c) => $c->unit . '|' . $c->name)
+            ->toArray();
 
-        foreach ($schoolClasses as $sc) {
-            $unitName = $sc->unit->name;
-            $name = $sc->name;
-            
-            $jenjang = str_starts_with($name, '7') || str_starts_with($name, '8') || str_starts_with($name, '9') ? 'SMP' : 'SD';
-            $grade = (int) filter_var($name, FILTER_SANITIZE_NUMBER_INT);
-            if ($grade === 0) $grade = 1;
+        return response()->json([
+            'units' => $units,
+            'active_classrooms' => $activeClassrooms,
+        ]);
+    }
 
-            $exists = Classroom::where('academic_year_id', $academicYear->id)
-                ->where('unit', $unitName)
-                ->where('name', $name)
-                ->exists();
-                
-            if (!$exists) {
-                Classroom::create([
+    public function syncActiveClasses(Request $request, AcademicYear $academicYear)
+    {
+        $validated = $request->validate([
+            'selected_classes' => 'array',
+            'selected_classes.*' => 'string'
+        ]);
+
+        $selected = collect($validated['selected_classes'] ?? []);
+        $masterClasses = SchoolClass::with('unit')->get();
+
+        foreach ($masterClasses as $mc) {
+            $key = $mc->unit->name . '|' . $mc->name;
+            if ($selected->contains($key)) {
+                $jenjang = str_starts_with($mc->name, '7') || str_starts_with($mc->name, '8') || str_starts_with($mc->name, '9') ? 'SMP' : 'SD';
+                $grade = (int) filter_var($mc->name, FILTER_SANITIZE_NUMBER_INT);
+                if ($grade === 0) $grade = 1;
+
+                Classroom::firstOrCreate([
                     'academic_year_id' => $academicYear->id,
-                    'unit' => $unitName,
+                    'unit' => $mc->unit->name,
+                    'name' => $mc->name,
+                ], [
                     'jenjang' => $jenjang,
                     'grade' => $grade,
-                    'name' => $name,
                     'capacity' => 30
                 ]);
-                $count++;
+            } else {
+                $classroom = Classroom::where('academic_year_id', $academicYear->id)
+                    ->where('unit', $mc->unit->name)
+                    ->where('name', $mc->name)
+                    ->first();
+                    
+                if ($classroom && $classroom->studentRecords()->count() === 0) {
+                    $classroom->delete();
+                }
             }
         }
 
-        return back()->with('success', "Berhasil men-generate $count kelas baru untuk TA {$academicYear->name} {$academicYear->semester}.");
+        return redirect()->back()->with('success', 'Kelas aktif untuk TA ' . $academicYear->name . ' berhasil diperbarui.');
     }
 }
