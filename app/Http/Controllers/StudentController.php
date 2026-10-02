@@ -244,6 +244,7 @@ class StudentController extends Controller
                 'status' => $r->student_status,
                 'keterangan' => $r->ket_tidak_aktif,
             ])->sortBy(fn ($r) => $r['academic_year'].'-'.$r['semester'])->values()->toArray(),
+            'angkatan' => $studentModel->angkatan,
             'bantuan' => [
                 'pip' => $studentModel->status_pip ?? false,
                 'pip_keterangan' => $studentModel->pip_keterangan,
@@ -255,12 +256,6 @@ class StudentController extends Controller
 
         return Inertia::render('StudentDetail', [
             'student' => $studentData,
-            'selectedAcademicYear' => $selectedYear ? [
-                'id' => $selectedYear->id,
-                'name' => $selectedYear->name,
-                'semester' => $selectedYear->semester,
-                'is_active' => (bool) $selectedYear->is_active,
-            ] : null,
         ]);
     }
 
