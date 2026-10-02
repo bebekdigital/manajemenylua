@@ -159,9 +159,7 @@ watch(activeUnit, () => {
 <template>
     <Head title="Statistik Siswa - Foundation Data Center" />
 
-    <div class="min-h-screen bg-surface">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-
+    <div class="flex-1 overflow-y-auto p-4 md:p-margin-desktop">
             <!-- Page Header -->
             <div class="mb-6 border-b border-outline-variant/30">
                 <div class="flex flex-col sm:flex-row sm:items-end justify-start gap-4 sm:gap-12">
@@ -313,7 +311,6 @@ watch(activeUnit, () => {
                 <!-- <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col h-full"> ... </div> -->
             </div>
 
-        </div>
     </div>
 </template>
 
