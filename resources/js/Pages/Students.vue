@@ -32,7 +32,11 @@ const unitTabs = [
     { id: 'SMPIT', label: 'SMPIT', icon: 'domain' },
 ];
 
-const activeUnitTab = ref('SDIT');
+const activeUnitTab = ref(localStorage.getItem('activeUnitTab') || 'SDIT');
+
+watch(activeUnitTab, (newVal) => {
+    localStorage.setItem('activeUnitTab', newVal);
+});
 
 const unitTabStudents = computed(() => {
     if (activeUnitTab.value === 'all') return props.students;

@@ -78,6 +78,11 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/students/mapping', [StudentMappingController::class, 'index'])->name('students.mapping.index');
     Route::post('/students/mapping', [StudentMappingController::class, 'store'])->name('students.mapping.store');
+    
+    // DEBUG ROUTE
+    Route::get('/debug-mapping', function() {
+        return App\Models\StudentAcademicRecord::all();
+    });
     Route::get('/api/students/mapping/classes', [StudentMappingController::class, 'getClasses'])->name('students.mapping.classes');
     Route::get('/api/students/mapping/students', [StudentMappingController::class, 'getStudents'])->name('students.mapping.students');
     Route::post('/students/upload-photos', [StudentController::class, 'uploadPhotos'])->name('students.upload-photos');
