@@ -863,6 +863,15 @@ class StudentController extends Controller
 
         $this->applySheetHeaders($sheet, $headers, '004B23');
 
+        // Format kolom Tanggal Lahir
+        $sheet->getStyle('I2:I1000')->getNumberFormat()->setFormatCode('yyyy-mm-dd');
+        
+        // Format kolom ID/Nomor sebagai Teks (mencegah angka dengan awalan 0 atau simbol / berubah)
+        $textCols = ['A', 'C', 'D', 'J', 'V', 'W', 'AD', 'AK', 'AR', 'AU', 'BB'];
+        foreach ($textCols as $col) {
+            $sheet->getStyle($col.'2:'.$col.'1000')->getNumberFormat()->setFormatCode('@');
+        }
+
         $unitExample = ($jenjang === 'SMP') ? 'SMPIT Ulil Albab' : 'SDIT Ulil Albab';
 
         $sheet->fromArray([[
@@ -943,6 +952,10 @@ class StudentController extends Controller
         ];
 
         $this->applySheetHeaders($sheet, $headers, 'BF360C');
+
+        // Format kolom
+        $sheet->getStyle('A2:A1000')->getNumberFormat()->setFormatCode('@'); // NISN sebagai Text
+        $sheet->getStyle('C2:C1000')->getNumberFormat()->setFormatCode('yyyy-mm-dd'); // Tanggal Lahir
 
         $sheet->fromArray([
             ['0051234001', 'Aisyah Fauzia', '2016-05-12'],
