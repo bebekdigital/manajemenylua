@@ -13,7 +13,7 @@ import {
     Legend,
 } from 'chart.js';
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ChartDataLabels);
 
 defineOptions({
     layout: AppLayout,
@@ -65,11 +65,10 @@ const chartData = computed(() => {
         datasets: [{
             label: 'Jumlah Siswa',
             data: data.map(item => item.total),
-            backgroundColor: 'rgba(4, 120, 87, 0.85)', // emerald-700 with opacity
-            borderColor: '#047857', // emerald-700
-            borderWidth: 2,
-            borderRadius: 6,
-            borderSkipped: false,
+            backgroundColor: '#047857', // solid emerald-700 without opacity/shadow
+            borderWidth: 0,
+            borderRadius: { topLeft: 6, topRight: 6, bottomLeft: 0, bottomRight: 0 },
+            borderSkipped: 'bottom',
             hoverBackgroundColor: '#064e3b', // emerald-900
         }],
     };
@@ -78,13 +77,14 @@ const chartData = computed(() => {
 const chartOptions = computed(() => ({
     responsive: true,
     maintainAspectRatio: false,
+    layout: {
+        padding: {
+            top: 20 // Make room for datalabels at the top
+        }
+    },
     plugins: {
-        legend: {
-            display: false,
-        },
-        title: {
-            display: false,
-        },
+        legend: { display: false },
+        title: { display: false },
         tooltip: {
             backgroundColor: 'rgba(15, 23, 42, 0.9)',
             titleFont: { size: 13, weight: 'bold', family: "'Inter', sans-serif" },
@@ -98,24 +98,40 @@ const chartOptions = computed(() => ({
                 label: (item) => ` ${item.raw} Siswa`,
             },
         },
+        datalabels: {
+            anchor: 'end',
+            align: 'top',
+            color: '#047857', // match the bar color
+            font: { weight: 'bold', size: 12, family: "'Inter', sans-serif" },
+            offset: 4,
+            formatter: (value) => value
+        }
     },
     scales: {
         x: {
-            grid: {
-                display: false,
+            title: {
+                display: true,
+                text: 'Nama Kelas',
+                color: '#64748b',
+                font: { size: 12, weight: '500', family: "'Inter', sans-serif" }
             },
+            grid: { display: false },
             ticks: {
                 font: { size: 12, weight: '600', family: "'Inter', sans-serif" },
                 color: '#64748b',
             },
-            border: {
-                display: false,
-            },
+            border: { display: false },
         },
         y: {
+            title: {
+                display: true,
+                text: 'Jumlah Siswa',
+                color: '#64748b',
+                font: { size: 12, weight: '500', family: "'Inter', sans-serif" }
+            },
             beginAtZero: true,
             grid: {
-                color: 'rgba(226, 232, 240, 0.6)',
+                color: 'rgba(226, 232, 240, 1)', // solid horizontal lines
                 drawBorder: false,
             },
             ticks: {
@@ -124,10 +140,7 @@ const chartOptions = computed(() => ({
                 stepSize: 5,
                 padding: 8,
             },
-            border: {
-                display: false,
-                dash: [4, 4],
-            },
+            border: { display: false, dash: [4, 4] },
         },
     },
     animation: {
@@ -247,12 +260,12 @@ watch(activeUnit, () => {
                     </div>
 
                     <div class="p-4 sm:p-6 shrink-0">
-                        <div v-if="filteredData.length > 0" class="h-[280px]">
+                        <div v-if="filteredData.length > 0" class="h-[230px]">
                             <Bar :key="chartKey" :data="chartData" :options="chartOptions" />
                         </div>
 
                         <!-- Empty State -->
-                        <div v-else class="flex flex-col items-center justify-center h-[280px] text-center">
+                        <div v-else class="flex flex-col items-center justify-center h-[230px] text-center">
                             <div class="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center mb-4">
                                 <span class="material-symbols-outlined text-slate-300 text-[32px]">bar_chart</span>
                             </div>
