@@ -245,16 +245,15 @@ function removeSelected() {
                         <p class="text-xs text-on-surface-variant mt-0.5">{{ classStudents.length }} siswa</p>
                     </div>
                     <div class="flex items-center gap-2">
-                        <!-- Delete Button (visible when selected) -->
+                        <!-- Delete Button (always visible, disabled when nothing selected) -->
                         <button
-                            v-if="selectedIds.length > 0"
                             @click="removeSelected"
-                            :disabled="isDeleting"
-                            class="flex items-center gap-1.5 px-3 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors shadow-sm disabled:opacity-50"
+                            :disabled="isDeleting || selectedIds.length === 0"
+                            class="flex items-center gap-1.5 px-3 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <span v-if="isDeleting" class="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
                             <span v-else class="material-symbols-outlined text-[18px]">delete</span>
-                            <span>Hapus ({{ selectedIds.length }})</span>
+                            <span>Hapus{{ selectedIds.length > 0 ? ` (${selectedIds.length})` : '' }}</span>
                         </button>
                         <button
                             @click="showAddStudentModal = true"
@@ -270,11 +269,11 @@ function removeSelected() {
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-sm">
                         <thead>
-                            <tr class="bg-gradient-to-r from-primary to-primary/80">
+                            <tr class="border-b border-emerald-700 bg-emerald-600">
                                 <th class="p-3 w-12 text-center">
                                     <input
                                         type="checkbox"
-                                        class="rounded border-white/50 text-white focus:ring-white/50 w-4 h-4 cursor-pointer"
+                                        class="rounded border-white/60 text-emerald-600 focus:ring-emerald-400 w-4 h-4 cursor-pointer bg-white/90"
                                         :checked="isAllClassSelected"
                                         @change="toggleSelectAll"
                                         :disabled="classStudents.length === 0"
