@@ -136,11 +136,11 @@ class StudentController extends Controller
                         'tanggal_lahir' => $s->tanggal_lahir?->format('Y-m-d'),
                     ])->toArray(),
                     'bantuan' => [
-                        'desil' => $record?->desil,
-                        'pip' => $record?->status_pip ?? false,
-                        'pip_keterangan' => $record?->pip_keterangan,
-                        'kip' => $record?->status_kip ?? false,
-                        'no_kip' => $record?->no_kip,
+                        'desil' => $student->desil,
+                        'pip' => $student->status_pip ?? false,
+                        'pip_keterangan' => $student->pip_keterangan,
+                        'kip' => $student->status_kip ?? false,
+                        'no_kip' => $student->no_kip,
                     ],
                 ];
             });
