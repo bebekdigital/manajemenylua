@@ -259,14 +259,6 @@ function unitStudentCount(unitId) {
                 >
                     <span class="material-symbols-outlined text-[16px] sm:text-[18px]">{{ tab.icon }}</span>
                     <span>{{ tab.label }}</span>
-                    <span :class="[
-                        'inline-flex items-center justify-center min-w-[20px] h-[20px] px-1.5 rounded-full text-[10px] font-bold leading-none',
-                        activeUnitTab === tab.id
-                            ? 'bg-primary/10 text-primary'
-                            : 'bg-outline-variant/20 text-on-surface-variant'
-                    ]">
-                        {{ unitStudentCount(tab.id) }}
-                    </span>
                 </button>
                 </div>
             </div>

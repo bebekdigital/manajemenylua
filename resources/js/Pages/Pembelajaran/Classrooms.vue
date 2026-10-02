@@ -222,14 +222,6 @@ function removeSelected() {
                         >
                             <span class="material-symbols-outlined text-[16px] sm:text-[18px]">{{ tab.icon }}</span>
                             <span>{{ tab.label }}</span>
-                            <span :class="[
-                                'inline-flex items-center justify-center min-w-[20px] h-[20px] px-1.5 rounded-full text-[10px] font-bold leading-none',
-                                activeTab === tab.id
-                                    ? 'bg-primary/10 text-primary'
-                                    : 'bg-outline-variant/20 text-on-surface-variant'
-                            ]">
-                                {{ unitStudentCount(tab.id) }}
-                            </span>
                         </button>
                     </div>
                 </div>
@@ -249,10 +241,10 @@ function removeSelected() {
                         <button
                             type="button"
                             @click="showTADropdown = !showTADropdown"
-                            class="flex items-center justify-between w-full px-3 py-2 rounded-lg sm:rounded-xl text-[12px] sm:text-sm font-semibold border transition-all cursor-pointer bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
+                            class="flex items-center justify-between w-full px-3 py-2 rounded-lg sm:rounded-xl text-[12px] sm:text-sm font-semibold border transition-all cursor-pointer bg-emerald-600 border-emerald-700 text-white hover:bg-emerald-700 shadow-sm"
                         >
                             <div class="flex items-center gap-2">
-                                <span class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-emerald-500"></span>
+                                <span class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-white/90"></span>
                                 {{ selectedTaName }}
                             </div>
                             <span class="material-symbols-outlined text-[16px] sm:text-[18px] transition-transform duration-200" :class="{ 'rotate-180': showTADropdown }">expand_more</span>
@@ -278,10 +270,10 @@ function removeSelected() {
                         <button
                             type="button"
                             @click="showClassDropdown = !showClassDropdown"
-                            class="flex items-center justify-between w-full px-3 py-2 rounded-lg sm:rounded-xl text-[12px] sm:text-sm font-semibold border transition-all cursor-pointer bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100"
+                            class="flex items-center justify-between w-full px-3 py-2 rounded-lg sm:rounded-xl text-[12px] sm:text-sm font-semibold border transition-all cursor-pointer bg-amber-500 border-amber-600 text-white hover:bg-amber-600 shadow-sm"
                         >
                             <div class="flex items-center gap-2">
-                                <span class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-indigo-500"></span>
+                                <span class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-white/90"></span>
                                 {{ selectedClassLabel }}
                             </div>
                             <span class="material-symbols-outlined text-[16px] sm:text-[18px] transition-transform duration-200" :class="{ 'rotate-180': showClassDropdown }">expand_more</span>
