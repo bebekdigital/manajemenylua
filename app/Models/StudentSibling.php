@@ -11,7 +11,7 @@ class StudentSibling extends Model
     use HasFactory;
 
     protected $fillable = [
-        'student_nisn',
+        'student_id',
         'nama',
         'tanggal_lahir',
     ];
@@ -25,6 +25,6 @@ class StudentSibling extends Model
 
     public function student(): BelongsTo
     {
-        return $this->belongsTo(Student::class, 'student_nisn', 'nisn');
+        return $this->belongsTo(Student::class);
     }
 }

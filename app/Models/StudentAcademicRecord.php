@@ -11,7 +11,7 @@ class StudentAcademicRecord extends Model
     use HasFactory;
 
     protected $fillable = [
-        'student_nisn',
+        'student_id',
         'academic_year_id',
         'classroom_id',
         'tingkat',
@@ -31,7 +31,7 @@ class StudentAcademicRecord extends Model
 
     public function student(): BelongsTo
     {
-        return $this->belongsTo(Student::class, 'student_nisn', 'nisn');
+        return $this->belongsTo(Student::class);
     }
 
     public function academicYear(): BelongsTo
