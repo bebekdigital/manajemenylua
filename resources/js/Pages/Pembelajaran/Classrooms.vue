@@ -132,14 +132,14 @@ const selectedIds = ref([]);
 const isDeleting = ref(false);
 
 const isAllClassSelected = computed(() => {
-    return classStudents.value.length > 0 && classStudents.value.every(s => selectedIds.value.includes(s.id));
+    return classStudents.value.length > 0 && classStudents.value.every(s => selectedIds.value.includes(s.nisn));
 });
 
 function toggleSelectAll() {
     if (isAllClassSelected.value) {
         selectedIds.value = [];
     } else {
-        selectedIds.value = classStudents.value.map(s => s.id);
+        selectedIds.value = classStudents.value.map(s => s.nisn);
     }
 }
 
@@ -363,19 +363,19 @@ function removeSelected() {
                         <tbody class="divide-y divide-outline-variant/10">
                             <tr
                                 v-for="(student, index) in classStudents"
-                                :key="student.id"
+                                :key="student.nisn"
                                 :class="[
                                     'hover:bg-surface-container-high/50 transition-colors cursor-pointer',
-                                    selectedIds.includes(student.id) ? 'bg-primary/5' : ''
+                                    selectedIds.includes(student.nisn) ? 'bg-primary/5' : ''
                                 ]"
-                                @click="toggleSelectStudent(student.id)"
+                                @click="toggleSelectStudent(student.nisn)"
                             >
                                 <td class="p-3 text-center" @click.stop>
                                     <input
                                         type="checkbox"
                                         class="rounded border-outline-variant text-primary focus:ring-primary w-4 h-4 cursor-pointer"
-                                        :checked="selectedIds.includes(student.id)"
-                                        @change="toggleSelectStudent(student.id)"
+                                        :checked="selectedIds.includes(student.nisn)"
+                                        @change="toggleSelectStudent(student.nisn)"
                                     >
                                 </td>
                                 <td class="p-3 text-on-surface-variant">{{ index + 1 }}</td>
