@@ -250,6 +250,7 @@ class StudentController extends Controller
             'tanggal_diterima' => $studentModel->tanggal_diterima?->format('Y-m-d'),
             'formatted_tanggal_diterima' => $studentModel->tanggal_diterima ? Carbon::parse($studentModel->tanggal_diterima)->translatedFormat('d F Y') : null,
             'info_psb' => $studentModel->info_psb,
+            'status_registrasi' => $studentModel->status_registrasi,
             'bantuan' => [
                 'desil' => $studentModel->desil,
                 'pip' => $studentModel->status_pip ?? false,
@@ -869,6 +870,7 @@ class StudentController extends Controller
             'BG' => ['Diterima di Jenjang / Kelas', 30],
             'BH' => ['Tanggal Diterima (YYYY-MM-DD)', 25],
             'BI' => ['Sumber Informasi PSB', 30],
+            'BJ' => ['Status Registrasi', 20],
         ];
 
         $this->applySheetHeaders($sheet, $headers, '004B23');
@@ -899,7 +901,7 @@ class StudentController extends Controller
             'Ya', 'Penerima PIP tahap 1', 'Tidak ada', // AW, AX, AY
             'TK Aisyiyah Colomadu', '1', '3313151503140001', 'Kurang dari 1 km', // AZ, BA, BB, BC
             'Tidak', '-', '1', // BD, BE, BF
-            'SDIT', '2025-07-01', 'Brosur', // BG, BH, BI
+            'SDIT', '2025-07-01', 'Brosur', 'Siswa Baru', // BG, BH, BI, BJ
         ]], null, 'A2');
 
         for ($row = 2; $row <= 1000; $row++) {
@@ -947,6 +949,12 @@ class StudentController extends Controller
             $valBisnis->setAllowBlank(true);
             $valBisnis->setShowDropDown(true);
             $valBisnis->setFormula1('"Ya,Tidak"');
+
+            $valStatusRegistrasi = $sheet->getCell('BJ'.$row)->getDataValidation();
+            $valStatusRegistrasi->setType(DataValidation::TYPE_LIST);
+            $valStatusRegistrasi->setAllowBlank(true);
+            $valStatusRegistrasi->setShowDropDown(true);
+            $valStatusRegistrasi->setFormula1('"Siswa Baru,Mutasi Masuk"');
         }
 
         $this->styleExampleRow($sheet, 2, 'A', 'BE');

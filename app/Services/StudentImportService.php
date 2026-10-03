@@ -107,6 +107,7 @@ class StudentImportService
                     'diterima_di_jenjang' => $this->cleanString($row['BG'] ?? null),
                     'tanggal_diterima' => $this->parseDate($row['BH'] ?? null),
                     'info_psb' => $this->cleanString($row['BI'] ?? null),
+                    'status_registrasi' => $this->cleanString($row['BJ'] ?? null),
                 ];
 
                 // Filter by unit when specified

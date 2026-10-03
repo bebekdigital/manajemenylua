@@ -33,6 +33,7 @@ class Student extends Model
         'diterima_di_jenjang',
         'tanggal_diterima',
         'info_psb',
+        'status_registrasi',
         'jalan',
         'rt_rw',
         'rt',
