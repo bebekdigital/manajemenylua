@@ -564,25 +564,25 @@ function hitungUsia(tanggalLahir) {
                                                     {{ student.bantuan?.pip ? 'Layak' : 'Tidak' }}
                                                 </span>
                                             </div>
-                                            <p class="text-xs text-on-surface-variant mt-2">Alasan Layak PIP: <span class="text-on-surface">{{ student.bantuan?.pip_keterangan || '-' }}</span></p>
+                                            <p class="text-xs text-on-surface-variant mt-2">Alasan Layak PIP: <span class="text-on-surface">{{ student.bantuan?.pip_keterangan || 'Tidak ada data' }}</span></p>
                                         </div>
 
                                         <!-- KIP -->
                                         <div class="p-4 rounded-xl border border-outline-variant/30 bg-surface-container-low">
                                             <div class="flex items-center justify-between mb-2">
-                                                <span class="text-sm font-semibold text-on-surface">KIP (Kartu Indonesia Pintar)</span>
+                                                <span class="text-sm font-semibold text-on-surface">Penerima PIP</span>
                                                 <span
                                                     :class="[
                                                         'text-xs px-2.5 py-1 rounded-full font-medium',
                                                         student.bantuan?.kip ? 'bg-primary/10 text-primary' : 'bg-outline-variant/20 text-on-surface-variant'
                                                     ]"
                                                 >
-                                                    {{ student.bantuan?.kip ? 'Memiliki' : 'Tidak' }}
+                                                    {{ student.bantuan?.kip ? 'Menerima' : 'Tidak' }}
                                                 </span>
                                             </div>
                                             <div class="flex flex-col gap-1 mt-2">
-                                                <p class="text-xs text-on-surface-variant">No. KIP: <span class="font-mono text-on-surface">{{ student.bantuan?.no_kip || '-' }}</span></p>
-                                                <p class="text-xs text-on-surface-variant">Nama di KIP: <span class="text-on-surface">{{ student.bantuan?.nama_di_kip || '-' }}</span></p>
+                                                <p class="text-xs text-on-surface-variant">No. KIP: <span class="font-mono text-on-surface">{{ student.bantuan?.no_kip || 'Tidak ada data' }}</span></p>
+                                                <p class="text-xs text-on-surface-variant">Nama di KIP: <span class="text-on-surface">{{ student.bantuan?.nama_di_kip || 'Tidak ada data' }}</span></p>
                                             </div>
                                         </div>
 
