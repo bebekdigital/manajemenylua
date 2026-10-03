@@ -125,7 +125,7 @@ class Student extends Model
 
     public function siblings(): HasMany
     {
-        return $this->hasMany(StudentSibling::class, 'student_nisn', 'nisn');
+        return $this->hasMany(StudentSibling::class);
     }
 
     /**
@@ -133,7 +133,7 @@ class Student extends Model
      */
     public function academicRecords(): HasMany
     {
-        return $this->hasMany(StudentAcademicRecord::class, 'student_nisn', 'nisn');
+        return $this->hasMany(StudentAcademicRecord::class);
     }
 
     /**
