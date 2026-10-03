@@ -554,17 +554,17 @@ function hitungUsia(tanggalLahir) {
                                         <!-- PIP -->
                                         <div class="p-4 rounded-xl border border-outline-variant/30 bg-surface-container-low">
                                             <div class="flex items-center justify-between mb-2">
-                                                <span class="text-sm font-semibold text-on-surface">Status Penerima PIP</span>
+                                                <span class="text-sm font-semibold text-on-surface">Kelayakan PIP</span>
                                                 <span
                                                     :class="[
                                                         'text-xs px-2.5 py-1 rounded-full font-medium',
                                                         student.bantuan?.pip ? 'bg-primary/10 text-primary' : 'bg-outline-variant/20 text-on-surface-variant'
                                                     ]"
                                                 >
-                                                    {{ student.bantuan?.pip ? 'Menerima' : 'Tidak' }}
+                                                    {{ student.bantuan?.pip ? 'Layak' : 'Tidak' }}
                                                 </span>
                                             </div>
-                                            <p class="text-xs text-on-surface-variant">{{ student.bantuan?.pip_keterangan || 'Tidak menerima bantuan PIP' }}</p>
+                                            <p class="text-xs text-on-surface-variant mt-2">Alasan Layak PIP: <span class="text-on-surface">{{ student.bantuan?.pip_keterangan || '-' }}</span></p>
                                         </div>
 
                                         <!-- KIP -->
@@ -583,6 +583,21 @@ function hitungUsia(tanggalLahir) {
                                             <div class="flex flex-col gap-1 mt-2">
                                                 <p class="text-xs text-on-surface-variant">No. KIP: <span class="font-mono text-on-surface">{{ student.bantuan?.no_kip || '-' }}</span></p>
                                                 <p class="text-xs text-on-surface-variant">Nama di KIP: <span class="text-on-surface">{{ student.bantuan?.nama_di_kip || '-' }}</span></p>
+                                            </div>
+                                        </div>
+
+                                        <!-- Desil -->
+                                        <div class="p-4 rounded-xl border border-outline-variant/30 bg-surface-container-low md:col-span-2">
+                                            <div class="flex items-center gap-3">
+                                                <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                                                    <span class="material-symbols-outlined text-primary">pie_chart</span>
+                                                </div>
+                                                <div>
+                                                    <p class="text-xs text-on-surface-variant">Kategori Kesejahteraan (Desil)</p>
+                                                    <p class="text-sm font-semibold text-on-surface mt-0.5">
+                                                        {{ student.bantuan?.desil ? 'Desil ' + student.bantuan.desil : 'Belum ada data Desil' }}
+                                                    </p>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>

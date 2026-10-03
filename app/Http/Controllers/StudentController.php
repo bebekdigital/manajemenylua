@@ -246,6 +246,7 @@ class StudentController extends Controller
             ])->sortBy(fn ($r) => $r['academic_year'].'-'.$r['semester'])->values()->toArray(),
             'angkatan' => $studentModel->angkatan,
             'bantuan' => [
+                'desil' => $studentModel->desil,
                 'pip' => $studentModel->status_pip ?? false,
                 'pip_keterangan' => $studentModel->pip_keterangan,
                 'kip' => $studentModel->status_kip ?? false,
