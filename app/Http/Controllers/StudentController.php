@@ -12,6 +12,7 @@ use App\Models\Student;
 use App\Models\StudentAcademicRecord;
 use App\Models\StudentFamily;
 use App\Services\StudentImportService;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
@@ -245,6 +246,10 @@ class StudentController extends Controller
                 'keterangan' => $r->ket_tidak_aktif,
             ])->sortBy(fn ($r) => $r['academic_year'].'-'.$r['semester'])->values()->toArray(),
             'angkatan' => $studentModel->angkatan,
+            'diterima_di_jenjang' => $studentModel->diterima_di_jenjang,
+            'tanggal_diterima' => $studentModel->tanggal_diterima?->format('Y-m-d'),
+            'formatted_tanggal_diterima' => $studentModel->tanggal_diterima ? Carbon::parse($studentModel->tanggal_diterima)->translatedFormat('d F Y') : null,
+            'info_psb' => $studentModel->info_psb,
             'bantuan' => [
                 'desil' => $studentModel->desil,
                 'pip' => $studentModel->status_pip ?? false,
@@ -861,12 +866,16 @@ class StudentController extends Controller
             'BD' => ['Apakah Memiliki Usaha (Ya/Tidak)', 30],
             'BE' => ['Jenis Usaha', 30],
             'BF' => ['Desil', 15],
+            'BG' => ['Diterima di Jenjang / Kelas', 30],
+            'BH' => ['Tanggal Diterima (YYYY-MM-DD)', 25],
+            'BI' => ['Sumber Informasi PSB', 30],
         ];
 
         $this->applySheetHeaders($sheet, $headers, '004B23');
 
-        // Format kolom Tanggal Lahir
+        // Format kolom Tanggal Lahir & Tanggal Diterima
         $sheet->getStyle('I2:I1000')->getNumberFormat()->setFormatCode('yyyy-mm-dd');
+        $sheet->getStyle('BH2:BH1000')->getNumberFormat()->setFormatCode('yyyy-mm-dd');
 
         // Format kolom ID/Nomor sebagai Teks (mencegah angka dengan awalan 0 atau simbol / berubah)
         $textCols = ['A', 'C', 'D', 'J', 'V', 'W', 'AD', 'AK', 'AR', 'AU', 'BB'];
@@ -890,6 +899,7 @@ class StudentController extends Controller
             'Ya', 'Penerima PIP tahap 1', 'Tidak ada', // AW, AX, AY
             'TK Aisyiyah Colomadu', '1', '3313151503140001', 'Kurang dari 1 km', // AZ, BA, BB, BC
             'Tidak', '-', '1', // BD, BE, BF
+            'SDIT', '2025-07-01', 'Brosur', // BG, BH, BI
         ]], null, 'A2');
 
         for ($row = 2; $row <= 1000; $row++) {

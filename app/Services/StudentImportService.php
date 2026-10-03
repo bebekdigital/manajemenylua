@@ -104,6 +104,9 @@ class StudentImportService
                     'no_kk' => $this->cleanString($row['BB'] ?? null),
                     'jarak_rumah' => $this->cleanString($row['BC'] ?? null),
                     'desil' => $this->cleanInteger($row['BF'] ?? null),
+                    'diterima_di_jenjang' => $this->cleanString($row['BG'] ?? null),
+                    'tanggal_diterima' => $this->parseDate($row['BH'] ?? null),
+                    'info_psb' => $this->cleanString($row['BI'] ?? null),
                 ];
 
                 // Filter by unit when specified
