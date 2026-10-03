@@ -10,7 +10,6 @@ use App\Models\SchoolProgram;
 use App\Models\SchoolUnit;
 use App\Models\Student;
 use App\Models\StudentAcademicRecord;
-use App\Models\StudentFamily;
 use App\Services\StudentImportService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
@@ -159,11 +158,8 @@ class StudentController extends Controller
         $studentModel = Student::with([
             'academicRecords.classroom',
             'academicRecords.academicYear',
-            'family',
             'siblings',
         ])->where('nisn', $nisn)->firstOrFail();
-
-        $family = $studentModel->family;
 
         $studentData = [
             'nisn' => $studentModel->nisn,
@@ -205,33 +201,33 @@ class StudentController extends Controller
             'alat_transportasi' => $studentModel->alat_transportasi,
             'jarak_rumah' => $studentModel->jarak_rumah,
             'kebutuhan_khusus' => $studentModel->kebutuhan_khusus,
-            'ayah' => $family ? [
-                'nama' => $family->ayah_nama,
-                'tahun_lahir' => $family->ayah_tahun_lahir,
-                'pekerjaan' => $family->ayah_pekerjaan,
-                'penghasilan' => $family->ayah_penghasilan,
-                'nik' => $family->ayah_nik,
-                'status' => $family->ayah_status,
-            ] : null,
-            'ibu' => $family ? [
-                'nama' => $family->ibu_nama,
-                'tahun_lahir' => $family->ibu_tahun_lahir,
-                'pekerjaan' => $family->ibu_pekerjaan,
-                'penghasilan' => $family->ibu_penghasilan,
-                'nik' => $family->ibu_nik,
-                'status' => $family->ibu_status,
-            ] : null,
-            'bisnis' => $family ? [
-                'has_bisnis' => $family->has_bisnis ?? false,
-                'jenis_bisnis' => $family->jenis_bisnis,
-            ] : null,
-            'wali' => $family && $family->wali_nama ? [
-                'nama' => $family->wali_nama,
-                'hubungan' => $family->wali_hubungan,
-                'pekerjaan' => $family->wali_pekerjaan,
-                'penghasilan' => $family->wali_penghasilan,
-                'nik' => $family->wali_nik,
-            ] : null,
+            'ayah' => [
+                'nama' => $studentModel->ayah_nama,
+                'tahun_lahir' => $studentModel->ayah_tahun_lahir,
+                'pekerjaan' => $studentModel->ayah_pekerjaan,
+                'penghasilan' => $studentModel->ayah_penghasilan,
+                'nik' => $studentModel->ayah_nik,
+                'status' => $studentModel->ayah_status,
+            ],
+            'ibu' => [
+                'nama' => $studentModel->ibu_nama,
+                'tahun_lahir' => $studentModel->ibu_tahun_lahir,
+                'pekerjaan' => $studentModel->ibu_pekerjaan,
+                'penghasilan' => $studentModel->ibu_penghasilan,
+                'nik' => $studentModel->ibu_nik,
+                'status' => $studentModel->ibu_status,
+            ],
+            'bisnis' => [
+                'has_bisnis' => $studentModel->has_bisnis ?? false,
+                'jenis_bisnis' => $studentModel->jenis_bisnis,
+            ],
+            'wali' => [
+                'nama' => $studentModel->wali_nama,
+                'hubungan' => $studentModel->wali_hubungan,
+                'pekerjaan' => $studentModel->wali_pekerjaan,
+                'penghasilan' => $studentModel->wali_penghasilan,
+                'nik' => $studentModel->wali_nik,
+            ],
             'saudara' => $studentModel->siblings->map(fn ($s) => [
                 'nama' => $s->nama,
                 'tanggal_lahir' => $s->tanggal_lahir?->format('Y-m-d'),
@@ -416,7 +412,7 @@ class StudentController extends Controller
                     continue;
                 }
 
-                // Update student base data
+                // Update student base data and family data
                 $student->update([
                     'nama' => $d['nama'],
                     'nipd' => $d['nipd'] ?? $student->nipd,
@@ -442,32 +438,23 @@ class StudentController extends Controller
                     'kecamatan' => $d['kecamatan'] ?? $student->kecamatan,
                     'kabupaten' => $d['kabupaten'] ?? $student->kabupaten,
                     'provinsi' => $d['provinsi'] ?? $student->provinsi,
+                    'ayah_nama' => $d['ayah_nama'] ?? $student->ayah_nama,
+                    'ayah_tahun_lahir' => $d['ayah_tahun_lahir'] ?? $student->ayah_tahun_lahir,
+                    'ayah_pendidikan' => $d['ayah_pendidikan'] ?? $student->ayah_pendidikan,
+                    'ayah_pekerjaan' => $d['ayah_pekerjaan'] ?? $student->ayah_pekerjaan,
+                    'ayah_penghasilan' => $d['ayah_penghasilan'] ?? $student->ayah_penghasilan,
+                    'ayah_status' => $d['ayah_status'] ?? $student->ayah_status,
+                    'ibu_nama' => $d['ibu_nama'] ?? $student->ibu_nama,
+                    'ibu_tahun_lahir' => $d['ibu_tahun_lahir'] ?? $student->ibu_tahun_lahir,
+                    'ibu_pendidikan' => $d['ibu_pendidikan'] ?? $student->ibu_pendidikan,
+                    'ibu_pekerjaan' => $d['ibu_pekerjaan'] ?? $student->ibu_pekerjaan,
+                    'ibu_penghasilan' => $d['ibu_penghasilan'] ?? $student->ibu_penghasilan,
+                    'ibu_status' => $d['ibu_status'] ?? $student->ibu_status,
+                    'wali_nama' => $d['wali_nama'] ?? $student->wali_nama,
+                    'wali_hubungan' => $d['wali_hubungan'] ?? $student->wali_hubungan,
+                    'wali_pekerjaan' => $d['wali_pekerjaan'] ?? $student->wali_pekerjaan,
+                    'wali_penghasilan' => $d['wali_penghasilan'] ?? $student->wali_penghasilan,
                 ]);
-
-                // Update or create family data
-                $familyData = [
-                    'ayah_nama' => $d['ayah_nama'] ?? null,
-                    'ayah_tahun_lahir' => $d['ayah_tahun_lahir'] ?? null,
-                    'ayah_pendidikan' => $d['ayah_pendidikan'] ?? null,
-                    'ayah_pekerjaan' => $d['ayah_pekerjaan'] ?? null,
-                    'ayah_penghasilan' => $d['ayah_penghasilan'] ?? null,
-                    'ayah_status' => $d['ayah_status'] ?? null,
-                    'ibu_nama' => $d['ibu_nama'] ?? null,
-                    'ibu_tahun_lahir' => $d['ibu_tahun_lahir'] ?? null,
-                    'ibu_pendidikan' => $d['ibu_pendidikan'] ?? null,
-                    'ibu_pekerjaan' => $d['ibu_pekerjaan'] ?? null,
-                    'ibu_penghasilan' => $d['ibu_penghasilan'] ?? null,
-                    'ibu_status' => $d['ibu_status'] ?? null,
-                    'wali_nama' => $d['wali_nama'] ?? null,
-                    'wali_hubungan' => $d['wali_hubungan'] ?? null,
-                    'wali_pekerjaan' => $d['wali_pekerjaan'] ?? null,
-                    'wali_penghasilan' => $d['wali_penghasilan'] ?? null,
-                ];
-
-                StudentFamily::updateOrCreate(
-                    ['student_id' => $student->id],
-                    $familyData
-                );
 
                 // Update academic record
                 if ($selectedYearId) {

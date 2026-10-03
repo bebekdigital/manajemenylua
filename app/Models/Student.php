@@ -55,6 +55,29 @@ class Student extends Model
         'kebutuhan_khusus',
         'jarak_rumah',
         'foto',
+        'ayah_nama',
+        'ayah_tahun_lahir',
+        'ayah_pendidikan',
+        'ayah_pekerjaan',
+        'ayah_penghasilan',
+        'ayah_nik',
+        'ayah_status',
+        'ibu_nama',
+        'ibu_tahun_lahir',
+        'ibu_pendidikan',
+        'ibu_pekerjaan',
+        'ibu_penghasilan',
+        'ibu_nik',
+        'ibu_status',
+        'wali_nama',
+        'wali_tahun_lahir',
+        'wali_pendidikan',
+        'wali_pekerjaan',
+        'wali_penghasilan',
+        'wali_nik',
+        'wali_hubungan',
+        'has_bisnis',
+        'jenis_bisnis',
     ];
 
     /**
@@ -95,11 +118,6 @@ class Student extends Model
             : '';
 
         return trim("{$this->tempat_lahir}, {$tanggal}", ', ');
-    }
-
-    public function family(): HasOne
-    {
-        return $this->hasOne(StudentFamily::class);
     }
 
     public function siblings(): HasMany

@@ -467,6 +467,7 @@ class StudentSeeder extends Seeder
                 $academicData['no_kip']
             );
 
+            $data = array_merge($data, $familyData);
             $student = Student::create($data);
 
             // Create academic record linked to active TA (2025/2026 Ganjil)
@@ -502,10 +503,6 @@ class StudentSeeder extends Seeder
                         'student_status' => 'aktif',
                     ]);
                 }
-            }
-
-            if (! empty($familyData)) {
-                $student->family()->create($familyData);
             }
 
             foreach ($siblingsData as $sibling) {
