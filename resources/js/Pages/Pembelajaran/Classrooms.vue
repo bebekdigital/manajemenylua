@@ -214,10 +214,10 @@ function removeSelected() {
                         type="button"
                         @click="switchTab(tab.id)"
                         :class="[
-                            'flex items-center gap-2 px-5 sm:px-8 py-2.5 sm:py-3 text-xs sm:text-sm font-bold transition-all duration-300 border-b-2 border-x border-t rounded-t-lg -ml-px first:ml-0 relative',
+                            'flex items-center gap-2 px-5 sm:px-8 py-2.5 sm:py-3 text-xs sm:text-sm font-bold transition-all duration-300 border-b-2 border-x-2 border-t-0 rounded-t-lg -ml-[2px] first:ml-0 relative',
                             activeTab === tab.id
-                                ? 'text-emerald-600 border-b-emerald-600 border-x-emerald-300 border-t-emerald-300 bg-gradient-to-t from-emerald-600/20 to-transparent z-10'
-                                : 'text-on-surface-variant border-b-transparent border-x-outline-variant/50 border-t-outline-variant/50 hover:text-emerald-600 hover:border-b-emerald-600/50 hover:bg-emerald-50/50 z-0'
+                                ? 'text-emerald-600 border-emerald-500 bg-gradient-to-t from-emerald-600/20 to-transparent z-10'
+                                : 'text-slate-600 border-slate-400 hover:text-emerald-600 hover:bg-emerald-50/50 z-0'
                         ]"
                     >
                         <span class="material-symbols-outlined text-[16px] sm:text-[18px] transition-all" :class="{ 'filled-icon': activeTab === tab.id }">{{ tab.icon }}</span>
