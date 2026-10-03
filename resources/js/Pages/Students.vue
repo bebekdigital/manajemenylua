@@ -232,9 +232,9 @@ function unitStudentCount(unitId) {
 
     <div class="flex-1 overflow-y-auto p-4 md:p-margin-desktop">
         <!-- Page Header -->
-        <div class="mb-6 border-b border-outline-variant/30">
-            <div class="flex flex-col sm:flex-row sm:items-end justify-start gap-4 sm:gap-12">
-                <div class="pb-3 shrink-0">
+        <div class="mb-6 border-b border-outline-variant/30 pb-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-start gap-4 sm:gap-12">
+                <div class="shrink-0">
                     <h2 class="text-xl sm:text-2xl text-primary font-bold leading-tight">
                         Database Siswa
                     </h2>
@@ -243,25 +243,23 @@ function unitStudentCount(unitId) {
                     </p>
                 </div>
                 
-                <!-- Unit Tabs (Rounded Style) -->
-                <div class="flex pb-3 overflow-x-auto">
-                    <div class="flex p-1.5 bg-surface-container-high shadow-inner border border-outline-variant/20 rounded-[9999px] shrink-0">
-                        <button
-                            v-for="tab in unitTabs"
-                            :key="tab.id"
-                            type="button"
-                            @click="switchUnitTab(tab.id)"
-                            :class="[
-                                'flex items-center gap-2 px-5 sm:px-8 py-2 text-xs sm:text-sm font-bold transition-all duration-300 rounded-[9999px] cursor-pointer',
-                                activeUnitTab === tab.id
-                                    ? 'bg-emerald-500 text-white shadow-md scale-[1.02]'
-                                    : 'text-on-surface-variant hover:text-emerald-600 hover:bg-white/40'
-                            ]"
-                        >
-                            <span class="material-symbols-outlined text-[16px] sm:text-[18px] transition-all" :class="{ 'filled-icon': activeUnitTab === tab.id }">{{ tab.icon }}</span>
-                            <span>{{ tab.label }}</span>
-                        </button>
-                    </div>
+                <!-- Unit Tabs (Flat Style) -->
+                <div class="flex overflow-x-auto sm:ml-4">
+                    <button
+                        v-for="tab in unitTabs"
+                        :key="tab.id"
+                        type="button"
+                        @click="switchUnitTab(tab.id)"
+                        :class="[
+                            'flex items-center gap-2 px-5 sm:px-8 py-2.5 sm:py-3 text-xs sm:text-sm font-bold transition-all duration-300 border-b-2 rounded-t-lg',
+                            activeUnitTab === tab.id
+                                ? 'text-emerald-600 border-emerald-600 bg-gradient-to-t from-emerald-600/20 to-transparent'
+                                : 'text-on-surface-variant border-transparent hover:text-emerald-600 hover:border-emerald-600/50 hover:bg-emerald-50/50'
+                        ]"
+                    >
+                        <span class="material-symbols-outlined text-[16px] sm:text-[18px] transition-all" :class="{ 'filled-icon': activeUnitTab === tab.id }">{{ tab.icon }}</span>
+                        <span>{{ tab.label }}</span>
+                    </button>
                 </div>
             </div>
         </div>
