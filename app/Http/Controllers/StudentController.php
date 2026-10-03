@@ -876,18 +876,19 @@ class StudentController extends Controller
         $unitExample = ($jenjang === 'SMP') ? 'SMPIT Ulil Albab' : 'SDIT Ulil Albab';
 
         $sheet->fromArray([[
-            '0051234001', 'Ahmad Fauzi Rahman', '10231001',
-            '2025/2026', $jenjang ?? 'SD', $unitExample,
-            'L', 'Karanganyar', '2014-03-15',
-            '3313150101080001', 'Islam', 'Jl. Lawu No. 12',
-            '03', '05', 'Ngemplak', 'Colomadu', 'Colomadu', 'Karanganyar', 'Jawa Tengah',
-            'Bersama Orang Tua', 'Jalan Kaki', '081234567001', 'email@contoh.com',
-            'Fauzi Hidayat', '1980', 'SMA/SMK', 'Wiraswasta', 'Rp 3.000.000 - Rp 5.000.000', '',
-            'Siti Rahmawati', '1984', 'SMA/SMK', 'Ibu Rumah Tangga', 'Kurang dari Rp 1.000.000', '',
-            '', '', '', '', '', '', '',
-            'Ya', '6071012345670001', 'Ahmad Fauzi Rahman',
-            'Ya', 'Penerima PIP tahap 1', 'Tidak ada',
-            'TK Aisyiyah Colomadu', '1', '3313151503140001', 'Kurang dari 1 km', 'Tidak', '-', '1',
+            '0051234001', 'Ahmad Fauzi Rahman', '10231001', // A, B, C
+            '2025/2026', $jenjang ?? 'SD', $unitExample, // D, E, F
+            'L', 'Karanganyar', '2014-03-15', // G, H, I
+            '3313150101080001', 'Islam', 'Jl. Lawu No. 12', // J, K, L
+            '03', '05', 'Ngemplak', 'Desa Makmur', 'Colomadu', 'Karanganyar', 'Jawa Tengah', // M, N, O, P, Q, R, S
+            'Bersama Orang Tua', 'Jalan Kaki', '081234567001', '081234567002', 'ahmad.fauzi@example.com', // T, U, V, W, X
+            'Fauzi Hidayat', '1980', 'SMA/SMK', 'Wiraswasta', 'Rp 3.000.000 - Rp 5.000.000', '3313150101800001', 'Hidup', // Y, Z, AA, AB, AC, AD, AE
+            'Siti Rahmawati', '1984', 'SMA/SMK', 'Ibu Rumah Tangga', 'Kurang dari Rp 1.000.000', '3313150101840002', 'Hidup', // AF, AG, AH, AI, AJ, AK, AL
+            '', '', '', '', '', '', '', // AM, AN, AO, AP, AQ, AR, AS
+            'Ya', '6071012345670001', 'Ahmad Fauzi Rahman', // AT, AU, AV
+            'Ya', 'Penerima PIP tahap 1', 'Tidak ada', // AW, AX, AY
+            'TK Aisyiyah Colomadu', '1', '3313151503140001', 'Kurang dari 1 km', // AZ, BA, BB, BC
+            'Tidak', '-', '1', // BD, BE, BF
         ]], null, 'A2');
 
         for ($row = 2; $row <= 1000; $row++) {
