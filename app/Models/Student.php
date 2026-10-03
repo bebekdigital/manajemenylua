@@ -11,6 +11,10 @@ class Student extends Model
 {
     use HasFactory;
 
+    protected $primaryKey = 'nisn';
+    public $incrementing = false;
+    protected $keyType = 'string';
+
     protected $fillable = [
         'nisn',
         'nama',
@@ -121,7 +125,7 @@ class Student extends Model
 
     public function siblings(): HasMany
     {
-        return $this->hasMany(StudentSibling::class);
+        return $this->hasMany(StudentSibling::class, 'student_nisn', 'nisn');
     }
 
     /**
@@ -129,7 +133,7 @@ class Student extends Model
      */
     public function academicRecords(): HasMany
     {
-        return $this->hasMany(StudentAcademicRecord::class);
+        return $this->hasMany(StudentAcademicRecord::class, 'student_nisn', 'nisn');
     }
 
     /**

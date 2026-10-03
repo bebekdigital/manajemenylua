@@ -454,10 +454,7 @@ class StudentSeeder extends Seeder
             $data['status_kip'] = $academicData['status_kip'] ?? false;
             $data['no_kip'] = $academicData['no_kip'] ?? null;
             $data['jenjang'] = $academicData['jenjang'] ?? null;
-            $data['tingkat'] = $academicData['tingkat'] ?? null;
-
-            // Temporary mapping of 'kelas' for students table
-            $data['kelas'] = $academicData['kelas'] ?? null;
+            $data['jenjang'] = $academicData['jenjang'] ?? null;
 
             unset(
                 $academicData['desil'],

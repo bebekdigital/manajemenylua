@@ -454,7 +454,7 @@ class StudentController extends Controller
 
                 // Update academic record
                 if ($selectedYearId) {
-                    $record = StudentAcademicRecord::where('student_id', $student->id)
+                    $record = StudentAcademicRecord::where('student_nisn', $student->nisn)
                         ->where('academic_year_id', $selectedYearId)
                         ->first();
 
