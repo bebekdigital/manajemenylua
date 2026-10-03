@@ -71,7 +71,7 @@ class StudentMappingController extends Controller
     {
         $validated = $request->validate([
             'student_ids' => 'required|array',
-            'student_ids.*' => 'exists:students,nisn',
+            'student_ids.*' => 'exists:students,id',
             'target_academic_year_id' => 'required|exists:academic_years,id',
             'target_classroom_id' => 'required|exists:classrooms,id',
             'program' => 'nullable|string',
@@ -80,7 +80,7 @@ class StudentMappingController extends Controller
         ]);
 
         $targetClassroom = Classroom::findOrFail($validated['target_classroom_id']);
-        $students = Student::whereIn('nisn', $validated['student_ids'])->get()->keyBy('nisn');
+        $students = Student::whereIn('id', $validated['student_ids'])->get()->keyBy('id');
 
         DB::beginTransaction();
         try {
@@ -93,7 +93,7 @@ class StudentMappingController extends Controller
                 // Ensure only 1 record per student per academic year exists
                 StudentAcademicRecord::updateOrCreate(
                     [
-                        'student_nisn' => $studentId,
+                        'student_id' => $studentId,
                         'academic_year_id' => $validated['target_academic_year_id'],
                     ],
                     [
@@ -111,7 +111,7 @@ class StudentMappingController extends Controller
                     'unit' => $targetClassroom->unit,
                 ];
 
-                Student::where('nisn', $studentId)->update($updateData);
+                Student::where('id', $studentId)->update($updateData);
             }
             DB::commit();
             session(['selected_academic_year_id' => $validated['target_academic_year_id']]);

@@ -10,8 +10,7 @@ return new class extends Migration
     {
         Schema::create('student_academic_records', function (Blueprint $table) {
             $table->id();
-            $table->string('student_nisn', 20);
-            $table->foreign('student_nisn')->references('nisn')->on('students')->cascadeOnDelete();
+            $table->foreignId('student_id')->constrained()->cascadeOnDelete();
             $table->foreignId('academic_year_id')->constrained()->cascadeOnDelete();
             $table->foreignId('classroom_id')->nullable()->constrained()->nullOnDelete();
 
@@ -32,7 +31,7 @@ return new class extends Migration
 
             $table->timestamps();
 
-            $table->unique(['student_nisn', 'academic_year_id']);
+            $table->unique(['student_id', 'academic_year_id']);
         });
     }
 

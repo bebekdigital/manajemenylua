@@ -317,8 +317,8 @@ const clearSelection = () => { selectedStudentIds.value = []; };
                         <td class="p-3 text-center">
                             <input
                                 type="checkbox"
-                                :checked="isSelected(student.nisn)"
-                                @change="toggleStudent(student.nisn)"
+                                :checked="isSelected(student.id)"
+                                @change="toggleStudent(student.id)"
                                 class="w-4 h-4 rounded cursor-pointer accent-primary"
                             />
                         </td>

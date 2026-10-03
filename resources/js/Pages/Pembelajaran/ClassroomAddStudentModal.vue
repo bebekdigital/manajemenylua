@@ -61,14 +61,14 @@ const availableStudentsToSelect = computed(() => {
 
 const isAllSelected = computed(() => {
     return availableStudentsToSelect.value.length > 0 &&
-           availableStudentsToSelect.value.every(s => selectedStudentIds.value.includes(s.nisn));
+           availableStudentsToSelect.value.every(s => selectedStudentIds.value.includes(s.id));
 });
 
 function toggleAll() {
     if (isAllSelected.value) {
         selectedStudentIds.value = [];
     } else {
-        selectedStudentIds.value = availableStudentsToSelect.value.map(s => s.nisn);
+        selectedStudentIds.value = availableStudentsToSelect.value.map(s => s.id);
     }
 }
 
@@ -220,17 +220,17 @@ watch([filterAngkatan, filterJk, searchQuery], () => {
                     <tbody>
                         <tr
                             v-for="student in availableStudentsToSelect"
-                            :key="student.nisn"
+                            :key="student.id"
                             class="border-b border-outline-variant/30 hover:bg-surface-container/50 transition-colors cursor-pointer"
-                            @click="toggleStudent(student.nisn)"
+                            @click="toggleStudent(student.id)"
                         >
                             <td class="px-3 sm:px-4 py-2 sm:py-2.5 text-center">
                                 <input
                                     type="checkbox"
                                     class="rounded border-outline-variant text-primary focus:ring-primary w-3.5 h-3.5 sm:w-4 sm:h-4 cursor-pointer"
-                                    :checked="selectedStudentIds.includes(student.nisn)"
+                                    :checked="selectedStudentIds.includes(student.id)"
                                     @click.stop
-                                    @change="toggleStudent(student.nisn)"
+                                    @change="toggleStudent(student.id)"
                                 >
                             </td>
                             <td class="px-3 sm:px-4 py-2 sm:py-2.5 font-medium font-mono text-[11px] sm:text-sm">{{ student.nisn || '-' }}</td>
