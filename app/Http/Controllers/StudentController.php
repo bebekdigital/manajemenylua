@@ -859,13 +859,14 @@ class StudentController extends Controller
             'BC' => ['Jarak Rumah ke Sekolah', 25],
             'BD' => ['Apakah Memiliki Usaha (Ya/Tidak)', 30],
             'BE' => ['Jenis Usaha', 30],
+            'BF' => ['Desil', 15],
         ];
 
         $this->applySheetHeaders($sheet, $headers, '004B23');
 
         // Format kolom Tanggal Lahir
         $sheet->getStyle('I2:I1000')->getNumberFormat()->setFormatCode('yyyy-mm-dd');
-        
+
         // Format kolom ID/Nomor sebagai Teks (mencegah angka dengan awalan 0 atau simbol / berubah)
         $textCols = ['A', 'C', 'D', 'J', 'V', 'W', 'AD', 'AK', 'AR', 'AU', 'BB'];
         foreach ($textCols as $col) {
@@ -886,7 +887,7 @@ class StudentController extends Controller
             '', '', '', '', '', '', '',
             'Ya', '6071012345670001', 'Ahmad Fauzi Rahman',
             'Ya', 'Penerima PIP tahap 1', 'Tidak ada',
-            'TK Aisyiyah Colomadu', '1', '3313151503140001', 'Kurang dari 1 km', 'Tidak', '-',
+            'TK Aisyiyah Colomadu', '1', '3313151503140001', 'Kurang dari 1 km', 'Tidak', '-', '1',
         ]], null, 'A2');
 
         for ($row = 2; $row <= 1000; $row++) {
