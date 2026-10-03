@@ -92,7 +92,7 @@ class PembelajaranController extends Controller
     {
         $validated = $request->validate([
             'student_ids' => 'required|array|min:1',
-            'student_ids.*' => 'string',
+            'student_ids.*' => 'required|exists:students,nisn',
             'target_academic_year_id' => 'required|integer',
             'target_classroom_id' => 'required|integer',
             'program' => 'nullable|string',
@@ -143,7 +143,7 @@ class PembelajaranController extends Controller
     {
         $validated = $request->validate([
             'student_ids' => 'required|array|min:1',
-            'student_ids.*' => 'string',
+            'student_ids.*' => 'required|exists:students,nisn',
             'academic_year_id' => 'required|integer',
         ]);
 
