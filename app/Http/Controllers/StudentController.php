@@ -69,15 +69,12 @@ class StudentController extends Controller
     public function index(Request $request): Response
     {
         $students = Student::with([
-            'family',
             'siblings',
         ])
             ->orderBy('unit')
             ->orderBy('nama')
             ->get()
             ->map(function (Student $student) {
-                $family = $student->family;
-
                 return [
                     'nisn' => $student->nisn,
                     'nama' => $student->nama,
@@ -107,30 +104,30 @@ class StudentController extends Controller
                     'kecamatan' => $student->kecamatan,
                     'kabupaten' => $student->kabupaten,
                     'provinsi' => $student->provinsi,
-                    'ayah' => $family ? [
-                        'nama' => $family->ayah_nama,
-                        'tahun_lahir' => $family->ayah_tahun_lahir,
-                        'pekerjaan' => $family->ayah_pekerjaan,
-                        'penghasilan' => $family->ayah_penghasilan,
-                        'status' => $family->ayah_status,
-                    ] : null,
-                    'ibu' => $family ? [
-                        'nama' => $family->ibu_nama,
-                        'tahun_lahir' => $family->ibu_tahun_lahir,
-                        'pekerjaan' => $family->ibu_pekerjaan,
-                        'penghasilan' => $family->ibu_penghasilan,
-                        'status' => $family->ibu_status,
-                    ] : null,
-                    'bisnis' => $family ? [
-                        'has_bisnis' => $family->has_bisnis ?? false,
-                        'jenis_bisnis' => $family->jenis_bisnis,
-                    ] : null,
-                    'wali' => $family && $family->wali_nama ? [
-                        'nama' => $family->wali_nama,
-                        'hubungan' => $family->wali_hubungan,
-                        'pekerjaan' => $family->wali_pekerjaan,
-                        'penghasilan' => $family->wali_penghasilan,
-                    ] : null,
+                    'ayah' => [
+                        'nama' => $student->ayah_nama,
+                        'tahun_lahir' => $student->ayah_tahun_lahir,
+                        'pekerjaan' => $student->ayah_pekerjaan,
+                        'penghasilan' => $student->ayah_penghasilan,
+                        'status' => $student->ayah_status,
+                    ],
+                    'ibu' => [
+                        'nama' => $student->ibu_nama,
+                        'tahun_lahir' => $student->ibu_tahun_lahir,
+                        'pekerjaan' => $student->ibu_pekerjaan,
+                        'penghasilan' => $student->ibu_penghasilan,
+                        'status' => $student->ibu_status,
+                    ],
+                    'bisnis' => [
+                        'has_bisnis' => $student->has_bisnis ?? false,
+                        'jenis_bisnis' => $student->jenis_bisnis,
+                    ],
+                    'wali' => [
+                        'nama' => $student->wali_nama,
+                        'hubungan' => $student->wali_hubungan,
+                        'pekerjaan' => $student->wali_pekerjaan,
+                        'penghasilan' => $student->wali_penghasilan,
+                    ],
                     'saudara' => $student->siblings->map(fn ($s) => [
                         'nama' => $s->nama,
                         'tanggal_lahir' => $s->tanggal_lahir?->format('Y-m-d'),
