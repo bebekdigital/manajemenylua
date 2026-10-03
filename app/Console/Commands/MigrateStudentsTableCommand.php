@@ -129,9 +129,6 @@ class MigrateStudentsTableCommand extends Command
 
             // Kolom Internal Aplikasi
             $table->string('angkatan')->nullable();
-            $table->string('program')->default('Umum');
-            $table->unsignedTinyInteger('tingkat')->nullable();
-            $table->string('kelas', 10)->nullable();
             $table->string('rt', 5)->nullable();
             $table->string('rw', 5)->nullable();
             $table->string('status_keluarga')->nullable();
@@ -217,9 +214,6 @@ class MigrateStudentsTableCommand extends Command
                 'status_registrasi' => property_exists($s, 'status_registrasi') ? $s->status_registrasi : null,
 
                 'angkatan' => $s->angkatan ?? null,
-                'program' => $s->program ?? 'Umum',
-                'tingkat' => $s->tingkat ?? null,
-                'kelas' => $s->kelas ?? null,
                 'rt' => property_exists($s, 'rt') ? $s->rt : null,
                 'rw' => property_exists($s, 'rw') ? $s->rw : null,
                 'status_keluarga' => property_exists($s, 'status_keluarga') ? $s->status_keluarga : null,

@@ -85,9 +85,6 @@ return new class extends Migration
 
             // Kolom Internal Aplikasi (Tidak ada di template Excel)
             $table->string('angkatan')->nullable();
-            $table->string('program')->default('Umum');
-            $table->unsignedTinyInteger('tingkat')->nullable();
-            $table->string('kelas', 10)->nullable();
             $table->string('rt', 5)->nullable();
             $table->string('rw', 5)->nullable();
             $table->string('status_keluarga')->nullable();

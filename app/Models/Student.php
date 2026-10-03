@@ -20,7 +20,6 @@ class Student extends Model
         'jenjang',
         'unit',
         'angkatan',
-        'program',
         'jk',
         'tempat_lahir',
         'tanggal_lahir',

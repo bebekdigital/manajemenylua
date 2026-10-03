@@ -422,7 +422,6 @@ class StudentController extends Controller
                     'no_wa' => $d['no_wa'] ?? $student->no_wa,
                     'sekolah_asal' => $d['sekolah_asal'] ?? $student->sekolah_asal,
                     'unit' => $d['unit'] ?? $student->unit,
-                    'program' => $d['program'] ?? $student->program,
                     'status_keluarga' => $d['status_keluarga'] ?? $student->status_keluarga,
                     'anak_ke' => $d['anak_ke'] ?? $student->anak_ke,
                     'diterima_di_jenjang' => $d['diterima_di_jenjang'] ?? $student->diterima_di_jenjang,
