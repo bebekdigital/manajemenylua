@@ -88,9 +88,8 @@ class AdministrationController extends Controller
             session(['selected_academic_year_id' => $selectedYear->id]);
         }
 
-        $academicYears = AcademicYear::orderByDesc('is_active')
-            ->orderByDesc('name')
-            ->get(['id', 'name', 'semester', 'is_active', 'start_date']);
+        $academicYears = AcademicYear::orderByDesc('name')
+            ->get(['id', 'name', 'semester', 'start_date']);
 
         $classrooms = Classroom::orderBy('grade')
             ->orderBy('name')
@@ -193,7 +192,6 @@ class AdministrationController extends Controller
                 'id' => $selectedYear->id,
                 'name' => $selectedYear->name,
                 'semester' => $selectedYear->semester,
-                'is_active' => (bool) $selectedYear->is_active,
                 'start_date' => $selectedYear->start_date?->format('Y-m-d'),
             ] : null,
             'template' => $template,

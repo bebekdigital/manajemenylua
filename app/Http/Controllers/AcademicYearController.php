@@ -181,19 +181,5 @@ class AcademicYearController extends Controller
         return back()->with('success', "Tahun Ajaran {$label} berhasil dihapus.");
     }
 
-    /**
-     * Set an Academic Year as the active one.
-     */
-    public function setActive(AcademicYear $academicYear): RedirectResponse
-    {
-        // Deactivate all other academic years
-        AcademicYear::where('id', '!=', $academicYear->id)->update(['is_active' => false]);
 
-        $academicYear->update(['is_active' => true]);
-
-        // Update session to match the newly active TA
-        session(['selected_academic_year_id' => $academicYear->id]);
-
-        return back()->with('success', "TA {$academicYear->name} {$academicYear->semester} ditetapkan sebagai Tahun Ajaran Aktif.");
-    }
 }

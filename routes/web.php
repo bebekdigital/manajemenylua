@@ -128,7 +128,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/portal/academic-years', [AcademicYearController::class, 'store'])->name('portal.academic-years.store');
     Route::put('/portal/academic-years/{academicYear}', [AcademicYearController::class, 'update'])->name('portal.academic-years.update');
     Route::delete('/portal/academic-years/{academicYear}', [AcademicYearController::class, 'destroy'])->name('portal.academic-years.destroy');
-    Route::post('/portal/academic-years/{academicYear}/set-active', [AcademicYearController::class, 'setActive'])->name('portal.academic-years.set-active');
+
     Route::get('/portal/academic-years/{id}/active-classes', [AcademicYearClassController::class, 'getActiveClasses'])->name('portal.academic-years.active-classes');
 
     // Portal Management - Users (Superadmin only inside controller)

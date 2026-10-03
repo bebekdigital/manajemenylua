@@ -247,20 +247,6 @@ function confirmUserDelete(user) {
     });
 }
 
-function setActive(year) {
-    if (year.is_active || settingActiveId.value) return;
-
-    settingActiveId.value = year.id;
-    dismissedFlash.value = false;
-
-    router.post(`/portal/academic-years/${year.id}/set-active`, {}, {
-        preserveScroll: true,
-        onFinish: () => {
-            settingActiveId.value = null;
-        },
-    });
-}
-
 function confirmDelete(year) {
     if (!confirm(`Yakin ingin menghapus Tahun Ajaran "${year.name} ${year.semester}"?\n\nAksi ini tidak bisa dibatalkan.`)) {
         return;
@@ -387,9 +373,7 @@ function formatDate(dateStr) {
                             <th class="text-left px-5 py-3 font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Tahun Ajaran</th>
                             <th class="text-left px-5 py-3 font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Semester</th>
                             <th class="text-left px-5 py-3 font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Periode</th>
-                            <th class="text-center px-5 py-3 font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Siswa</th>
                             <th class="text-center px-5 py-3 font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Kelas</th>
-                            <th class="text-center px-5 py-3 font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Status</th>
                             <th class="text-center px-5 py-3 font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Aksi</th>
                         </tr>
                     </thead>
@@ -398,7 +382,6 @@ function formatDate(dateStr) {
                             v-for="year in academicYears"
                             :key="year.id"
                             class="hover:bg-surface-container-low/40 transition-colors"
-                            :class="{ 'bg-primary/[0.03]': year.is_active }"
                         >
                             <td class="px-5 py-3.5">
                                 <span class="font-semibold text-on-surface">{{ year.name }}</span>
@@ -416,34 +399,11 @@ function formatDate(dateStr) {
                             <td class="px-5 py-3.5 text-on-surface-variant text-xs">
                                 {{ formatDate(year.start_date) }} — {{ formatDate(year.end_date) }}
                             </td>
-                            <td class="px-5 py-3.5 text-center">
-                                <span class="text-on-surface font-semibold">{{ year.students_count }}</span>
-                            </td>
+
                             <td class="px-5 py-3.5 text-center">
                                 <span class="text-on-surface font-semibold">{{ year.classrooms_count }}</span>
                             </td>
-                            <td class="px-5 py-3.5 text-center">
-                                <button
-                                    type="button"
-                                    @click="setActive(year)"
-                                    :disabled="year.is_active || settingActiveId === year.id"
-                                    class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer"
-                                    :class="year.is_active
-                                        ? 'bg-primary text-on-primary shadow-xs'
-                                        : 'bg-surface-container-high text-on-surface-variant hover:bg-primary/10 hover:text-primary border border-outline-variant/50'"
-                                    :title="year.is_active ? 'Tahun Ajaran Aktif saat ini' : 'Klik untuk menetapkan sebagai TA Aktif'"
-                                >
-                                    <span
-                                        v-if="settingActiveId === year.id"
-                                        class="material-symbols-outlined text-[14px] animate-spin"
-                                    >sync</span>
-                                    <span
-                                        v-else
-                                        class="material-symbols-outlined text-[14px]"
-                                    >{{ year.is_active ? 'check_circle' : 'radio_button_unchecked' }}</span>
-                                    <span>{{ year.is_active ? 'Aktif' : 'Set Aktif' }}</span>
-                                </button>
-                            </td>
+
                             <td class="px-5 py-3.5 text-center">
                                 <div class="flex items-center justify-center gap-1">
                                     <button
@@ -458,12 +418,9 @@ function formatDate(dateStr) {
                                     <button
                                         type="button"
                                         @click="confirmDelete(year)"
-                                        :disabled="deletingId === year.id || year.is_active"
-                                        class="p-2 rounded-lg transition-colors cursor-pointer"
-                                        :class="year.is_active
-                                            ? 'text-outline/40 cursor-not-allowed'
-                                            : 'text-on-surface-variant hover:text-error hover:bg-error/10'"
-                                        :title="year.is_active ? 'Tidak bisa menghapus TA aktif' : 'Hapus Tahun Ajaran'"
+                                        :disabled="deletingId === year.id"
+                                        class="p-2 rounded-lg transition-colors cursor-pointer text-on-surface-variant hover:text-error hover:bg-error/10"
+                                        title="Hapus Tahun Ajaran"
                                     >
                                         <span
                                             v-if="deletingId === year.id"

@@ -51,7 +51,7 @@ class EmployeeController extends Controller
                 'id' => $selectedYear->id,
                 'name' => $selectedYear->name,
                 'semester' => $selectedYear->semester,
-                'is_active' => (bool) $selectedYear->is_active,
+
             ] : null,
         ]);
     }
@@ -161,7 +161,7 @@ class EmployeeController extends Controller
                 'id' => $selectedYear->id,
                 'name' => $selectedYear->name,
                 'semester' => $selectedYear->semester,
-                'is_active' => (bool) $selectedYear->is_active,
+
             ] : null,
             'allAcademicYears' => $allYears->map(fn ($y) => [
                 'id' => $y->id,

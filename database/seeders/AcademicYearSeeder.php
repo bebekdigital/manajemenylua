@@ -14,7 +14,6 @@ class AcademicYearSeeder extends Seeder
             'semester' => 'Ganjil',
             'start_date' => '2025-07-14',
             'end_date' => '2025-12-20',
-            'is_active' => true,
         ]);
 
         AcademicYear::create([
@@ -22,7 +21,6 @@ class AcademicYearSeeder extends Seeder
             'semester' => 'Genap',
             'start_date' => '2025-01-06',
             'end_date' => '2025-06-21',
-            'is_active' => false,
         ]);
 
         AcademicYear::create([
@@ -30,7 +28,6 @@ class AcademicYearSeeder extends Seeder
             'semester' => 'Ganjil',
             'start_date' => '2024-07-15',
             'end_date' => '2024-12-21',
-            'is_active' => false,
         ]);
     }
 }

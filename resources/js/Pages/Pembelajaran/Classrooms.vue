@@ -117,6 +117,12 @@ const selectedClassLabel = computed(() => {
     return cls ? `Kelas ${cls.name}` : 'Pilih Kelas';
 });
 
+function changeTA(id) {
+    selectedAcademicYearId.value = id;
+    showTADropdown.value = false;
+    router.get('/pembelajaran/kelas', { ta: id }, { preserveState: true, preserveScroll: true });
+}
+
 function unitStudentCount(unitId) {
     return props.students.filter(s => {
         if (!s.unit) return false;
@@ -256,7 +262,7 @@ function removeSelected() {
                             <button
                                 v-for="ta in academicYears" :key="ta.id"
                                 type="button"
-                                @click="selectedAcademicYearId = ta.id; showTADropdown = false"
+                                @click="changeTA(ta.id)"
                                 class="flex items-center gap-2 w-full px-3 py-2 text-[12px] sm:text-sm text-left hover:bg-slate-50 transition-colors font-medium text-slate-700"
                             >
                                 <span class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full" :class="ta.id === selectedAcademicYearId ? 'bg-emerald-500' : 'bg-transparent'"></span>

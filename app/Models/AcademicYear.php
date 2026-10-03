@@ -15,7 +15,7 @@ class AcademicYear extends Model
         'semester',
         'start_date',
         'end_date',
-        'is_active',
+
     ];
 
     protected function casts(): array
@@ -23,24 +23,17 @@ class AcademicYear extends Model
         return [
             'start_date' => 'date',
             'end_date' => 'date',
-            'is_active' => 'boolean',
+
         ];
     }
 
-    /**
-     * Scope to get the currently active academic year.
-     */
-    public function scopeActive($query)
-    {
-        return $query->where('is_active', true);
-    }
 
     /**
      * Get the current active academic year.
      */
     public static function current(): ?self
     {
-        return static::active()->first();
+        return static::orderByDesc('start_date')->first();
     }
 
     public function classrooms(): HasMany
