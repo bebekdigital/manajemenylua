@@ -110,6 +110,7 @@ Route::middleware('auth')->group(function () {
 
     // Pembelajaran
     Route::get('/pembelajaran/kelas', [PembelajaranController::class, 'classrooms'])->name('pembelajaran.classrooms');
+    Route::delete('/pembelajaran/kelas/{classroom}', [PembelajaranController::class, 'destroyClassroom'])->name('pembelajaran.classrooms.destroy');
     Route::post('/pembelajaran/kelas/add-students', [PembelajaranController::class, 'addStudents'])->name('pembelajaran.classrooms.add-students');
     Route::post('/pembelajaran/kelas/remove-students', [PembelajaranController::class, 'removeStudents'])->name('pembelajaran.classrooms.remove-students');
 

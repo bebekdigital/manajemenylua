@@ -57,14 +57,11 @@ const availableClasses = computed(() => {
 });
 
 watch(availableClasses, (newClasses) => {
-    if (newClasses.length > 0 && (!selectedClassId.value || !newClasses.find(c => c.id === selectedClassId.value))) {
-        selectedClassId.value = newClasses[0].id;
-    } else if (newClasses.length === 0) {
-        selectedClassId.value = null;
-    }
+    // No longer auto-selecting class for student list
 }, { immediate: true });
 
 const showAddStudentModal = ref(false);
+const viewMode = ref('classes'); // 'classes' or 'students'
 
 const classStudents = computed(() => {
     if (!selectedClassId.value) return [];
@@ -116,6 +113,37 @@ const selectedClassLabel = computed(() => {
     const cls = availableClasses.value.find(c => c.id === selectedClassId.value);
     return cls ? `Kelas ${cls.name}` : 'Pilih Kelas';
 });
+
+function getClassStudentCount(classId) {
+    return props.students.filter(s => s.classroom_id === classId).length;
+}
+
+function openAddStudent(kelas) {
+    selectedClassId.value = kelas.id;
+    showAddStudentModal.value = true;
+}
+
+function viewStudents(kelas) {
+    selectedClassId.value = kelas.id;
+    viewMode.value = 'students';
+}
+
+function deleteClass(kelas) {
+    const count = getClassStudentCount(kelas.id);
+    if (count > 0) {
+        alert('Gagal! Tidak dapat menghapus kelas ini karena masih ada ' + count + ' siswa yang terdata di dalamnya. Silakan kosongkan kelas terlebih dahulu.');
+        return;
+    }
+    // Wali kelas validasi (dummy)
+    if (true) { // assuming wali kelas is always assigned for dummy
+        // alert('Gagal! Masih ada Wali Kelas yang ditugaskan di kelas ini.');
+        // return;
+    }
+
+    if (confirm(`Yakin ingin menghapus kelas ${kelas.name}?`)) {
+        router.delete(`/pembelajaran/kelas/${kelas.id}`, { preserveScroll: true });
+    }
+}
 
 function changeTA(id) {
     selectedAcademicYearId.value = id;
@@ -271,44 +299,91 @@ function removeSelected() {
                         </div>
                     </div>
 
-                    <!-- Kelas Dropdown -->
-                    <div class="relative w-[calc(50%-4px)] sm:w-auto sm:min-w-[150px] shrink-0">
-                        <button
-                            type="button"
-                            @click="showClassDropdown = !showClassDropdown"
-                            class="flex items-center justify-between w-full px-3 py-2 rounded-lg sm:rounded-xl text-[12px] sm:text-sm font-semibold border transition-all cursor-pointer bg-amber-500 border-amber-600 text-white hover:bg-amber-600 shadow-sm"
-                        >
-                            <div class="flex items-center gap-2">
-                                <span class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-white/90"></span>
-                                {{ selectedClassLabel }}
-                            </div>
-                            <span class="material-symbols-outlined text-[16px] sm:text-[18px] transition-transform duration-200" :class="{ 'rotate-180': showClassDropdown }">expand_more</span>
-                        </button>
-                        
-                        <div v-if="showClassDropdown" @click="showClassDropdown = false" class="fixed inset-0 z-40"></div>
-                        
-                        <div v-show="showClassDropdown" class="absolute z-50 top-full left-0 mt-1 w-full min-w-[150px] bg-white border border-slate-200 rounded-xl shadow-lg py-1 overflow-hidden max-h-60 overflow-y-auto">
-                            <template v-if="availableClasses.length > 0">
-                                <button
-                                    v-for="kelas in availableClasses" :key="kelas.id"
-                                    type="button"
-                                    @click="selectedClassId = kelas.id; showClassDropdown = false"
-                                    class="flex items-center gap-2 w-full px-3 py-2 text-[12px] sm:text-sm text-left hover:bg-slate-50 transition-colors font-medium text-slate-700"
-                                >
-                                    <span class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full" :class="kelas.id === selectedClassId ? 'bg-indigo-500' : 'bg-transparent'"></span>
-                                    Kelas {{ kelas.name }}
-                                </button>
-                            </template>
-                            <div v-else class="px-3 py-2 text-xs text-slate-500 italic">
-                                Belum ada kelas
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
 
-            <!-- Content Area -->
-            <div v-if="selectedClassId" class="bg-white rounded-2xl border border-outline-variant overflow-hidden">
+            <!-- Content Area - Classes Table -->
+            <div v-if="viewMode === 'classes'" class="bg-white rounded-2xl border border-outline-variant overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead>
+                            <tr class="border-b border-emerald-700 bg-emerald-600">
+                                <th class="p-3 text-xs font-semibold text-white uppercase tracking-wider w-12 text-center">No</th>
+                                <th class="p-3 text-xs font-semibold text-white uppercase tracking-wider">Tingkat</th>
+                                <th class="p-3 text-xs font-semibold text-white uppercase tracking-wider">Kelas</th>
+                                <th class="p-3 text-xs font-semibold text-white uppercase tracking-wider">Wali Kelas</th>
+                                <th class="p-3 text-xs font-semibold text-white uppercase tracking-wider">Ruangan</th>
+                                <th class="p-3 text-xs font-semibold text-white uppercase tracking-wider text-center">Siswa</th>
+                                <th class="p-3 text-xs font-semibold text-white uppercase tracking-wider text-center w-48">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-outline-variant/10">
+                            <tr
+                                v-for="(kelas, index) in availableClasses"
+                                :key="kelas.id"
+                                class="hover:bg-surface-container-high/50 transition-colors"
+                            >
+                                <td class="p-3 text-center text-on-surface-variant">{{ index + 1 }}</td>
+                                <td class="p-3 text-on-surface-variant">
+                                    <span class="inline-flex items-center justify-center px-2 py-0.5 bg-primary/10 text-primary rounded-md text-xs font-semibold">
+                                        {{ kelas.grade || '-' }}
+                                    </span>
+                                </td>
+                                <td class="p-3 font-semibold text-on-surface">{{ kelas.name }}</td>
+                                <td class="p-3 text-on-surface-variant">Ustadz Fulan, S.Pd</td>
+                                <td class="p-3 text-on-surface-variant">Gedung A - R.101</td>
+                                <td class="p-3 text-center">
+                                    <span class="font-semibold text-on-surface">{{ getClassStudentCount(kelas.id) }}</span>
+                                </td>
+                                <td class="p-3 text-center">
+                                    <div class="flex items-center justify-center gap-1">
+                                        <button
+                                            type="button"
+                                            @click="viewStudents(kelas)"
+                                            class="p-2 rounded-lg text-emerald-600 hover:bg-emerald-50 transition-colors cursor-pointer"
+                                            title="Lihat Siswa"
+                                        >
+                                            <span class="material-symbols-outlined text-[18px]">group</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            @click="openAddStudent(kelas)"
+                                            class="p-2 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
+                                            title="Tambah Siswa"
+                                        >
+                                            <span class="material-symbols-outlined text-[18px]">person_add</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="p-2 rounded-lg text-amber-600 hover:bg-amber-50 transition-colors cursor-pointer"
+                                            title="Edit Kelas"
+                                        >
+                                            <span class="material-symbols-outlined text-[18px]">edit</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            @click="deleteClass(kelas)"
+                                            class="p-2 rounded-lg text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                                            title="Hapus Kelas"
+                                        >
+                                            <span class="material-symbols-outlined text-[18px]">delete</span>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr v-if="availableClasses.length === 0">
+                                <td colspan="7" class="p-12 text-center">
+                                    <span class="material-symbols-outlined text-5xl text-outline-variant mb-4 block">meeting_room</span>
+                                    <p class="font-medium text-on-surface-variant">Belum ada kelas untuk tingkat/jenjang ini.</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Content Area - Students Table -->
+            <div v-else-if="viewMode === 'students'" class="bg-white rounded-2xl border border-outline-variant overflow-hidden">
                 <!-- Toolbar -->
                 <div class="p-4 border-b border-outline-variant/60 flex items-center justify-between bg-surface-container/30">
                     <div>
@@ -320,7 +395,13 @@ function removeSelected() {
                         </div>
                     </div>
                     <div class="flex items-center gap-2">
-                        <!-- Delete Button (always visible, disabled when nothing selected) -->
+                        <button
+                            @click="viewMode = 'classes'"
+                            class="flex items-center gap-1.5 px-3 py-2 bg-surface-container-high text-on-surface rounded-lg text-sm font-semibold hover:bg-surface-container-highest transition-colors shadow-sm"
+                        >
+                            <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+                            <span>Kembali</span>
+                        </button>
                         <button
                             @click="removeSelected"
                             :disabled="isDeleting || selectedIds.length === 0"

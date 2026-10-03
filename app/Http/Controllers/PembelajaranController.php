@@ -154,4 +154,14 @@ class PembelajaranController extends Controller
 
         return redirect()->back()->with('success', $count.' siswa berhasil dihapus dari kelas.');
     }
+
+    public function destroyClassroom(Classroom $classroom)
+    {
+        if (StudentAcademicRecord::where('classroom_id', $classroom->id)->count() > 0) {
+            return redirect()->back()->with('error', 'Gagal menghapus kelas karena masih ada siswa yang terdata di dalamnya.');
+        }
+
+        $classroom->delete();
+        return redirect()->back()->with('success', 'Kelas berhasil dihapus.');
+    }
 }
