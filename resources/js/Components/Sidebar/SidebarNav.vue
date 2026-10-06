@@ -106,6 +106,12 @@ function closeMobileSubMenu() {
                                 <span>Statistik</span>
                             </Link>
                         </li>
+                        <li>
+                            <a href="https://assetulil.com" target="_blank" rel="noopener noreferrer" class="flex items-center space-x-2.5 px-3 py-2 rounded-lg transition-all cursor-pointer active:scale-95 duration-200 text-[13px] text-emerald-100/60 hover:bg-emerald-800 hover:text-yellow-200 font-medium">
+                                <span class="material-symbols-outlined text-[17px] transition-all duration-200">inventory_2</span>
+                                <span>Aset</span>
+                            </a>
+                        </li>
                     </ul>
                 </Transition>
             </li>
@@ -220,6 +226,16 @@ function closeMobileSubMenu() {
                         <span class="material-symbols-outlined text-[20px] filled-icon">bar_chart</span>
                         <span class="text-[10px] font-semibold mt-1 leading-tight">Statistik</span>
                     </Link>
+                    <a
+                        href="https://assetulil.com"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        @click="closeMobileSubMenu"
+                        class="flex flex-col items-center justify-center px-3 py-2 rounded-xl flex-1 transition-all text-on-surface-variant active:text-emerald-900"
+                    >
+                        <span class="material-symbols-outlined text-[20px] filled-icon">inventory_2</span>
+                        <span class="text-[10px] font-semibold mt-1 leading-tight">Aset</span>
+                    </a>
                 </div>
             </div>
         </Transition>
