@@ -315,7 +315,9 @@ class EmployeeController extends Controller
         }
 
         // Format NIK column as Text explicitly so "0001/2" is preserved
-        $sheet1->getStyle('F')->getNumberFormat()->setFormatCode(NumberFormat::FORMAT_TEXT);
+        $sheet1->getStyle('F2:F1000')->getNumberFormat()->setFormatCode('@');
+        $sheet1->getStyle('A2:A1000')->getNumberFormat()->setFormatCode('@'); // NIPY
+        $sheet1->getStyle('G2:G1000')->getNumberFormat()->setFormatCode('@'); // No WA
 
         // Example row
         $example1 = [
@@ -365,7 +367,7 @@ class EmployeeController extends Controller
             $sheet2->getColumnDimension($col)->setWidth(22);
         }
 
-        $sheet2->getStyle('A')->getNumberFormat()->setFormatCode(NumberFormat::FORMAT_TEXT);
+        $sheet2->getStyle('A2:A1000')->getNumberFormat()->setFormatCode('@');
 
         $example2 = [
             'A' => '3301150678900001', 'B' => 'Ahmad Fauzi, S.Pd', 'C' => 'S1',
@@ -412,7 +414,7 @@ class EmployeeController extends Controller
             $sheet3->getColumnDimension($col)->setWidth(20);
         }
 
-        $sheet3->getStyle('A')->getNumberFormat()->setFormatCode(NumberFormat::FORMAT_TEXT);
+        $sheet3->getStyle('A2:A1000')->getNumberFormat()->setFormatCode('@');
 
         $example3 = [
             'A' => '3301150678900001', 'B' => 'Ahmad Fauzi, S.Pd', 'C' => '2025/2026', 'D' => 'Ganjil',
