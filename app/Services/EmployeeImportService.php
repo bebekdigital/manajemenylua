@@ -63,8 +63,8 @@ class EmployeeImportService
                 $nama = $this->cleanString($row['B'] ?? null);
                 $nik = $this->cleanNik($row['F'] ?? null);
 
-                if (empty($nik) || empty($nama) || strtolower($nik) === 'nik') {
-                    continue; // NIK is now the unique identifier, skip if empty
+                if (empty($nama) || strtolower($nama) === 'nama' || (!empty($nik) && strtolower($nik) === 'nik')) {
+                    continue; // Skip if empty name or header row
                 }
 
                 $employeeData = [
@@ -113,17 +113,25 @@ class EmployeeImportService
                     'hubungan_kontak_darurat' => $this->cleanString($row['AK'] ?? null),
                 ];
 
-                $existing = Employee::where('nik', $nik)->first();
+                $existing = null;
+                if (!empty($nik)) {
+                    $existing = Employee::where('nik', $nik)->first();
+                } else {
+                    $existing = Employee::where('nama', $nama)->whereNull('nik')->first();
+                }
+
                 if ($existing) {
                     $existing->update($employeeData);
                     $updatedCount++;
                     $employee = $existing;
                 } else {
-                    $employee = Employee::create(array_merge(['nik' => $nik], $employeeData));
+                    $employee = Employee::create(array_merge(['nik' => empty($nik) ? null : $nik], $employeeData));
                     $createdCount++;
                 }
 
-                $employeeMap[$nik] = $employee;
+                if (!empty($nik)) {
+                    $employeeMap[$nik] = $employee;
+                }
             }
 
             // 2. Process Sheet 2: Riwayat Pendidikan

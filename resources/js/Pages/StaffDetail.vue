@@ -130,6 +130,17 @@ function getJenjangColor(jenjang) {
             <!-- Tab Content -->
             <div class="flex-1 p-6">
 
+                <!-- Warning NIK Kosong -->
+                <div v-if="!employee.nik" class="mb-6 p-4 rounded-xl bg-error/10 border border-error/20 flex gap-3 text-error">
+                    <span class="material-symbols-outlined shrink-0 mt-0.5">warning</span>
+                    <div>
+                        <h4 class="font-bold text-sm">NIK Belum Dimasukkan</h4>
+                        <p class="text-xs mt-1 leading-relaxed text-error/90">
+                            Pegawai ini belum memiliki data NIK. Relasi data (Riwayat Pendidikan dan Catatan Kepegawaian) ketika Anda melakukan import sangat bergantung pada NIK sebagai pengenal unik. Mohon segera melengkapi NIK.
+                        </p>
+                    </div>
+                </div>
+
                 <!-- TAB: Identitas -->
                 <div v-if="activeTab === 'identitas'" class="space-y-4">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
