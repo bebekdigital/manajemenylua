@@ -61,7 +61,7 @@ class EmployeeImportService
             foreach ($rowsPegawai as $rowIdx => $row) {
                 $nipy = $this->cleanString($row['A'] ?? null);
                 $nama = $this->cleanString($row['B'] ?? null);
-                $nik = $this->cleanString($row['F'] ?? null);
+                $nik = $this->cleanNik($row['F'] ?? null);
 
                 if (empty($nik) || empty($nama) || strtolower($nik) === 'nik') {
                     continue; // NIK is now the unique identifier, skip if empty
@@ -134,7 +134,7 @@ class EmployeeImportService
                 // Group by nik, then replace all education records for each employee
                 $pendidikanByNik = [];
                 foreach ($rowsPendidikan as $row) {
-                    $nik = $this->cleanString($row['A'] ?? null);
+                    $nik = $this->cleanNik($row['A'] ?? null);
                     if (empty($nik) || strtolower($nik) === 'nik') {
                         continue;
                     }
@@ -172,7 +172,7 @@ class EmployeeImportService
                 array_shift($rowsKepegawaian);
 
                 foreach ($rowsKepegawaian as $row) {
-                    $nik = $this->cleanString($row['A'] ?? null);
+                    $nik = $this->cleanNik($row['A'] ?? null);
                     if (empty($nik) || strtolower($nik) === 'nik') {
                         continue;
                     }
@@ -340,5 +340,26 @@ class EmployeeImportService
         }
 
         return is_numeric($value) ? (int) $value : null;
+    }
+
+    /**
+     * Clean NIK value to handle copy-paste anomalies (spaces, scientific notation, etc.)
+     */
+    private function cleanNik(mixed $val): ?string
+    {
+        if (empty($val)) {
+            return null;
+        }
+
+        // Handle scientific notation if it somehow survived
+        if (is_float($val) || (is_string($val) && preg_match('/^\d+\.\d+E\+\d+$/i', $val))) {
+            $val = sprintf('%.0f', (float) $val);
+        }
+
+        $str = trim((string) $val);
+        // Remove apostrophes, spaces, dashes, dots
+        $str = preg_replace('/[^\d]/', '', $str);
+
+        return $str === '' ? null : $str;
     }
 }
