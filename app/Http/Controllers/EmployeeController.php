@@ -60,7 +60,7 @@ class EmployeeController extends Controller
     /**
      * Display the employee detail page.
      */
-    public function show(string $nipy, Request $request): Response
+    public function show(string $id, Request $request): Response
     {
         $selectedYearId = $request->query('academic_year_id') ?? session('selected_academic_year_id');
         $selectedYear = $selectedYearId
@@ -70,7 +70,7 @@ class EmployeeController extends Controller
         $employee = Employee::with([
             'educationHistories',
             'records.academicYear',
-        ])->where('nipy', $nipy)->firstOrFail();
+        ])->findOrFail($id);
 
         $currentRecord = $employee->records
             ->when($selectedYear, fn ($c) => $c->where('academic_year_id', $selectedYear->id))
@@ -231,6 +231,7 @@ class EmployeeController extends Controller
     private function mapEmployeeForList(Employee $employee, ?EmployeeRecord $record): array
     {
         return [
+            'id' => $employee->id,
             'nipy' => $employee->nipy,
             'nama' => $employee->nama,
             'jk' => $employee->jk,

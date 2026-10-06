@@ -101,7 +101,7 @@ function getJenjangColor(jenjang) {
                 <tbody class="divide-y divide-outline-variant/10">
                     <tr
                         v-for="(emp, index) in employees"
-                        :key="emp.nipy"
+                        :key="emp.id"
                         class="hover:bg-surface-container-high/50 transition-colors group"
                     >
                         <!-- No -->
@@ -116,7 +116,7 @@ function getJenjangColor(jenjang) {
                         <td class="p-2.5 sm:p-4">
                             <div class="flex items-center gap-2">
                                 <Link
-                                    :href="`/staff/${emp.nipy}`"
+                                    :href="`/staff/${emp.id}`"
                                     class="inline-flex items-center justify-center p-1 sm:p-1.5 text-primary bg-primary/10 hover:bg-primary/20 rounded-md transition-colors shrink-0"
                                     title="Detail Pegawai"
                                 >

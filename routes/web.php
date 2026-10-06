@@ -98,7 +98,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/staff', [EmployeeController::class, 'index'])->name('staff.index');
     Route::get('/staff/template', [EmployeeController::class, 'downloadTemplate'])->name('staff.template');
     Route::post('/staff/import', [EmployeeController::class, 'import'])->name('staff.import');
-    Route::get('/staff/{nipy}', [EmployeeController::class, 'show'])->name('staff.show');
+    Route::get('/staff/{id}', [EmployeeController::class, 'show'])->name('staff.show');
 
     // Administrasi & Cetak Berkas Siswa
     Route::get('/administration', [AdministrationController::class, 'index'])->name('administration.index');
