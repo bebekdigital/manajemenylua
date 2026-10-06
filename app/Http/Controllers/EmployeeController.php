@@ -286,22 +286,23 @@ class EmployeeController extends Controller
             'R' => 'Dusun Tinggal',
             'S' => 'Desa Tinggal',
             'T' => 'Kecamatan Tinggal',
-            'U' => 'Provinsi Tinggal',
-            'V' => 'Status Rumah',
-            'W' => 'Kepemilikan BPJS (Ya/Tidak)',
-            'X' => 'Penanggung BPJS',
-            'Y' => 'Skill',
-            'Z' => 'Status Pernikahan',
-            'AA' => 'Nama Suami/Istri',
-            'AB' => 'TTL Suami/Istri',
-            'AC' => 'Pekerjaan Suami/Istri',
-            'AD' => 'Tanggal Menikah',
-            'AE' => 'Jumlah Anak',
-            'AF' => 'Nama Ibu',
-            'AG' => 'Nama Ayah',
-            'AH' => 'Alamat Orangtua',
-            'AI' => 'Kontak Darurat',
-            'AJ' => 'Hubungan Kontak Darurat',
+            'U' => 'Kabupaten Tinggal',
+            'V' => 'Provinsi Tinggal',
+            'W' => 'Status Rumah',
+            'X' => 'Kepemilikan BPJS (Ya/Tidak)',
+            'Y' => 'Penanggung BPJS',
+            'Z' => 'Skill',
+            'AA' => 'Status Pernikahan',
+            'AB' => 'Nama Suami/Istri',
+            'AC' => 'TTL Suami/Istri',
+            'AD' => 'Pekerjaan Suami/Istri',
+            'AE' => 'Tanggal Menikah',
+            'AF' => 'Jumlah Anak',
+            'AG' => 'Nama Ibu',
+            'AH' => 'Nama Ayah',
+            'AI' => 'Alamat Orangtua',
+            'AJ' => 'Kontak Darurat',
+            'AK' => 'Hubungan Kontak Darurat',
         ];
 
         foreach ($headers1 as $col => $label) {
@@ -319,9 +320,13 @@ class EmployeeController extends Controller
         $sheet1->getStyle('A2:A1000')->getNumberFormat()->setFormatCode('@'); // NIPY
         $sheet1->getStyle('G2:G1000')->getNumberFormat()->setFormatCode('@'); // No WA
 
+        // Format dates
+        $sheet1->getStyle('E2:E1000')->getNumberFormat()->setFormatCode('yyyy/mm/dd');
+        $sheet1->getStyle('AE2:AE1000')->getNumberFormat()->setFormatCode('yyyy/mm/dd');
+
         // Example row
         $example1 = [
-            'A' => '1001', 'B' => 'Ahmad Fauzi, S.Pd', 'C' => 'L', 'D' => 'Semarang', 'E' => '15/06/1985',
+            'A' => '1001', 'B' => 'Ahmad Fauzi, S.Pd', 'C' => 'L', 'D' => 'Semarang', 'E' => '1985/06/15',
             'F' => '3301150678900001', 'G' => '081234567890', 'H' => 'ahmad@sekolah.sch.id',
             'I' => 'Jl. Merdeka No. 10', 'J' => '002/005', 'K' => 'Gondang', 'L' => 'Gondangrejo',
             'M' => 'Gondangrejo', 'N' => 'Karanganyar', 'O' => 'Jawa Tengah',

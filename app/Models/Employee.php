@@ -32,6 +32,7 @@ class Employee extends Model
         'dusun_tinggal',
         'desa_tinggal',
         'kecamatan_tinggal',
+        'kabupaten_tinggal',
         'provinsi_tinggal',
         'status_rumah',
         'kepemilikan_bpjs',
