@@ -93,7 +93,7 @@ class PembelajaranController extends Controller
     {
         $validated = $request->validate([
             'student_ids' => 'required|array|min:1',
-            'student_ids.*' => 'required|exists:students,nisn',
+            'student_ids.*' => 'required|exists:students,id',
             'target_academic_year_id' => 'required|integer',
             'target_classroom_id' => 'required|integer',
             'program' => 'nullable|string',
@@ -114,7 +114,7 @@ class PembelajaranController extends Controller
             foreach ($validated['student_ids'] as $studentId) {
                 StudentAcademicRecord::updateOrCreate(
                     [
-                        'student_nisn' => $studentId,
+                        'student_id' => $studentId,
                         'academic_year_id' => $validated['target_academic_year_id'],
                     ],
                     [
@@ -144,11 +144,11 @@ class PembelajaranController extends Controller
     {
         $validated = $request->validate([
             'student_ids' => 'required|array|min:1',
-            'student_ids.*' => 'required|exists:students,nisn',
+            'student_ids.*' => 'required|exists:students,id',
             'academic_year_id' => 'required|integer',
         ]);
 
-        $count = StudentAcademicRecord::whereIn('student_nisn', $validated['student_ids'])
+        $count = StudentAcademicRecord::whereIn('student_id', $validated['student_ids'])
             ->where('academic_year_id', $validated['academic_year_id'])
             ->delete();
 
