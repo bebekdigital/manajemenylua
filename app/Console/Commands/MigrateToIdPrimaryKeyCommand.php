@@ -19,11 +19,11 @@ class MigrateToIdPrimaryKeyCommand extends Command
         try {
             // 1. Hapus Foreign Key lama yang merujuk ke NISN
             $this->info('Menghapus Foreign Key lama (student_nisn)...');
-            $this->dropForeignKeySafe('student_academic_records', 'sar_student_nisn_foreign');
-            $this->dropForeignKeySafe('student_siblings', 'ss_student_nisn_foreign');
+            $this->dropForeignKeySafe('student_academic_records', 'student_academic_records_student_nisn_foreign');
+            $this->dropForeignKeySafe('student_siblings', 'student_siblings_student_nisn_foreign');
 
             // Drop unique index
-            $this->dropIndexSafe('student_academic_records', 'sar_nisn_year_unique');
+            $this->dropIndexSafe('student_academic_records', 'student_academic_records_student_nisn_academic_year_id_unique');
 
             // 2. Kembalikan Primary Key tabel Students ke ID
             $this->info('Merombak tabel students (Menambahkan id, menghapus Primary Key NISN)...');
