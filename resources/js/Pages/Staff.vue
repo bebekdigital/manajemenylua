@@ -43,9 +43,9 @@ const filteredEmployees = computed(() => {
     if (searchQuery.value) {
         const query = searchQuery.value.toLowerCase().trim();
         result = result.filter(e =>
-            e.nama.toLowerCase().includes(query) ||
-            e.nipy.includes(query) ||
-            (e.jabatan && e.jabatan.toLowerCase().includes(query))
+            (e.nama || '').toLowerCase().includes(query) ||
+            (e.nipy || '').toLowerCase().includes(query) ||
+            (e.jabatan || '').toLowerCase().includes(query)
         );
     }
 
