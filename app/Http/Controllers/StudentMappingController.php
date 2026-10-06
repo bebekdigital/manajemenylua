@@ -93,7 +93,7 @@ class StudentMappingController extends Controller
                 // Ensure only 1 record per student per academic year exists
                 StudentAcademicRecord::updateOrCreate(
                     [
-                        'student_id' => $studentId,
+                        'student_nisn' => $studentId,
                         'academic_year_id' => $validated['target_academic_year_id'],
                     ],
                     [
