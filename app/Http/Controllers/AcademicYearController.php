@@ -3,9 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\AcademicYear;
-use App\Models\SchoolLevel;
-use App\Models\SchoolClass;
 use App\Models\Classroom;
+use App\Models\SchoolClass;
+use App\Models\SchoolLevel;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -79,11 +79,13 @@ class AcademicYearController extends Controller
         $validClassroomIds = [];
 
         foreach ($masterClasses as $mc) {
-            $key = $mc->unit->name . '|' . $mc->name;
+            $key = $mc->unit->name.'|'.$mc->name;
             if ($selected->contains($key)) {
                 $jenjang = str_starts_with($mc->name, '7') || str_starts_with($mc->name, '8') || str_starts_with($mc->name, '9') ? 'SMP' : 'SD';
                 $grade = (int) filter_var($mc->name, FILTER_SANITIZE_NUMBER_INT);
-                if ($grade === 0) $grade = 1;
+                if ($grade === 0) {
+                    $grade = 1;
+                }
 
                 $classroom = Classroom::firstOrCreate([
                     'academic_year_id' => $academicYear->id,
@@ -92,7 +94,7 @@ class AcademicYearController extends Controller
                 ], [
                     'jenjang' => $jenjang,
                     'grade' => $grade,
-                    'capacity' => 30
+                    'capacity' => 30,
                 ]);
                 $validClassroomIds[] = $classroom->id;
             }
@@ -136,11 +138,13 @@ class AcademicYearController extends Controller
         $validClassroomIds = [];
 
         foreach ($masterClasses as $mc) {
-            $key = $mc->unit->name . '|' . $mc->name;
+            $key = $mc->unit->name.'|'.$mc->name;
             if ($selected->contains($key)) {
                 $jenjang = str_starts_with($mc->name, '7') || str_starts_with($mc->name, '8') || str_starts_with($mc->name, '9') ? 'SMP' : 'SD';
                 $grade = (int) filter_var($mc->name, FILTER_SANITIZE_NUMBER_INT);
-                if ($grade === 0) $grade = 1;
+                if ($grade === 0) {
+                    $grade = 1;
+                }
 
                 $classroom = Classroom::firstOrCreate([
                     'academic_year_id' => $academicYear->id,
@@ -149,7 +153,7 @@ class AcademicYearController extends Controller
                 ], [
                     'jenjang' => $jenjang,
                     'grade' => $grade,
-                    'capacity' => 30
+                    'capacity' => 30,
                 ]);
                 $validClassroomIds[] = $classroom->id;
             }
@@ -180,6 +184,4 @@ class AcademicYearController extends Controller
 
         return back()->with('success', "Tahun Ajaran {$label} berhasil dihapus.");
     }
-
-
 }

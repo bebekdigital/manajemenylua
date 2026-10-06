@@ -31,13 +31,15 @@ class MigrateStudentsTableCommand extends Command
         $this->info('Memulai proses migrasi data siswa dan keluarga...');
 
         // 1. Pastikan tabel student_families masih ada
-        if (!Schema::hasTable('student_families')) {
+        if (! Schema::hasTable('student_families')) {
             $this->error('Tabel student_families tidak ditemukan. Mungkin sudah dihapus?');
+
             return;
         }
 
-        if (!Schema::hasTable('students')) {
+        if (! Schema::hasTable('students')) {
             $this->error('Tabel students tidak ditemukan.');
+
             return;
         }
 
@@ -78,7 +80,7 @@ class MigrateStudentsTableCommand extends Command
             $table->string('no_wa', 20)->nullable();
             $table->string('no_wa_2', 20)->nullable();
             $table->string('email')->nullable();
-            
+
             // Data Ayah
             $table->string('ayah_nama')->nullable();
             $table->unsignedSmallInteger('ayah_tahun_lahir')->nullable();
@@ -113,7 +115,7 @@ class MigrateStudentsTableCommand extends Command
             $table->boolean('status_pip')->default(false);
             $table->string('pip_keterangan')->nullable();
             $table->string('kebutuhan_khusus')->nullable();
-            
+
             // Registrasi & Latar Belakang
             $table->string('sekolah_asal')->nullable();
             $table->unsignedTinyInteger('anak_ke')->nullable();
@@ -199,7 +201,7 @@ class MigrateStudentsTableCommand extends Command
                 'status_pip' => $s->status_pip ?? false,
                 'pip_keterangan' => $s->pip_keterangan ?? null,
                 'kebutuhan_khusus' => $s->kebutuhan_khusus ?? null,
-                
+
                 'sekolah_asal' => $s->sekolah_asal ?? null,
                 'anak_ke' => $s->anak_ke ?? null,
                 'no_kk' => $s->no_kk ?? null,

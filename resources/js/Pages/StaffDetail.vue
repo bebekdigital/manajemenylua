@@ -103,7 +103,7 @@ function getJenjangColor(jenjang) {
                             </span>
                         </div>
                         <p v-if="employee.jabatan" class="text-xs text-on-surface-variant mt-1">
-                            {{ employee.jabatan }}{{ employee.unit ? ` · ${employee.unit}` : '' }}
+                            {{ employee.jabatan }}{{ employee.unit_kerja ? ` · ${employee.unit_kerja}` : '' }}
                         </p>
                     </div>
                 </div>
@@ -256,6 +256,14 @@ function getJenjangColor(jenjang) {
                                 <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Status Rumah</label>
                                 <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ employee.status_rumah || '-' }}</p>
                             </div>
+                            <div>
+                                <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Kepemilikan BPJS</label>
+                                <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ employee.kepemilikan_bpjs || '-' }}</p>
+                            </div>
+                            <div>
+                                <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Penanggung BPJS</label>
+                                <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ employee.penanggung_bpjs || '-' }}</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -280,15 +288,15 @@ function getJenjangColor(jenjang) {
                             </div>
                             <div>
                                 <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Nama Suami/Istri</label>
-                                <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ employee.nama_pasangan || '-' }}</p>
+                                <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ employee.nama_suami_istri || '-' }}</p>
                             </div>
                             <div>
                                 <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">TTL Suami/Istri</label>
-                                <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ employee.ttl_pasangan || '-' }}</p>
+                                <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ employee.ttl_suami_istri || '-' }}</p>
                             </div>
                             <div>
                                 <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Pekerjaan Suami/Istri</label>
-                                <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ employee.pekerjaan_pasangan || '-' }}</p>
+                                <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ employee.pekerjaan_suami_istri || '-' }}</p>
                             </div>
                             <div>
                                 <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Jumlah Anak</label>
@@ -381,7 +389,7 @@ function getJenjangColor(jenjang) {
                             <div class="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-3">
                                 <div>
                                     <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Unit</label>
-                                    <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ record.unit || '-' }}</p>
+                                    <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ record.unit_kerja || '-' }}</p>
                                 </div>
                                 <div>
                                     <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Jabatan</label>
@@ -397,7 +405,7 @@ function getJenjangColor(jenjang) {
                                 </div>
                                 <div>
                                     <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">TST</label>
-                                    <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ record.formatted_tst || '-' }}</p>
+                                    <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ record.formatted_tst_jenjang || '-' }}</p>
                                 </div>
                                 <div>
                                     <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Masa Kerja</label>

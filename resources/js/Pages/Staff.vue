@@ -50,7 +50,7 @@ const filteredEmployees = computed(() => {
     }
 
     if (unitFilter.value) {
-        result = result.filter(e => e.unit === unitFilter.value);
+        result = result.filter(e => e.unit_kerja === unitFilter.value);
     }
 
     if (statusFilter.value) {

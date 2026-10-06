@@ -27,7 +27,6 @@ class AcademicYear extends Model
         ];
     }
 
-
     /**
      * Get the current active academic year.
      */

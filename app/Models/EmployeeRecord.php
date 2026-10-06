@@ -14,12 +14,15 @@ class EmployeeRecord extends Model
         'employee_id',
         'academic_year_id',
         'status_keaktifan',
+        'jenis_kepegawaian',
+        'keterangan_tidak_aktif',
         'jenjang_kepegawaian',
         'tmt',
-        'tst',
+        'tst_jenjang',
         'masa_kerja',
         'keaktifan_dapodik',
-        'unit',
+        'unit_keaktifan_dapodik',
+        'unit_kerja',
         'jabatan',
     ];
 

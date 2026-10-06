@@ -9,13 +9,18 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('employees', function (Blueprint $table) {
-            $table->id();
-            $table->string('nipy')->unique();
+            $table->id(); // Primary Key recommended by Laravel
+
+            // Kolom disesuaikan dengan urutan Template Excel Sheet 1
+            $table->string('nipy')->nullable(); // NIPY bisa null jika NIK jadi acuan utama, atau biarkan ada
             $table->string('nama');
             $table->string('jk', 1)->nullable();
             $table->string('tempat_lahir')->nullable();
             $table->date('tanggal_lahir')->nullable();
-            $table->string('nik', 20)->nullable();
+
+            // NIK sebagai UNIQUE DATA
+            $table->string('nik', 50)->unique();
+
             $table->string('no_wa')->nullable();
             $table->string('email')->nullable();
 
@@ -35,18 +40,17 @@ return new class extends Migration
             $table->string('desa_tinggal')->nullable();
             $table->string('kecamatan_tinggal')->nullable();
             $table->string('provinsi_tinggal')->nullable();
-            $table->string('status_rumah')->nullable();
 
-            // Profil
+            $table->string('status_rumah')->nullable();
+            $table->string('kepemilikan_bpjs')->nullable(); // Ya/Tidak
+            $table->string('penanggung_bpjs')->nullable();
             $table->string('skill')->nullable();
             $table->string('status_pernikahan')->nullable();
-            $table->string('nama_pasangan')->nullable();
-            $table->string('ttl_pasangan')->nullable();
-            $table->string('pekerjaan_pasangan')->nullable();
+            $table->string('nama_suami_istri')->nullable();
+            $table->string('ttl_suami_istri')->nullable();
+            $table->string('pekerjaan_suami_istri')->nullable();
             $table->date('tanggal_menikah')->nullable();
             $table->integer('jumlah_anak')->nullable();
-
-            // Orangtua & Kontak
             $table->string('nama_ibu')->nullable();
             $table->string('nama_ayah')->nullable();
             $table->string('alamat_orangtua')->nullable();

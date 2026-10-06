@@ -135,7 +135,7 @@ function getJenjangColor(jenjang) {
                         </td>
                         <!-- Unit -->
                         <td class="p-2.5 sm:p-4 text-[12px] sm:text-sm text-on-surface-variant whitespace-nowrap">
-                            {{ emp.unit || '-' }}
+                            {{ emp.unit_kerja || '-' }}
                         </td>
                         <!-- Jabatan -->
                         <td class="p-2.5 sm:p-4 text-[12px] sm:text-sm text-on-surface-variant whitespace-nowrap">

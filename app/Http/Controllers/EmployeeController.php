@@ -14,6 +14,7 @@ use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
@@ -105,13 +106,15 @@ class EmployeeController extends Controller
             'kecamatan_tinggal' => $employee->kecamatan_tinggal,
             'provinsi_tinggal' => $employee->provinsi_tinggal,
             'status_rumah' => $employee->status_rumah,
+            'kepemilikan_bpjs' => $employee->kepemilikan_bpjs,
+            'penanggung_bpjs' => $employee->penanggung_bpjs,
 
             // Profil & Keluarga
             'skill' => $employee->skill,
             'status_pernikahan' => $employee->status_pernikahan,
-            'nama_pasangan' => $employee->nama_pasangan,
-            'ttl_pasangan' => $employee->ttl_pasangan,
-            'pekerjaan_pasangan' => $employee->pekerjaan_pasangan,
+            'nama_suami_istri' => $employee->nama_suami_istri,
+            'ttl_suami_istri' => $employee->ttl_suami_istri,
+            'pekerjaan_suami_istri' => $employee->pekerjaan_suami_istri,
             'tanggal_menikah' => $employee->tanggal_menikah?->format('Y-m-d'),
             'formatted_tanggal_menikah' => $employee->tanggal_menikah?->translatedFormat('d F Y'),
             'jumlah_anak' => $employee->jumlah_anak,
@@ -122,9 +125,11 @@ class EmployeeController extends Controller
             'hubungan_kontak_darurat' => $employee->hubungan_kontak_darurat,
 
             // Kepegawaian aktif
-            'unit' => $currentRecord?->unit,
+            'unit_kerja' => $currentRecord?->unit_kerja,
             'jabatan' => $currentRecord?->jabatan,
+            'jenis_kepegawaian' => $currentRecord?->jenis_kepegawaian,
             'status_keaktifan' => $currentRecord?->status_keaktifan,
+            'keterangan_tidak_aktif' => $currentRecord?->keterangan_tidak_aktif,
             'jenjang_kepegawaian' => $currentRecord?->jenjang_kepegawaian,
 
             // Semua riwayat kepegawaian (untuk tab)
@@ -132,15 +137,18 @@ class EmployeeController extends Controller
                 'id' => $r->id,
                 'tahun_ajaran' => $r->academicYear?->name,
                 'semester' => $r->academicYear?->semester,
+                'jenis_kepegawaian' => $r->jenis_kepegawaian,
                 'status_keaktifan' => $r->status_keaktifan,
+                'keterangan_tidak_aktif' => $r->keterangan_tidak_aktif,
                 'jenjang_kepegawaian' => $r->jenjang_kepegawaian,
                 'tmt' => $r->tmt?->format('Y-m-d'),
                 'formatted_tmt' => $r->tmt?->translatedFormat('d F Y'),
-                'tst' => $r->tst?->format('Y-m-d'),
-                'formatted_tst' => $r->tst?->translatedFormat('d F Y'),
+                'tst_jenjang' => $r->tst_jenjang?->format('Y-m-d'),
+                'formatted_tst_jenjang' => $r->tst_jenjang?->translatedFormat('d F Y'),
                 'masa_kerja' => $r->masa_kerja,
                 'keaktifan_dapodik' => $r->keaktifan_dapodik,
-                'unit' => $r->unit,
+                'unit_keaktifan_dapodik' => $r->unit_keaktifan_dapodik,
+                'unit_kerja' => $r->unit_kerja,
                 'jabatan' => $r->jabatan,
             ])->sortByDesc('tahun_ajaran')->values()->toArray(),
 
@@ -230,7 +238,7 @@ class EmployeeController extends Controller
             'nik' => $employee->nik,
             'no_wa' => $employee->no_wa,
             'email' => $employee->email,
-            'unit' => $record?->unit,
+            'unit_kerja' => $record?->unit_kerja,
             'jabatan' => $record?->jabatan,
             'status_keaktifan' => $record?->status_keaktifan,
             'jenjang_kepegawaian' => $record?->jenjang_kepegawaian,
@@ -280,18 +288,20 @@ class EmployeeController extends Controller
             'T' => 'Kecamatan Tinggal',
             'U' => 'Provinsi Tinggal',
             'V' => 'Status Rumah',
-            'W' => 'Skill',
-            'X' => 'Status Pernikahan',
-            'Y' => 'Nama Suami/Istri',
-            'Z' => 'TTL Suami/Istri',
-            'AA' => 'Pekerjaan Suami/Istri',
-            'AB' => 'Tanggal Menikah',
-            'AC' => 'Jumlah Anak',
-            'AD' => 'Nama Ibu',
-            'AE' => 'Nama Ayah',
-            'AF' => 'Alamat Orangtua',
-            'AG' => 'Kontak Darurat',
-            'AH' => 'Hubungan Kontak Darurat',
+            'W' => 'Kepemilikan BPJS (Ya/Tidak)',
+            'X' => 'Penanggung BPJS',
+            'Y' => 'Skill',
+            'Z' => 'Status Pernikahan',
+            'AA' => 'Nama Suami/Istri',
+            'AB' => 'TTL Suami/Istri',
+            'AC' => 'Pekerjaan Suami/Istri',
+            'AD' => 'Tanggal Menikah',
+            'AE' => 'Jumlah Anak',
+            'AF' => 'Nama Ibu',
+            'AG' => 'Nama Ayah',
+            'AH' => 'Alamat Orangtua',
+            'AI' => 'Kontak Darurat',
+            'AJ' => 'Hubungan Kontak Darurat',
         ];
 
         foreach ($headers1 as $col => $label) {
@@ -304,18 +314,22 @@ class EmployeeController extends Controller
             $sheet1->getColumnDimension($col)->setWidth(20);
         }
 
+        // Format NIK column as Text explicitly so "0001/2" is preserved
+        $sheet1->getStyle('F')->getNumberFormat()->setFormatCode(NumberFormat::FORMAT_TEXT);
+
         // Example row
         $example1 = [
             'A' => '1001', 'B' => 'Ahmad Fauzi, S.Pd', 'C' => 'L', 'D' => 'Semarang', 'E' => '15/06/1985',
-            'F' => '3301150678901234', 'G' => '081234567890', 'H' => 'ahmad@sekolah.sch.id',
+            'F' => '3301150678900001', 'G' => '081234567890', 'H' => 'ahmad@sekolah.sch.id',
             'I' => 'Jl. Merdeka No. 10', 'J' => '002/005', 'K' => 'Gondang', 'L' => 'Gondangrejo',
             'M' => 'Gondangrejo', 'N' => 'Karanganyar', 'O' => 'Jawa Tengah',
             'P' => 'Jl. Merdeka No. 10', 'Q' => '002/005', 'R' => 'Gondang', 'S' => 'Gondangrejo',
             'T' => 'Gondangrejo', 'U' => 'Jawa Tengah', 'V' => 'Milik Sendiri',
-            'W' => 'Matematika, MS Office', 'X' => 'Menikah', 'Y' => 'Siti Rahayu', 'Z' => 'Solo, 10/03/1987',
-            'AA' => 'Guru', 'AB' => '20/12/2010', 'AC' => '2',
-            'AD' => 'Siti Aminah', 'AE' => 'Budi Santoso', 'AF' => 'Jl. Damai No. 5, Semarang',
-            'AG' => '082345678901', 'AH' => 'Saudara Kandung',
+            'W' => 'Ya', 'X' => 'Pribadi',
+            'Y' => 'Matematika, MS Office', 'Z' => 'Menikah', 'AA' => 'Siti Rahayu', 'AB' => 'Solo, 10/03/1987',
+            'AC' => 'Guru', 'AD' => '20/12/2010', 'AE' => '2',
+            'AF' => 'Siti Aminah', 'AG' => 'Budi Santoso', 'AH' => 'Jl. Damai No. 5, Semarang',
+            'AI' => '082345678901', 'AJ' => 'Saudara Kandung',
         ];
 
         foreach ($example1 as $col => $val) {
@@ -323,7 +337,7 @@ class EmployeeController extends Controller
             $sheet1->getStyle("{$col}2")->applyFromArray(['fill' => $exampleFill]);
         }
 
-        $lastCol1 = 'AH';
+        $lastCol1 = 'AJ';
         $sheet1->getStyle("A1:{$lastCol1}1")->applyFromArray(['borders' => $borderStyle]);
         $sheet1->getStyle("A2:{$lastCol1}2")->applyFromArray(['borders' => $borderStyle]);
 
@@ -332,7 +346,7 @@ class EmployeeController extends Controller
         $sheet2->setTitle('2. Riwayat Pendidikan');
 
         $headers2 = [
-            'A' => 'NIPY',
+            'A' => 'NIK',
             'B' => 'Nama Lengkap',
             'C' => 'Jenjang Pendidikan',
             'D' => 'Jurusan',
@@ -351,8 +365,10 @@ class EmployeeController extends Controller
             $sheet2->getColumnDimension($col)->setWidth(22);
         }
 
+        $sheet2->getStyle('A')->getNumberFormat()->setFormatCode(NumberFormat::FORMAT_TEXT);
+
         $example2 = [
-            'A' => '1001', 'B' => 'Ahmad Fauzi, S.Pd', 'C' => 'S1',
+            'A' => '3301150678900001', 'B' => 'Ahmad Fauzi, S.Pd', 'C' => 'S1',
             'D' => 'Pendidikan Matematika', 'E' => 'UNS Surakarta', 'F' => '2008', 'G' => 'Beasiswa',
         ];
 
@@ -369,18 +385,21 @@ class EmployeeController extends Controller
         $sheet3->setTitle('3. Riwayat Kepegawaian');
 
         $headers3 = [
-            'A' => 'NIPY',
+            'A' => 'NIK',
             'B' => 'Nama Lengkap',
             'C' => 'Tahun Ajaran',
             'D' => 'Semester',
-            'E' => 'Status Keaktifan',
-            'F' => 'Jenjang Kepegawaian',
-            'G' => 'TMT',
-            'H' => 'TST',
-            'I' => 'Masa Kerja',
-            'J' => 'Keaktifan Dapodik',
-            'K' => 'Unit',
-            'L' => 'Jabatan',
+            'E' => 'Jenis Kepegawaian',
+            'F' => 'Status Keaktifan',
+            'G' => 'Keterangan Tidak Aktif',
+            'H' => 'Jenjang Kepegawaian',
+            'I' => 'TMT',
+            'J' => 'TST Jenjang',
+            'K' => 'Masa Kerja',
+            'L' => 'Keaktifan Dapodik',
+            'M' => 'Unit Keaktifan Dapodik',
+            'N' => 'Unit Kerja',
+            'O' => 'Jabatan',
         ];
 
         foreach ($headers3 as $col => $label) {
@@ -393,10 +412,12 @@ class EmployeeController extends Controller
             $sheet3->getColumnDimension($col)->setWidth(20);
         }
 
+        $sheet3->getStyle('A')->getNumberFormat()->setFormatCode(NumberFormat::FORMAT_TEXT);
+
         $example3 = [
-            'A' => '1001', 'B' => 'Ahmad Fauzi, S.Pd', 'C' => '2025/2026', 'D' => 'Ganjil',
-            'E' => 'Aktif', 'F' => 'GTY', 'G' => '01/07/2015', 'H' => '',
-            'I' => '11 Tahun', 'J' => 'Aktif', 'K' => 'SDIT Ulil Albab', 'L' => 'Guru Kelas',
+            'A' => '3301150678900001', 'B' => 'Ahmad Fauzi, S.Pd', 'C' => '2025/2026', 'D' => 'Ganjil',
+            'E' => 'Tenaga Pendidik', 'F' => 'Aktif', 'G' => '-', 'H' => 'GTY', 'I' => '01/07/2015', 'J' => '',
+            'K' => '11 Tahun', 'L' => 'Aktif', 'M' => 'SDIT Ulil Albab', 'N' => 'SDIT Ulil Albab', 'O' => 'Guru Kelas',
         ];
 
         foreach ($example3 as $col => $val) {
@@ -404,8 +425,8 @@ class EmployeeController extends Controller
             $sheet3->getStyle("{$col}2")->applyFromArray(['fill' => $exampleFill]);
         }
 
-        $sheet3->getStyle('A1:L1')->applyFromArray(['borders' => $borderStyle]);
-        $sheet3->getStyle('A2:L2')->applyFromArray(['borders' => $borderStyle]);
+        $sheet3->getStyle('A1:O1')->applyFromArray(['borders' => $borderStyle]);
+        $sheet3->getStyle('A2:O2')->applyFromArray(['borders' => $borderStyle]);
 
         // Set active sheet to sheet 1
         $spreadsheet->setActiveSheetIndex(0);

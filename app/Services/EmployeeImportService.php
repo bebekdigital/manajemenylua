@@ -52,7 +52,7 @@ class EmployeeImportService
                 throw new \Exception('Sheet "1. Data Pegawai" tidak ditemukan pada file Excel.');
             }
 
-            /** @var array<string, Employee> $employeeMap [nipy => Employee] */
+            /** @var array<string, Employee> $employeeMap [nik => Employee] */
             $employeeMap = [];
 
             $rowsPegawai = $sheetPegawai->toArray(null, true, true, true);
@@ -61,17 +61,18 @@ class EmployeeImportService
             foreach ($rowsPegawai as $rowIdx => $row) {
                 $nipy = $this->cleanString($row['A'] ?? null);
                 $nama = $this->cleanString($row['B'] ?? null);
+                $nik = $this->cleanString($row['F'] ?? null);
 
-                if (empty($nipy) || empty($nama) || strtolower($nipy) === 'nipy') {
-                    continue;
+                if (empty($nik) || empty($nama) || strtolower($nik) === 'nik') {
+                    continue; // NIK is now the unique identifier, skip if empty
                 }
 
                 $employeeData = [
+                    'nipy' => $nipy,
                     'nama' => $nama,
                     'jk' => $this->parseGender($row['C'] ?? null),
                     'tempat_lahir' => $this->cleanString($row['D'] ?? null),
                     'tanggal_lahir' => $this->parseDate($row['E'] ?? null),
-                    'nik' => $this->cleanString($row['F'] ?? null),
                     'no_wa' => $this->cleanString($row['G'] ?? null),
                     'email' => $this->cleanString($row['H'] ?? null),
 
@@ -91,34 +92,37 @@ class EmployeeImportService
                     'desa_tinggal' => $this->cleanString($row['S'] ?? null),
                     'kecamatan_tinggal' => $this->cleanString($row['T'] ?? null),
                     'provinsi_tinggal' => $this->cleanString($row['U'] ?? null),
-                    'status_rumah' => $this->cleanString($row['V'] ?? null),
 
-                    // Profil
-                    'skill' => $this->cleanString($row['W'] ?? null),
-                    'status_pernikahan' => $this->cleanString($row['X'] ?? null),
-                    'nama_pasangan' => $this->cleanString($row['Y'] ?? null),
-                    'ttl_pasangan' => $this->cleanString($row['Z'] ?? null),
-                    'pekerjaan_pasangan' => $this->cleanString($row['AA'] ?? null),
-                    'tanggal_menikah' => $this->parseDate($row['AB'] ?? null),
-                    'jumlah_anak' => $this->parseInteger($row['AC'] ?? null),
-                    'nama_ibu' => $this->cleanString($row['AD'] ?? null),
-                    'nama_ayah' => $this->cleanString($row['AE'] ?? null),
-                    'alamat_orangtua' => $this->cleanString($row['AF'] ?? null),
-                    'kontak_darurat' => $this->cleanString($row['AG'] ?? null),
-                    'hubungan_kontak_darurat' => $this->cleanString($row['AH'] ?? null),
+                    'status_rumah' => $this->cleanString($row['V'] ?? null),
+                    'kepemilikan_bpjs' => $this->cleanString($row['W'] ?? null),
+                    'penanggung_bpjs' => $this->cleanString($row['X'] ?? null),
+                    'skill' => $this->cleanString($row['Y'] ?? null),
+
+                    // Keluarga
+                    'status_pernikahan' => $this->cleanString($row['Z'] ?? null),
+                    'nama_suami_istri' => $this->cleanString($row['AA'] ?? null),
+                    'ttl_suami_istri' => $this->cleanString($row['AB'] ?? null),
+                    'pekerjaan_suami_istri' => $this->cleanString($row['AC'] ?? null),
+                    'tanggal_menikah' => $this->parseDate($row['AD'] ?? null),
+                    'jumlah_anak' => $this->parseInteger($row['AE'] ?? null),
+                    'nama_ibu' => $this->cleanString($row['AF'] ?? null),
+                    'nama_ayah' => $this->cleanString($row['AG'] ?? null),
+                    'alamat_orangtua' => $this->cleanString($row['AH'] ?? null),
+                    'kontak_darurat' => $this->cleanString($row['AI'] ?? null),
+                    'hubungan_kontak_darurat' => $this->cleanString($row['AJ'] ?? null),
                 ];
 
-                $existing = Employee::where('nipy', $nipy)->first();
+                $existing = Employee::where('nik', $nik)->first();
                 if ($existing) {
                     $existing->update($employeeData);
                     $updatedCount++;
                     $employee = $existing;
                 } else {
-                    $employee = Employee::create(array_merge(['nipy' => $nipy], $employeeData));
+                    $employee = Employee::create(array_merge(['nik' => $nik], $employeeData));
                     $createdCount++;
                 }
 
-                $employeeMap[$nipy] = $employee;
+                $employeeMap[$nik] = $employee;
             }
 
             // 2. Process Sheet 2: Riwayat Pendidikan
@@ -127,17 +131,17 @@ class EmployeeImportService
                 $rowsPendidikan = $sheetPendidikan->toArray(null, true, true, true);
                 array_shift($rowsPendidikan);
 
-                // Group by nipy, then replace all education records for each employee
-                $pendidikanByNipy = [];
+                // Group by nik, then replace all education records for each employee
+                $pendidikanByNik = [];
                 foreach ($rowsPendidikan as $row) {
-                    $nipy = $this->cleanString($row['A'] ?? null);
-                    if (empty($nipy) || strtolower($nipy) === 'nipy') {
+                    $nik = $this->cleanString($row['A'] ?? null);
+                    if (empty($nik) || strtolower($nik) === 'nik') {
                         continue;
                     }
-                    if (! isset($pendidikanByNipy[$nipy])) {
-                        $pendidikanByNipy[$nipy] = [];
+                    if (! isset($pendidikanByNik[$nik])) {
+                        $pendidikanByNik[$nik] = [];
                     }
-                    $pendidikanByNipy[$nipy][] = [
+                    $pendidikanByNik[$nik][] = [
                         'jenjang_pendidikan' => $this->cleanString($row['C'] ?? null),
                         'jurusan' => $this->cleanString($row['D'] ?? null),
                         'instansi_pendidikan' => $this->cleanString($row['E'] ?? null),
@@ -146,10 +150,10 @@ class EmployeeImportService
                     ];
                 }
 
-                foreach ($pendidikanByNipy as $nipy => $records) {
-                    $employee = $employeeMap[$nipy] ?? Employee::where('nipy', $nipy)->first();
+                foreach ($pendidikanByNik as $nik => $records) {
+                    $employee = $employeeMap[$nik] ?? Employee::where('nik', $nik)->first();
                     if (! $employee) {
-                        $warnings[] = "NIPY {$nipy} pada Sheet Pendidikan tidak ditemukan.";
+                        $warnings[] = "NIK {$nik} pada Sheet Pendidikan tidak ditemukan.";
 
                         continue;
                     }
@@ -168,14 +172,14 @@ class EmployeeImportService
                 array_shift($rowsKepegawaian);
 
                 foreach ($rowsKepegawaian as $row) {
-                    $nipy = $this->cleanString($row['A'] ?? null);
-                    if (empty($nipy) || strtolower($nipy) === 'nipy') {
+                    $nik = $this->cleanString($row['A'] ?? null);
+                    if (empty($nik) || strtolower($nik) === 'nik') {
                         continue;
                     }
 
-                    $employee = $employeeMap[$nipy] ?? Employee::where('nipy', $nipy)->first();
+                    $employee = $employeeMap[$nik] ?? Employee::where('nik', $nik)->first();
                     if (! $employee) {
-                        $warnings[] = "NIPY {$nipy} pada Sheet Kepegawaian tidak ditemukan.";
+                        $warnings[] = "NIK {$nik} pada Sheet Kepegawaian tidak ditemukan.";
 
                         continue;
                     }
@@ -189,12 +193,12 @@ class EmployeeImportService
                             ->where('semester', $semester)
                             ->first();
                         if (! $academicYear) {
-                            $warnings[] = "Tahun Ajaran '{$tahunAjaran} {$semester}' tidak ditemukan untuk NIPY {$nipy}.";
+                            $warnings[] = "Tahun Ajaran '{$tahunAjaran} {$semester}' tidak ditemukan untuk NIK {$nik}.";
 
                             continue;
                         }
                     } else {
-                        $warnings[] = "Tahun Ajaran kosong pada baris NIPY {$nipy}, dilewati.";
+                        $warnings[] = "Tahun Ajaran kosong pada baris NIK {$nik}, dilewati.";
 
                         continue;
                     }
@@ -205,14 +209,17 @@ class EmployeeImportService
                             'academic_year_id' => $academicYear->id,
                         ],
                         [
-                            'status_keaktifan' => $this->cleanString($row['E'] ?? null),
-                            'jenjang_kepegawaian' => $this->cleanString($row['F'] ?? null),
-                            'tmt' => $this->parseDate($row['G'] ?? null),
-                            'tst' => $this->parseDate($row['H'] ?? null),
-                            'masa_kerja' => $this->cleanString($row['I'] ?? null),
-                            'keaktifan_dapodik' => $this->cleanString($row['J'] ?? null),
-                            'unit' => $this->cleanString($row['K'] ?? null),
-                            'jabatan' => $this->cleanString($row['L'] ?? null),
+                            'jenis_kepegawaian' => $this->cleanString($row['E'] ?? null),
+                            'status_keaktifan' => $this->cleanString($row['F'] ?? null),
+                            'keterangan_tidak_aktif' => $this->cleanString($row['G'] ?? null),
+                            'jenjang_kepegawaian' => $this->cleanString($row['H'] ?? null),
+                            'tmt' => $this->parseDate($row['I'] ?? null),
+                            'tst_jenjang' => $this->parseDate($row['J'] ?? null),
+                            'masa_kerja' => $this->cleanString($row['K'] ?? null),
+                            'keaktifan_dapodik' => $this->cleanString($row['L'] ?? null),
+                            'unit_keaktifan_dapodik' => $this->cleanString($row['M'] ?? null),
+                            'unit_kerja' => $this->cleanString($row['N'] ?? null),
+                            'jabatan' => $this->cleanString($row['O'] ?? null),
                         ]
                     );
                     $recordsCount++;

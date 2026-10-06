@@ -11,8 +11,6 @@ class Student extends Model
 {
     use HasFactory;
 
-
-
     protected $fillable = [
         'nisn',
         'nama',

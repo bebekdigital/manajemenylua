@@ -33,7 +33,7 @@ const selectedUnit = ref('');
 const selectedStatus = ref('');
 
 const units = computed(() => {
-    const uniqueUnits = [...new Set(props.employees.map(e => e.unit).filter(Boolean))].sort();
+    const uniqueUnits = [...new Set(props.employees.map(e => e.unit_kerja).filter(Boolean))].sort();
     return [
         { value: '', label: 'Semua Unit' },
         ...uniqueUnits.map(u => ({ value: u, label: u })),

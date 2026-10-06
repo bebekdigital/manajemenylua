@@ -42,7 +42,7 @@ class PembelajaranController extends Controller
         if (! $selectedAcademicYearId) {
             $selectedAcademicYearId = $academicYears->first()['id'] ?? null;
         }
-        
+
         // Save back to session so other parts of the app remember it
         session(['selected_academic_year_id' => $selectedAcademicYearId]);
 
@@ -162,6 +162,7 @@ class PembelajaranController extends Controller
         }
 
         $classroom->delete();
+
         return redirect()->back()->with('success', 'Kelas berhasil dihapus.');
     }
 }
