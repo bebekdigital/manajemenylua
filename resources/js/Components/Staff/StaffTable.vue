@@ -87,8 +87,8 @@ function getJenjangColor(jenjang) {
                 <thead>
                     <tr class="border-b border-emerald-700 bg-emerald-600">
                         <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider w-10 sm:w-12">No</th>
-                        <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">NIPY</th>
                         <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">Nama Lengkap</th>
+                        <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">NIPY</th>
                         <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider w-10 sm:w-14">JK</th>
                         <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">TTL</th>
                         <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">Unit</th>
@@ -107,10 +107,6 @@ function getJenjangColor(jenjang) {
                         <!-- No -->
                         <td class="p-2.5 sm:p-4 text-[12px] sm:text-sm text-on-surface-variant">
                             {{ startEntry + index }}
-                        </td>
-                        <!-- NIPY -->
-                        <td class="p-2.5 sm:p-4 text-[12px] sm:text-sm text-on-surface-variant font-mono whitespace-nowrap">
-                            {{ emp.nipy }}
                         </td>
                         <!-- Nama Lengkap + eye icon -->
                         <td class="p-2.5 sm:p-4">
@@ -131,6 +127,10 @@ function getJenjangColor(jenjang) {
                                 </Link>
                                 <span class="text-[12px] sm:text-sm font-semibold text-on-surface whitespace-nowrap">{{ emp.nama_lengkap_gelar || emp.nama }}</span>
                             </div>
+                        </td>
+                        <!-- NIPY -->
+                        <td class="p-2.5 sm:p-4 text-[12px] sm:text-sm text-on-surface-variant font-mono whitespace-nowrap">
+                            {{ emp.nipy || '-' }}
                         </td>
                         <!-- JK -->
                         <td class="p-2.5 sm:p-4 text-[12px] sm:text-sm text-on-surface text-center">
