@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -18,6 +19,7 @@ class Employee extends Model
         'tempat_lahir',
         'tanggal_lahir',
         'nik',
+        'tmt_pengangkatan',
         'no_wa',
         'email',
         'jalan_domisili',
@@ -57,8 +59,30 @@ class Employee extends Model
         return [
             'tanggal_lahir' => 'date',
             'tanggal_menikah' => 'date',
+            'tmt_pengangkatan' => 'date',
             'jumlah_anak' => 'integer',
         ];
+    }
+
+    /**
+     * Get dynamic Masa Kerja calculated from tmt_pengangkatan.
+     */
+    public function getMasaKerjaAttribute(): ?string
+    {
+        if (! $this->tmt_pengangkatan) {
+            return null;
+        }
+
+        $diff = Carbon::parse($this->tmt_pengangkatan)->diff(now());
+        $parts = [];
+        if ($diff->y > 0) {
+            $parts[] = "{$diff->y} Tahun";
+        }
+        if ($diff->m > 0) {
+            $parts[] = "{$diff->m} Bulan";
+        }
+
+        return empty($parts) ? 'Kurang dari 1 bulan' : implode(' ', $parts);
     }
 
     /**

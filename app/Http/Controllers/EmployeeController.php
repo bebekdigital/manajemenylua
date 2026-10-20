@@ -17,7 +17,6 @@ use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
-use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
@@ -129,7 +128,12 @@ class EmployeeController extends Controller
             'kontak_darurat' => $employee->kontak_darurat,
             'hubungan_kontak_darurat' => $employee->hubungan_kontak_darurat,
 
-            // Kepegawaian aktif
+            // Data Statis Kepegawaian (TMT Pengangkatan & Masa Kerja)
+            'tmt_pengangkatan' => $employee->tmt_pengangkatan?->format('Y-m-d'),
+            'formatted_tmt_pengangkatan' => $employee->tmt_pengangkatan?->translatedFormat('d F Y'),
+            'masa_kerja' => $employee->masa_kerja,
+
+            // Kepegawaian & Penugasan aktif
             'academic_record_id' => $currentRecord?->id,
             'unit_kerja' => $currentRecord?->unit_kerja,
             'jabatan' => $currentRecord?->jabatan,
@@ -137,15 +141,14 @@ class EmployeeController extends Controller
             'status_keaktifan' => $currentRecord?->status_keaktifan,
             'keterangan_tidak_aktif' => $currentRecord?->keterangan_tidak_aktif,
             'jenjang_kepegawaian' => $currentRecord?->jenjang_kepegawaian,
-            'tmt' => $currentRecord?->tmt?->format('Y-m-d'),
-            'formatted_tmt' => $currentRecord?->tmt?->translatedFormat('d F Y'),
+            'tmt_kenaikan_jenjang' => $currentRecord?->tmt_kenaikan_jenjang?->format('Y-m-d'),
+            'formatted_tmt_kenaikan_jenjang' => $currentRecord?->tmt_kenaikan_jenjang?->translatedFormat('d F Y'),
             'tst_jenjang' => $currentRecord?->tst_jenjang?->format('Y-m-d'),
             'formatted_tst_jenjang' => $currentRecord?->tst_jenjang?->translatedFormat('d F Y'),
-            'masa_kerja' => $currentRecord?->masa_kerja,
             'keaktifan_dapodik' => $currentRecord?->keaktifan_dapodik,
             'unit_keaktifan_dapodik' => $currentRecord?->unit_keaktifan_dapodik,
 
-            // Semua riwayat kepegawaian (untuk tab)
+            // Semua riwayat kepegawaian & penugasan (untuk tab)
             'riwayat_kepegawaian' => $employee->records->map(fn ($r) => [
                 'id' => $r->id,
                 'tahun_ajaran' => $r->academicYear?->name,
@@ -154,11 +157,10 @@ class EmployeeController extends Controller
                 'status_keaktifan' => $r->status_keaktifan,
                 'keterangan_tidak_aktif' => $r->keterangan_tidak_aktif,
                 'jenjang_kepegawaian' => $r->jenjang_kepegawaian,
-                'tmt' => $r->tmt?->format('Y-m-d'),
-                'formatted_tmt' => $r->tmt?->translatedFormat('d F Y'),
+                'tmt_kenaikan_jenjang' => $r->tmt_kenaikan_jenjang?->format('Y-m-d'),
+                'formatted_tmt_kenaikan_jenjang' => $r->tmt_kenaikan_jenjang?->translatedFormat('d F Y'),
                 'tst_jenjang' => $r->tst_jenjang?->format('Y-m-d'),
                 'formatted_tst_jenjang' => $r->tst_jenjang?->translatedFormat('d F Y'),
-                'masa_kerja' => $r->masa_kerja,
                 'keaktifan_dapodik' => $r->keaktifan_dapodik,
                 'unit_keaktifan_dapodik' => $r->unit_keaktifan_dapodik,
                 'unit_kerja' => $r->unit_kerja,
@@ -255,7 +257,9 @@ class EmployeeController extends Controller
             'kontak_darurat' => ['nullable', 'string', 'max:50'],
             'hubungan_kontak_darurat' => ['nullable', 'string', 'max:100'],
 
-            // Kepegawaian aktif
+            'tmt_pengangkatan' => ['nullable', 'date'],
+
+            // Kepegawaian & Penugasan aktif
             'academic_year_id' => ['nullable', 'exists:academic_years,id'],
             'unit_kerja' => ['nullable', 'string', 'max:100'],
             'jabatan' => ['nullable', 'string', 'max:100'],
@@ -263,9 +267,8 @@ class EmployeeController extends Controller
             'status_keaktifan' => ['nullable', 'string', 'max:50'],
             'keterangan_tidak_aktif' => ['nullable', 'string', 'max:255'],
             'jenjang_kepegawaian' => ['nullable', 'string', 'max:50'],
-            'tmt' => ['nullable', 'date'],
+            'tmt_kenaikan_jenjang' => ['nullable', 'date'],
             'tst_jenjang' => ['nullable', 'date'],
-            'masa_kerja' => ['nullable', 'string', 'max:50'],
             'keaktifan_dapodik' => ['nullable', 'string', 'max:50'],
             'unit_keaktifan_dapodik' => ['nullable', 'string', 'max:100'],
 
@@ -290,9 +293,8 @@ class EmployeeController extends Controller
                 'status_keaktifan',
                 'keterangan_tidak_aktif',
                 'jenjang_kepegawaian',
-                'tmt',
+                'tmt_kenaikan_jenjang',
                 'tst_jenjang',
-                'masa_kerja',
                 'keaktifan_dapodik',
                 'unit_keaktifan_dapodik',
                 'riwayat_pendidikan',
@@ -316,9 +318,8 @@ class EmployeeController extends Controller
                         'status_keaktifan' => $validated['status_keaktifan'] ?? null,
                         'keterangan_tidak_aktif' => $validated['keterangan_tidak_aktif'] ?? null,
                         'jenjang_kepegawaian' => $validated['jenjang_kepegawaian'] ?? null,
-                        'tmt' => $validated['tmt'] ?? null,
+                        'tmt_kenaikan_jenjang' => $validated['tmt_kenaikan_jenjang'] ?? null,
                         'tst_jenjang' => $validated['tst_jenjang'] ?? null,
-                        'masa_kerja' => $validated['masa_kerja'] ?? null,
                         'keaktifan_dapodik' => $validated['keaktifan_dapodik'] ?? null,
                         'unit_keaktifan_dapodik' => $validated['unit_keaktifan_dapodik'] ?? null,
                     ]
@@ -438,37 +439,38 @@ class EmployeeController extends Controller
             'D' => 'Tempat Lahir',
             'E' => 'Tanggal Lahir',
             'F' => 'NIK',
-            'G' => 'No WA',
-            'H' => 'Email',
-            'I' => 'Jalan Domisili',
-            'J' => 'RT/RW Domisili',
-            'K' => 'Dusun Domisili',
-            'L' => 'Desa Domisili',
-            'M' => 'Kecamatan Domisili',
-            'N' => 'Kab Domisili',
-            'O' => 'Provinsi Domisili',
-            'P' => 'Jalan Tinggal',
-            'Q' => 'RT/RW Tinggal',
-            'R' => 'Dusun Tinggal',
-            'S' => 'Desa Tinggal',
-            'T' => 'Kecamatan Tinggal',
-            'U' => 'Kabupaten Tinggal',
-            'V' => 'Provinsi Tinggal',
-            'W' => 'Status Rumah',
-            'X' => 'Kepemilikan BPJS (Ya/Tidak)',
-            'Y' => 'Penanggung BPJS',
-            'Z' => 'Skill',
-            'AA' => 'Status Pernikahan',
-            'AB' => 'Nama Suami/Istri',
-            'AC' => 'TTL Suami/Istri',
-            'AD' => 'Pekerjaan Suami/Istri',
-            'AE' => 'Tanggal Menikah',
-            'AF' => 'Jumlah Anak',
-            'AG' => 'Nama Ibu',
-            'AH' => 'Nama Ayah',
-            'AI' => 'Alamat Orangtua',
-            'AJ' => 'Kontak Darurat',
-            'AK' => 'Hubungan Kontak Darurat',
+            'G' => 'TMT Pengangkatan',
+            'H' => 'No WA',
+            'I' => 'Email',
+            'J' => 'Jalan Domisili',
+            'K' => 'RT/RW Domisili',
+            'L' => 'Dusun Domisili',
+            'M' => 'Desa Domisili',
+            'N' => 'Kecamatan Domisili',
+            'O' => 'Kab Domisili',
+            'P' => 'Provinsi Domisili',
+            'Q' => 'Jalan Tinggal',
+            'R' => 'RT/RW Tinggal',
+            'S' => 'Dusun Tinggal',
+            'T' => 'Desa Tinggal',
+            'U' => 'Kecamatan Tinggal',
+            'V' => 'Kabupaten Tinggal',
+            'W' => 'Provinsi Tinggal',
+            'X' => 'Status Rumah',
+            'Y' => 'Kepemilikan BPJS (Ya/Tidak)',
+            'Z' => 'Penanggung BPJS',
+            'AA' => 'Skill',
+            'AB' => 'Status Pernikahan',
+            'AC' => 'Nama Suami/Istri',
+            'AD' => 'TTL Suami/Istri',
+            'AE' => 'Pekerjaan Suami/Istri',
+            'AF' => 'Tanggal Menikah',
+            'AG' => 'Jumlah Anak',
+            'AH' => 'Nama Ibu',
+            'AI' => 'Nama Ayah',
+            'AJ' => 'Alamat Orangtua',
+            'AK' => 'Kontak Darurat',
+            'AL' => 'Hubungan Kontak Darurat',
         ];
 
         foreach ($headers1 as $col => $label) {
@@ -484,25 +486,26 @@ class EmployeeController extends Controller
         // Format NIK column as Text explicitly so "0001/2" is preserved
         $sheet1->getStyle('F2:F1000')->getNumberFormat()->setFormatCode('@');
         $sheet1->getStyle('A2:A1000')->getNumberFormat()->setFormatCode('@'); // NIPY
-        $sheet1->getStyle('G2:G1000')->getNumberFormat()->setFormatCode('@'); // No WA
+        $sheet1->getStyle('H2:H1000')->getNumberFormat()->setFormatCode('@'); // No WA
 
         // Format dates
         $sheet1->getStyle('E2:E1000')->getNumberFormat()->setFormatCode('yyyy/mm/dd');
-        $sheet1->getStyle('AE2:AE1000')->getNumberFormat()->setFormatCode('yyyy/mm/dd');
+        $sheet1->getStyle('G2:G1000')->getNumberFormat()->setFormatCode('yyyy/mm/dd'); // TMT Pengangkatan
+        $sheet1->getStyle('AF2:AF1000')->getNumberFormat()->setFormatCode('yyyy/mm/dd'); // Tanggal Menikah
 
         // Example row
         $example1 = [
             'A' => '1001', 'B' => 'Ahmad Fauzi, S.Pd', 'C' => 'L', 'D' => 'Semarang', 'E' => '1985/06/15',
-            'F' => '3301150678900001', 'G' => '081234567890', 'H' => 'ahmad@sekolah.sch.id',
-            'I' => 'Jl. Merdeka No. 10', 'J' => '002/005', 'K' => 'Gondang', 'L' => 'Gondangrejo',
-            'M' => 'Gondangrejo', 'N' => 'Karanganyar', 'O' => 'Jawa Tengah',
+            'F' => '3301150678900001', 'G' => '2015/07/01', 'H' => '081234567890', 'I' => 'ahmad@sekolah.sch.id',
+            'J' => 'Jl. Merdeka No. 10', 'K' => '002/005', 'L' => 'Gondang', 'M' => 'Gondangrejo',
+            'N' => 'Karanganyar', 'O' => 'Jawa Tengah',
             'P' => 'Jl. Merdeka No. 10', 'Q' => '002/005', 'R' => 'Gondang', 'S' => 'Gondangrejo',
-            'T' => 'Gondangrejo', 'U' => 'Jawa Tengah', 'V' => 'Milik Sendiri',
-            'W' => 'Ya', 'X' => 'Pribadi',
-            'Y' => 'Matematika, MS Office', 'Z' => 'Menikah', 'AA' => 'Siti Rahayu', 'AB' => 'Solo, 10/03/1987',
-            'AC' => 'Guru', 'AD' => '20/12/2010', 'AE' => '2',
-            'AF' => 'Siti Aminah', 'AG' => 'Budi Santoso', 'AH' => 'Jl. Damai No. 5, Semarang',
-            'AI' => '082345678901', 'AJ' => 'Saudara Kandung',
+            'T' => 'Gondangrejo', 'U' => 'Karanganyar', 'V' => 'Jawa Tengah', 'W' => 'Milik Sendiri',
+            'X' => 'Ya', 'Y' => 'Pribadi',
+            'Z' => 'Matematika, MS Office', 'AA' => 'Menikah', 'AB' => 'Siti Rahayu', 'AC' => 'Solo, 10/03/1987',
+            'AD' => 'Guru', 'AE' => '2010/12/20', 'AF' => '2',
+            'AG' => 'Siti Aminah', 'AH' => 'Budi Santoso', 'AI' => 'Jl. Damai No. 5, Semarang',
+            'AJ' => '082345678901', 'AK' => 'Saudara Kandung',
         ];
 
         foreach ($example1 as $col => $val) {
@@ -510,7 +513,7 @@ class EmployeeController extends Controller
             $sheet1->getStyle("{$col}2")->applyFromArray(['fill' => $exampleFill]);
         }
 
-        $lastCol1 = 'AJ';
+        $lastCol1 = 'AL';
         $sheet1->getStyle("A1:{$lastCol1}1")->applyFromArray(['borders' => $borderStyle]);
         $sheet1->getStyle("A2:{$lastCol1}2")->applyFromArray(['borders' => $borderStyle]);
 
@@ -566,13 +569,12 @@ class EmployeeController extends Controller
             'F' => 'Status Keaktifan',
             'G' => 'Keterangan Tidak Aktif',
             'H' => 'Jenjang Kepegawaian',
-            'I' => 'TMT',
+            'I' => 'TMT Kenaikan Jenjang',
             'J' => 'TST Jenjang',
-            'K' => 'Masa Kerja',
-            'L' => 'Keaktifan Dapodik',
-            'M' => 'Unit Keaktifan Dapodik',
-            'N' => 'Unit Kerja',
-            'O' => 'Jabatan',
+            'K' => 'Keaktifan Dapodik',
+            'L' => 'Unit Keaktifan Dapodik',
+            'M' => 'Unit Kerja',
+            'N' => 'Jabatan',
         ];
 
         foreach ($headers3 as $col => $label) {
@@ -586,11 +588,13 @@ class EmployeeController extends Controller
         }
 
         $sheet3->getStyle('A2:A1000')->getNumberFormat()->setFormatCode('@');
+        $sheet3->getStyle('I2:I1000')->getNumberFormat()->setFormatCode('yyyy/mm/dd');
+        $sheet3->getStyle('J2:J1000')->getNumberFormat()->setFormatCode('yyyy/mm/dd');
 
         $example3 = [
             'A' => '3301150678900001', 'B' => 'Ahmad Fauzi, S.Pd', 'C' => '2025/2026', 'D' => 'Ganjil',
-            'E' => 'Tenaga Pendidik', 'F' => 'Aktif', 'G' => '-', 'H' => 'GTY', 'I' => '01/07/2015', 'J' => '',
-            'K' => '11 Tahun', 'L' => 'Aktif', 'M' => 'SDIT Ulil Albab', 'N' => 'SDIT Ulil Albab', 'O' => 'Guru Kelas',
+            'E' => 'Tenaga Pendidik', 'F' => 'Aktif', 'G' => '-', 'H' => 'GTY', 'I' => '2020/07/01', 'J' => '',
+            'K' => 'Aktif', 'L' => 'SDIT Ulil Albab', 'M' => 'SDIT Ulil Albab', 'N' => 'Guru Kelas',
         ];
 
         foreach ($example3 as $col => $val) {
@@ -598,8 +602,8 @@ class EmployeeController extends Controller
             $sheet3->getStyle("{$col}2")->applyFromArray(['fill' => $exampleFill]);
         }
 
-        $sheet3->getStyle('A1:O1')->applyFromArray(['borders' => $borderStyle]);
-        $sheet3->getStyle('A2:O2')->applyFromArray(['borders' => $borderStyle]);
+        $sheet3->getStyle('A1:N1')->applyFromArray(['borders' => $borderStyle]);
+        $sheet3->getStyle('A2:N2')->applyFromArray(['borders' => $borderStyle]);
 
         // Set active sheet to sheet 1
         $spreadsheet->setActiveSheetIndex(0);

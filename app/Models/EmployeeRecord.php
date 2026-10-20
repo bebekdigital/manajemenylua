@@ -17,9 +17,8 @@ class EmployeeRecord extends Model
         'jenis_kepegawaian',
         'keterangan_tidak_aktif',
         'jenjang_kepegawaian',
-        'tmt',
+        'tmt_kenaikan_jenjang',
         'tst_jenjang',
-        'masa_kerja',
         'keaktifan_dapodik',
         'unit_keaktifan_dapodik',
         'unit_kerja',
@@ -29,8 +28,8 @@ class EmployeeRecord extends Model
     protected function casts(): array
     {
         return [
-            'tmt' => 'date',
-            'tst' => 'date',
+            'tmt_kenaikan_jenjang' => 'date',
+            'tst_jenjang' => 'date',
         ];
     }
 

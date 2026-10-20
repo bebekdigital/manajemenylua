@@ -39,6 +39,7 @@ const tabs = [
     { id: 'alamat', label: 'Alamat', icon: 'home' },
     { id: 'keluarga', label: 'Keluarga', icon: 'family_restroom' },
     { id: 'kepegawaian', label: 'Kepegawaian', icon: 'work' },
+    { id: 'penugasan', label: 'Penugasan', icon: 'assignment_ind' },
     { id: 'pendidikan', label: 'Pendidikan', icon: 'school' },
 ];
 
@@ -87,7 +88,8 @@ const form = useForm({
     kontak_darurat: '',
     hubungan_kontak_darurat: '',
 
-    // Kepegawaian Aktif
+    // Kepegawaian & Penugasan Aktif
+    tmt_pengangkatan: '',
     academic_year_id: null,
     unit_kerja: '',
     jabatan: '',
@@ -95,9 +97,8 @@ const form = useForm({
     status_keaktifan: 'Aktif',
     keterangan_tidak_aktif: '',
     jenjang_kepegawaian: '',
-    tmt: '',
+    tmt_kenaikan_jenjang: '',
     tst_jenjang: '',
-    masa_kerja: '',
     keaktifan_dapodik: '',
     unit_keaktifan_dapodik: '',
 
@@ -147,6 +148,7 @@ function initFormFromProps() {
     form.kontak_darurat = props.employee.kontak_darurat || '';
     form.hubungan_kontak_darurat = props.employee.hubungan_kontak_darurat || '';
 
+    form.tmt_pengangkatan = props.employee.tmt_pengangkatan || '';
     form.academic_year_id = props.selectedAcademicYear?.id || null;
     form.unit_kerja = props.employee.unit_kerja || '';
     form.jabatan = props.employee.jabatan || '';
@@ -154,9 +156,8 @@ function initFormFromProps() {
     form.status_keaktifan = props.employee.status_keaktifan || 'Aktif';
     form.keterangan_tidak_aktif = props.employee.keterangan_tidak_aktif || '';
     form.jenjang_kepegawaian = props.employee.jenjang_kepegawaian || '';
-    form.tmt = props.employee.tmt || '';
+    form.tmt_kenaikan_jenjang = props.employee.tmt_kenaikan_jenjang || '';
     form.tst_jenjang = props.employee.tst_jenjang || '';
-    form.masa_kerja = props.employee.masa_kerja || '';
     form.keaktifan_dapodik = props.employee.keaktifan_dapodik || '';
     form.unit_keaktifan_dapodik = props.employee.unit_keaktifan_dapodik || '';
 
@@ -252,6 +253,46 @@ function getJenjangColor(jenjang) {
         'PTT': 'bg-orange-100 text-orange-700',
     };
     return map[jenjang] ?? 'bg-outline-variant/10 text-on-surface-variant';
+}
+
+function hitungMasaKerja(tmtDate) {
+    if (!tmtDate) return '-';
+    const start = new Date(tmtDate);
+    if (isNaN(start.getTime())) return '-';
+    const now = new Date();
+    if (start > now) return '0 Tahun';
+
+    let years = now.getFullYear() - start.getFullYear();
+    let months = now.getMonth() - start.getMonth();
+    let days = now.getDate() - start.getDate();
+
+    if (days < 0) {
+        months--;
+    }
+    if (months < 0) {
+        years--;
+        months += 12;
+    }
+
+    if (years <= 0 && months <= 0) {
+        return 'Kurang dari 1 bulan';
+    }
+
+    const parts = [];
+    if (years > 0) parts.push(`${years} Tahun`);
+    if (months > 0) parts.push(`${months} Bulan`);
+    return parts.join(' ');
+}
+
+function formatTanggalIndo(dateStr) {
+    if (!dateStr) return '-';
+    try {
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return dateStr;
+        return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+    } catch {
+        return dateStr;
+    }
 }
 
 function hitungUsia(tanggalLahir, ttlString = '') {
@@ -1194,7 +1235,75 @@ function hitungUsia(tanggalLahir, ttlString = '') {
 
                 <!-- TAB 4: KEPEGAWAIAN -->
                 <div v-if="activeTab === 'kepegawaian'" class="space-y-6">
-                    <!-- EDIT FORM FOR ACTIVE YEAR RECORD -->
+                    <!-- DATA STATIS: TMT PENGANGKATAN & MASA KERJA -->
+                    <div class="p-4 sm:p-5 bg-surface-container-low border border-outline-variant/30 rounded-2xl shadow-xs">
+                        <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+                            <h4 class="text-xs sm:text-sm font-bold text-primary flex items-center gap-2">
+                                <span class="material-symbols-outlined text-[20px]">verified</span>
+                                Informasi Pengangkatan & Masa Kerja (Data Statis Pegawai)
+                            </h4>
+                            <span class="text-[11px] text-on-surface-variant bg-surface-container-lowest px-2.5 py-1 rounded-lg border border-outline-variant/30 font-medium">
+                                Database Pegawai
+                            </span>
+                        </div>
+
+                        <!-- View Mode Data Statis -->
+                        <div v-if="!isEditing" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div class="p-3.5 bg-surface-container-lowest rounded-xl border border-outline-variant/20 flex items-start gap-3">
+                                <div class="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
+                                    <span class="material-symbols-outlined text-[20px]">calendar_today</span>
+                                </div>
+                                <div>
+                                    <label class="text-[10px] sm:text-xs font-semibold text-on-surface-variant uppercase tracking-wider block">TMT Pengangkatan</label>
+                                    <p class="text-sm sm:text-base font-bold text-on-surface mt-0.5">
+                                        {{ employee.formatted_tmt_pengangkatan || formatTanggalIndo(employee.tmt_pengangkatan) || '-' }}
+                                    </p>
+                                    <span class="text-[11px] text-outline mt-0.5 block">Terhitung Mulai Tanggal Pengangkatan Pertama Kali</span>
+                                </div>
+                            </div>
+
+                            <div class="p-3.5 bg-surface-container-lowest rounded-xl border border-outline-variant/20 flex items-start gap-3">
+                                <div class="w-9 h-9 rounded-lg bg-secondary/10 text-secondary flex items-center justify-center shrink-0 mt-0.5">
+                                    <span class="material-symbols-outlined text-[20px]">hourglass_top</span>
+                                </div>
+                                <div>
+                                    <label class="text-[10px] sm:text-xs font-semibold text-on-surface-variant uppercase tracking-wider block">Masa Kerja</label>
+                                    <p class="text-sm sm:text-base font-bold text-primary mt-0.5">
+                                        {{ hitungMasaKerja(employee.tmt_pengangkatan) || employee.masa_kerja || '-' }}
+                                    </p>
+                                    <span class="text-[11px] text-outline mt-0.5 block">Dihitung otomatis sejak TMT Pengangkatan</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Edit Mode Data Statis -->
+                        <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
+                                    TMT Pengangkatan
+                                </label>
+                                <input
+                                    v-model="form.tmt_pengangkatan"
+                                    type="date"
+                                    class="w-full px-3.5 py-2.5 bg-surface-container-lowest border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                                />
+                                <span class="text-[11px] text-on-surface-variant mt-1 block">TMT pengangkatan pegawai yayasan</span>
+                            </div>
+
+                            <div class="p-3.5 bg-surface-container-lowest rounded-xl border border-outline-variant/20 flex items-center justify-between gap-3">
+                                <div>
+                                    <label class="text-[10px] sm:text-xs font-semibold text-on-surface-variant uppercase tracking-wider block">Masa Kerja (Dihitung Otomatis)</label>
+                                    <p class="text-sm sm:text-base font-bold text-primary mt-0.5">
+                                        {{ hitungMasaKerja(form.tmt_pengangkatan) }}
+                                    </p>
+                                    <span class="text-[10px] text-outline mt-0.5 block">Otomatis terkalkulasi berdasarkan tanggal TMT di atas</span>
+                                </div>
+                                <span class="material-symbols-outlined text-primary text-3xl opacity-30">update</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- EDIT FORM FOR ACTIVE YEAR RECORD (Hanya saat isEditing) -->
                     <div v-if="isEditing" class="p-4 sm:p-5 bg-surface-container-low/60 border border-primary/30 rounded-2xl space-y-4">
                         <div class="flex items-center gap-2 text-primary font-bold text-sm">
                             <span class="material-symbols-outlined text-[20px]">badge</span>
@@ -1202,30 +1311,6 @@ function hitungUsia(tanggalLahir, ttlString = '') {
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">Unit Kerja</label>
-                                <input
-                                    v-model="form.unit_kerja"
-                                    list="unitOptionsDetail"
-                                    type="text"
-                                    placeholder="Pilih atau ketik unit kerja"
-                                    class="w-full px-3.5 py-2.5 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                                />
-                                <datalist id="unitOptionsDetail">
-                                    <option v-for="unit in availableUnits" :key="unit" :value="unit" />
-                                </datalist>
-                            </div>
-
-                            <div>
-                                <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">Jabatan</label>
-                                <input
-                                    v-model="form.jabatan"
-                                    type="text"
-                                    placeholder="Contoh: Guru Kelas, Kepala Sekolah, dll."
-                                    class="w-full px-3.5 py-2.5 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                                />
-                            </div>
-
                             <div>
                                 <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">Jenjang Kepegawaian</label>
                                 <select
@@ -1274,9 +1359,9 @@ function hitungUsia(tanggalLahir, ttlString = '') {
                             </div>
 
                             <div>
-                                <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">TMT (Terhitung Mulai Tanggal)</label>
+                                <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">TMT Kenaikan Jenjang</label>
                                 <input
-                                    v-model="form.tmt"
+                                    v-model="form.tmt_kenaikan_jenjang"
                                     type="date"
                                     class="w-full px-3.5 py-2.5 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
                                 />
@@ -1290,46 +1375,14 @@ function hitungUsia(tanggalLahir, ttlString = '') {
                                     class="w-full px-3.5 py-2.5 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
                                 />
                             </div>
-
-                            <div>
-                                <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">Masa Kerja</label>
-                                <input
-                                    v-model="form.masa_kerja"
-                                    type="text"
-                                    placeholder="Contoh: 5 Tahun 2 Bulan"
-                                    class="w-full px-3.5 py-2.5 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                                />
-                            </div>
-
-                            <div>
-                                <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">Keaktifan Dapodik</label>
-                                <select
-                                    v-model="form.keaktifan_dapodik"
-                                    class="w-full px-3.5 py-2.5 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
-                                >
-                                    <option value="">-- Pilih Status --</option>
-                                    <option value="Aktif">Aktif</option>
-                                    <option value="Tidak Aktif">Tidak Aktif</option>
-                                </select>
-                            </div>
-
-                            <div class="md:col-span-2">
-                                <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">Unit Keaktifan Dapodik</label>
-                                <input
-                                    v-model="form.unit_keaktifan_dapodik"
-                                    type="text"
-                                    placeholder="Unit yang terdaftar di Dapodik"
-                                    class="w-full px-3.5 py-2.5 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                                />
-                            </div>
                         </div>
                     </div>
 
-                    <!-- RIWAYAT KEPEGAWAIAN LIST -->
+                    <!-- RIWAYAT KEPEGAWAIAN LIST (Berdasarkan Tahun Ajaran) -->
                     <div>
                         <h4 class="text-xs sm:text-sm font-bold text-primary mb-3 flex items-center gap-2">
                             <span class="material-symbols-outlined text-[18px]">work_history</span>
-                            Riwayat Catatan Kepegawaian (Seluruh Tahun Ajaran)
+                            Riwayat Catatan Kepegawaian Tiap Tahun Ajaran
                         </h4>
 
                         <div v-if="employee.riwayat_kepegawaian && employee.riwayat_kepegawaian.length > 0">
@@ -1364,6 +1417,142 @@ function hitungUsia(tanggalLahir, ttlString = '') {
 
                                 <div class="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-3">
                                     <div>
+                                        <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Jenis Kepegawaian</label>
+                                        <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ record.jenis_kepegawaian || '-' }}</p>
+                                    </div>
+                                    <div>
+                                        <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Jenjang Kepegawaian</label>
+                                        <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ record.jenjang_kepegawaian || '-' }}</p>
+                                    </div>
+                                    <div>
+                                        <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Status Keaktifan</label>
+                                        <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ record.status_keaktifan || '-' }}</p>
+                                    </div>
+                                    <div>
+                                        <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Keterangan Tidak Aktif</label>
+                                        <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ record.keterangan_tidak_aktif || '-' }}</p>
+                                    </div>
+                                    <div>
+                                        <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">TMT Kenaikan Jenjang</label>
+                                        <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ record.formatted_tmt_kenaikan_jenjang || formatTanggalIndo(record.tmt_kenaikan_jenjang) || '-' }}</p>
+                                    </div>
+                                    <div>
+                                        <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">TST Jenjang</label>
+                                        <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ record.formatted_tst_jenjang || formatTanggalIndo(record.tst_jenjang) || '-' }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div v-else class="py-10 text-center border-2 border-dashed border-outline-variant/30 rounded-2xl">
+                            <span class="material-symbols-outlined text-4xl text-outline/60 block mb-2">work_history</span>
+                            <p class="text-sm text-on-surface-variant">Belum ada riwayat kepegawaian</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 5: PENUGASAN (BARU) -->
+                <div v-if="activeTab === 'penugasan'" class="space-y-6">
+                    <!-- EDIT FORM FOR ACTIVE YEAR RECORD PENUGASAN (Hanya saat isEditing) -->
+                    <div v-if="isEditing" class="p-4 sm:p-5 bg-surface-container-low/60 border border-primary/30 rounded-2xl space-y-4">
+                        <div class="flex items-center gap-2 text-primary font-bold text-sm">
+                            <span class="material-symbols-outlined text-[20px]">assignment</span>
+                            <h4>Data Penugasan (Tahun Ajaran Aktif: {{ selectedAcademicYear ? `${selectedAcademicYear.name} - ${selectedAcademicYear.semester}` : 'Aktif' }})</h4>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">Unit Kerja</label>
+                                <input
+                                    v-model="form.unit_kerja"
+                                    list="unitOptionsDetail"
+                                    type="text"
+                                    placeholder="Pilih atau ketik unit kerja"
+                                    class="w-full px-3.5 py-2.5 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                />
+                                <datalist id="unitOptionsDetail">
+                                    <option v-for="unit in availableUnits" :key="unit" :value="unit" />
+                                </datalist>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">Jabatan</label>
+                                <input
+                                    v-model="form.jabatan"
+                                    type="text"
+                                    placeholder="Contoh: Guru Kelas, Kepala Sekolah, dll."
+                                    class="w-full px-3.5 py-2.5 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                />
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">Keaktifan Dapodik</label>
+                                <select
+                                    v-model="form.keaktifan_dapodik"
+                                    class="w-full px-3.5 py-2.5 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                                >
+                                    <option value="">-- Pilih Status --</option>
+                                    <option value="Aktif">Aktif</option>
+                                    <option value="Tidak Aktif">Tidak Aktif</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">Unit Keaktifan Dapodik</label>
+                                <input
+                                    v-model="form.unit_keaktifan_dapodik"
+                                    type="text"
+                                    placeholder="Unit yang terdaftar di Dapodik"
+                                    class="w-full px-3.5 py-2.5 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- RIWAYAT PENUGASAN LIST -->
+                    <div>
+                        <h4 class="text-xs sm:text-sm font-bold text-primary mb-3 flex items-center gap-2">
+                            <span class="material-symbols-outlined text-[18px]">assignment_ind</span>
+                            Riwayat Penugasan Tiap Tahun Ajaran
+                        </h4>
+
+                        <div v-if="employee.riwayat_kepegawaian && employee.riwayat_kepegawaian.length > 0">
+                            <div
+                                v-for="record in employee.riwayat_kepegawaian"
+                                :key="'penugasan-' + record.id"
+                                class="mb-4 p-4 bg-surface-container-low border border-outline-variant/30 rounded-xl"
+                            >
+                                <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+                                    <div class="flex items-center gap-2">
+                                        <span class="material-symbols-outlined text-[18px] text-primary">calendar_month</span>
+                                        <span class="text-sm font-bold text-on-surface">
+                                            {{ record.tahun_ajaran }} — Semester {{ record.semester }}
+                                        </span>
+                                    </div>
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <span
+                                            v-if="record.unit_kerja"
+                                            class="inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-semibold bg-primary/10 text-primary"
+                                        >
+                                            {{ record.unit_kerja }}
+                                        </span>
+                                        <span
+                                            v-if="record.keaktifan_dapodik"
+                                            :class="[
+                                                'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold',
+                                                record.keaktifan_dapodik === 'Aktif'
+                                                    ? 'bg-emerald-100 text-emerald-700'
+                                                    : 'bg-slate-100 text-slate-500'
+                                            ]"
+                                        >
+                                            <span class="w-1.5 h-1.5 rounded-full bg-current"></span>
+                                            Dapodik: {{ record.keaktifan_dapodik }}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-3">
+                                    <div>
                                         <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Unit</label>
                                         <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ record.unit_kerja || '-' }}</p>
                                     </div>
@@ -1376,24 +1565,16 @@ function hitungUsia(tanggalLahir, ttlString = '') {
                                         <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ record.keaktifan_dapodik || '-' }}</p>
                                     </div>
                                     <div>
-                                        <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">TMT</label>
-                                        <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ record.formatted_tmt || '-' }}</p>
-                                    </div>
-                                    <div>
-                                        <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">TST</label>
-                                        <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ record.formatted_tst_jenjang || '-' }}</p>
-                                    </div>
-                                    <div>
-                                        <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Masa Kerja</label>
-                                        <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ record.masa_kerja || '-' }}</p>
+                                        <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Unit Keaktifan Dapodik</label>
+                                        <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ record.unit_keaktifan_dapodik || '-' }}</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
                         <div v-else class="py-10 text-center border-2 border-dashed border-outline-variant/30 rounded-2xl">
-                            <span class="material-symbols-outlined text-4xl text-outline/60 block mb-2">work_history</span>
-                            <p class="text-sm text-on-surface-variant">Belum ada riwayat kepegawaian</p>
+                            <span class="material-symbols-outlined text-4xl text-outline/60 block mb-2">assignment_late</span>
+                            <p class="text-sm text-on-surface-variant">Belum ada riwayat penugasan untuk pegawai ini</p>
                         </div>
                     </div>
                 </div>
