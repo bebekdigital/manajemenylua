@@ -256,7 +256,7 @@ function getJenjangColor(jenjang) {
 </script>
 
 <template>
-    <div class="flex-1 overflow-y-auto p-4 md:p-margin-desktop bg-surface-container-lowest">
+    <div class="flex-1 overflow-y-auto p-4 md:p-margin-desktop bg-surface-container-lowest" :class="{ 'pb-24': isEditing }">
         <Head :title="`${isEditing ? 'Edit' : 'Detail'} Pegawai - ${employee.nama}`" />
 
         <!-- Back Button -->
@@ -318,7 +318,7 @@ function getJenjangColor(jenjang) {
                 <div>
                     <h4 class="text-sm font-bold text-primary">Mode Edit Langsung Aktif</h4>
                     <p class="text-xs text-on-surface-variant mt-0.5">
-                        Anda dapat mengubah data langsung pada tab di bawah ini. Klik <strong>Simpan Perubahan</strong> untuk menyimpan atau <strong>Batal</strong> untuk membatalkan.
+                        Anda dapat mengubah data langsung pada tab di bawah ini. Klik tombol <strong>Simpan Perubahan</strong> yang melayang di pojok kanan bawah untuk menyimpan.
                     </p>
                 </div>
             </div>
@@ -330,16 +330,6 @@ function getJenjangColor(jenjang) {
                     :disabled="form.processing"
                 >
                     Batal
-                </button>
-                <button
-                    type="button"
-                    @click="saveChanges"
-                    class="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-primary hover:bg-primary-container text-on-primary text-xs font-semibold transition-all shadow-xs hover:shadow-md cursor-pointer disabled:opacity-60"
-                    :disabled="form.processing"
-                >
-                    <span v-if="form.processing" class="material-symbols-outlined text-[16px] animate-spin">sync</span>
-                    <span v-else class="material-symbols-outlined text-[16px]">save</span>
-                    <span>{{ form.processing ? 'Menyimpan...' : 'Simpan Perubahan' }}</span>
                 </button>
             </div>
         </div>
@@ -391,27 +381,16 @@ function getJenjangColor(jenjang) {
                         <span>Edit Data Pegawai</span>
                     </button>
 
-                    <template v-else>
-                        <button
-                            type="button"
-                            @click="cancelEdit"
-                            class="inline-flex items-center gap-1.5 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl border border-outline-variant/60 text-on-surface-variant hover:bg-surface-container-high font-semibold text-xs sm:text-sm transition-all cursor-pointer"
-                            :disabled="form.processing"
-                        >
-                            <span class="material-symbols-outlined text-[18px]">close</span>
-                            <span>Batal</span>
-                        </button>
-                        <button
-                            type="button"
-                            @click="saveChanges"
-                            class="inline-flex items-center gap-1.5 px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl bg-primary hover:bg-primary-container text-on-primary font-semibold text-xs sm:text-sm transition-all shadow-xs hover:shadow-md cursor-pointer disabled:opacity-60"
-                            :disabled="form.processing"
-                        >
-                            <span v-if="form.processing" class="material-symbols-outlined text-[18px] animate-spin">sync</span>
-                            <span v-else class="material-symbols-outlined text-[18px]">save</span>
-                            <span>{{ form.processing ? 'Menyimpan...' : 'Simpan Perubahan' }}</span>
-                        </button>
-                    </template>
+                    <button
+                        v-else
+                        type="button"
+                        @click="cancelEdit"
+                        class="inline-flex items-center gap-1.5 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl border border-outline-variant/60 text-on-surface-variant hover:bg-surface-container-high font-semibold text-xs sm:text-sm transition-all cursor-pointer"
+                        :disabled="form.processing"
+                    >
+                        <span class="material-symbols-outlined text-[18px]">close</span>
+                        <span>Batal</span>
+                    </button>
                 </div>
             </div>
 
@@ -1547,37 +1526,40 @@ function getJenjangColor(jenjang) {
             </div>
         </div>
 
-        <!-- Floating Sticky Bottom Bar when in Edit Mode -->
-        <div
-            v-if="isEditing"
-            class="sticky bottom-4 z-20 mt-6 bg-surface-container-lowest/95 backdrop-blur-md p-4 rounded-2xl border border-primary/30 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-3 animate-in fade-in"
+        <!-- Floating Action Button when in Edit Mode -->
+        <Transition
+            enter-active-class="transition duration-300 ease-out"
+            enter-from-class="opacity-0 translate-y-8 scale-95"
+            enter-to-class="opacity-100 translate-y-0 scale-100"
+            leave-active-class="transition duration-200 ease-in"
+            leave-from-class="opacity-100 translate-y-0 scale-100"
+            leave-to-class="opacity-0 translate-y-8 scale-95"
         >
-            <div class="flex items-center gap-2.5 text-xs sm:text-sm text-on-surface">
-                <span class="w-2.5 h-2.5 rounded-full bg-primary animate-pulse shrink-0"></span>
-                <span class="font-medium">
-                    Perubahan belum disimpan. Pindah antar tab untuk mengubah data lain, lalu klik <strong>Simpan Perubahan</strong>.
-                </span>
-            </div>
-            <div class="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+            <div
+                v-if="isEditing"
+                class="fixed bottom-6 right-6 sm:bottom-8 sm:right-8 z-50 flex items-center gap-2 bg-surface-container-lowest/95 backdrop-blur-md p-2 sm:p-2.5 rounded-2xl border border-primary/30 shadow-[0_12px_36px_rgba(0,0,0,0.22)] ring-1 ring-black/5"
+            >
                 <button
                     type="button"
                     @click="cancelEdit"
-                    class="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-on-surface-variant hover:bg-surface-container-high border border-outline-variant/60 transition-colors cursor-pointer"
+                    class="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high border border-outline-variant/60 transition-all cursor-pointer"
                     :disabled="form.processing"
+                    title="Batalkan perubahan"
                 >
                     Batal
                 </button>
                 <button
                     type="button"
                     @click="saveChanges"
-                    class="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl bg-primary hover:bg-primary-container text-on-primary font-semibold text-xs sm:text-sm transition-all shadow-xs hover:shadow-md cursor-pointer disabled:opacity-60"
+                    class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-container text-on-primary font-bold text-xs sm:text-sm transition-all shadow-md hover:shadow-lg active:scale-95 cursor-pointer disabled:opacity-60"
                     :disabled="form.processing"
+                    title="Simpan semua perubahan data pegawai"
                 >
-                    <span v-if="form.processing" class="material-symbols-outlined text-[16px] animate-spin">sync</span>
-                    <span v-else class="material-symbols-outlined text-[16px]">save</span>
+                    <span v-if="form.processing" class="material-symbols-outlined text-[18px] animate-spin">sync</span>
+                    <span v-else class="material-symbols-outlined text-[18px]">save</span>
                     <span>{{ form.processing ? 'Menyimpan...' : 'Simpan Perubahan' }}</span>
                 </button>
             </div>
-        </div>
+        </Transition>
     </div>
 </template>
