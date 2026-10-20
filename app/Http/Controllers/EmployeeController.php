@@ -5,9 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\AcademicYear;
 use App\Models\Employee;
 use App\Models\EmployeeRecord;
+use App\Models\SchoolUnit;
 use App\Services\EmployeeImportService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -79,6 +82,7 @@ class EmployeeController extends Controller
         $allYears = AcademicYear::orderByDesc('name')->orderByDesc('semester')->get();
 
         $employeeData = [
+            'id' => $employee->id,
             'nipy' => $employee->nipy,
             'nama' => $employee->nama,
             'jk' => $employee->jk,
@@ -104,6 +108,7 @@ class EmployeeController extends Controller
             'dusun_tinggal' => $employee->dusun_tinggal,
             'desa_tinggal' => $employee->desa_tinggal,
             'kecamatan_tinggal' => $employee->kecamatan_tinggal,
+            'kabupaten_tinggal' => $employee->kabupaten_tinggal,
             'provinsi_tinggal' => $employee->provinsi_tinggal,
             'status_rumah' => $employee->status_rumah,
             'kepemilikan_bpjs' => $employee->kepemilikan_bpjs,
@@ -125,12 +130,20 @@ class EmployeeController extends Controller
             'hubungan_kontak_darurat' => $employee->hubungan_kontak_darurat,
 
             // Kepegawaian aktif
+            'academic_record_id' => $currentRecord?->id,
             'unit_kerja' => $currentRecord?->unit_kerja,
             'jabatan' => $currentRecord?->jabatan,
             'jenis_kepegawaian' => $currentRecord?->jenis_kepegawaian,
             'status_keaktifan' => $currentRecord?->status_keaktifan,
             'keterangan_tidak_aktif' => $currentRecord?->keterangan_tidak_aktif,
             'jenjang_kepegawaian' => $currentRecord?->jenjang_kepegawaian,
+            'tmt' => $currentRecord?->tmt?->format('Y-m-d'),
+            'formatted_tmt' => $currentRecord?->tmt?->translatedFormat('d F Y'),
+            'tst_jenjang' => $currentRecord?->tst_jenjang?->format('Y-m-d'),
+            'formatted_tst_jenjang' => $currentRecord?->tst_jenjang?->translatedFormat('d F Y'),
+            'masa_kerja' => $currentRecord?->masa_kerja,
+            'keaktifan_dapodik' => $currentRecord?->keaktifan_dapodik,
+            'unit_keaktifan_dapodik' => $currentRecord?->unit_keaktifan_dapodik,
 
             // Semua riwayat kepegawaian (untuk tab)
             'riwayat_kepegawaian' => $employee->records->map(fn ($r) => [
@@ -163,20 +176,172 @@ class EmployeeController extends Controller
             ])->toArray(),
         ];
 
+        $units = SchoolUnit::orderBy('name')->pluck('name')->toArray();
+        $extraUnits = EmployeeRecord::whereNotNull('unit_kerja')->distinct()->pluck('unit_kerja')->toArray();
+        $availableUnits = array_values(array_unique(array_filter(array_merge($units, $extraUnits))));
+        sort($availableUnits);
+
         return Inertia::render('StaffDetail', [
             'employee' => $employeeData,
             'selectedAcademicYear' => $selectedYear ? [
                 'id' => $selectedYear->id,
                 'name' => $selectedYear->name,
                 'semester' => $selectedYear->semester,
-
             ] : null,
             'allAcademicYears' => $allYears->map(fn ($y) => [
                 'id' => $y->id,
                 'name' => $y->name,
                 'semester' => $y->semester,
             ])->toArray(),
+            'availableUnits' => $availableUnits,
         ]);
+    }
+
+    /**
+     * Update the specified employee in storage.
+     */
+    public function update(Request $request, string $id): RedirectResponse
+    {
+        $employee = Employee::findOrFail($id);
+
+        $validated = $request->validate([
+            // Identitas
+            'nama' => ['required', 'string', 'max:255'],
+            'nipy' => ['nullable', 'string', 'max:50'],
+            'nik' => [
+                'nullable',
+                'string',
+                'max:50',
+                Rule::unique('employees', 'nik')->ignore($employee->id),
+            ],
+            'jk' => ['nullable', 'in:L,P'],
+            'tempat_lahir' => ['nullable', 'string', 'max:100'],
+            'tanggal_lahir' => ['nullable', 'date'],
+            'no_wa' => ['nullable', 'string', 'max:50'],
+            'email' => ['nullable', 'email', 'max:100'],
+            'skill' => ['nullable', 'string', 'max:255'],
+
+            // Alamat Domisili
+            'jalan_domisili' => ['nullable', 'string', 'max:255'],
+            'rt_rw_domisili' => ['nullable', 'string', 'max:50'],
+            'dusun_domisili' => ['nullable', 'string', 'max:100'],
+            'desa_domisili' => ['nullable', 'string', 'max:100'],
+            'kecamatan_domisili' => ['nullable', 'string', 'max:100'],
+            'kab_domisili' => ['nullable', 'string', 'max:100'],
+            'provinsi_domisili' => ['nullable', 'string', 'max:100'],
+
+            // Alamat Tinggal
+            'jalan_tinggal' => ['nullable', 'string', 'max:255'],
+            'rt_rw_tinggal' => ['nullable', 'string', 'max:50'],
+            'dusun_tinggal' => ['nullable', 'string', 'max:100'],
+            'desa_tinggal' => ['nullable', 'string', 'max:100'],
+            'kecamatan_tinggal' => ['nullable', 'string', 'max:100'],
+            'kabupaten_tinggal' => ['nullable', 'string', 'max:100'],
+            'provinsi_tinggal' => ['nullable', 'string', 'max:100'],
+            'status_rumah' => ['nullable', 'string', 'max:50'],
+            'kepemilikan_bpjs' => ['nullable', 'string', 'max:50'],
+            'penanggung_bpjs' => ['nullable', 'string', 'max:100'],
+
+            // Keluarga
+            'status_pernikahan' => ['nullable', 'string', 'max:50'],
+            'nama_suami_istri' => ['nullable', 'string', 'max:255'],
+            'ttl_suami_istri' => ['nullable', 'string', 'max:100'],
+            'pekerjaan_suami_istri' => ['nullable', 'string', 'max:100'],
+            'tanggal_menikah' => ['nullable', 'date'],
+            'jumlah_anak' => ['nullable', 'integer', 'min:0'],
+            'nama_ibu' => ['nullable', 'string', 'max:255'],
+            'nama_ayah' => ['nullable', 'string', 'max:255'],
+            'alamat_orangtua' => ['nullable', 'string', 'max:255'],
+            'kontak_darurat' => ['nullable', 'string', 'max:50'],
+            'hubungan_kontak_darurat' => ['nullable', 'string', 'max:100'],
+
+            // Kepegawaian aktif
+            'academic_year_id' => ['nullable', 'exists:academic_years,id'],
+            'unit_kerja' => ['nullable', 'string', 'max:100'],
+            'jabatan' => ['nullable', 'string', 'max:100'],
+            'jenis_kepegawaian' => ['nullable', 'string', 'max:100'],
+            'status_keaktifan' => ['nullable', 'string', 'max:50'],
+            'keterangan_tidak_aktif' => ['nullable', 'string', 'max:255'],
+            'jenjang_kepegawaian' => ['nullable', 'string', 'max:50'],
+            'tmt' => ['nullable', 'date'],
+            'tst_jenjang' => ['nullable', 'date'],
+            'masa_kerja' => ['nullable', 'string', 'max:50'],
+            'keaktifan_dapodik' => ['nullable', 'string', 'max:50'],
+            'unit_keaktifan_dapodik' => ['nullable', 'string', 'max:100'],
+
+            // Riwayat Pendidikan
+            'riwayat_pendidikan' => ['nullable', 'array'],
+            'riwayat_pendidikan.*.jenjang_pendidikan' => ['nullable', 'string', 'max:50'],
+            'riwayat_pendidikan.*.jurusan' => ['nullable', 'string', 'max:100'],
+            'riwayat_pendidikan.*.instansi_pendidikan' => ['nullable', 'string', 'max:150'],
+            'riwayat_pendidikan.*.tahun_lulus' => ['nullable', 'string', 'max:20'],
+            'riwayat_pendidikan.*.pembiayaan' => ['nullable', 'string', 'max:50'],
+        ], [
+            'nama.required' => 'Nama lengkap wajib diisi.',
+            'nik.unique' => 'NIK sudah digunakan oleh pegawai lain.',
+        ]);
+
+        DB::transaction(function () use ($employee, $validated) {
+            $employee->update(collect($validated)->except([
+                'academic_year_id',
+                'unit_kerja',
+                'jabatan',
+                'jenis_kepegawaian',
+                'status_keaktifan',
+                'keterangan_tidak_aktif',
+                'jenjang_kepegawaian',
+                'tmt',
+                'tst_jenjang',
+                'masa_kerja',
+                'keaktifan_dapodik',
+                'unit_keaktifan_dapodik',
+                'riwayat_pendidikan',
+            ])->toArray());
+
+            $academicYearId = $validated['academic_year_id']
+                ?? session('selected_academic_year_id')
+                ?? AcademicYear::current()?->id
+                ?? AcademicYear::first()?->id;
+
+            if ($academicYearId) {
+                EmployeeRecord::updateOrCreate(
+                    [
+                        'employee_id' => $employee->id,
+                        'academic_year_id' => $academicYearId,
+                    ],
+                    [
+                        'unit_kerja' => $validated['unit_kerja'] ?? null,
+                        'jabatan' => $validated['jabatan'] ?? null,
+                        'jenis_kepegawaian' => $validated['jenis_kepegawaian'] ?? null,
+                        'status_keaktifan' => $validated['status_keaktifan'] ?? null,
+                        'keterangan_tidak_aktif' => $validated['keterangan_tidak_aktif'] ?? null,
+                        'jenjang_kepegawaian' => $validated['jenjang_kepegawaian'] ?? null,
+                        'tmt' => $validated['tmt'] ?? null,
+                        'tst_jenjang' => $validated['tst_jenjang'] ?? null,
+                        'masa_kerja' => $validated['masa_kerja'] ?? null,
+                        'keaktifan_dapodik' => $validated['keaktifan_dapodik'] ?? null,
+                        'unit_keaktifan_dapodik' => $validated['unit_keaktifan_dapodik'] ?? null,
+                    ]
+                );
+            }
+
+            if (isset($validated['riwayat_pendidikan'])) {
+                $employee->educationHistories()->delete();
+                foreach ($validated['riwayat_pendidikan'] as $edu) {
+                    if (! empty($edu['jenjang_pendidikan']) || ! empty($edu['instansi_pendidikan']) || ! empty($edu['jurusan'])) {
+                        $employee->educationHistories()->create([
+                            'jenjang_pendidikan' => $edu['jenjang_pendidikan'] ?? null,
+                            'jurusan' => $edu['jurusan'] ?? null,
+                            'instansi_pendidikan' => $edu['instansi_pendidikan'] ?? null,
+                            'tahun_lulus' => $edu['tahun_lulus'] ?? null,
+                            'pembiayaan' => $edu['pembiayaan'] ?? null,
+                        ]);
+                    }
+                }
+            }
+        });
+
+        return back()->with('success', "Data pegawai '{$employee->nama}' berhasil diperbarui.");
     }
 
     /**

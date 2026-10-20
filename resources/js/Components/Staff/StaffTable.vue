@@ -122,6 +122,13 @@ function getJenjangColor(jenjang) {
                                 >
                                     <span class="material-symbols-outlined text-[16px] sm:text-[18px]">visibility</span>
                                 </Link>
+                                <Link
+                                    :href="`/staff/${emp.id}?edit=true`"
+                                    class="inline-flex items-center justify-center p-1 sm:p-1.5 text-secondary bg-secondary/10 hover:bg-secondary/20 rounded-md transition-colors shrink-0"
+                                    title="Edit Data Pegawai"
+                                >
+                                    <span class="material-symbols-outlined text-[16px] sm:text-[18px]">edit</span>
+                                </Link>
                                 <span class="text-[12px] sm:text-sm font-semibold text-on-surface whitespace-nowrap">{{ emp.nama }}</span>
                             </div>
                         </td>

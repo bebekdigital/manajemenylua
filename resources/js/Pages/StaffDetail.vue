@@ -1,7 +1,8 @@
 <script setup>
-import { ref } from 'vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { ref, computed, onMounted } from 'vue';
+import { Head, Link, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import StaffEditModal from '@/Components/Staff/StaffEditModal.vue';
 
 defineOptions({
     layout: AppLayout,
@@ -20,9 +21,26 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    availableUnits: {
+        type: Array,
+        default: () => [],
+    },
 });
 
+const page = usePage();
 const activeTab = ref('identitas');
+const showEditModal = ref(false);
+const dismissedFlash = ref(false);
+
+const flashSuccess = computed(() => !dismissedFlash.value ? page.props.flash?.success : null);
+const flashError = computed(() => !dismissedFlash.value ? page.props.flash?.error : null);
+
+onMounted(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('edit') === 'true') {
+        showEditModal.value = true;
+    }
+});
 
 const tabs = [
     { id: 'identitas', label: 'Identitas', icon: 'badge' },
@@ -38,7 +56,7 @@ function getAlamatDomisili(e) {
 }
 
 function getAlamatTinggal(e) {
-    return [e.jalan_tinggal, e.rt_rw_tinggal, e.dusun_tinggal, e.desa_tinggal, e.kecamatan_tinggal, e.provinsi_tinggal]
+    return [e.jalan_tinggal, e.rt_rw_tinggal, e.dusun_tinggal, e.desa_tinggal, e.kecamatan_tinggal, e.kabupaten_tinggal, e.provinsi_tinggal]
         .filter(Boolean).join(', ') || '-';
 }
 
@@ -67,26 +85,67 @@ function getJenjangColor(jenjang) {
     <Head :title="`Detail Pegawai - ${employee.nama}`" />
 
     <div class="flex-1 overflow-y-auto p-4 md:p-margin-desktop bg-surface-container-lowest">
-        <!-- Back Button -->
-        <div class="mb-4">
+        <!-- Back Button & Quick Actions -->
+        <div class="mb-4 flex items-center justify-between gap-4">
             <Link href="/staff" class="inline-flex items-center gap-1 text-sm font-medium text-on-surface-variant hover:text-primary transition-colors">
                 <span class="material-symbols-outlined text-[18px]">arrow_back</span>
                 Kembali ke Data Pegawai
             </Link>
         </div>
 
+        <!-- Flash Notifications -->
+        <div
+            v-if="flashSuccess"
+            class="mb-5 p-4 bg-primary/10 border border-primary/30 rounded-2xl flex items-start justify-between gap-3 animate-in fade-in duration-200"
+        >
+            <div class="flex items-start gap-3">
+                <span class="material-symbols-outlined text-primary text-2xl shrink-0 mt-0.5">check_circle</span>
+                <div>
+                    <h4 class="text-sm font-bold text-primary">Berhasil</h4>
+                    <p class="text-xs text-on-surface-variant mt-0.5 leading-relaxed">{{ flashSuccess }}</p>
+                </div>
+            </div>
+            <button
+                type="button"
+                @click="dismissedFlash = true"
+                class="text-on-surface-variant hover:text-on-surface p-1 rounded-full hover:bg-primary/15 transition-colors cursor-pointer"
+            >
+                <span class="material-symbols-outlined text-lg">close</span>
+            </button>
+        </div>
+
+        <div
+            v-if="flashError"
+            class="mb-5 p-4 bg-error/10 border border-error/30 rounded-2xl flex items-start justify-between gap-3 animate-in fade-in duration-200"
+        >
+            <div class="flex items-start gap-3">
+                <span class="material-symbols-outlined text-error text-2xl shrink-0 mt-0.5">error</span>
+                <div>
+                    <h4 class="text-sm font-bold text-error">Terjadi Kesalahan</h4>
+                    <p class="text-xs text-on-surface-variant mt-0.5 leading-relaxed">{{ flashError }}</p>
+                </div>
+            </div>
+            <button
+                type="button"
+                @click="dismissedFlash = true"
+                class="text-on-surface-variant hover:text-on-surface p-1 rounded-full hover:bg-error/15 transition-colors cursor-pointer"
+            >
+                <span class="material-symbols-outlined text-lg">close</span>
+            </button>
+        </div>
+
         <div class="bg-surface-container-lowest rounded-2xl shadow-sm border border-outline-variant/30 flex flex-col overflow-hidden">
             <!-- Profile Header -->
-            <div class="flex items-center justify-between px-6 py-5 border-b border-outline-variant/30 bg-surface-container-low">
-                <div class="flex items-center gap-5">
-                    <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-primary/10 flex items-center justify-center overflow-hidden border-2 border-outline-variant/20 shadow-sm shrink-0">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between p-5 sm:px-6 sm:py-5 border-b border-outline-variant/30 bg-surface-container-low gap-4">
+                <div class="flex items-center gap-4 sm:gap-5">
+                    <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-primary/10 flex items-center justify-center overflow-hidden border-2 border-outline-variant/20 shadow-sm shrink-0">
                         <span class="text-primary font-bold text-2xl sm:text-3xl">
                             {{ employee.nama ? employee.nama.charAt(0) : '?' }}
                         </span>
                     </div>
                     <div>
                         <h3 class="text-lg sm:text-xl font-bold text-on-surface">{{ employee.nama }}</h3>
-                        <p class="text-xs sm:text-sm text-on-surface-variant">NIPY: {{ employee.nipy }}</p>
+                        <p class="text-xs sm:text-sm text-on-surface-variant">NIPY: {{ employee.nipy || '-' }}</p>
                         <div class="flex flex-wrap items-center gap-2 mt-2">
                             <span
                                 v-if="employee.jenjang_kepegawaian"
@@ -106,6 +165,19 @@ function getJenjangColor(jenjang) {
                             {{ employee.jabatan }}{{ employee.unit_kerja ? ` · ${employee.unit_kerja}` : '' }}
                         </p>
                     </div>
+                </div>
+
+                <!-- Edit Data Action Button -->
+                <div class="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                    <button
+                        type="button"
+                        @click="showEditModal = true"
+                        class="inline-flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl bg-primary hover:bg-primary-container text-on-primary font-semibold text-xs sm:text-sm transition-all shadow-xs hover:shadow-md cursor-pointer"
+                        title="Edit data pegawai ini"
+                    >
+                        <span class="material-symbols-outlined text-[18px]">edit_square</span>
+                        <span>Edit Data Pegawai</span>
+                    </button>
                 </div>
             </div>
 
@@ -258,6 +330,10 @@ function getJenjangColor(jenjang) {
                             <div>
                                 <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Kecamatan</label>
                                 <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ employee.kecamatan_tinggal || '-' }}</p>
+                            </div>
+                            <div>
+                                <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Kabupaten / Kota</label>
+                                <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ employee.kabupaten_tinggal || '-' }}</p>
                             </div>
                             <div>
                                 <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Provinsi</label>
@@ -477,5 +553,15 @@ function getJenjangColor(jenjang) {
 
             </div>
         </div>
+
+        <!-- Edit Data Modal -->
+        <StaffEditModal
+            :show="showEditModal"
+            :employee="employee"
+            :selected-academic-year="selectedAcademicYear"
+            :available-units="availableUnits"
+            :initial-tab="activeTab"
+            @close="showEditModal = false"
+        />
     </div>
 </template>
