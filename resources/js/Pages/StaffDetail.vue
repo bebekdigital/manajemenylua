@@ -308,31 +308,6 @@ function getJenjangColor(jenjang) {
             </button>
         </div>
 
-        <!-- Mode Edit Indicator Banner -->
-        <div
-            v-if="isEditing"
-            class="mb-4 p-4 rounded-2xl bg-primary/10 border-2 border-primary/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs"
-        >
-            <div class="flex items-center gap-3">
-                <span class="material-symbols-outlined text-primary text-2xl shrink-0">edit_note</span>
-                <div>
-                    <h4 class="text-sm font-bold text-primary">Mode Edit Langsung Aktif</h4>
-                    <p class="text-xs text-on-surface-variant mt-0.5">
-                        Anda dapat mengubah data langsung pada tab di bawah ini. Klik tombol <strong>Simpan Perubahan</strong> yang melayang di pojok kanan bawah untuk menyimpan.
-                    </p>
-                </div>
-            </div>
-            <div class="flex items-center gap-2 shrink-0 self-end sm:self-auto">
-                <button
-                    type="button"
-                    @click="cancelEdit"
-                    class="px-3.5 py-1.5 rounded-xl border border-outline-variant/60 text-on-surface-variant hover:bg-surface-container-high text-xs font-semibold transition-all cursor-pointer"
-                    :disabled="form.processing"
-                >
-                    Batal
-                </button>
-            </div>
-        </div>
 
         <!-- Main Card -->
         <div class="bg-surface-container-lowest rounded-2xl shadow-sm border border-outline-variant/30 flex flex-col overflow-hidden">
@@ -369,9 +344,8 @@ function getJenjangColor(jenjang) {
                 </div>
 
                 <!-- Action Button in Header -->
-                <div class="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                <div v-if="!isEditing" class="flex items-center gap-2 self-start sm:self-auto shrink-0">
                     <button
-                        v-if="!isEditing"
                         type="button"
                         @click="startEdit"
                         class="inline-flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl bg-primary hover:bg-primary-container text-on-primary font-semibold text-xs sm:text-sm transition-all shadow-xs hover:shadow-md cursor-pointer"
@@ -379,17 +353,6 @@ function getJenjangColor(jenjang) {
                     >
                         <span class="material-symbols-outlined text-[18px]">edit_square</span>
                         <span>Edit Data Pegawai</span>
-                    </button>
-
-                    <button
-                        v-else
-                        type="button"
-                        @click="cancelEdit"
-                        class="inline-flex items-center gap-1.5 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl border border-outline-variant/60 text-on-surface-variant hover:bg-surface-container-high font-semibold text-xs sm:text-sm transition-all cursor-pointer"
-                        :disabled="form.processing"
-                    >
-                        <span class="material-symbols-outlined text-[18px]">close</span>
-                        <span>Batal</span>
                     </button>
                 </div>
             </div>
