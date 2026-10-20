@@ -62,7 +62,7 @@ class EmployeeImportService
             foreach ($rowsPegawai as $rowIdx => $row) {
                 $colNipy = $colPegawai['nipy'] ?? 'A';
                 $colNama = $colPegawai['namalengkap'] ?? ($colPegawai['nama'] ?? 'B');
-                $colNik = $colPegawai['nik'] ?? 'F';
+                $colNik = $colPegawai['nik'] ?? 'H';
 
                 $nipy = $this->cleanString($row[$colNipy] ?? null);
                 $nama = $this->cleanString($row[$colNama] ?? null);
@@ -75,48 +75,50 @@ class EmployeeImportService
                 $employeeData = [
                     'nipy' => $nipy,
                     'nama' => $nama,
-                    'jk' => $this->parseGender($row[$colPegawai['jklp'] ?? ($colPegawai['jk'] ?? 'C')] ?? null),
-                    'tempat_lahir' => $this->cleanString($row[$colPegawai['tempatlahir'] ?? 'D'] ?? null),
-                    'tanggal_lahir' => $this->parseDate($row[$colPegawai['tanggallahir'] ?? 'E'] ?? null),
-                    'tmt_pengangkatan' => $this->parseDate($row[$colPegawai['tmtpengangkatan'] ?? ($colPegawai['tmt'] ?? 'G')] ?? null),
-                    'no_wa' => $this->cleanString($row[$colPegawai['nowa'] ?? 'H'] ?? null),
-                    'email' => $this->cleanString($row[$colPegawai['email'] ?? 'I'] ?? null),
+                    'gelar_depan' => $this->cleanString($row[$colPegawai['gelardepan'] ?? 'C'] ?? null),
+                    'gelar_belakang' => $this->cleanString($row[$colPegawai['gelarbelakang'] ?? 'D'] ?? null),
+                    'jk' => $this->parseGender($row[$colPegawai['jklp'] ?? ($colPegawai['jk'] ?? 'E')] ?? null),
+                    'tempat_lahir' => $this->cleanString($row[$colPegawai['tempatlahir'] ?? 'F'] ?? null),
+                    'tanggal_lahir' => $this->parseDate($row[$colPegawai['tanggallahir'] ?? 'G'] ?? null),
+                    'tmt_pengangkatan' => $this->parseDate($row[$colPegawai['tmtpengangkatan'] ?? ($colPegawai['tmt'] ?? 'I')] ?? null),
+                    'no_wa' => $this->cleanString($row[$colPegawai['nowa'] ?? 'J'] ?? null),
+                    'email' => $this->cleanString($row[$colPegawai['email'] ?? 'K'] ?? null),
 
                     // Alamat Domisili
-                    'jalan_domisili' => $this->cleanString($row[$colPegawai['jalandomisili'] ?? 'J'] ?? null),
-                    'rt_rw_domisili' => $this->cleanString($row[$colPegawai['rtrwdomisili'] ?? 'K'] ?? null),
-                    'dusun_domisili' => $this->cleanString($row[$colPegawai['dusundomisili'] ?? 'L'] ?? null),
-                    'desa_domisili' => $this->cleanString($row[$colPegawai['desadomisili'] ?? 'M'] ?? null),
-                    'kecamatan_domisili' => $this->cleanString($row[$colPegawai['kecamatandomisili'] ?? 'N'] ?? null),
-                    'kab_domisili' => $this->cleanString($row[$colPegawai['kabdomisili'] ?? 'O'] ?? null),
-                    'provinsi_domisili' => $this->cleanString($row[$colPegawai['provinsidomisili'] ?? 'P'] ?? null),
+                    'jalan_domisili' => $this->cleanString($row[$colPegawai['jalandomisili'] ?? 'L'] ?? null),
+                    'rt_rw_domisili' => $this->cleanString($row[$colPegawai['rtrwdomisili'] ?? 'M'] ?? null),
+                    'dusun_domisili' => $this->cleanString($row[$colPegawai['dusundomisili'] ?? 'N'] ?? null),
+                    'desa_domisili' => $this->cleanString($row[$colPegawai['desadomisili'] ?? 'O'] ?? null),
+                    'kecamatan_domisili' => $this->cleanString($row[$colPegawai['kecamatandomisili'] ?? 'P'] ?? null),
+                    'kab_domisili' => $this->cleanString($row[$colPegawai['kabdomisili'] ?? 'Q'] ?? null),
+                    'provinsi_domisili' => $this->cleanString($row[$colPegawai['provinsidomisili'] ?? 'R'] ?? null),
 
                     // Alamat Tinggal
-                    'jalan_tinggal' => $this->cleanString($row[$colPegawai['jalantinggal'] ?? 'Q'] ?? null),
-                    'rt_rw_tinggal' => $this->cleanString($row[$colPegawai['rtrwtinggal'] ?? 'R'] ?? null),
-                    'dusun_tinggal' => $this->cleanString($row[$colPegawai['dusuntinggal'] ?? 'S'] ?? null),
-                    'desa_tinggal' => $this->cleanString($row[$colPegawai['desatinggal'] ?? 'T'] ?? null),
-                    'kecamatan_tinggal' => $this->cleanString($row[$colPegawai['kecamatantinggal'] ?? 'U'] ?? null),
-                    'kabupaten_tinggal' => $this->cleanString($row[$colPegawai['kabupatentinggal'] ?? 'V'] ?? null),
-                    'provinsi_tinggal' => $this->cleanString($row[$colPegawai['provinsitinggal'] ?? 'W'] ?? null),
+                    'jalan_tinggal' => $this->cleanString($row[$colPegawai['jalantinggal'] ?? 'S'] ?? null),
+                    'rt_rw_tinggal' => $this->cleanString($row[$colPegawai['rtrwtinggal'] ?? 'T'] ?? null),
+                    'dusun_tinggal' => $this->cleanString($row[$colPegawai['dusuntinggal'] ?? 'U'] ?? null),
+                    'desa_tinggal' => $this->cleanString($row[$colPegawai['desatinggal'] ?? 'V'] ?? null),
+                    'kecamatan_tinggal' => $this->cleanString($row[$colPegawai['kecamatantinggal'] ?? 'W'] ?? null),
+                    'kabupaten_tinggal' => $this->cleanString($row[$colPegawai['kabupatentinggal'] ?? 'X'] ?? null),
+                    'provinsi_tinggal' => $this->cleanString($row[$colPegawai['provinsitinggal'] ?? 'Y'] ?? null),
 
-                    'status_rumah' => $this->cleanString($row[$colPegawai['statusrumah'] ?? 'X'] ?? null),
-                    'kepemilikan_bpjs' => $this->cleanString($row[$colPegawai['kepemilikanbpjsyatidak'] ?? ($colPegawai['kepemilikanbpjs'] ?? 'Y')] ?? null),
-                    'penanggung_bpjs' => $this->cleanString($row[$colPegawai['penanggungbpjs'] ?? 'Z'] ?? null),
-                    'skill' => $this->cleanString($row[$colPegawai['skill'] ?? 'AA'] ?? null),
+                    'status_rumah' => $this->cleanString($row[$colPegawai['statusrumah'] ?? 'Z'] ?? null),
+                    'kepemilikan_bpjs' => $this->cleanString($row[$colPegawai['kepemilikanbpjsyatidak'] ?? ($colPegawai['kepemilikanbpjs'] ?? 'AA')] ?? null),
+                    'penanggung_bpjs' => $this->cleanString($row[$colPegawai['penanggungbpjs'] ?? 'AB'] ?? null),
+                    'skill' => $this->cleanString($row[$colPegawai['skill'] ?? 'AC'] ?? null),
 
                     // Keluarga
-                    'status_pernikahan' => $this->cleanString($row[$colPegawai['statuspernikahan'] ?? 'AB'] ?? null),
-                    'nama_suami_istri' => $this->cleanString($row[$colPegawai['namasuamiistri'] ?? 'AC'] ?? null),
-                    'ttl_suami_istri' => $this->cleanString($row[$colPegawai['ttlsuamiistri'] ?? 'AD'] ?? null),
-                    'pekerjaan_suami_istri' => $this->cleanString($row[$colPegawai['pekerjaansuamiistri'] ?? 'AE'] ?? null),
-                    'tanggal_menikah' => $this->parseDate($row[$colPegawai['tanggalmenikah'] ?? 'AF'] ?? null),
-                    'jumlah_anak' => $this->parseInteger($row[$colPegawai['jumlahanak'] ?? 'AG'] ?? null),
-                    'nama_ibu' => $this->cleanString($row[$colPegawai['namaibu'] ?? 'AH'] ?? null),
-                    'nama_ayah' => $this->cleanString($row[$colPegawai['namaayah'] ?? 'AI'] ?? null),
-                    'alamat_orangtua' => $this->cleanString($row[$colPegawai['alamatorangtua'] ?? 'AJ'] ?? null),
-                    'kontak_darurat' => $this->cleanString($row[$colPegawai['kontakdarurat'] ?? 'AK'] ?? null),
-                    'hubungan_kontak_darurat' => $this->cleanString($row[$colPegawai['hubungankontakdarurat'] ?? 'AL'] ?? null),
+                    'status_pernikahan' => $this->cleanString($row[$colPegawai['statuspernikahan'] ?? 'AD'] ?? null),
+                    'nama_suami_istri' => $this->cleanString($row[$colPegawai['namasuamiistri'] ?? 'AE'] ?? null),
+                    'ttl_suami_istri' => $this->cleanString($row[$colPegawai['ttlsuamiistri'] ?? 'AF'] ?? null),
+                    'pekerjaan_suami_istri' => $this->cleanString($row[$colPegawai['pekerjaansuamiistri'] ?? 'AG'] ?? null),
+                    'tanggal_menikah' => $this->parseDate($row[$colPegawai['tanggalmenikah'] ?? 'AH'] ?? null),
+                    'jumlah_anak' => $this->parseInteger($row[$colPegawai['jumlahanak'] ?? 'AI'] ?? null),
+                    'nama_ibu' => $this->cleanString($row[$colPegawai['namaibu'] ?? 'AJ'] ?? null),
+                    'nama_ayah' => $this->cleanString($row[$colPegawai['namaayah'] ?? 'AK'] ?? null),
+                    'alamat_orangtua' => $this->cleanString($row[$colPegawai['alamatorangtua'] ?? 'AL'] ?? null),
+                    'kontak_darurat' => $this->cleanString($row[$colPegawai['kontakdarurat'] ?? 'AM'] ?? null),
+                    'hubungan_kontak_darurat' => $this->cleanString($row[$colPegawai['hubungankontakdarurat'] ?? 'AN'] ?? null),
                 ];
 
                 $existing = null;

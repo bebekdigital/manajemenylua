@@ -45,6 +45,8 @@ const tabs = [
 
 const form = useForm({
     nama: '',
+    gelar_depan: '',
+    gelar_belakang: '',
     nipy: '',
     nik: '',
     jk: '',
@@ -108,6 +110,8 @@ const form = useForm({
 
 function initFormFromProps() {
     form.nama = props.employee.nama || '';
+    form.gelar_depan = props.employee.gelar_depan || '';
+    form.gelar_belakang = props.employee.gelar_belakang || '';
     form.nipy = props.employee.nipy || '';
     form.nik = props.employee.nik || '';
     form.jk = props.employee.jk || '';
@@ -418,7 +422,7 @@ function hitungUsia(tanggalLahir, ttlString = '') {
                         </span>
                     </div>
                     <div>
-                        <h3 class="text-lg sm:text-xl font-bold text-on-surface">{{ employee.nama }}</h3>
+                        <h3 class="text-lg sm:text-xl font-bold text-on-surface">{{ employee.nama_lengkap_gelar || employee.nama }}</h3>
                         <p class="text-xs sm:text-sm text-on-surface-variant">NIPY: {{ employee.nipy || '-' }}</p>
                         <div class="flex flex-wrap items-center gap-2 mt-2">
                             <span
@@ -511,6 +515,14 @@ function hitungUsia(tanggalLahir, ttlString = '') {
                             <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5 font-mono">{{ employee.nipy || '-' }}</p>
                         </div>
                         <div>
+                            <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Gelar Depan</label>
+                            <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ employee.gelar_depan || '-' }}</p>
+                        </div>
+                        <div>
+                            <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Gelar Belakang</label>
+                            <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ employee.gelar_belakang || '-' }}</p>
+                        </div>
+                        <div>
                             <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Jenis Kelamin</label>
                             <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">
                                 {{ employee.jk === 'L' ? 'Laki-laki' : employee.jk === 'P' ? 'Perempuan' : '-' }}
@@ -538,9 +550,17 @@ function hitungUsia(tanggalLahir, ttlString = '') {
                             <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">No. WhatsApp</label>
                             <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ employee.no_wa || '-' }}</p>
                         </div>
-                        <div class="md:col-span-2">
+                        <div>
                             <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Email</label>
                             <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ employee.email || '-' }}</p>
+                        </div>
+                        <div>
+                            <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Kepemilikan BPJS</label>
+                            <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ employee.kepemilikan_bpjs || '-' }}</p>
+                        </div>
+                        <div>
+                            <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Penanggung BPJS</label>
+                            <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ employee.penanggung_bpjs || '-' }}</p>
                         </div>
                         <div class="md:col-span-2">
                             <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Skill / Keahlian</label>
@@ -550,15 +570,43 @@ function hitungUsia(tanggalLahir, ttlString = '') {
 
                     <!-- EDIT MODE -->
                     <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
+                                Gelar Depan
+                            </label>
+                            <input
+                                v-model="form.gelar_depan"
+                                type="text"
+                                placeholder="Contoh: Dr., Ir., Ust."
+                                class="w-full px-3.5 py-2 sm:py-2.5 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface placeholder:text-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                                :class="{ 'border-error': form.errors.gelar_depan }"
+                            />
+                            <div v-if="form.errors.gelar_depan" class="text-error text-xs mt-1">{{ form.errors.gelar_depan }}</div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
+                                Gelar Belakang
+                            </label>
+                            <input
+                                v-model="form.gelar_belakang"
+                                type="text"
+                                placeholder="Contoh: S.Pd, M.Pd, Lc."
+                                class="w-full px-3.5 py-2 sm:py-2.5 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface placeholder:text-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                                :class="{ 'border-error': form.errors.gelar_belakang }"
+                            />
+                            <div v-if="form.errors.gelar_belakang" class="text-error text-xs mt-1">{{ form.errors.gelar_belakang }}</div>
+                        </div>
+
                         <div class="md:col-span-2">
                             <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
-                                Nama Lengkap Beserta Gelar <span class="text-error">*</span>
+                                Nama Lengkap <span class="text-error">*</span>
                             </label>
                             <input
                                 v-model="form.nama"
                                 type="text"
                                 required
-                                placeholder="Contoh: Ahmad Fauzi, S.Pd"
+                                placeholder="Nama lengkap tanpa gelar"
                                 class="w-full px-3.5 py-2 sm:py-2.5 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface placeholder:text-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                                 :class="{ 'border-error': form.errors.nama }"
                             />
@@ -656,7 +704,7 @@ function hitungUsia(tanggalLahir, ttlString = '') {
                             <div v-if="form.errors.tanggal_lahir" class="text-error text-xs mt-1">{{ form.errors.tanggal_lahir }}</div>
                         </div>
 
-                        <div>
+                        <div class="md:col-span-2">
                             <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
                                 Email
                             </label>
@@ -671,6 +719,32 @@ function hitungUsia(tanggalLahir, ttlString = '') {
                         </div>
 
                         <div>
+                            <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
+                                Kepemilikan BPJS
+                            </label>
+                            <select
+                                v-model="form.kepemilikan_bpjs"
+                                class="w-full px-3.5 py-2 sm:py-2.5 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
+                            >
+                                <option value="">-- Pilih --</option>
+                                <option value="Ya">Ya</option>
+                                <option value="Tidak">Tidak</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
+                                Penanggung BPJS
+                            </label>
+                            <input
+                                v-model="form.penanggung_bpjs"
+                                type="text"
+                                placeholder="Contoh: Yayasan / Pribadi / Mandiri"
+                                class="w-full px-3.5 py-2 sm:py-2.5 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface placeholder:text-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                            />
+                        </div>
+
+                        <div class="md:col-span-2">
                             <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
                                 Skill / Keahlian
                             </label>
@@ -773,17 +847,9 @@ function hitungUsia(tanggalLahir, ttlString = '') {
                                     <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Provinsi</label>
                                     <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ employee.provinsi_tinggal || '-' }}</p>
                                 </div>
-                                <div>
+                                <div class="md:col-span-2">
                                     <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Status Rumah</label>
                                     <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ employee.status_rumah || '-' }}</p>
-                                </div>
-                                <div>
-                                    <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Kepemilikan BPJS</label>
-                                    <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ employee.kepemilikan_bpjs || '-' }}</p>
-                                </div>
-                                <div>
-                                    <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Penanggung BPJS</label>
-                                    <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ employee.penanggung_bpjs || '-' }}</p>
                                 </div>
                             </div>
                         </div>
@@ -959,7 +1025,7 @@ function hitungUsia(tanggalLahir, ttlString = '') {
                                     />
                                 </div>
 
-                                <div>
+                                <div class="md:col-span-2">
                                     <label class="block text-xs font-semibold text-on-surface-variant mb-1">Status Kepemilikan Rumah</label>
                                     <select
                                         v-model="form.status_rumah"
@@ -972,28 +1038,6 @@ function hitungUsia(tanggalLahir, ttlString = '') {
                                         <option value="Rumah Dinas">Rumah Dinas</option>
                                         <option value="Lainnya">Lainnya</option>
                                     </select>
-                                </div>
-
-                                <div>
-                                    <label class="block text-xs font-semibold text-on-surface-variant mb-1">Kepemilikan BPJS</label>
-                                    <select
-                                        v-model="form.kepemilikan_bpjs"
-                                        class="w-full px-3.5 py-2 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
-                                    >
-                                        <option value="">-- Pilih --</option>
-                                        <option value="Ya">Ya</option>
-                                        <option value="Tidak">Tidak</option>
-                                    </select>
-                                </div>
-
-                                <div class="md:col-span-2">
-                                    <label class="block text-xs font-semibold text-on-surface-variant mb-1">Penanggung BPJS</label>
-                                    <input
-                                        v-model="form.penanggung_bpjs"
-                                        type="text"
-                                        placeholder="Contoh: Yayasan / Pribadi / Mandiri"
-                                        class="w-full px-3.5 py-2 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                                    />
                                 </div>
                             </div>
                         </div>

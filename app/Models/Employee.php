@@ -15,6 +15,8 @@ class Employee extends Model
     protected $fillable = [
         'nipy',
         'nama',
+        'gelar_depan',
+        'gelar_belakang',
         'jk',
         'tempat_lahir',
         'tanggal_lahir',
@@ -99,6 +101,17 @@ class Employee extends Model
             : '';
 
         return trim("{$this->tempat_lahir}, {$tanggal}", ', ');
+    }
+
+    /**
+     * Get full name formatted with gelar depan and gelar belakang.
+     */
+    public function getNamaLengkapGelarAttribute(): string
+    {
+        $depan = $this->gelar_depan ? trim($this->gelar_depan).' ' : '';
+        $belakang = $this->gelar_belakang ? ', '.trim($this->gelar_belakang) : '';
+
+        return trim($depan.$this->nama.$belakang);
     }
 
     public function educationHistories(): HasMany

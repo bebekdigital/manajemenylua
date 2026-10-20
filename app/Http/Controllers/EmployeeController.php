@@ -84,6 +84,9 @@ class EmployeeController extends Controller
             'id' => $employee->id,
             'nipy' => $employee->nipy,
             'nama' => $employee->nama,
+            'gelar_depan' => $employee->gelar_depan,
+            'gelar_belakang' => $employee->gelar_belakang,
+            'nama_lengkap_gelar' => $employee->nama_lengkap_gelar,
             'jk' => $employee->jk,
             'ttl' => $employee->ttl,
             'tempat_lahir' => $employee->tempat_lahir,
@@ -209,6 +212,8 @@ class EmployeeController extends Controller
         $validated = $request->validate([
             // Identitas
             'nama' => ['required', 'string', 'max:255'],
+            'gelar_depan' => ['nullable', 'string', 'max:50'],
+            'gelar_belakang' => ['nullable', 'string', 'max:50'],
             'nipy' => ['nullable', 'string', 'max:50'],
             'nik' => [
                 'nullable',
@@ -400,6 +405,9 @@ class EmployeeController extends Controller
             'id' => $employee->id,
             'nipy' => $employee->nipy,
             'nama' => $employee->nama,
+            'gelar_depan' => $employee->gelar_depan,
+            'gelar_belakang' => $employee->gelar_belakang,
+            'nama_lengkap_gelar' => $employee->nama_lengkap_gelar,
             'jk' => $employee->jk,
             'ttl' => $employee->ttl,
             'nik' => $employee->nik,
@@ -435,42 +443,44 @@ class EmployeeController extends Controller
         $headers1 = [
             'A' => 'NIPY',
             'B' => 'Nama Lengkap',
-            'C' => 'JK (L/P)',
-            'D' => 'Tempat Lahir',
-            'E' => 'Tanggal Lahir',
-            'F' => 'NIK',
-            'G' => 'TMT Pengangkatan',
-            'H' => 'No WA',
-            'I' => 'Email',
-            'J' => 'Jalan Domisili',
-            'K' => 'RT/RW Domisili',
-            'L' => 'Dusun Domisili',
-            'M' => 'Desa Domisili',
-            'N' => 'Kecamatan Domisili',
-            'O' => 'Kab Domisili',
-            'P' => 'Provinsi Domisili',
-            'Q' => 'Jalan Tinggal',
-            'R' => 'RT/RW Tinggal',
-            'S' => 'Dusun Tinggal',
-            'T' => 'Desa Tinggal',
-            'U' => 'Kecamatan Tinggal',
-            'V' => 'Kabupaten Tinggal',
-            'W' => 'Provinsi Tinggal',
-            'X' => 'Status Rumah',
-            'Y' => 'Kepemilikan BPJS (Ya/Tidak)',
-            'Z' => 'Penanggung BPJS',
-            'AA' => 'Skill',
-            'AB' => 'Status Pernikahan',
-            'AC' => 'Nama Suami/Istri',
-            'AD' => 'TTL Suami/Istri',
-            'AE' => 'Pekerjaan Suami/Istri',
-            'AF' => 'Tanggal Menikah',
-            'AG' => 'Jumlah Anak',
-            'AH' => 'Nama Ibu',
-            'AI' => 'Nama Ayah',
-            'AJ' => 'Alamat Orangtua',
-            'AK' => 'Kontak Darurat',
-            'AL' => 'Hubungan Kontak Darurat',
+            'C' => 'Gelar Depan',
+            'D' => 'Gelar Belakang',
+            'E' => 'JK (L/P)',
+            'F' => 'Tempat Lahir',
+            'G' => 'Tanggal Lahir',
+            'H' => 'NIK',
+            'I' => 'TMT Pengangkatan',
+            'J' => 'No WA',
+            'K' => 'Email',
+            'L' => 'Jalan Domisili',
+            'M' => 'RT/RW Domisili',
+            'N' => 'Dusun Domisili',
+            'O' => 'Desa Domisili',
+            'P' => 'Kecamatan Domisili',
+            'Q' => 'Kab Domisili',
+            'R' => 'Provinsi Domisili',
+            'S' => 'Jalan Tinggal',
+            'T' => 'RT/RW Tinggal',
+            'U' => 'Dusun Tinggal',
+            'V' => 'Desa Tinggal',
+            'W' => 'Kecamatan Tinggal',
+            'X' => 'Kabupaten Tinggal',
+            'Y' => 'Provinsi Tinggal',
+            'Z' => 'Status Rumah',
+            'AA' => 'Kepemilikan BPJS (Ya/Tidak)',
+            'AB' => 'Penanggung BPJS',
+            'AC' => 'Skill',
+            'AD' => 'Status Pernikahan',
+            'AE' => 'Nama Suami/Istri',
+            'AF' => 'TTL Suami/Istri',
+            'AG' => 'Pekerjaan Suami/Istri',
+            'AH' => 'Tanggal Menikah',
+            'AI' => 'Jumlah Anak',
+            'AJ' => 'Nama Ibu',
+            'AK' => 'Nama Ayah',
+            'AL' => 'Alamat Orangtua',
+            'AM' => 'Kontak Darurat',
+            'AN' => 'Hubungan Kontak Darurat',
         ];
 
         foreach ($headers1 as $col => $label) {
@@ -484,28 +494,28 @@ class EmployeeController extends Controller
         }
 
         // Format NIK column as Text explicitly so "0001/2" is preserved
-        $sheet1->getStyle('F2:F1000')->getNumberFormat()->setFormatCode('@');
+        $sheet1->getStyle('H2:H1000')->getNumberFormat()->setFormatCode('@');
         $sheet1->getStyle('A2:A1000')->getNumberFormat()->setFormatCode('@'); // NIPY
-        $sheet1->getStyle('H2:H1000')->getNumberFormat()->setFormatCode('@'); // No WA
+        $sheet1->getStyle('J2:J1000')->getNumberFormat()->setFormatCode('@'); // No WA
 
         // Format dates
-        $sheet1->getStyle('E2:E1000')->getNumberFormat()->setFormatCode('yyyy/mm/dd');
-        $sheet1->getStyle('G2:G1000')->getNumberFormat()->setFormatCode('yyyy/mm/dd'); // TMT Pengangkatan
-        $sheet1->getStyle('AF2:AF1000')->getNumberFormat()->setFormatCode('yyyy/mm/dd'); // Tanggal Menikah
+        $sheet1->getStyle('G2:G1000')->getNumberFormat()->setFormatCode('yyyy/mm/dd');
+        $sheet1->getStyle('I2:I1000')->getNumberFormat()->setFormatCode('yyyy/mm/dd'); // TMT Pengangkatan
+        $sheet1->getStyle('AH2:AH1000')->getNumberFormat()->setFormatCode('yyyy/mm/dd'); // Tanggal Menikah
 
         // Example row
         $example1 = [
-            'A' => '1001', 'B' => 'Ahmad Fauzi, S.Pd', 'C' => 'L', 'D' => 'Semarang', 'E' => '1985/06/15',
-            'F' => '3301150678900001', 'G' => '2015/07/01', 'H' => '081234567890', 'I' => 'ahmad@sekolah.sch.id',
-            'J' => 'Jl. Merdeka No. 10', 'K' => '002/005', 'L' => 'Gondang', 'M' => 'Gondangrejo',
-            'N' => 'Karanganyar', 'O' => 'Jawa Tengah',
-            'P' => 'Jl. Merdeka No. 10', 'Q' => '002/005', 'R' => 'Gondang', 'S' => 'Gondangrejo',
-            'T' => 'Gondangrejo', 'U' => 'Karanganyar', 'V' => 'Jawa Tengah', 'W' => 'Milik Sendiri',
-            'X' => 'Ya', 'Y' => 'Pribadi',
-            'Z' => 'Matematika, MS Office', 'AA' => 'Menikah', 'AB' => 'Siti Rahayu', 'AC' => 'Solo, 10/03/1987',
-            'AD' => 'Guru', 'AE' => '2010/12/20', 'AF' => '2',
-            'AG' => 'Siti Aminah', 'AH' => 'Budi Santoso', 'AI' => 'Jl. Damai No. 5, Semarang',
-            'AJ' => '082345678901', 'AK' => 'Saudara Kandung',
+            'A' => '1001', 'B' => 'Ahmad Fauzi', 'C' => 'Dr.', 'D' => 'S.Pd', 'E' => 'L', 'F' => 'Semarang', 'G' => '1985/06/15',
+            'H' => '3301150678900001', 'I' => '2015/07/01', 'J' => '081234567890', 'K' => 'ahmad@sekolah.sch.id',
+            'L' => 'Jl. Merdeka No. 10', 'M' => '002/005', 'N' => 'Gondang', 'O' => 'Gondangrejo',
+            'P' => 'Karanganyar', 'Q' => 'Karanganyar', 'R' => 'Jawa Tengah',
+            'S' => 'Jl. Merdeka No. 10', 'T' => '002/005', 'U' => 'Gondang', 'V' => 'Gondangrejo',
+            'W' => 'Karanganyar', 'X' => 'Karanganyar', 'Y' => 'Jawa Tengah', 'Z' => 'Milik Sendiri',
+            'AA' => 'Ya', 'AB' => 'Pribadi',
+            'AC' => 'Matematika, MS Office', 'AD' => 'Menikah', 'AE' => 'Siti Rahayu', 'AF' => 'Solo, 10/03/1987',
+            'AG' => 'Guru', 'AH' => '2010/12/20', 'AI' => '2',
+            'AJ' => 'Siti Aminah', 'AK' => 'Budi Santoso', 'AL' => 'Jl. Damai No. 5, Semarang',
+            'AM' => '082345678901', 'AN' => 'Saudara Kandung',
         ];
 
         foreach ($example1 as $col => $val) {
@@ -513,7 +523,7 @@ class EmployeeController extends Controller
             $sheet1->getStyle("{$col}2")->applyFromArray(['fill' => $exampleFill]);
         }
 
-        $lastCol1 = 'AL';
+        $lastCol1 = 'AN';
         $sheet1->getStyle("A1:{$lastCol1}1")->applyFromArray(['borders' => $borderStyle]);
         $sheet1->getStyle("A2:{$lastCol1}2")->applyFromArray(['borders' => $borderStyle]);
 
