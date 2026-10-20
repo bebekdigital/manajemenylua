@@ -139,4 +139,44 @@ class EmployeeStructureTest extends TestCase
         $this->assertEquals('Kepala Lab', $record->jabatan);
         $this->assertEquals('2022-01-10', $record->tmt_kenaikan_jenjang?->format('Y-m-d'));
     }
+
+    public function test_command_moves_tmt_to_tmt_pengangkatan(): void
+    {
+        $academicYear = AcademicYear::create([
+            'name' => '2025/2026',
+            'semester' => 'Ganjil',
+        ]);
+
+        $employee = Employee::create([
+            'nama' => 'Dewi Lestari',
+            'nik' => '3301019999990001',
+            'tmt_pengangkatan' => null,
+        ]);
+
+        $record = EmployeeRecord::create([
+            'employee_id' => $employee->id,
+            'academic_year_id' => $academicYear->id,
+            'jenis_kepegawaian' => 'Tenaga Pendidik',
+            'status_keaktifan' => 'Aktif',
+            'jenjang_kepegawaian' => 'GTY',
+            'tmt_kenaikan_jenjang' => '2016-08-01',
+            'tst_jenjang' => null,
+        ]);
+
+        $this->assertNull($employee->tmt_pengangkatan);
+        $this->assertEquals('2016-08-01', $record->tmt_kenaikan_jenjang?->format('Y-m-d'));
+
+        // Run artisan command
+        $this->artisan('employee:move-tmt')
+            ->assertExitCode(0);
+
+        $employee->refresh();
+        $record->refresh();
+
+        // TMT pengangkatan is now populated
+        $this->assertEquals('2016-08-01', $employee->tmt_pengangkatan?->format('Y-m-d'));
+
+        // tmt_kenaikan_jenjang is cleared (moved)
+        $this->assertNull($record->tmt_kenaikan_jenjang);
+    }
 }
