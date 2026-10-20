@@ -253,6 +253,63 @@ function getJenjangColor(jenjang) {
     };
     return map[jenjang] ?? 'bg-outline-variant/10 text-on-surface-variant';
 }
+
+function hitungUsia(tanggalLahir, ttlString = '') {
+    if (tanggalLahir) {
+        const birthDate = new Date(tanggalLahir);
+        if (!isNaN(birthDate.getTime())) {
+            const today = new Date();
+            let age = today.getFullYear() - birthDate.getFullYear();
+            const m = today.getMonth() - birthDate.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                age--;
+            }
+            return age >= 0 ? `${age} Tahun` : '-';
+        }
+    }
+
+    if (ttlString) {
+        const indonesianMonths = {
+            januari: 0, februari: 1, maret: 2, april: 3, mei: 4, juni: 5,
+            juli: 6, agustus: 7, september: 8, oktober: 9, november: 10, desember: 11
+        };
+        const match = ttlString.match(/(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})/);
+        if (match) {
+            const day = parseInt(match[1]);
+            const monthName = match[2].toLowerCase();
+            const year = parseInt(match[3]);
+            if (indonesianMonths[monthName] !== undefined) {
+                const birthDate = new Date(year, indonesianMonths[monthName], day);
+                const today = new Date();
+                let age = today.getFullYear() - birthDate.getFullYear();
+                const m = today.getMonth() - birthDate.getMonth();
+                if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                    age--;
+                }
+                return age >= 0 ? `${age} Tahun` : '-';
+            }
+        }
+
+        const numMatch = ttlString.match(/(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+        if (numMatch) {
+            const day = parseInt(numMatch[1]);
+            const month = parseInt(numMatch[2]) - 1;
+            const year = parseInt(numMatch[3]);
+            const birthDate = new Date(year, month, day);
+            if (!isNaN(birthDate.getTime())) {
+                const today = new Date();
+                let age = today.getFullYear() - birthDate.getFullYear();
+                const m = today.getMonth() - birthDate.getMonth();
+                if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                    age--;
+                }
+                return age >= 0 ? `${age} Tahun` : '-';
+            }
+        }
+    }
+
+    return '-';
+}
 </script>
 
 <template>
@@ -423,6 +480,16 @@ function getJenjangColor(jenjang) {
                             <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ employee.ttl || '-' }}</p>
                         </div>
                         <div>
+                            <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Usia</label>
+                            <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">
+                                <span v-if="hitungUsia(employee.tanggal_lahir, employee.ttl) !== '-'" class="inline-flex items-center gap-1.5 text-primary font-semibold">
+                                    <span class="material-symbols-outlined text-[16px]">cake</span>
+                                    <span>{{ hitungUsia(employee.tanggal_lahir, employee.ttl) }}</span>
+                                </span>
+                                <span v-else class="text-outline">-</span>
+                            </p>
+                        </div>
+                        <div>
                             <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">NIK</label>
                             <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5 font-mono">{{ employee.nik || '-' }}</p>
                         </div>
@@ -530,9 +597,15 @@ function getJenjangColor(jenjang) {
                         </div>
 
                         <div>
-                            <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
-                                Tanggal Lahir
-                            </label>
+                            <div class="flex items-center justify-between mb-1.5">
+                                <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider">
+                                    Tanggal Lahir
+                                </label>
+                                <span v-if="hitungUsia(form.tanggal_lahir) !== '-'" class="inline-flex items-center gap-1 text-[11px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-md">
+                                    <span class="material-symbols-outlined text-[13px]">cake</span>
+                                    <span>Usia: {{ hitungUsia(form.tanggal_lahir) }}</span>
+                                </span>
+                            </div>
                             <input
                                 v-model="form.tanggal_lahir"
                                 type="date"
