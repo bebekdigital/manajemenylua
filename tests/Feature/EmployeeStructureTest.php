@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\AcademicYear;
 use App\Models\Employee;
 use App\Models\EmployeePosition;
 use App\Models\EmployeeRecord;
@@ -10,6 +9,8 @@ use App\Models\User;
 use App\Services\EmployeeImportService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -27,29 +28,32 @@ class EmployeeStructureTest extends TestCase
             'gelar_belakang' => 'M.Pd.',
             'nik' => '3301010101010001',
             'tmt_pengangkatan' => Carbon::now()->subYears(5)->subMonths(3)->format('Y-m-d'),
+            'tst_pengangkatan' => Carbon::now()->addYears(5)->format('Y-m-d'),
+            'keaktifan_dapodik' => 'Aktif',
+            'unit_keaktifan_dapodik' => 'SDIT Ulil Albab',
+            'status_keaktifan' => 'Aktif',
         ]);
 
         $this->assertNotNull($employee->tmt_pengangkatan);
         $this->assertEquals('5 Tahun 3 Bulan', $employee->masa_kerja);
         $this->assertEquals('Dr. Budi Santoso, M.Pd.', $employee->nama_lengkap_gelar);
-
-        $academicYear = AcademicYear::create([
-            'name' => '2025/2026',
-            'semester' => 'Ganjil',
-        ]);
+        $this->assertEquals('Aktif', $employee->keaktifan_dapodik);
+        $this->assertEquals('SDIT Ulil Albab', $employee->unit_keaktifan_dapodik);
 
         $record = EmployeeRecord::create([
             'employee_id' => $employee->id,
-            'academic_year_id' => $academicYear->id,
-            'jenis_kepegawaian' => 'Tenaga Pendidik',
-            'status_keaktifan' => 'Aktif',
             'jenjang_kepegawaian' => 'GTY',
             'tmt_kenaikan_jenjang' => '2023-07-01',
-            'tst_jenjang' => '2027-06-30',
-            'keaktifan_dapodik' => 'Aktif',
-            'unit_keaktifan_dapodik' => 'SDIT Ulil Albab',
+            'tst_kenaikan_jenjang' => '2027-06-30',
+        ]);
+
+        $position = EmployeePosition::create([
+            'employee_id' => $employee->id,
             'unit_kerja' => 'SDIT Ulil Albab',
             'jabatan' => 'Guru Kelas',
+            'jenis_kepegawaian' => 'Tenaga Pendidik',
+            'tmt_jabatan' => '2023-07-01',
+            'tst_jabatan' => '2027-06-30',
         ]);
 
         $employee->refresh();
@@ -60,9 +64,15 @@ class EmployeeStructureTest extends TestCase
 
         $record->refresh();
         $this->assertEquals($employee->id, $record->employee_id);
+        $this->assertEquals('GTY', $record->jenjang_kepegawaian);
         $this->assertEquals('2023-07-01', $record->tmt_kenaikan_jenjang?->format('Y-m-d'));
-        $this->assertEquals('SDIT Ulil Albab', $record->unit_kerja);
-        $this->assertEquals('Guru Kelas', $record->jabatan);
+        $this->assertEquals('2027-06-30', $record->tst_kenaikan_jenjang?->format('Y-m-d'));
+
+        $position->refresh();
+        $this->assertEquals($employee->id, $position->employee_id);
+        $this->assertEquals('SDIT Ulil Albab', $position->unit_kerja);
+        $this->assertEquals('Guru Kelas', $position->jabatan);
+        $this->assertEquals('Tenaga Pendidik', $position->jenis_kepegawaian);
     }
 
     public function test_template_download_has_correct_structure(): void
@@ -195,11 +205,8 @@ class EmployeeStructureTest extends TestCase
 
         $record = EmployeeRecord::create([
             'employee_id' => $employee->id,
-            'jenis_kepegawaian' => 'Tenaga Pendidik',
-            'status_keaktifan' => 'Aktif',
             'jenjang_kepegawaian' => 'GTY',
             'tmt_kenaikan_jenjang' => '2016-08-01',
-            'tst_jenjang' => null,
         ]);
 
         $this->assertNull($employee->tmt_pengangkatan);
@@ -281,5 +288,101 @@ class EmployeeStructureTest extends TestCase
         $this->assertEquals('Tenaga Pendidik', $position->jenis_kepegawaian);
 
         @unlink($tmpFile);
+    }
+
+    public function test_database_columns_match_template_and_er_has_no_academic_year_id(): void
+    {
+        // 1. Employee records (ER) should NOT have academic_year_id or moved columns
+        $this->assertFalse(Schema::hasColumn('employee_records', 'academic_year_id'));
+        $this->assertFalse(Schema::hasColumn('employee_records', 'unit_kerja'));
+        $this->assertFalse(Schema::hasColumn('employee_records', 'jabatan'));
+        $this->assertFalse(Schema::hasColumn('employee_records', 'jenis_kepegawaian'));
+        $this->assertFalse(Schema::hasColumn('employee_records', 'status_keaktifan'));
+        $this->assertFalse(Schema::hasColumn('employee_records', 'keaktifan_dapodik'));
+        $this->assertFalse(Schema::hasColumn('employee_records', 'unit_keaktifan_dapodik'));
+        $this->assertFalse(Schema::hasColumn('employee_records', 'keterangan_tidak_aktif'));
+        $this->assertFalse(Schema::hasColumn('employee_records', 'tst_jenjang'));
+        $this->assertFalse(Schema::hasColumn('employee_records', 'masa_kerja'));
+
+        // ER should have: id, employee_id, tmt_kenaikan_jenjang, tst_kenaikan_jenjang, jenjang_kepegawaian, timestamps
+        $this->assertTrue(Schema::hasColumn('employee_records', 'tmt_kenaikan_jenjang'));
+        $this->assertTrue(Schema::hasColumn('employee_records', 'tst_kenaikan_jenjang'));
+        $this->assertTrue(Schema::hasColumn('employee_records', 'jenjang_kepegawaian'));
+
+        // 2. Employee positions (EP) should have position columns
+        $this->assertTrue(Schema::hasTable('employee_positions'));
+        $this->assertTrue(Schema::hasColumn('employee_positions', 'employee_id'));
+        $this->assertTrue(Schema::hasColumn('employee_positions', 'unit_kerja'));
+        $this->assertTrue(Schema::hasColumn('employee_positions', 'jabatan'));
+        $this->assertTrue(Schema::hasColumn('employee_positions', 'jenis_kepegawaian'));
+        $this->assertTrue(Schema::hasColumn('employee_positions', 'tmt_jabatan'));
+        $this->assertTrue(Schema::hasColumn('employee_positions', 'tst_jabatan'));
+
+        // 3. Employees should have static pengangkatan, dapodik, and keaktifan columns
+        $this->assertTrue(Schema::hasColumn('employees', 'tmt_pengangkatan'));
+        $this->assertTrue(Schema::hasColumn('employees', 'tst_pengangkatan'));
+        $this->assertTrue(Schema::hasColumn('employees', 'keaktifan_dapodik'));
+        $this->assertTrue(Schema::hasColumn('employees', 'unit_keaktifan_dapodik'));
+        $this->assertTrue(Schema::hasColumn('employees', 'status_keaktifan'));
+        $this->assertTrue(Schema::hasColumn('employees', 'keterangan_tidak_aktif'));
+    }
+
+    public function test_migration_preserves_and_transfers_existing_data(): void
+    {
+        $migration = require database_path('migrations/2026_10_21_111000_update_employee_structure_and_add_positions_table.php');
+
+        // Rollback to legacy state
+        $migration->down();
+
+        // Insert legacy data
+        $empId = DB::table('employees')->insertGetId([
+            'nama' => 'Ustadz Salman',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table('employee_records')->insert([
+            'employee_id' => $empId,
+            'academic_year_id' => null,
+            'jenis_kepegawaian' => 'Tenaga Pendidik',
+            'status_keaktifan' => 'Tidak Aktif',
+            'keterangan_tidak_aktif' => 'Cuti Belajar',
+            'jenjang_kepegawaian' => 'GTY Tingkat 2',
+            'tmt_kenaikan_jenjang' => '2019-01-01',
+            'tst_jenjang' => '2023-01-01',
+            'keaktifan_dapodik' => 'Aktif',
+            'unit_keaktifan_dapodik' => 'SMA IT Ulil Albab',
+            'unit_kerja' => 'SMA IT Ulil Albab',
+            'jabatan' => 'Wakil Kepala Sekolah',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        // Run migration up()
+        $migration->up();
+
+        // 1. Verify data transferred to employees
+        $emp = DB::table('employees')->where('id', $empId)->first();
+        $this->assertNotNull($emp);
+        $this->assertEquals('Tidak Aktif', $emp->status_keaktifan);
+        $this->assertEquals('Cuti Belajar', $emp->keterangan_tidak_aktif);
+        $this->assertEquals('Aktif', $emp->keaktifan_dapodik);
+        $this->assertEquals('SMA IT Ulil Albab', $emp->unit_keaktifan_dapodik);
+
+        // 2. Verify data transferred to employee_positions
+        $pos = DB::table('employee_positions')->where('employee_id', $empId)->first();
+        $this->assertNotNull($pos);
+        $this->assertEquals('SMA IT Ulil Albab', $pos->unit_kerja);
+        $this->assertEquals('Wakil Kepala Sekolah', $pos->jabatan);
+        $this->assertEquals('Tenaga Pendidik', $pos->jenis_kepegawaian);
+        $this->assertEquals('2019-01-01', $pos->tmt_jabatan);
+        $this->assertEquals('2023-01-01', $pos->tst_jabatan);
+
+        // 3. Verify data retained in employee_records
+        $rec = DB::table('employee_records')->where('employee_id', $empId)->first();
+        $this->assertNotNull($rec);
+        $this->assertEquals('GTY Tingkat 2', $rec->jenjang_kepegawaian);
+        $this->assertEquals('2019-01-01', $rec->tmt_kenaikan_jenjang);
+        $this->assertEquals('2023-01-01', $rec->tst_kenaikan_jenjang);
     }
 }

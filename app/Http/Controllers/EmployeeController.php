@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\AcademicYear;
 use App\Models\Employee;
 use App\Models\EmployeePosition;
-use App\Models\EmployeeRecord;
 use App\Models\SchoolUnit;
 use App\Services\EmployeeImportService;
 use Illuminate\Http\RedirectResponse;
@@ -138,9 +137,9 @@ class EmployeeController extends Controller
             'keterangan_tidak_aktif' => $employee->keterangan_tidak_aktif,
 
             // Kepegawaian & Penugasan aktif
-            'unit_kerja' => $latestPosition?->unit_kerja ?? $latestRecord?->unit_kerja,
-            'jabatan' => $latestPosition?->jabatan ?? $latestRecord?->jabatan,
-            'jenis_kepegawaian' => $latestPosition?->jenis_kepegawaian ?? $latestRecord?->jenis_kepegawaian,
+            'unit_kerja' => $latestPosition?->unit_kerja,
+            'jabatan' => $latestPosition?->jabatan,
+            'jenis_kepegawaian' => $latestPosition?->jenis_kepegawaian,
             'tmt_jabatan' => $latestPosition?->tmt_jabatan?->format('Y-m-d'),
             'formatted_tmt_jabatan' => $latestPosition?->tmt_jabatan?->translatedFormat('d F Y'),
             'tst_jabatan' => $latestPosition?->tst_jabatan?->format('Y-m-d'),
@@ -149,10 +148,10 @@ class EmployeeController extends Controller
             'jenjang_kepegawaian' => $latestRecord?->jenjang_kepegawaian,
             'tmt_kenaikan_jenjang' => $latestRecord?->tmt_kenaikan_jenjang?->format('Y-m-d'),
             'formatted_tmt_kenaikan_jenjang' => $latestRecord?->tmt_kenaikan_jenjang?->translatedFormat('d F Y'),
-            'tst_kenaikan_jenjang' => ($latestRecord?->tst_kenaikan_jenjang ?? $latestRecord?->tst_jenjang)?->format('Y-m-d'),
-            'formatted_tst_kenaikan_jenjang' => ($latestRecord?->tst_kenaikan_jenjang ?? $latestRecord?->tst_jenjang)?->translatedFormat('d F Y'),
-            'tst_jenjang' => ($latestRecord?->tst_kenaikan_jenjang ?? $latestRecord?->tst_jenjang)?->format('Y-m-d'),
-            'formatted_tst_jenjang' => ($latestRecord?->tst_kenaikan_jenjang ?? $latestRecord?->tst_jenjang)?->translatedFormat('d F Y'),
+            'tst_kenaikan_jenjang' => $latestRecord?->tst_kenaikan_jenjang?->format('Y-m-d'),
+            'formatted_tst_kenaikan_jenjang' => $latestRecord?->tst_kenaikan_jenjang?->translatedFormat('d F Y'),
+            'tst_jenjang' => $latestRecord?->tst_kenaikan_jenjang?->format('Y-m-d'),
+            'formatted_tst_jenjang' => $latestRecord?->tst_kenaikan_jenjang?->translatedFormat('d F Y'),
 
             // Sheet 3: Riwayat Kepegawaian (Jenjang)
             'riwayat_kepegawaian' => $employee->records->map(fn ($r) => [
@@ -160,10 +159,10 @@ class EmployeeController extends Controller
                 'jenjang_kepegawaian' => $r->jenjang_kepegawaian,
                 'tmt_kenaikan_jenjang' => $r->tmt_kenaikan_jenjang?->format('Y-m-d'),
                 'formatted_tmt_kenaikan_jenjang' => $r->tmt_kenaikan_jenjang?->translatedFormat('d F Y'),
-                'tst_kenaikan_jenjang' => ($r->tst_kenaikan_jenjang ?? $r->tst_jenjang)?->format('Y-m-d'),
-                'formatted_tst_kenaikan_jenjang' => ($r->tst_kenaikan_jenjang ?? $r->tst_jenjang)?->translatedFormat('d F Y'),
-                'tst_jenjang' => ($r->tst_kenaikan_jenjang ?? $r->tst_jenjang)?->format('Y-m-d'),
-                'formatted_tst_jenjang' => ($r->tst_kenaikan_jenjang ?? $r->tst_jenjang)?->translatedFormat('d F Y'),
+                'tst_kenaikan_jenjang' => $r->tst_kenaikan_jenjang?->format('Y-m-d'),
+                'formatted_tst_kenaikan_jenjang' => $r->tst_kenaikan_jenjang?->translatedFormat('d F Y'),
+                'tst_jenjang' => $r->tst_kenaikan_jenjang?->format('Y-m-d'),
+                'formatted_tst_jenjang' => $r->tst_kenaikan_jenjang?->translatedFormat('d F Y'),
             ])->sortByDesc('tmt_kenaikan_jenjang')->values()->toArray(),
 
             // Sheet 4: Riwayat Jabatan (Penugasan)
@@ -191,8 +190,7 @@ class EmployeeController extends Controller
 
         $units = SchoolUnit::orderBy('name')->pluck('name')->toArray();
         $posUnits = EmployeePosition::whereNotNull('unit_kerja')->distinct()->pluck('unit_kerja')->toArray();
-        $recordUnits = EmployeeRecord::whereNotNull('unit_kerja')->distinct()->pluck('unit_kerja')->toArray();
-        $availableUnits = array_values(array_unique(array_filter(array_merge($units, $posUnits, $recordUnits))));
+        $availableUnits = array_values(array_unique(array_filter(array_merge($units, $posUnits))));
         sort($availableUnits);
 
         return Inertia::render('StaffDetail', [
@@ -365,7 +363,6 @@ class EmployeeController extends Controller
                             'jenjang_kepegawaian' => $rec['jenjang_kepegawaian'] ?? null,
                             'tmt_kenaikan_jenjang' => $rec['tmt_kenaikan_jenjang'] ?? null,
                             'tst_kenaikan_jenjang' => $rec['tst_kenaikan_jenjang'] ?? ($rec['tst_jenjang'] ?? null),
-                            'tst_jenjang' => $rec['tst_kenaikan_jenjang'] ?? ($rec['tst_jenjang'] ?? null),
                         ]);
                     }
                 }
@@ -376,14 +373,12 @@ class EmployeeController extends Controller
                         'jenjang_kepegawaian' => $validated['jenjang_kepegawaian'] ?? null,
                         'tmt_kenaikan_jenjang' => $validated['tmt_kenaikan_jenjang'] ?? $latestRec->tmt_kenaikan_jenjang,
                         'tst_kenaikan_jenjang' => $tstJenjangVal ?? $latestRec->tst_kenaikan_jenjang,
-                        'tst_jenjang' => $tstJenjangVal ?? $latestRec->tst_jenjang,
                     ]);
                 } else {
                     $employee->records()->create([
                         'jenjang_kepegawaian' => $validated['jenjang_kepegawaian'] ?? null,
                         'tmt_kenaikan_jenjang' => $validated['tmt_kenaikan_jenjang'] ?? null,
                         'tst_kenaikan_jenjang' => $tstJenjangVal,
-                        'tst_jenjang' => $tstJenjangVal,
                     ]);
                 }
             }
@@ -474,9 +469,9 @@ class EmployeeController extends Controller
             'nik' => $employee->nik,
             'no_wa' => $employee->no_wa,
             'email' => $employee->email,
-            'unit_kerja' => $latestPosition?->unit_kerja ?? $latestRecord?->unit_kerja,
-            'jabatan' => $latestPosition?->jabatan ?? $latestRecord?->jabatan,
-            'status_keaktifan' => $employee->status_keaktifan ?? $latestRecord?->status_keaktifan ?? 'Aktif',
+            'unit_kerja' => $latestPosition?->unit_kerja,
+            'jabatan' => $latestPosition?->jabatan,
+            'status_keaktifan' => $employee->status_keaktifan ?? 'Aktif',
             'jenjang_kepegawaian' => $latestRecord?->jenjang_kepegawaian,
             'status_pernikahan' => $employee->status_pernikahan,
             'skill' => $employee->skill,

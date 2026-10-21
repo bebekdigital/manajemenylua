@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\AcademicYear;
 use App\Models\Employee;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -211,24 +210,10 @@ class EmployeeImportService
                     $tstKenaikan = $this->parseDate($row[$colKepegawaian['tstkenaikanjenjang'] ?? ($colKepegawaian['tstjenjang'] ?? ($colKepegawaian['tst'] ?? 'D'))] ?? null);
                     $jenjang = $this->cleanString($row[$colKepegawaian['jenjangkepegawaian'] ?? ($colKepegawaian['jenjang'] ?? 'E')] ?? null);
 
-                    // Backward-compatibility if legacy file includes academic year
-                    $academicYearId = null;
-                    if (isset($colKepegawaian['tahunajaran'])) {
-                        $tahunAjaran = $this->cleanString($row[$colKepegawaian['tahunajaran']] ?? null);
-                        $semester = $this->cleanString($row[$colKepegawaian['semester'] ?? 'D'] ?? null);
-                        if ($tahunAjaran) {
-                            $academicYearId = AcademicYear::where('name', $tahunAjaran)
-                                ->where('semester', $semester)
-                                ->value('id');
-                        }
-                    }
-
                     if ($tmtKenaikan || $tstKenaikan || $jenjang) {
                         $recordsByNik[$nik][] = [
-                            'academic_year_id' => $academicYearId,
                             'tmt_kenaikan_jenjang' => $tmtKenaikan,
                             'tst_kenaikan_jenjang' => $tstKenaikan,
-                            'tst_jenjang' => $tstKenaikan,
                             'jenjang_kepegawaian' => $jenjang,
                         ];
                     }

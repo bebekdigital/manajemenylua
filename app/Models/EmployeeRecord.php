@@ -12,18 +12,9 @@ class EmployeeRecord extends Model
 
     protected $fillable = [
         'employee_id',
-        'academic_year_id',
         'jenjang_kepegawaian',
         'tmt_kenaikan_jenjang',
         'tst_kenaikan_jenjang',
-        'tst_jenjang',
-        'status_keaktifan',
-        'jenis_kepegawaian',
-        'keterangan_tidak_aktif',
-        'keaktifan_dapodik',
-        'unit_keaktifan_dapodik',
-        'unit_kerja',
-        'jabatan',
     ];
 
     protected function casts(): array
@@ -31,17 +22,11 @@ class EmployeeRecord extends Model
         return [
             'tmt_kenaikan_jenjang' => 'date',
             'tst_kenaikan_jenjang' => 'date',
-            'tst_jenjang' => 'date',
         ];
     }
 
     public function employee(): BelongsTo
     {
         return $this->belongsTo(Employee::class);
-    }
-
-    public function academicYear(): BelongsTo
-    {
-        return $this->belongsTo(AcademicYear::class);
     }
 }

@@ -137,9 +137,11 @@ class Employee extends Model
 
     public function currentRecord(): HasOne
     {
-        $activeYear = AcademicYear::current();
+        return $this->hasOne(EmployeeRecord::class)->latestOfMany('tmt_kenaikan_jenjang');
+    }
 
-        return $this->hasOne(EmployeeRecord::class)
-            ->where('academic_year_id', $activeYear?->id);
+    public function currentPosition(): HasOne
+    {
+        return $this->hasOne(EmployeePosition::class)->latestOfMany('tmt_jabatan');
     }
 }
