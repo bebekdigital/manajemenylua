@@ -329,7 +329,7 @@ class EmployeeStructureTest extends TestCase
 
     public function test_migration_preserves_and_transfers_existing_data(): void
     {
-        $migration = require database_path('migrations/2026_10_21_111000_update_employee_structure_and_add_positions_table.php');
+        $migration = require database_path('migrations/2026_10_21_120000_remove_academic_year_and_clean_employee_records.php');
 
         // Rollback to legacy state
         $migration->down();
