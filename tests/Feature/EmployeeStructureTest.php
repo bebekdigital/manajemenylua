@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\AcademicYear;
 use App\Models\Employee;
+use App\Models\EmployeePosition;
 use App\Models\EmployeeRecord;
 use App\Models\User;
 use App\Services\EmployeeImportService;
@@ -85,37 +86,52 @@ class EmployeeStructureTest extends TestCase
         $this->assertEquals('JK (L/P)', $sheet1->getCell('E1')->getValue());
         $this->assertEquals('NIK', $sheet1->getCell('H1')->getValue());
         $this->assertEquals('TMT Pengangkatan', $sheet1->getCell('I1')->getValue());
-        $this->assertEquals('No WA', $sheet1->getCell('J1')->getValue());
-        $this->assertEquals('Kepemilikan BPJS (Ya/Tidak)', $sheet1->getCell('AA1')->getValue());
-        $this->assertEquals('Penanggung BPJS', $sheet1->getCell('AB1')->getValue());
+        $this->assertEquals('TST Pengangkatan', $sheet1->getCell('J1')->getValue());
+        $this->assertEquals('Keaktifan Dapodik', $sheet1->getCell('K1')->getValue());
+        $this->assertEquals('Unit Keaktifan Dapodik', $sheet1->getCell('L1')->getValue());
+        $this->assertEquals('Status Keaktifan', $sheet1->getCell('M1')->getValue());
+        $this->assertEquals('Keterangan Tidak Aktif', $sheet1->getCell('N1')->getValue());
+        $this->assertEquals('No WA', $sheet1->getCell('O1')->getValue());
+        $this->assertEquals('Kepemilikan BPJS (Ya/Tidak)', $sheet1->getCell('AF1')->getValue());
+        $this->assertEquals('Penanggung BPJS', $sheet1->getCell('AG1')->getValue());
 
-        // Sheet 3: Riwayat Kepegawaian
+        // Sheet 3: Riwayat Kepegawaian (Tersisa NIK, Nama Lengkap, TMT Kenaikan Jenjang, TST Kenaikan Jenjang, Jenjang Kepegawaian)
         $sheet3 = $spreadsheet->getSheetByName('3. Riwayat Kepegawaian');
         $this->assertNotNull($sheet3);
-        $this->assertEquals('TMT Kenaikan Jenjang', $sheet3->getCell('I1')->getValue());
-        $this->assertEquals('TST Jenjang', $sheet3->getCell('J1')->getValue());
-        $this->assertEquals('Keaktifan Dapodik', $sheet3->getCell('K1')->getValue());
+        $this->assertEquals('NIK', $sheet3->getCell('A1')->getValue());
+        $this->assertEquals('Nama Lengkap', $sheet3->getCell('B1')->getValue());
+        $this->assertEquals('TMT Kenaikan Jenjang', $sheet3->getCell('C1')->getValue());
+        $this->assertEquals('TST Kenaikan Jenjang', $sheet3->getCell('D1')->getValue());
+        $this->assertEquals('Jenjang Kepegawaian', $sheet3->getCell('E1')->getValue());
 
-        // Ensure Masa Kerja does NOT exist in sheet 3 headers
+        // Ensure Tahun Ajaran & Semester do NOT exist in sheet 3 headers
         $sheet3Headers = [];
-        foreach (range('A', 'N') as $col) {
+        foreach (range('A', 'Z') as $col) {
             $val = $sheet3->getCell("{$col}1")->getValue();
             if ($val) {
                 $sheet3Headers[] = $val;
             }
         }
-        $this->assertNotContains('Masa Kerja', $sheet3Headers);
+        $this->assertNotContains('Tahun Ajaran', $sheet3Headers);
+        $this->assertNotContains('Semester', $sheet3Headers);
+
+        // Sheet 4: Riwayat Jabatan (NIK, Nama Lengkap, TMT Jabatan, TST Jabatan, Unit Kerja, Jabatan, Jenis Kepegawaian)
+        $sheet4 = $spreadsheet->getSheetByName('4. Riwayat Jabatan');
+        $this->assertNotNull($sheet4);
+        $this->assertEquals('NIK', $sheet4->getCell('A1')->getValue());
+        $this->assertEquals('Nama Lengkap', $sheet4->getCell('B1')->getValue());
+        $this->assertEquals('TMT Jabatan', $sheet4->getCell('C1')->getValue());
+        $this->assertEquals('TST Jabatan', $sheet4->getCell('D1')->getValue());
+        $this->assertEquals('Unit Kerja', $sheet4->getCell('E1')->getValue());
+        $this->assertEquals('Jabatan', $sheet4->getCell('F1')->getValue());
+        $this->assertEquals('Jenis Kepegawaian', $sheet4->getCell('G1')->getValue());
 
         @unlink($tmpFile);
     }
 
-    public function test_staff_update_saves_tmt_pengangkatan_and_kenaikan_jenjang(): void
+    public function test_staff_update_saves_tmt_pengangkatan_and_positions(): void
     {
         $user = User::factory()->create();
-        $academicYear = AcademicYear::create([
-            'name' => '2025/2026',
-            'semester' => 'Ganjil',
-        ]);
 
         $employee = Employee::create([
             'nama' => 'Ahmad Fauzi',
@@ -130,46 +146,47 @@ class EmployeeStructureTest extends TestCase
             'kepemilikan_bpjs' => 'Ya',
             'penanggung_bpjs' => 'Yayasan',
             'tmt_pengangkatan' => '2018-01-10',
-            'academic_year_id' => $academicYear->id,
+            'tst_pengangkatan' => '2028-01-10',
+            'status_keaktifan' => 'Aktif',
+            'keaktifan_dapodik' => 'Aktif',
+            'unit_keaktifan_dapodik' => 'SMP IT Ulil Albab',
             'unit_kerja' => 'SMP IT Ulil Albab',
             'jabatan' => 'Kepala Lab',
             'jenis_kepegawaian' => 'Tenaga Kependidikan',
-            'status_keaktifan' => 'Aktif',
+            'tmt_jabatan' => '2020-07-01',
             'jenjang_kepegawaian' => 'PTY',
             'tmt_kenaikan_jenjang' => '2022-01-10',
-            'tst_jenjang' => '2026-01-10',
-            'keaktifan_dapodik' => 'Aktif',
-            'unit_keaktifan_dapodik' => 'SMP IT Ulil Albab',
+            'tst_kenaikan_jenjang' => '2026-01-10',
         ]);
 
         $response->assertRedirect();
 
         $employee->refresh();
         $this->assertEquals('2018-01-10', $employee->tmt_pengangkatan?->format('Y-m-d'));
+        $this->assertEquals('2028-01-10', $employee->tst_pengangkatan?->format('Y-m-d'));
         $this->assertEquals('Ahmad Fauzi', $employee->nama);
         $this->assertEquals('Ust.', $employee->gelar_depan);
         $this->assertEquals('S.Pd.I', $employee->gelar_belakang);
         $this->assertEquals('Ust. Ahmad Fauzi, S.Pd.I', $employee->nama_lengkap_gelar);
         $this->assertEquals('Ya', $employee->kepemilikan_bpjs);
         $this->assertEquals('Yayasan', $employee->penanggung_bpjs);
+        $this->assertEquals('Aktif', $employee->status_keaktifan);
+        $this->assertEquals('SMP IT Ulil Albab', $employee->unit_keaktifan_dapodik);
 
-        $record = EmployeeRecord::where('employee_id', $employee->id)
-            ->where('academic_year_id', $academicYear->id)
-            ->first();
-
+        $record = EmployeeRecord::where('employee_id', $employee->id)->first();
         $this->assertNotNull($record);
-        $this->assertEquals('SMP IT Ulil Albab', $record->unit_kerja);
-        $this->assertEquals('Kepala Lab', $record->jabatan);
+        $this->assertEquals('PTY', $record->jenjang_kepegawaian);
         $this->assertEquals('2022-01-10', $record->tmt_kenaikan_jenjang?->format('Y-m-d'));
+
+        $position = EmployeePosition::where('employee_id', $employee->id)->first();
+        $this->assertNotNull($position);
+        $this->assertEquals('SMP IT Ulil Albab', $position->unit_kerja);
+        $this->assertEquals('Kepala Lab', $position->jabatan);
+        $this->assertEquals('2020-07-01', $position->tmt_jabatan?->format('Y-m-d'));
     }
 
     public function test_command_moves_tmt_to_tmt_pengangkatan(): void
     {
-        $academicYear = AcademicYear::create([
-            'name' => '2025/2026',
-            'semester' => 'Ganjil',
-        ]);
-
         $employee = Employee::create([
             'nama' => 'Dewi Lestari',
             'nik' => '3301019999990001',
@@ -178,7 +195,6 @@ class EmployeeStructureTest extends TestCase
 
         $record = EmployeeRecord::create([
             'employee_id' => $employee->id,
-            'academic_year_id' => $academicYear->id,
             'jenis_kepegawaian' => 'Tenaga Pendidik',
             'status_keaktifan' => 'Aktif',
             'jenjang_kepegawaian' => 'GTY',
@@ -203,49 +219,33 @@ class EmployeeStructureTest extends TestCase
         $this->assertNull($record->tmt_kenaikan_jenjang);
     }
 
-    public function test_employee_import_handles_gelar_and_bpjs(): void
+    public function test_employee_import_handles_all_four_sheets(): void
     {
         $spreadsheet = new Spreadsheet;
-        $sheet = $spreadsheet->getActiveSheet();
-        $sheet->setTitle('1. Data Pegawai');
 
-        $headers = [
-            'A' => 'NIPY',
-            'B' => 'Nama Lengkap',
-            'C' => 'Gelar Depan',
-            'D' => 'Gelar Belakang',
-            'E' => 'JK (L/P)',
-            'F' => 'Tempat Lahir',
-            'G' => 'Tanggal Lahir',
-            'H' => 'NIK',
-            'I' => 'TMT Pengangkatan',
-            'J' => 'No WA',
-            'AA' => 'Kepemilikan BPJS (Ya/Tidak)',
-            'AB' => 'Penanggung BPJS',
-        ];
+        // Sheet 1: Data Pegawai
+        $sheet1 = $spreadsheet->getActiveSheet();
+        $sheet1->setTitle('1. Data Pegawai');
+        $sheet1->fromArray([
+            ['NIPY', 'Nama Lengkap', 'Gelar Depan', 'Gelar Belakang', 'JK (L/P)', 'Tempat Lahir', 'Tanggal Lahir', 'NIK', 'TMT Pengangkatan', 'TST Pengangkatan', 'Keaktifan Dapodik', 'Unit Keaktifan Dapodik', 'Status Keaktifan', 'Keterangan Tidak Aktif', 'No WA'],
+            ['1002', 'Siti Nurhaliza', 'Prof. Dr.', 'M.Si.', 'P', 'Solo', '1980-05-12', '3301018005120002', '2010-09-01', '2030-09-01', 'Aktif', 'SDIT Ulil Albab', 'Aktif', '-', '081234567891'],
+        ]);
 
-        foreach ($headers as $col => $name) {
-            $sheet->setCellValue("{$col}1", $name);
-        }
+        // Sheet 3: Riwayat Kepegawaian (Jenjang)
+        $sheet3 = $spreadsheet->createSheet();
+        $sheet3->setTitle('3. Riwayat Kepegawaian');
+        $sheet3->fromArray([
+            ['NIK', 'Nama Lengkap', 'TMT Kenaikan Jenjang', 'TST Kenaikan Jenjang', 'Jenjang Kepegawaian'],
+            ['3301018005120002', 'Siti Nurhaliza', '2020-07-01', '', 'GTY'],
+        ]);
 
-        $row2 = [
-            'A' => '1002',
-            'B' => 'Siti Nurhaliza',
-            'C' => 'Prof. Dr.',
-            'D' => 'M.Si.',
-            'E' => 'P',
-            'F' => 'Solo',
-            'G' => '1980-05-12',
-            'H' => '3301018005120002',
-            'I' => '2010-09-01',
-            'J' => '081234567891',
-            'AA' => 'Ya',
-            'AB' => 'BPJS Kesehatan Mandiri',
-        ];
-
-        foreach ($row2 as $col => $val) {
-            $sheet->setCellValue("{$col}2", $val);
-        }
+        // Sheet 4: Riwayat Jabatan
+        $sheet4 = $spreadsheet->createSheet();
+        $sheet4->setTitle('4. Riwayat Jabatan');
+        $sheet4->fromArray([
+            ['NIK', 'Nama Lengkap', 'TMT Jabatan', 'TST Jabatan', 'Unit Kerja', 'Jabatan', 'Jenis Kepegawaian'],
+            ['3301018005120002', 'Siti Nurhaliza', '2020-07-01', '', 'SDIT Ulil Albab', 'Kepala Sekolah', 'Tenaga Pendidik'],
+        ]);
 
         $tmpFile = tempnam(sys_get_temp_dir(), 'import_test_').'.xlsx';
         $writer = new Xlsx($spreadsheet);
@@ -255,16 +255,30 @@ class EmployeeStructureTest extends TestCase
         $result = $importService->import($tmpFile);
 
         $this->assertEquals(1, $result['created_count']);
+        $this->assertEquals(1, $result['records_count']);
+        $this->assertEquals(1, $result['positions_count']);
 
         $employee = Employee::where('nik', '3301018005120002')->first();
         $this->assertNotNull($employee);
         $this->assertEquals('Siti Nurhaliza', $employee->nama);
         $this->assertEquals('Prof. Dr.', $employee->gelar_depan);
         $this->assertEquals('M.Si.', $employee->gelar_belakang);
-        $this->assertEquals('Prof. Dr. Siti Nurhaliza, M.Si.', $employee->nama_lengkap_gelar);
         $this->assertEquals('2010-09-01', $employee->tmt_pengangkatan?->format('Y-m-d'));
-        $this->assertEquals('Ya', $employee->kepemilikan_bpjs);
-        $this->assertEquals('BPJS Kesehatan Mandiri', $employee->penanggung_bpjs);
+        $this->assertEquals('2030-09-01', $employee->tst_pengangkatan?->format('Y-m-d'));
+        $this->assertEquals('Aktif', $employee->keaktifan_dapodik);
+        $this->assertEquals('SDIT Ulil Albab', $employee->unit_keaktifan_dapodik);
+        $this->assertEquals('Aktif', $employee->status_keaktifan);
+
+        $record = EmployeeRecord::where('employee_id', $employee->id)->first();
+        $this->assertNotNull($record);
+        $this->assertEquals('GTY', $record->jenjang_kepegawaian);
+        $this->assertEquals('2020-07-01', $record->tmt_kenaikan_jenjang?->format('Y-m-d'));
+
+        $position = EmployeePosition::where('employee_id', $employee->id)->first();
+        $this->assertNotNull($position);
+        $this->assertEquals('Kepala Sekolah', $position->jabatan);
+        $this->assertEquals('SDIT Ulil Albab', $position->unit_kerja);
+        $this->assertEquals('Tenaga Pendidik', $position->jenis_kepegawaian);
 
         @unlink($tmpFile);
     }

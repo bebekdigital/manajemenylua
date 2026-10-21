@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\AcademicYear;
 use App\Models\Employee;
-use App\Models\EmployeeRecord;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use PhpOffice\PhpSpreadsheet\IOFactory;
@@ -24,6 +23,7 @@ class EmployeeImportService
      *     total_employees: int,
      *     education_count: int,
      *     records_count: int,
+     *     positions_count: int,
      *     errors: array<string>,
      *     warnings: array<string>
      * }
@@ -40,6 +40,7 @@ class EmployeeImportService
         $updatedCount = 0;
         $educationCount = 0;
         $recordsCount = 0;
+        $positionsCount = 0;
         $errors = [];
         $warnings = [];
 
@@ -81,44 +82,49 @@ class EmployeeImportService
                     'tempat_lahir' => $this->cleanString($row[$colPegawai['tempatlahir'] ?? 'F'] ?? null),
                     'tanggal_lahir' => $this->parseDate($row[$colPegawai['tanggallahir'] ?? 'G'] ?? null),
                     'tmt_pengangkatan' => $this->parseDate($row[$colPegawai['tmtpengangkatan'] ?? ($colPegawai['tmt'] ?? 'I')] ?? null),
-                    'no_wa' => $this->cleanString($row[$colPegawai['nowa'] ?? 'J'] ?? null),
-                    'email' => $this->cleanString($row[$colPegawai['email'] ?? 'K'] ?? null),
+                    'tst_pengangkatan' => $this->parseDate($row[$colPegawai['tstpengangkatan'] ?? ($colPegawai['tst'] ?? 'J')] ?? null),
+                    'keaktifan_dapodik' => $this->cleanString($row[$colPegawai['keaktifandapodik'] ?? 'K'] ?? null),
+                    'unit_keaktifan_dapodik' => $this->cleanString($row[$colPegawai['unitkeaktifandapodik'] ?? 'L'] ?? null),
+                    'status_keaktifan' => $this->cleanString($row[$colPegawai['statuskeaktifan'] ?? 'M'] ?? 'Aktif') ?? 'Aktif',
+                    'keterangan_tidak_aktif' => $this->cleanString($row[$colPegawai['keterangantidakaktif'] ?? 'N'] ?? null),
+                    'no_wa' => $this->cleanString($row[$colPegawai['nowa'] ?? 'O'] ?? null),
+                    'email' => $this->cleanString($row[$colPegawai['email'] ?? 'P'] ?? null),
 
                     // Alamat Domisili
-                    'jalan_domisili' => $this->cleanString($row[$colPegawai['jalandomisili'] ?? 'L'] ?? null),
-                    'rt_rw_domisili' => $this->cleanString($row[$colPegawai['rtrwdomisili'] ?? 'M'] ?? null),
-                    'dusun_domisili' => $this->cleanString($row[$colPegawai['dusundomisili'] ?? 'N'] ?? null),
-                    'desa_domisili' => $this->cleanString($row[$colPegawai['desadomisili'] ?? 'O'] ?? null),
-                    'kecamatan_domisili' => $this->cleanString($row[$colPegawai['kecamatandomisili'] ?? 'P'] ?? null),
-                    'kab_domisili' => $this->cleanString($row[$colPegawai['kabdomisili'] ?? 'Q'] ?? null),
-                    'provinsi_domisili' => $this->cleanString($row[$colPegawai['provinsidomisili'] ?? 'R'] ?? null),
+                    'jalan_domisili' => $this->cleanString($row[$colPegawai['jalandomisili'] ?? 'Q'] ?? null),
+                    'rt_rw_domisili' => $this->cleanString($row[$colPegawai['rtrwdomisili'] ?? 'R'] ?? null),
+                    'dusun_domisili' => $this->cleanString($row[$colPegawai['dusundomisili'] ?? 'S'] ?? null),
+                    'desa_domisili' => $this->cleanString($row[$colPegawai['desadomisili'] ?? 'T'] ?? null),
+                    'kecamatan_domisili' => $this->cleanString($row[$colPegawai['kecamatandomisili'] ?? 'U'] ?? null),
+                    'kab_domisili' => $this->cleanString($row[$colPegawai['kabdomisili'] ?? 'V'] ?? null),
+                    'provinsi_domisili' => $this->cleanString($row[$colPegawai['provinsidomisili'] ?? 'W'] ?? null),
 
                     // Alamat Tinggal
-                    'jalan_tinggal' => $this->cleanString($row[$colPegawai['jalantinggal'] ?? 'S'] ?? null),
-                    'rt_rw_tinggal' => $this->cleanString($row[$colPegawai['rtrwtinggal'] ?? 'T'] ?? null),
-                    'dusun_tinggal' => $this->cleanString($row[$colPegawai['dusuntinggal'] ?? 'U'] ?? null),
-                    'desa_tinggal' => $this->cleanString($row[$colPegawai['desatinggal'] ?? 'V'] ?? null),
-                    'kecamatan_tinggal' => $this->cleanString($row[$colPegawai['kecamatantinggal'] ?? 'W'] ?? null),
-                    'kabupaten_tinggal' => $this->cleanString($row[$colPegawai['kabupatentinggal'] ?? 'X'] ?? null),
-                    'provinsi_tinggal' => $this->cleanString($row[$colPegawai['provinsitinggal'] ?? 'Y'] ?? null),
+                    'jalan_tinggal' => $this->cleanString($row[$colPegawai['jalantinggal'] ?? 'X'] ?? null),
+                    'rt_rw_tinggal' => $this->cleanString($row[$colPegawai['rtrwtinggal'] ?? 'Y'] ?? null),
+                    'dusun_tinggal' => $this->cleanString($row[$colPegawai['dusuntinggal'] ?? 'Z'] ?? null),
+                    'desa_tinggal' => $this->cleanString($row[$colPegawai['desatinggal'] ?? 'AA'] ?? null),
+                    'kecamatan_tinggal' => $this->cleanString($row[$colPegawai['kecamatantinggal'] ?? 'AB'] ?? null),
+                    'kabupaten_tinggal' => $this->cleanString($row[$colPegawai['kabupatentinggal'] ?? 'AC'] ?? null),
+                    'provinsi_tinggal' => $this->cleanString($row[$colPegawai['provinsitinggal'] ?? 'AD'] ?? null),
 
-                    'status_rumah' => $this->cleanString($row[$colPegawai['statusrumah'] ?? 'Z'] ?? null),
-                    'kepemilikan_bpjs' => $this->cleanString($row[$colPegawai['kepemilikanbpjsyatidak'] ?? ($colPegawai['kepemilikanbpjs'] ?? 'AA')] ?? null),
-                    'penanggung_bpjs' => $this->cleanString($row[$colPegawai['penanggungbpjs'] ?? 'AB'] ?? null),
-                    'skill' => $this->cleanString($row[$colPegawai['skill'] ?? 'AC'] ?? null),
+                    'status_rumah' => $this->cleanString($row[$colPegawai['statusrumah'] ?? 'AE'] ?? null),
+                    'kepemilikan_bpjs' => $this->cleanString($row[$colPegawai['kepemilikanbpjsyatidak'] ?? ($colPegawai['kepemilikanbpjs'] ?? 'AF')] ?? null),
+                    'penanggung_bpjs' => $this->cleanString($row[$colPegawai['penanggungbpjs'] ?? 'AG'] ?? null),
+                    'skill' => $this->cleanString($row[$colPegawai['skill'] ?? 'AH'] ?? null),
 
                     // Keluarga
-                    'status_pernikahan' => $this->cleanString($row[$colPegawai['statuspernikahan'] ?? 'AD'] ?? null),
-                    'nama_suami_istri' => $this->cleanString($row[$colPegawai['namasuamiistri'] ?? 'AE'] ?? null),
-                    'ttl_suami_istri' => $this->cleanString($row[$colPegawai['ttlsuamiistri'] ?? 'AF'] ?? null),
-                    'pekerjaan_suami_istri' => $this->cleanString($row[$colPegawai['pekerjaansuamiistri'] ?? 'AG'] ?? null),
-                    'tanggal_menikah' => $this->parseDate($row[$colPegawai['tanggalmenikah'] ?? 'AH'] ?? null),
-                    'jumlah_anak' => $this->parseInteger($row[$colPegawai['jumlahanak'] ?? 'AI'] ?? null),
-                    'nama_ibu' => $this->cleanString($row[$colPegawai['namaibu'] ?? 'AJ'] ?? null),
-                    'nama_ayah' => $this->cleanString($row[$colPegawai['namaayah'] ?? 'AK'] ?? null),
-                    'alamat_orangtua' => $this->cleanString($row[$colPegawai['alamatorangtua'] ?? 'AL'] ?? null),
-                    'kontak_darurat' => $this->cleanString($row[$colPegawai['kontakdarurat'] ?? 'AM'] ?? null),
-                    'hubungan_kontak_darurat' => $this->cleanString($row[$colPegawai['hubungankontakdarurat'] ?? 'AN'] ?? null),
+                    'status_pernikahan' => $this->cleanString($row[$colPegawai['statuspernikahan'] ?? 'AI'] ?? null),
+                    'nama_suami_istri' => $this->cleanString($row[$colPegawai['namasuamiistri'] ?? 'AJ'] ?? null),
+                    'ttl_suami_istri' => $this->cleanString($row[$colPegawai['ttlsuamiistri'] ?? 'AK'] ?? null),
+                    'pekerjaan_suami_istri' => $this->cleanString($row[$colPegawai['pekerjaansuamiistri'] ?? 'AL'] ?? null),
+                    'tanggal_menikah' => $this->parseDate($row[$colPegawai['tanggalmenikah'] ?? 'AM'] ?? null),
+                    'jumlah_anak' => $this->parseInteger($row[$colPegawai['jumlahanak'] ?? 'AN'] ?? null),
+                    'nama_ibu' => $this->cleanString($row[$colPegawai['namaibu'] ?? 'AO'] ?? null),
+                    'nama_ayah' => $this->cleanString($row[$colPegawai['namaayah'] ?? 'AP'] ?? null),
+                    'alamat_orangtua' => $this->cleanString($row[$colPegawai['alamatorangtua'] ?? 'AQ'] ?? null),
+                    'kontak_darurat' => $this->cleanString($row[$colPegawai['kontakdarurat'] ?? 'AR'] ?? null),
+                    'hubungan_kontak_darurat' => $this->cleanString($row[$colPegawai['hubungankontakdarurat'] ?? 'AS'] ?? null),
                 ];
 
                 $existing = null;
@@ -182,13 +188,14 @@ class EmployeeImportService
                 }
             }
 
-            // 3. Process Sheet 3: Riwayat Kepegawaian
+            // 3. Process Sheet 3: Riwayat Kepegawaian (Jenjang Kepegawaian murni tanggal TMT & TST)
             $sheetKepegawaian = $this->findSheet($spreadsheet, ['3. Riwayat Kepegawaian', 'Riwayat Kepegawaian', 'Kepegawaian'], 3);
             if ($sheetKepegawaian) {
                 $rowsKepegawaian = $sheetKepegawaian->toArray(null, true, true, true);
                 $headerKepegawaian = array_shift($rowsKepegawaian) ?? [];
                 $colKepegawaian = $this->mapHeaders($headerKepegawaian);
 
+                $recordsByNik = [];
                 foreach ($rowsKepegawaian as $row) {
                     $colNik = $colKepegawaian['nik'] ?? 'A';
                     $nik = $this->cleanNik($row[$colNik] ?? null);
@@ -196,6 +203,38 @@ class EmployeeImportService
                         continue;
                     }
 
+                    if (! isset($recordsByNik[$nik])) {
+                        $recordsByNik[$nik] = [];
+                    }
+
+                    $tmtKenaikan = $this->parseDate($row[$colKepegawaian['tmtkenaikanjenjang'] ?? ($colKepegawaian['tmt'] ?? 'C')] ?? null);
+                    $tstKenaikan = $this->parseDate($row[$colKepegawaian['tstkenaikanjenjang'] ?? ($colKepegawaian['tstjenjang'] ?? ($colKepegawaian['tst'] ?? 'D'))] ?? null);
+                    $jenjang = $this->cleanString($row[$colKepegawaian['jenjangkepegawaian'] ?? ($colKepegawaian['jenjang'] ?? 'E')] ?? null);
+
+                    // Backward-compatibility if legacy file includes academic year
+                    $academicYearId = null;
+                    if (isset($colKepegawaian['tahunajaran'])) {
+                        $tahunAjaran = $this->cleanString($row[$colKepegawaian['tahunajaran']] ?? null);
+                        $semester = $this->cleanString($row[$colKepegawaian['semester'] ?? 'D'] ?? null);
+                        if ($tahunAjaran) {
+                            $academicYearId = AcademicYear::where('name', $tahunAjaran)
+                                ->where('semester', $semester)
+                                ->value('id');
+                        }
+                    }
+
+                    if ($tmtKenaikan || $tstKenaikan || $jenjang) {
+                        $recordsByNik[$nik][] = [
+                            'academic_year_id' => $academicYearId,
+                            'tmt_kenaikan_jenjang' => $tmtKenaikan,
+                            'tst_kenaikan_jenjang' => $tstKenaikan,
+                            'tst_jenjang' => $tstKenaikan,
+                            'jenjang_kepegawaian' => $jenjang,
+                        ];
+                    }
+                }
+
+                foreach ($recordsByNik as $nik => $records) {
                     $employee = $employeeMap[$nik] ?? Employee::where('nik', $nik)->first();
                     if (! $employee) {
                         $warnings[] = "NIK {$nik} pada Sheet Kepegawaian tidak ditemukan.";
@@ -203,46 +242,63 @@ class EmployeeImportService
                         continue;
                     }
 
-                    $colTahun = $colKepegawaian['tahunajaran'] ?? 'C';
-                    $colSemester = $colKepegawaian['semester'] ?? 'D';
-                    $tahunAjaran = $this->cleanString($row[$colTahun] ?? null);
-                    $semester = $this->cleanString($row[$colSemester] ?? null);
+                    $employee->records()->delete();
+                    foreach ($records as $rec) {
+                        $employee->records()->create($rec);
+                        $recordsCount++;
+                    }
+                }
+            }
 
-                    $academicYear = null;
-                    if ($tahunAjaran) {
-                        $academicYear = AcademicYear::where('name', $tahunAjaran)
-                            ->where('semester', $semester)
-                            ->first();
-                        if (! $academicYear) {
-                            $warnings[] = "Tahun Ajaran '{$tahunAjaran} {$semester}' tidak ditemukan untuk NIK {$nik}.";
+            // 4. Process Sheet 4: Riwayat Jabatan (NIK, Nama Lengkap, TMT Jabatan, TST Jabatan, Unit Kerja, Jabatan, Jenis Kepegawaian)
+            $sheetJabatan = $this->findSheet($spreadsheet, ['4. Riwayat Jabatan', 'Riwayat Jabatan', 'Jabatan'], 4);
+            if ($sheetJabatan) {
+                $rowsJabatan = $sheetJabatan->toArray(null, true, true, true);
+                $headerJabatan = array_shift($rowsJabatan) ?? [];
+                $colJabatan = $this->mapHeaders($headerJabatan);
 
-                            continue;
-                        }
-                    } else {
-                        $warnings[] = "Tahun Ajaran kosong pada baris NIK {$nik}, dilewati.";
+                $positionsByNik = [];
+                foreach ($rowsJabatan as $row) {
+                    $colNik = $colJabatan['nik'] ?? 'A';
+                    $nik = $this->cleanNik($row[$colNik] ?? null);
+                    if (empty($nik) || strtolower($nik) === 'nik') {
+                        continue;
+                    }
+
+                    if (! isset($positionsByNik[$nik])) {
+                        $positionsByNik[$nik] = [];
+                    }
+
+                    $tmtJabatan = $this->parseDate($row[$colJabatan['tmtjabatan'] ?? ($colJabatan['tmt'] ?? 'C')] ?? null);
+                    $tstJabatan = $this->parseDate($row[$colJabatan['tstjabatan'] ?? ($colJabatan['tst'] ?? 'D')] ?? null);
+                    $unitKerja = $this->cleanString($row[$colJabatan['unitkerja'] ?? ($colJabatan['unit'] ?? 'E')] ?? null);
+                    $jabatan = $this->cleanString($row[$colJabatan['jabatan'] ?? 'F'] ?? null);
+                    $jenisKepegawaian = $this->cleanString($row[$colJabatan['jeniskepegawaian'] ?? 'G'] ?? null);
+
+                    if ($tmtJabatan || $tstJabatan || $unitKerja || $jabatan || $jenisKepegawaian) {
+                        $positionsByNik[$nik][] = [
+                            'tmt_jabatan' => $tmtJabatan,
+                            'tst_jabatan' => $tstJabatan,
+                            'unit_kerja' => $unitKerja,
+                            'jabatan' => $jabatan,
+                            'jenis_kepegawaian' => $jenisKepegawaian,
+                        ];
+                    }
+                }
+
+                foreach ($positionsByNik as $nik => $positions) {
+                    $employee = $employeeMap[$nik] ?? Employee::where('nik', $nik)->first();
+                    if (! $employee) {
+                        $warnings[] = "NIK {$nik} pada Sheet Riwayat Jabatan tidak ditemukan.";
 
                         continue;
                     }
 
-                    EmployeeRecord::updateOrCreate(
-                        [
-                            'employee_id' => $employee->id,
-                            'academic_year_id' => $academicYear->id,
-                        ],
-                        [
-                            'jenis_kepegawaian' => $this->cleanString($row[$colKepegawaian['jeniskepegawaian'] ?? 'E'] ?? null),
-                            'status_keaktifan' => $this->cleanString($row[$colKepegawaian['statuskeaktifan'] ?? 'F'] ?? null),
-                            'keterangan_tidak_aktif' => $this->cleanString($row[$colKepegawaian['keterangantidakaktif'] ?? 'G'] ?? null),
-                            'jenjang_kepegawaian' => $this->cleanString($row[$colKepegawaian['jenjangkepegawaian'] ?? 'H'] ?? null),
-                            'tmt_kenaikan_jenjang' => $this->parseDate($row[$colKepegawaian['tmtkenaikanjenjang'] ?? ($colKepegawaian['tmt'] ?? 'I')] ?? null),
-                            'tst_jenjang' => $this->parseDate($row[$colKepegawaian['tstjenjang'] ?? ($colKepegawaian['tst'] ?? 'J')] ?? null),
-                            'keaktifan_dapodik' => $this->cleanString($row[$colKepegawaian['keaktifandapodik'] ?? 'K'] ?? null),
-                            'unit_keaktifan_dapodik' => $this->cleanString($row[$colKepegawaian['unitkeaktifandapodik'] ?? 'L'] ?? null),
-                            'unit_kerja' => $this->cleanString($row[$colKepegawaian['unitkerja'] ?? 'M'] ?? null),
-                            'jabatan' => $this->cleanString($row[$colKepegawaian['jabatan'] ?? 'N'] ?? null),
-                        ]
-                    );
-                    $recordsCount++;
+                    $employee->positions()->delete();
+                    foreach ($positions as $pos) {
+                        $employee->positions()->create($pos);
+                        $positionsCount++;
+                    }
                 }
             }
 
@@ -257,6 +313,7 @@ class EmployeeImportService
                 'total_employees' => 0,
                 'education_count' => 0,
                 'records_count' => 0,
+                'positions_count' => 0,
                 'errors' => [$e->getMessage()],
                 'warnings' => [],
             ];
@@ -269,6 +326,7 @@ class EmployeeImportService
             'total_employees' => $createdCount + $updatedCount,
             'education_count' => $educationCount,
             'records_count' => $recordsCount,
+            'positions_count' => $positionsCount,
             'errors' => $errors,
             'warnings' => $warnings,
         ];

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AcademicYear;
 use App\Models\Employee;
+use App\Models\EmployeePosition;
 use App\Models\EmployeeRecord;
 use App\Models\SchoolUnit;
 use App\Services\EmployeeImportService;
@@ -33,19 +34,14 @@ class EmployeeController extends Controller
             : (AcademicYear::current() ?? AcademicYear::first());
 
         $employees = Employee::with([
-            'records' => function ($query) use ($selectedYear) {
-                if ($selectedYear) {
-                    $query->where('academic_year_id', $selectedYear->id);
-                }
-            },
+            'records',
+            'positions',
             'educationHistories',
         ])
             ->orderBy('nama')
             ->get()
             ->map(function (Employee $employee) {
-                $record = $employee->records->first();
-
-                return $this->mapEmployeeForList($employee, $record);
+                return $this->mapEmployeeForList($employee);
             });
 
         return Inertia::render('Staff', [
@@ -54,7 +50,6 @@ class EmployeeController extends Controller
                 'id' => $selectedYear->id,
                 'name' => $selectedYear->name,
                 'semester' => $selectedYear->semester,
-
             ] : null,
         ]);
     }
@@ -71,12 +66,12 @@ class EmployeeController extends Controller
 
         $employee = Employee::with([
             'educationHistories',
-            'records.academicYear',
+            'records',
+            'positions',
         ])->findOrFail($id);
 
-        $currentRecord = $employee->records
-            ->when($selectedYear, fn ($c) => $c->where('academic_year_id', $selectedYear->id))
-            ->first();
+        $latestPosition = $employee->positions->sortByDesc('tmt_jabatan')->first();
+        $latestRecord = $employee->records->sortByDesc('tmt_kenaikan_jenjang')->first();
 
         $allYears = AcademicYear::orderByDesc('name')->orderByDesc('semester')->get();
 
@@ -131,44 +126,57 @@ class EmployeeController extends Controller
             'kontak_darurat' => $employee->kontak_darurat,
             'hubungan_kontak_darurat' => $employee->hubungan_kontak_darurat,
 
-            // Data Statis Kepegawaian (TMT Pengangkatan & Masa Kerja)
+            // Data Statis Kepegawaian (TMT Pengangkatan, TST Pengangkatan, Masa Kerja, Dapodik, Keaktifan)
             'tmt_pengangkatan' => $employee->tmt_pengangkatan?->format('Y-m-d'),
             'formatted_tmt_pengangkatan' => $employee->tmt_pengangkatan?->translatedFormat('d F Y'),
+            'tst_pengangkatan' => $employee->tst_pengangkatan?->format('Y-m-d'),
+            'formatted_tst_pengangkatan' => $employee->tst_pengangkatan?->translatedFormat('d F Y'),
             'masa_kerja' => $employee->masa_kerja,
+            'keaktifan_dapodik' => $employee->keaktifan_dapodik,
+            'unit_keaktifan_dapodik' => $employee->unit_keaktifan_dapodik,
+            'status_keaktifan' => $employee->status_keaktifan ?? 'Aktif',
+            'keterangan_tidak_aktif' => $employee->keterangan_tidak_aktif,
 
             // Kepegawaian & Penugasan aktif
-            'academic_record_id' => $currentRecord?->id,
-            'unit_kerja' => $currentRecord?->unit_kerja,
-            'jabatan' => $currentRecord?->jabatan,
-            'jenis_kepegawaian' => $currentRecord?->jenis_kepegawaian,
-            'status_keaktifan' => $currentRecord?->status_keaktifan,
-            'keterangan_tidak_aktif' => $currentRecord?->keterangan_tidak_aktif,
-            'jenjang_kepegawaian' => $currentRecord?->jenjang_kepegawaian,
-            'tmt_kenaikan_jenjang' => $currentRecord?->tmt_kenaikan_jenjang?->format('Y-m-d'),
-            'formatted_tmt_kenaikan_jenjang' => $currentRecord?->tmt_kenaikan_jenjang?->translatedFormat('d F Y'),
-            'tst_jenjang' => $currentRecord?->tst_jenjang?->format('Y-m-d'),
-            'formatted_tst_jenjang' => $currentRecord?->tst_jenjang?->translatedFormat('d F Y'),
-            'keaktifan_dapodik' => $currentRecord?->keaktifan_dapodik,
-            'unit_keaktifan_dapodik' => $currentRecord?->unit_keaktifan_dapodik,
+            'unit_kerja' => $latestPosition?->unit_kerja ?? $latestRecord?->unit_kerja,
+            'jabatan' => $latestPosition?->jabatan ?? $latestRecord?->jabatan,
+            'jenis_kepegawaian' => $latestPosition?->jenis_kepegawaian ?? $latestRecord?->jenis_kepegawaian,
+            'tmt_jabatan' => $latestPosition?->tmt_jabatan?->format('Y-m-d'),
+            'formatted_tmt_jabatan' => $latestPosition?->tmt_jabatan?->translatedFormat('d F Y'),
+            'tst_jabatan' => $latestPosition?->tst_jabatan?->format('Y-m-d'),
+            'formatted_tst_jabatan' => $latestPosition?->tst_jabatan?->translatedFormat('d F Y'),
 
-            // Semua riwayat kepegawaian & penugasan (untuk tab)
+            'jenjang_kepegawaian' => $latestRecord?->jenjang_kepegawaian,
+            'tmt_kenaikan_jenjang' => $latestRecord?->tmt_kenaikan_jenjang?->format('Y-m-d'),
+            'formatted_tmt_kenaikan_jenjang' => $latestRecord?->tmt_kenaikan_jenjang?->translatedFormat('d F Y'),
+            'tst_kenaikan_jenjang' => ($latestRecord?->tst_kenaikan_jenjang ?? $latestRecord?->tst_jenjang)?->format('Y-m-d'),
+            'formatted_tst_kenaikan_jenjang' => ($latestRecord?->tst_kenaikan_jenjang ?? $latestRecord?->tst_jenjang)?->translatedFormat('d F Y'),
+            'tst_jenjang' => ($latestRecord?->tst_kenaikan_jenjang ?? $latestRecord?->tst_jenjang)?->format('Y-m-d'),
+            'formatted_tst_jenjang' => ($latestRecord?->tst_kenaikan_jenjang ?? $latestRecord?->tst_jenjang)?->translatedFormat('d F Y'),
+
+            // Sheet 3: Riwayat Kepegawaian (Jenjang)
             'riwayat_kepegawaian' => $employee->records->map(fn ($r) => [
                 'id' => $r->id,
-                'tahun_ajaran' => $r->academicYear?->name,
-                'semester' => $r->academicYear?->semester,
-                'jenis_kepegawaian' => $r->jenis_kepegawaian,
-                'status_keaktifan' => $r->status_keaktifan,
-                'keterangan_tidak_aktif' => $r->keterangan_tidak_aktif,
                 'jenjang_kepegawaian' => $r->jenjang_kepegawaian,
                 'tmt_kenaikan_jenjang' => $r->tmt_kenaikan_jenjang?->format('Y-m-d'),
                 'formatted_tmt_kenaikan_jenjang' => $r->tmt_kenaikan_jenjang?->translatedFormat('d F Y'),
-                'tst_jenjang' => $r->tst_jenjang?->format('Y-m-d'),
-                'formatted_tst_jenjang' => $r->tst_jenjang?->translatedFormat('d F Y'),
-                'keaktifan_dapodik' => $r->keaktifan_dapodik,
-                'unit_keaktifan_dapodik' => $r->unit_keaktifan_dapodik,
-                'unit_kerja' => $r->unit_kerja,
-                'jabatan' => $r->jabatan,
-            ])->sortByDesc('tahun_ajaran')->values()->toArray(),
+                'tst_kenaikan_jenjang' => ($r->tst_kenaikan_jenjang ?? $r->tst_jenjang)?->format('Y-m-d'),
+                'formatted_tst_kenaikan_jenjang' => ($r->tst_kenaikan_jenjang ?? $r->tst_jenjang)?->translatedFormat('d F Y'),
+                'tst_jenjang' => ($r->tst_kenaikan_jenjang ?? $r->tst_jenjang)?->format('Y-m-d'),
+                'formatted_tst_jenjang' => ($r->tst_kenaikan_jenjang ?? $r->tst_jenjang)?->translatedFormat('d F Y'),
+            ])->sortByDesc('tmt_kenaikan_jenjang')->values()->toArray(),
+
+            // Sheet 4: Riwayat Jabatan (Penugasan)
+            'riwayat_jabatan' => $employee->positions->map(fn ($p) => [
+                'id' => $p->id,
+                'unit_kerja' => $p->unit_kerja,
+                'jabatan' => $p->jabatan,
+                'jenis_kepegawaian' => $p->jenis_kepegawaian,
+                'tmt_jabatan' => $p->tmt_jabatan?->format('Y-m-d'),
+                'formatted_tmt_jabatan' => $p->tmt_jabatan?->translatedFormat('d F Y'),
+                'tst_jabatan' => $p->tst_jabatan?->format('Y-m-d'),
+                'formatted_tst_jabatan' => $p->tst_jabatan?->translatedFormat('d F Y'),
+            ])->sortByDesc('tmt_jabatan')->values()->toArray(),
 
             // Riwayat Pendidikan
             'riwayat_pendidikan' => $employee->educationHistories->map(fn ($e) => [
@@ -182,8 +190,9 @@ class EmployeeController extends Controller
         ];
 
         $units = SchoolUnit::orderBy('name')->pluck('name')->toArray();
-        $extraUnits = EmployeeRecord::whereNotNull('unit_kerja')->distinct()->pluck('unit_kerja')->toArray();
-        $availableUnits = array_values(array_unique(array_filter(array_merge($units, $extraUnits))));
+        $posUnits = EmployeePosition::whereNotNull('unit_kerja')->distinct()->pluck('unit_kerja')->toArray();
+        $recordUnits = EmployeeRecord::whereNotNull('unit_kerja')->distinct()->pluck('unit_kerja')->toArray();
+        $availableUnits = array_values(array_unique(array_filter(array_merge($units, $posUnits, $recordUnits))));
         sort($availableUnits);
 
         return Inertia::render('StaffDetail', [
@@ -262,20 +271,26 @@ class EmployeeController extends Controller
             'kontak_darurat' => ['nullable', 'string', 'max:50'],
             'hubungan_kontak_darurat' => ['nullable', 'string', 'max:100'],
 
+            // Data Statis Kepegawaian (Sheet 1)
             'tmt_pengangkatan' => ['nullable', 'date'],
+            'tst_pengangkatan' => ['nullable', 'date'],
+            'keaktifan_dapodik' => ['nullable', 'string', 'max:50'],
+            'unit_keaktifan_dapodik' => ['nullable', 'string', 'max:100'],
+            'status_keaktifan' => ['nullable', 'string', 'max:50'],
+            'keterangan_tidak_aktif' => ['nullable', 'string', 'max:255'],
 
-            // Kepegawaian & Penugasan aktif
-            'academic_year_id' => ['nullable', 'exists:academic_years,id'],
+            // Kepegawaian (Sheet 3)
+            'jenjang_kepegawaian' => ['nullable', 'string', 'max:50'],
+            'tmt_kenaikan_jenjang' => ['nullable', 'date'],
+            'tst_kenaikan_jenjang' => ['nullable', 'date'],
+            'tst_jenjang' => ['nullable', 'date'],
+
+            // Jabatan (Sheet 4)
             'unit_kerja' => ['nullable', 'string', 'max:100'],
             'jabatan' => ['nullable', 'string', 'max:100'],
             'jenis_kepegawaian' => ['nullable', 'string', 'max:100'],
-            'status_keaktifan' => ['nullable', 'string', 'max:50'],
-            'keterangan_tidak_aktif' => ['nullable', 'string', 'max:255'],
-            'jenjang_kepegawaian' => ['nullable', 'string', 'max:50'],
-            'tmt_kenaikan_jenjang' => ['nullable', 'date'],
-            'tst_jenjang' => ['nullable', 'date'],
-            'keaktifan_dapodik' => ['nullable', 'string', 'max:50'],
-            'unit_keaktifan_dapodik' => ['nullable', 'string', 'max:100'],
+            'tmt_jabatan' => ['nullable', 'date'],
+            'tst_jabatan' => ['nullable', 'date'],
 
             // Riwayat Pendidikan
             'riwayat_pendidikan' => ['nullable', 'array'],
@@ -284,53 +299,96 @@ class EmployeeController extends Controller
             'riwayat_pendidikan.*.instansi_pendidikan' => ['nullable', 'string', 'max:150'],
             'riwayat_pendidikan.*.tahun_lulus' => ['nullable', 'string', 'max:20'],
             'riwayat_pendidikan.*.pembiayaan' => ['nullable', 'string', 'max:50'],
+
+            // Riwayat Kepegawaian array (opsional jika diedit multi-row)
+            'riwayat_kepegawaian' => ['nullable', 'array'],
+            // Riwayat Jabatan array (opsional jika diedit multi-row)
+            'riwayat_jabatan' => ['nullable', 'array'],
         ], [
             'nama.required' => 'Nama lengkap wajib diisi.',
             'nik.unique' => 'NIK sudah digunakan oleh pegawai lain.',
         ]);
 
         DB::transaction(function () use ($employee, $validated) {
-            $employee->update(collect($validated)->except([
-                'academic_year_id',
-                'unit_kerja',
-                'jabatan',
-                'jenis_kepegawaian',
-                'status_keaktifan',
-                'keterangan_tidak_aktif',
-                'jenjang_kepegawaian',
-                'tmt_kenaikan_jenjang',
-                'tst_jenjang',
-                'keaktifan_dapodik',
-                'unit_keaktifan_dapodik',
-                'riwayat_pendidikan',
+            $employee->update(collect($validated)->only([
+                'nama', 'gelar_depan', 'gelar_belakang', 'nipy', 'nik', 'jk', 'tempat_lahir', 'tanggal_lahir', 'no_wa', 'email', 'skill',
+                'jalan_domisili', 'rt_rw_domisili', 'dusun_domisili', 'desa_domisili', 'kecamatan_domisili', 'kab_domisili', 'provinsi_domisili',
+                'jalan_tinggal', 'rt_rw_tinggal', 'dusun_tinggal', 'desa_tinggal', 'kecamatan_tinggal', 'kabupaten_tinggal', 'provinsi_tinggal',
+                'status_rumah', 'kepemilikan_bpjs', 'penanggung_bpjs',
+                'status_pernikahan', 'nama_suami_istri', 'ttl_suami_istri', 'pekerjaan_suami_istri', 'tanggal_menikah', 'jumlah_anak',
+                'nama_ibu', 'nama_ayah', 'alamat_orangtua', 'kontak_darurat', 'hubungan_kontak_darurat',
+                'tmt_pengangkatan', 'tst_pengangkatan', 'keaktifan_dapodik', 'unit_keaktifan_dapodik', 'status_keaktifan', 'keterangan_tidak_aktif',
             ])->toArray());
 
-            $academicYearId = $validated['academic_year_id']
-                ?? session('selected_academic_year_id')
-                ?? AcademicYear::current()?->id
-                ?? AcademicYear::first()?->id;
-
-            if ($academicYearId) {
-                EmployeeRecord::updateOrCreate(
-                    [
-                        'employee_id' => $employee->id,
-                        'academic_year_id' => $academicYearId,
-                    ],
-                    [
+            // Handle Jabatan / Penugasan (Sheet 4)
+            if (isset($validated['riwayat_jabatan']) && is_array($validated['riwayat_jabatan'])) {
+                $employee->positions()->delete();
+                foreach ($validated['riwayat_jabatan'] as $pos) {
+                    if (! empty($pos['unit_kerja']) || ! empty($pos['jabatan']) || ! empty($pos['tmt_jabatan'])) {
+                        $employee->positions()->create([
+                            'unit_kerja' => $pos['unit_kerja'] ?? null,
+                            'jabatan' => $pos['jabatan'] ?? null,
+                            'jenis_kepegawaian' => $pos['jenis_kepegawaian'] ?? null,
+                            'tmt_jabatan' => $pos['tmt_jabatan'] ?? null,
+                            'tst_jabatan' => $pos['tst_jabatan'] ?? null,
+                        ]);
+                    }
+                }
+            } elseif (! empty($validated['unit_kerja']) || ! empty($validated['jabatan']) || ! empty($validated['tmt_jabatan'])) {
+                $latestPos = $employee->positions()->latest('tmt_jabatan')->first();
+                if ($latestPos) {
+                    $latestPos->update([
                         'unit_kerja' => $validated['unit_kerja'] ?? null,
                         'jabatan' => $validated['jabatan'] ?? null,
                         'jenis_kepegawaian' => $validated['jenis_kepegawaian'] ?? null,
-                        'status_keaktifan' => $validated['status_keaktifan'] ?? null,
-                        'keterangan_tidak_aktif' => $validated['keterangan_tidak_aktif'] ?? null,
-                        'jenjang_kepegawaian' => $validated['jenjang_kepegawaian'] ?? null,
-                        'tmt_kenaikan_jenjang' => $validated['tmt_kenaikan_jenjang'] ?? null,
-                        'tst_jenjang' => $validated['tst_jenjang'] ?? null,
-                        'keaktifan_dapodik' => $validated['keaktifan_dapodik'] ?? null,
-                        'unit_keaktifan_dapodik' => $validated['unit_keaktifan_dapodik'] ?? null,
-                    ]
-                );
+                        'tmt_jabatan' => $validated['tmt_jabatan'] ?? $latestPos->tmt_jabatan,
+                        'tst_jabatan' => $validated['tst_jabatan'] ?? $latestPos->tst_jabatan,
+                    ]);
+                } else {
+                    $employee->positions()->create([
+                        'unit_kerja' => $validated['unit_kerja'] ?? null,
+                        'jabatan' => $validated['jabatan'] ?? null,
+                        'jenis_kepegawaian' => $validated['jenis_kepegawaian'] ?? null,
+                        'tmt_jabatan' => $validated['tmt_jabatan'] ?? null,
+                        'tst_jabatan' => $validated['tst_jabatan'] ?? null,
+                    ]);
+                }
             }
 
+            // Handle Riwayat Kepegawaian (Sheet 3)
+            $tstJenjangVal = $validated['tst_kenaikan_jenjang'] ?? ($validated['tst_jenjang'] ?? null);
+            if (isset($validated['riwayat_kepegawaian']) && is_array($validated['riwayat_kepegawaian'])) {
+                $employee->records()->delete();
+                foreach ($validated['riwayat_kepegawaian'] as $rec) {
+                    if (! empty($rec['jenjang_kepegawaian']) || ! empty($rec['tmt_kenaikan_jenjang'])) {
+                        $employee->records()->create([
+                            'jenjang_kepegawaian' => $rec['jenjang_kepegawaian'] ?? null,
+                            'tmt_kenaikan_jenjang' => $rec['tmt_kenaikan_jenjang'] ?? null,
+                            'tst_kenaikan_jenjang' => $rec['tst_kenaikan_jenjang'] ?? ($rec['tst_jenjang'] ?? null),
+                            'tst_jenjang' => $rec['tst_kenaikan_jenjang'] ?? ($rec['tst_jenjang'] ?? null),
+                        ]);
+                    }
+                }
+            } elseif (! empty($validated['jenjang_kepegawaian']) || ! empty($validated['tmt_kenaikan_jenjang'])) {
+                $latestRec = $employee->records()->latest('tmt_kenaikan_jenjang')->first();
+                if ($latestRec) {
+                    $latestRec->update([
+                        'jenjang_kepegawaian' => $validated['jenjang_kepegawaian'] ?? null,
+                        'tmt_kenaikan_jenjang' => $validated['tmt_kenaikan_jenjang'] ?? $latestRec->tmt_kenaikan_jenjang,
+                        'tst_kenaikan_jenjang' => $tstJenjangVal ?? $latestRec->tst_kenaikan_jenjang,
+                        'tst_jenjang' => $tstJenjangVal ?? $latestRec->tst_jenjang,
+                    ]);
+                } else {
+                    $employee->records()->create([
+                        'jenjang_kepegawaian' => $validated['jenjang_kepegawaian'] ?? null,
+                        'tmt_kenaikan_jenjang' => $validated['tmt_kenaikan_jenjang'] ?? null,
+                        'tst_kenaikan_jenjang' => $tstJenjangVal,
+                        'tst_jenjang' => $tstJenjangVal,
+                    ]);
+                }
+            }
+
+            // Handle Pendidikan (Sheet 2)
             if (isset($validated['riwayat_pendidikan'])) {
                 $employee->educationHistories()->delete();
                 foreach ($validated['riwayat_pendidikan'] as $edu) {
@@ -369,7 +427,7 @@ class EmployeeController extends Controller
             return back()->with('error', 'Gagal mengimpor data: '.($result['errors'][0] ?? 'Terjadi kesalahan sistem.'));
         }
 
-        $summaryMsg = "Berhasil memproses {$result['total_employees']} pegawai ({$result['created_count']} baru, {$result['updated_count']} diperbarui), {$result['education_count']} riwayat pendidikan, dan {$result['records_count']} catatan kepegawaian.";
+        $summaryMsg = "Berhasil memproses {$result['total_employees']} pegawai ({$result['created_count']} baru, {$result['updated_count']} diperbarui), {$result['education_count']} riwayat pendidikan, {$result['records_count']} catatan jenjang kepegawaian, dan {$result['positions_count']} riwayat jabatan.";
 
         return back()
             ->with('success', $summaryMsg)
@@ -399,8 +457,11 @@ class EmployeeController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function mapEmployeeForList(Employee $employee, ?EmployeeRecord $record): array
+    private function mapEmployeeForList(Employee $employee): array
     {
+        $latestPosition = $employee->positions->sortByDesc('tmt_jabatan')->first();
+        $latestRecord = $employee->records->sortByDesc('tmt_kenaikan_jenjang')->first();
+
         return [
             'id' => $employee->id,
             'nipy' => $employee->nipy,
@@ -413,10 +474,10 @@ class EmployeeController extends Controller
             'nik' => $employee->nik,
             'no_wa' => $employee->no_wa,
             'email' => $employee->email,
-            'unit_kerja' => $record?->unit_kerja,
-            'jabatan' => $record?->jabatan,
-            'status_keaktifan' => $record?->status_keaktifan,
-            'jenjang_kepegawaian' => $record?->jenjang_kepegawaian,
+            'unit_kerja' => $latestPosition?->unit_kerja ?? $latestRecord?->unit_kerja,
+            'jabatan' => $latestPosition?->jabatan ?? $latestRecord?->jabatan,
+            'status_keaktifan' => $employee->status_keaktifan ?? $latestRecord?->status_keaktifan ?? 'Aktif',
+            'jenjang_kepegawaian' => $latestRecord?->jenjang_kepegawaian,
             'status_pernikahan' => $employee->status_pernikahan,
             'skill' => $employee->skill,
         ];
@@ -450,37 +511,42 @@ class EmployeeController extends Controller
             'G' => 'Tanggal Lahir',
             'H' => 'NIK',
             'I' => 'TMT Pengangkatan',
-            'J' => 'No WA',
-            'K' => 'Email',
-            'L' => 'Jalan Domisili',
-            'M' => 'RT/RW Domisili',
-            'N' => 'Dusun Domisili',
-            'O' => 'Desa Domisili',
-            'P' => 'Kecamatan Domisili',
-            'Q' => 'Kab Domisili',
-            'R' => 'Provinsi Domisili',
-            'S' => 'Jalan Tinggal',
-            'T' => 'RT/RW Tinggal',
-            'U' => 'Dusun Tinggal',
-            'V' => 'Desa Tinggal',
-            'W' => 'Kecamatan Tinggal',
-            'X' => 'Kabupaten Tinggal',
-            'Y' => 'Provinsi Tinggal',
-            'Z' => 'Status Rumah',
-            'AA' => 'Kepemilikan BPJS (Ya/Tidak)',
-            'AB' => 'Penanggung BPJS',
-            'AC' => 'Skill',
-            'AD' => 'Status Pernikahan',
-            'AE' => 'Nama Suami/Istri',
-            'AF' => 'TTL Suami/Istri',
-            'AG' => 'Pekerjaan Suami/Istri',
-            'AH' => 'Tanggal Menikah',
-            'AI' => 'Jumlah Anak',
-            'AJ' => 'Nama Ibu',
-            'AK' => 'Nama Ayah',
-            'AL' => 'Alamat Orangtua',
-            'AM' => 'Kontak Darurat',
-            'AN' => 'Hubungan Kontak Darurat',
+            'J' => 'TST Pengangkatan',
+            'K' => 'Keaktifan Dapodik',
+            'L' => 'Unit Keaktifan Dapodik',
+            'M' => 'Status Keaktifan',
+            'N' => 'Keterangan Tidak Aktif',
+            'O' => 'No WA',
+            'P' => 'Email',
+            'Q' => 'Jalan Domisili',
+            'R' => 'RT/RW Domisili',
+            'S' => 'Dusun Domisili',
+            'T' => 'Desa Domisili',
+            'U' => 'Kecamatan Domisili',
+            'V' => 'Kab Domisili',
+            'W' => 'Provinsi Domisili',
+            'X' => 'Jalan Tinggal',
+            'Y' => 'RT/RW Tinggal',
+            'Z' => 'Dusun Tinggal',
+            'AA' => 'Desa Tinggal',
+            'AB' => 'Kecamatan Tinggal',
+            'AC' => 'Kabupaten Tinggal',
+            'AD' => 'Provinsi Tinggal',
+            'AE' => 'Status Rumah',
+            'AF' => 'Kepemilikan BPJS (Ya/Tidak)',
+            'AG' => 'Penanggung BPJS',
+            'AH' => 'Skill',
+            'AI' => 'Status Pernikahan',
+            'AJ' => 'Nama Suami/Istri',
+            'AK' => 'TTL Suami/Istri',
+            'AL' => 'Pekerjaan Suami/Istri',
+            'AM' => 'Tanggal Menikah',
+            'AN' => 'Jumlah Anak',
+            'AO' => 'Nama Ibu',
+            'AP' => 'Nama Ayah',
+            'AQ' => 'Alamat Orangtua',
+            'AR' => 'Kontak Darurat',
+            'AS' => 'Hubungan Kontak Darurat',
         ];
 
         foreach ($headers1 as $col => $label) {
@@ -493,29 +559,31 @@ class EmployeeController extends Controller
             $sheet1->getColumnDimension($col)->setWidth(20);
         }
 
-        // Format NIK column as Text explicitly so "0001/2" is preserved
-        $sheet1->getStyle('H2:H1000')->getNumberFormat()->setFormatCode('@');
+        // Format Text columns explicitly so leading zeros/numbers survive
         $sheet1->getStyle('A2:A1000')->getNumberFormat()->setFormatCode('@'); // NIPY
-        $sheet1->getStyle('J2:J1000')->getNumberFormat()->setFormatCode('@'); // No WA
+        $sheet1->getStyle('H2:H1000')->getNumberFormat()->setFormatCode('@'); // NIK
+        $sheet1->getStyle('O2:O1000')->getNumberFormat()->setFormatCode('@'); // No WA
 
-        // Format dates
-        $sheet1->getStyle('G2:G1000')->getNumberFormat()->setFormatCode('yyyy/mm/dd');
+        // Format Date columns
+        $sheet1->getStyle('G2:G1000')->getNumberFormat()->setFormatCode('yyyy/mm/dd'); // Tanggal Lahir
         $sheet1->getStyle('I2:I1000')->getNumberFormat()->setFormatCode('yyyy/mm/dd'); // TMT Pengangkatan
-        $sheet1->getStyle('AH2:AH1000')->getNumberFormat()->setFormatCode('yyyy/mm/dd'); // Tanggal Menikah
+        $sheet1->getStyle('J2:J1000')->getNumberFormat()->setFormatCode('yyyy/mm/dd'); // TST Pengangkatan
+        $sheet1->getStyle('AM2:AM1000')->getNumberFormat()->setFormatCode('yyyy/mm/dd'); // Tanggal Menikah
 
-        // Example row
+        // Example row for Sheet 1
         $example1 = [
             'A' => '1001', 'B' => 'Ahmad Fauzi', 'C' => 'Dr.', 'D' => 'S.Pd', 'E' => 'L', 'F' => 'Semarang', 'G' => '1985/06/15',
-            'H' => '3301150678900001', 'I' => '2015/07/01', 'J' => '081234567890', 'K' => 'ahmad@sekolah.sch.id',
-            'L' => 'Jl. Merdeka No. 10', 'M' => '002/005', 'N' => 'Gondang', 'O' => 'Gondangrejo',
-            'P' => 'Karanganyar', 'Q' => 'Karanganyar', 'R' => 'Jawa Tengah',
-            'S' => 'Jl. Merdeka No. 10', 'T' => '002/005', 'U' => 'Gondang', 'V' => 'Gondangrejo',
-            'W' => 'Karanganyar', 'X' => 'Karanganyar', 'Y' => 'Jawa Tengah', 'Z' => 'Milik Sendiri',
-            'AA' => 'Ya', 'AB' => 'Pribadi',
-            'AC' => 'Matematika, MS Office', 'AD' => 'Menikah', 'AE' => 'Siti Rahayu', 'AF' => 'Solo, 10/03/1987',
-            'AG' => 'Guru', 'AH' => '2010/12/20', 'AI' => '2',
-            'AJ' => 'Siti Aminah', 'AK' => 'Budi Santoso', 'AL' => 'Jl. Damai No. 5, Semarang',
-            'AM' => '082345678901', 'AN' => 'Saudara Kandung',
+            'H' => '3301150678900001', 'I' => '2015/07/01', 'J' => '', 'K' => 'Aktif', 'L' => 'SDIT Ulil Albab', 'M' => 'Aktif', 'N' => '-',
+            'O' => '081234567890', 'P' => 'ahmad@sekolah.sch.id',
+            'Q' => 'Jl. Merdeka No. 10', 'R' => '002/005', 'S' => 'Gondang', 'T' => 'Gondangrejo',
+            'U' => 'Karanganyar', 'V' => 'Karanganyar', 'W' => 'Jawa Tengah',
+            'X' => 'Jl. Merdeka No. 10', 'Y' => '002/005', 'Z' => 'Gondang', 'AA' => 'Gondangrejo',
+            'AB' => 'Karanganyar', 'AC' => 'Karanganyar', 'AD' => 'Jawa Tengah', 'AE' => 'Milik Sendiri',
+            'AF' => 'Ya', 'AG' => 'Pribadi',
+            'AH' => 'Matematika, MS Office', 'AI' => 'Menikah', 'AJ' => 'Siti Rahayu', 'AK' => 'Solo, 10/03/1987',
+            'AL' => 'Guru', 'AM' => '2010/12/20', 'AN' => '2',
+            'AO' => 'Siti Aminah', 'AP' => 'Budi Santoso', 'AQ' => 'Jl. Damai No. 5, Semarang',
+            'AR' => '082345678901', 'AS' => 'Saudara Kandung',
         ];
 
         foreach ($example1 as $col => $val) {
@@ -523,7 +591,7 @@ class EmployeeController extends Controller
             $sheet1->getStyle("{$col}2")->applyFromArray(['fill' => $exampleFill]);
         }
 
-        $lastCol1 = 'AN';
+        $lastCol1 = 'AS';
         $sheet1->getStyle("A1:{$lastCol1}1")->applyFromArray(['borders' => $borderStyle]);
         $sheet1->getStyle("A2:{$lastCol1}2")->applyFromArray(['borders' => $borderStyle]);
 
@@ -566,25 +634,16 @@ class EmployeeController extends Controller
         $sheet2->getStyle('A1:G1')->applyFromArray(['borders' => $borderStyle]);
         $sheet2->getStyle('A2:G2')->applyFromArray(['borders' => $borderStyle]);
 
-        // ---- Sheet 3: Riwayat Kepegawaian ----
+        // ---- Sheet 3: Riwayat Kepegawaian (Jenjang Kepegawaian murni TMT & TST) ----
         $sheet3 = $spreadsheet->createSheet();
         $sheet3->setTitle('3. Riwayat Kepegawaian');
 
         $headers3 = [
             'A' => 'NIK',
             'B' => 'Nama Lengkap',
-            'C' => 'Tahun Ajaran',
-            'D' => 'Semester',
-            'E' => 'Jenis Kepegawaian',
-            'F' => 'Status Keaktifan',
-            'G' => 'Keterangan Tidak Aktif',
-            'H' => 'Jenjang Kepegawaian',
-            'I' => 'TMT Kenaikan Jenjang',
-            'J' => 'TST Jenjang',
-            'K' => 'Keaktifan Dapodik',
-            'L' => 'Unit Keaktifan Dapodik',
-            'M' => 'Unit Kerja',
-            'N' => 'Jabatan',
+            'C' => 'TMT Kenaikan Jenjang',
+            'D' => 'TST Kenaikan Jenjang',
+            'E' => 'Jenjang Kepegawaian',
         ];
 
         foreach ($headers3 as $col => $label) {
@@ -594,17 +653,16 @@ class EmployeeController extends Controller
                 'font' => $headerFont,
                 'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
             ]);
-            $sheet3->getColumnDimension($col)->setWidth(20);
+            $sheet3->getColumnDimension($col)->setWidth(22);
         }
 
         $sheet3->getStyle('A2:A1000')->getNumberFormat()->setFormatCode('@');
-        $sheet3->getStyle('I2:I1000')->getNumberFormat()->setFormatCode('yyyy/mm/dd');
-        $sheet3->getStyle('J2:J1000')->getNumberFormat()->setFormatCode('yyyy/mm/dd');
+        $sheet3->getStyle('C2:C1000')->getNumberFormat()->setFormatCode('yyyy/mm/dd');
+        $sheet3->getStyle('D2:D1000')->getNumberFormat()->setFormatCode('yyyy/mm/dd');
 
         $example3 = [
-            'A' => '3301150678900001', 'B' => 'Ahmad Fauzi, S.Pd', 'C' => '2025/2026', 'D' => 'Ganjil',
-            'E' => 'Tenaga Pendidik', 'F' => 'Aktif', 'G' => '-', 'H' => 'GTY', 'I' => '2020/07/01', 'J' => '',
-            'K' => 'Aktif', 'L' => 'SDIT Ulil Albab', 'M' => 'SDIT Ulil Albab', 'N' => 'Guru Kelas',
+            'A' => '3301150678900001', 'B' => 'Ahmad Fauzi, S.Pd',
+            'C' => '2020/07/01', 'D' => '', 'E' => 'GTY',
         ];
 
         foreach ($example3 as $col => $val) {
@@ -612,8 +670,50 @@ class EmployeeController extends Controller
             $sheet3->getStyle("{$col}2")->applyFromArray(['fill' => $exampleFill]);
         }
 
-        $sheet3->getStyle('A1:N1')->applyFromArray(['borders' => $borderStyle]);
-        $sheet3->getStyle('A2:N2')->applyFromArray(['borders' => $borderStyle]);
+        $sheet3->getStyle('A1:E1')->applyFromArray(['borders' => $borderStyle]);
+        $sheet3->getStyle('A2:E2')->applyFromArray(['borders' => $borderStyle]);
+
+        // ---- Sheet 4: Riwayat Jabatan (NIK, Nama Lengkap, TMT Jabatan, TST Jabatan, Unit Kerja, Jabatan, Jenis Kepegawaian) ----
+        $sheet4 = $spreadsheet->createSheet();
+        $sheet4->setTitle('4. Riwayat Jabatan');
+
+        $headers4 = [
+            'A' => 'NIK',
+            'B' => 'Nama Lengkap',
+            'C' => 'TMT Jabatan',
+            'D' => 'TST Jabatan',
+            'E' => 'Unit Kerja',
+            'F' => 'Jabatan',
+            'G' => 'Jenis Kepegawaian',
+        ];
+
+        foreach ($headers4 as $col => $label) {
+            $sheet4->setCellValue("{$col}1", $label);
+            $sheet4->getStyle("{$col}1")->applyFromArray([
+                'fill' => $headerFill,
+                'font' => $headerFont,
+                'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+            ]);
+            $sheet4->getColumnDimension($col)->setWidth(22);
+        }
+
+        $sheet4->getStyle('A2:A1000')->getNumberFormat()->setFormatCode('@');
+        $sheet4->getStyle('C2:C1000')->getNumberFormat()->setFormatCode('yyyy/mm/dd');
+        $sheet4->getStyle('D2:D1000')->getNumberFormat()->setFormatCode('yyyy/mm/dd');
+
+        $example4 = [
+            'A' => '3301150678900001', 'B' => 'Ahmad Fauzi, S.Pd',
+            'C' => '2020/07/01', 'D' => '',
+            'E' => 'SDIT Ulil Albab', 'F' => 'Guru Kelas', 'G' => 'Tenaga Pendidik',
+        ];
+
+        foreach ($example4 as $col => $val) {
+            $sheet4->setCellValue("{$col}2", $val);
+            $sheet4->getStyle("{$col}2")->applyFromArray(['fill' => $exampleFill]);
+        }
+
+        $sheet4->getStyle('A1:G1')->applyFromArray(['borders' => $borderStyle]);
+        $sheet4->getStyle('A2:G2')->applyFromArray(['borders' => $borderStyle]);
 
         // Set active sheet to sheet 1
         $spreadsheet->setActiveSheetIndex(0);

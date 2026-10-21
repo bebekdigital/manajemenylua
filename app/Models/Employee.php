@@ -22,6 +22,11 @@ class Employee extends Model
         'tanggal_lahir',
         'nik',
         'tmt_pengangkatan',
+        'tst_pengangkatan',
+        'keaktifan_dapodik',
+        'unit_keaktifan_dapodik',
+        'status_keaktifan',
+        'keterangan_tidak_aktif',
         'no_wa',
         'email',
         'jalan_domisili',
@@ -62,6 +67,7 @@ class Employee extends Model
             'tanggal_lahir' => 'date',
             'tanggal_menikah' => 'date',
             'tmt_pengangkatan' => 'date',
+            'tst_pengangkatan' => 'date',
             'jumlah_anak' => 'integer',
         ];
     }
@@ -122,6 +128,11 @@ class Employee extends Model
     public function records(): HasMany
     {
         return $this->hasMany(EmployeeRecord::class);
+    }
+
+    public function positions(): HasMany
+    {
+        return $this->hasMany(EmployeePosition::class);
     }
 
     public function currentRecord(): HasOne
