@@ -144,4 +144,9 @@ class Employee extends Model
     {
         return $this->hasOne(EmployeePosition::class)->latestOfMany('tmt_jabatan');
     }
+
+    public function documents(): HasMany
+    {
+        return $this->hasMany(EmployeeDocument::class);
+    }
 }

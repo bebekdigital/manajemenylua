@@ -67,6 +67,7 @@ class EmployeeController extends Controller
             'educationHistories',
             'records',
             'positions',
+            'documents',
         ])->findOrFail($id);
 
         $latestPosition = $employee->positions->sortByDesc('tmt_jabatan')->first();
@@ -153,7 +154,12 @@ class EmployeeController extends Controller
             'tst_jenjang' => $latestRecord?->tst_kenaikan_jenjang?->format('Y-m-d'),
             'formatted_tst_jenjang' => $latestRecord?->tst_kenaikan_jenjang?->translatedFormat('d F Y'),
 
-            // Sheet 3: Riwayat Kepegawaian (Jenjang)
+            // Dokumen Pokok & Khusus
+            'dokumen_ktp' => $employee->documents->firstWhere('category', 'ktp'),
+            'dokumen_kk' => $employee->documents->firstWhere('category', 'kk'),
+            'dokumen_sk_pengangkatan' => $employee->documents->firstWhere('category', 'sk_pengangkatan'),
+
+            // Sheet 3: Riwayat Kepegawaian (Jenjang) dengan dokumen SK Jenjang terkait
             'riwayat_kepegawaian' => $employee->records->map(fn ($r) => [
                 'id' => $r->id,
                 'jenjang_kepegawaian' => $r->jenjang_kepegawaian,
@@ -163,9 +169,10 @@ class EmployeeController extends Controller
                 'formatted_tst_kenaikan_jenjang' => $r->tst_kenaikan_jenjang?->translatedFormat('d F Y'),
                 'tst_jenjang' => $r->tst_kenaikan_jenjang?->format('Y-m-d'),
                 'formatted_tst_jenjang' => $r->tst_kenaikan_jenjang?->translatedFormat('d F Y'),
+                'document' => $employee->documents->first(fn ($d) => $d->record_type === 'record' && $d->record_id == $r->id),
             ])->sortByDesc('tmt_kenaikan_jenjang')->values()->toArray(),
 
-            // Sheet 4: Riwayat Jabatan (Penugasan)
+            // Sheet 4: Riwayat Jabatan (Penugasan) dengan dokumen SK Penugasan terkait
             'riwayat_jabatan' => $employee->positions->map(fn ($p) => [
                 'id' => $p->id,
                 'unit_kerja' => $p->unit_kerja,
@@ -175,9 +182,10 @@ class EmployeeController extends Controller
                 'formatted_tmt_jabatan' => $p->tmt_jabatan?->translatedFormat('d F Y'),
                 'tst_jabatan' => $p->tst_jabatan?->format('Y-m-d'),
                 'formatted_tst_jabatan' => $p->tst_jabatan?->translatedFormat('d F Y'),
+                'document' => $employee->documents->first(fn ($d) => $d->record_type === 'position' && $d->record_id == $p->id),
             ])->sortByDesc('tmt_jabatan')->values()->toArray(),
 
-            // Riwayat Pendidikan
+            // Riwayat Pendidikan dengan dokumen Ijazah terkait
             'riwayat_pendidikan' => $employee->educationHistories->map(fn ($e) => [
                 'id' => $e->id,
                 'jenjang_pendidikan' => $e->jenjang_pendidikan,
@@ -185,7 +193,14 @@ class EmployeeController extends Controller
                 'instansi_pendidikan' => $e->instansi_pendidikan,
                 'tahun_lulus' => $e->tahun_lulus,
                 'pembiayaan' => $e->pembiayaan,
+                'document' => $employee->documents->first(fn ($d) => $d->record_type === 'education' && $d->record_id == $e->id),
             ])->toArray(),
+
+            // Dokumen Ijazah tambahan / bebas (misal S2 atau sertifikat lain tanpa record_id khusus)
+            'dokumen_ijazah_tambahan' => $employee->documents->filter(fn ($d) => $d->category === 'ijazah' && empty($d->record_id))->values()->toArray(),
+
+            // Seluruh dokumen
+            'all_documents' => $employee->documents->values()->toArray(),
         ];
 
         $units = SchoolUnit::orderBy('name')->pluck('name')->toArray();

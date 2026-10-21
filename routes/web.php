@@ -5,6 +5,7 @@ use App\Http\Controllers\AcademicYearController;
 use App\Http\Controllers\AdministrationController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\EmployeeDocumentController;
 use App\Http\Controllers\PembelajaranController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SchoolClassController;
@@ -100,6 +101,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/staff/import', [EmployeeController::class, 'import'])->name('staff.import');
     Route::get('/staff/{id}', [EmployeeController::class, 'show'])->name('staff.show');
     Route::put('/staff/{id}', [EmployeeController::class, 'update'])->name('staff.update');
+
+    // Dokumen Pegawai (Private Storage Opsi A)
+    Route::post('/staff/{id}/documents', [EmployeeDocumentController::class, 'store'])->name('staff.documents.store');
+    Route::get('/staff/{id}/documents/{documentId}/preview', [EmployeeDocumentController::class, 'preview'])->name('staff.documents.preview');
+    Route::get('/staff/{id}/documents/{documentId}/download', [EmployeeDocumentController::class, 'download'])->name('staff.documents.download');
+    Route::delete('/staff/{id}/documents/{documentId}', [EmployeeDocumentController::class, 'destroy'])->name('staff.documents.destroy');
 
     // Administrasi & Cetak Berkas Siswa
     Route::get('/administration', [AdministrationController::class, 'index'])->name('administration.index');
