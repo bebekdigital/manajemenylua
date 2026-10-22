@@ -540,11 +540,11 @@ function deleteDocument(doc) {
 
 
         <!-- Main Card -->
-        <div class="bg-surface-container-lowest rounded-2xl shadow-sm border border-outline-variant/30 flex flex-col overflow-hidden">
-            <!-- Profile Header (Warna Emas Soft) -->
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between p-5 sm:px-6 sm:py-5 border-b border-amber-200/70 bg-gradient-to-r from-amber-50/90 via-amber-100/40 to-yellow-50/80 gap-4">
+        <div class="bg-surface-container-lowest rounded-2xl shadow-sm border border-outline-variant/70 flex flex-col overflow-hidden">
+            <!-- Profile Header -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between p-5 sm:px-6 sm:py-5 border-b border-outline-variant/70 bg-white gap-4">
                 <div class="flex items-center gap-4 sm:gap-5">
-                    <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white/95 flex items-center justify-center overflow-hidden border-2 border-amber-300/70 shadow-sm shrink-0 ring-4 ring-amber-100/60">
+                    <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-surface-container-low flex items-center justify-center overflow-hidden border-2 border-outline-variant/90 shadow-sm shrink-0">
                         <img
                             v-if="employee.foto"
                             :src="employee.foto"
@@ -561,13 +561,13 @@ function deleteDocument(doc) {
                         <div class="flex flex-wrap items-center gap-2 mt-2">
                             <span
                                 v-if="employee.jenjang_kepegawaian"
-                                :class="['inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-semibold border shadow-xs', getJenjangColor(employee.jenjang_kepegawaian)]"
+                                :class="['inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-semibold border border-outline-variant/40 shadow-2xs', getJenjangColor(employee.jenjang_kepegawaian)]"
                             >
                                 {{ employee.jenjang_kepegawaian }}
                             </span>
                             <span
                                 v-if="employee.status_keaktifan"
-                                :class="['inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border shadow-xs', getStatusColor(employee.status_keaktifan)]"
+                                :class="['inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border border-outline-variant/40 shadow-2xs', getStatusColor(employee.status_keaktifan)]"
                             >
                                 <span class="w-1.5 h-1.5 rounded-full bg-current"></span>
                                 {{ employee.status_keaktifan }}
