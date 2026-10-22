@@ -486,7 +486,7 @@ function deleteDocument(doc) {
 </script>
 
 <template>
-    <div class="flex-1 overflow-y-auto p-4 md:p-margin-desktop bg-surface-container-lowest" :class="{ 'pb-24': isEditing }">
+    <div class="flex-1 overflow-y-auto p-4 md:p-margin-desktop bg-white" :class="{ 'pb-24': isEditing }">
         <Head :title="`${isEditing ? 'Edit' : 'Detail'} Pegawai - ${employee.nama}`" />
 
         <!-- Back Button -->
@@ -540,11 +540,11 @@ function deleteDocument(doc) {
 
 
         <!-- Main Card -->
-        <div class="bg-surface-container-lowest rounded-2xl shadow-sm border border-outline-variant/70 flex flex-col overflow-hidden">
+        <div class="bg-white rounded-2xl shadow-sm border border-outline-variant/70 flex flex-col overflow-hidden">
             <!-- Profile Header -->
             <div class="flex flex-col sm:flex-row sm:items-center justify-between p-5 sm:px-6 sm:py-5 border-b border-outline-variant/70 bg-white gap-4">
                 <div class="flex items-center gap-4 sm:gap-5">
-                    <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-surface-container-low flex items-center justify-center overflow-hidden border-2 border-outline-variant/90 shadow-sm shrink-0">
+                    <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white flex items-center justify-center overflow-hidden border-2 border-outline-variant/90 shadow-sm shrink-0">
                         <img
                             v-if="employee.foto"
                             :src="employee.foto"
@@ -594,7 +594,7 @@ function deleteDocument(doc) {
             </div>
 
             <!-- Tabs Navigation -->
-            <div class="flex border-b border-outline-variant/30 px-4 bg-surface-container-low overflow-x-auto">
+            <div class="flex border-b border-outline-variant/60 px-4 bg-white overflow-x-auto">
                 <button
                     v-for="tab in tabs"
                     :key="tab.id"
@@ -603,7 +603,7 @@ function deleteDocument(doc) {
                         'flex items-center gap-2 px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap border-b-2 cursor-pointer',
                         activeTab === tab.id
                             ? 'text-primary border-primary bg-primary/5 font-semibold'
-                            : 'text-on-surface-variant border-transparent hover:text-on-surface hover:border-outline-variant'
+                            : 'text-on-surface-variant border-transparent hover:text-on-surface hover:bg-slate-50'
                     ]"
                 >
                     <span class="material-symbols-outlined text-[18px]">{{ tab.icon }}</span>
@@ -712,7 +712,7 @@ function deleteDocument(doc) {
                                 v-model="form.gelar_depan"
                                 type="text"
                                 placeholder="Contoh: Dr., Ir., Ust."
-                                class="w-full px-3.5 py-2 sm:py-2.5 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface placeholder:text-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                                class="w-full px-3.5 py-2 sm:py-2.5 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface placeholder:text-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                                 :class="{ 'border-error': form.errors.gelar_depan }"
                             />
                             <div v-if="form.errors.gelar_depan" class="text-error text-xs mt-1">{{ form.errors.gelar_depan }}</div>
@@ -726,7 +726,7 @@ function deleteDocument(doc) {
                                 v-model="form.gelar_belakang"
                                 type="text"
                                 placeholder="Contoh: S.Pd, M.Pd, Lc."
-                                class="w-full px-3.5 py-2 sm:py-2.5 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface placeholder:text-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                                class="w-full px-3.5 py-2 sm:py-2.5 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface placeholder:text-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                                 :class="{ 'border-error': form.errors.gelar_belakang }"
                             />
                             <div v-if="form.errors.gelar_belakang" class="text-error text-xs mt-1">{{ form.errors.gelar_belakang }}</div>
@@ -741,7 +741,7 @@ function deleteDocument(doc) {
                                 type="text"
                                 required
                                 placeholder="Nama lengkap tanpa gelar"
-                                class="w-full px-3.5 py-2 sm:py-2.5 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface placeholder:text-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                                class="w-full px-3.5 py-2 sm:py-2.5 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface placeholder:text-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                                 :class="{ 'border-error': form.errors.nama }"
                             />
                             <div v-if="form.errors.nama" class="text-error text-xs mt-1">{{ form.errors.nama }}</div>
@@ -755,7 +755,7 @@ function deleteDocument(doc) {
                                 v-model="form.nipy"
                                 type="text"
                                 placeholder="Nomor Induk Pegawai Yayasan"
-                                class="w-full px-3.5 py-2 sm:py-2.5 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface placeholder:text-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-mono"
+                                class="w-full px-3.5 py-2 sm:py-2.5 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface placeholder:text-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-mono"
                                 :class="{ 'border-error': form.errors.nipy }"
                             />
                             <div v-if="form.errors.nipy" class="text-error text-xs mt-1">{{ form.errors.nipy }}</div>
@@ -769,7 +769,7 @@ function deleteDocument(doc) {
                                 v-model="form.nik"
                                 type="text"
                                 placeholder="16 digit NIK"
-                                class="w-full px-3.5 py-2 sm:py-2.5 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface placeholder:text-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-mono"
+                                class="w-full px-3.5 py-2 sm:py-2.5 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface placeholder:text-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-mono"
                                 :class="{ 'border-error': form.errors.nik }"
                             />
                             <div v-if="form.errors.nik" class="text-error text-xs mt-1">{{ form.errors.nik }}</div>
@@ -781,7 +781,7 @@ function deleteDocument(doc) {
                             </label>
                             <select
                                 v-model="form.jk"
-                                class="w-full px-3.5 py-2 sm:py-2.5 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
+                                class="w-full px-3.5 py-2 sm:py-2.5 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
                                 :class="{ 'border-error': form.errors.jk }"
                             >
                                 <option value="">-- Pilih Jenis Kelamin --</option>
@@ -799,7 +799,7 @@ function deleteDocument(doc) {
                                 v-model="form.no_wa"
                                 type="text"
                                 placeholder="Contoh: 081234567890"
-                                class="w-full px-3.5 py-2 sm:py-2.5 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface placeholder:text-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                                class="w-full px-3.5 py-2 sm:py-2.5 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface placeholder:text-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                                 :class="{ 'border-error': form.errors.no_wa }"
                             />
                             <div v-if="form.errors.no_wa" class="text-error text-xs mt-1">{{ form.errors.no_wa }}</div>
@@ -813,7 +813,7 @@ function deleteDocument(doc) {
                                 v-model="form.tempat_lahir"
                                 type="text"
                                 placeholder="Kota / Kabupaten Kelahiran"
-                                class="w-full px-3.5 py-2 sm:py-2.5 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface placeholder:text-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                                class="w-full px-3.5 py-2 sm:py-2.5 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface placeholder:text-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                                 :class="{ 'border-error': form.errors.tempat_lahir }"
                             />
                             <div v-if="form.errors.tempat_lahir" class="text-error text-xs mt-1">{{ form.errors.tempat_lahir }}</div>
@@ -832,7 +832,7 @@ function deleteDocument(doc) {
                             <input
                                 v-model="form.tanggal_lahir"
                                 type="date"
-                                class="w-full px-3.5 py-2 sm:py-2.5 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
+                                class="w-full px-3.5 py-2 sm:py-2.5 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
                                 :class="{ 'border-error': form.errors.tanggal_lahir }"
                             />
                             <div v-if="form.errors.tanggal_lahir" class="text-error text-xs mt-1">{{ form.errors.tanggal_lahir }}</div>
@@ -846,7 +846,7 @@ function deleteDocument(doc) {
                                 v-model="form.email"
                                 type="email"
                                 placeholder="nama@email.com"
-                                class="w-full px-3.5 py-2 sm:py-2.5 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface placeholder:text-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                                class="w-full px-3.5 py-2 sm:py-2.5 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface placeholder:text-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                                 :class="{ 'border-error': form.errors.email }"
                             />
                             <div v-if="form.errors.email" class="text-error text-xs mt-1">{{ form.errors.email }}</div>
@@ -858,7 +858,7 @@ function deleteDocument(doc) {
                             </label>
                             <select
                                 v-model="form.kepemilikan_bpjs"
-                                class="w-full px-3.5 py-2 sm:py-2.5 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
+                                class="w-full px-3.5 py-2 sm:py-2.5 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
                             >
                                 <option value="">-- Pilih --</option>
                                 <option value="Ya">Ya</option>
@@ -874,7 +874,7 @@ function deleteDocument(doc) {
                                 v-model="form.penanggung_bpjs"
                                 type="text"
                                 placeholder="Contoh: Yayasan / Pribadi / Mandiri"
-                                class="w-full px-3.5 py-2 sm:py-2.5 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface placeholder:text-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                                class="w-full px-3.5 py-2 sm:py-2.5 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface placeholder:text-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                             />
                         </div>
 
@@ -886,7 +886,7 @@ function deleteDocument(doc) {
                                 v-model="form.skill"
                                 type="text"
                                 placeholder="Contoh: Matematika, Desain Grafis, IT"
-                                class="w-full px-3.5 py-2 sm:py-2.5 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface placeholder:text-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                                class="w-full px-3.5 py-2 sm:py-2.5 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface placeholder:text-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                                 :class="{ 'border-error': form.errors.skill }"
                             />
                             <div v-if="form.errors.skill" class="text-error text-xs mt-1">{{ form.errors.skill }}</div>
@@ -992,7 +992,7 @@ function deleteDocument(doc) {
                     <!-- EDIT MODE -->
                     <template v-else>
                         <!-- Domisili Form -->
-                        <div class="bg-surface-container-low/40 p-4 sm:p-5 rounded-2xl border border-outline-variant/30 space-y-4">
+                        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-outline-variant/60 shadow-2xs space-y-4">
                             <div class="flex items-center gap-2 text-primary font-bold text-sm">
                                 <span class="material-symbols-outlined text-[18px]">location_on</span>
                                 <h4>Alamat Domisili (KTP)</h4>
@@ -1005,7 +1005,7 @@ function deleteDocument(doc) {
                                         v-model="form.jalan_domisili"
                                         type="text"
                                         placeholder="Nama jalan, nomor rumah / blok"
-                                        class="w-full px-3.5 py-2 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                        class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                                     />
                                 </div>
 
@@ -1015,7 +1015,7 @@ function deleteDocument(doc) {
                                         v-model="form.rt_rw_domisili"
                                         type="text"
                                         placeholder="001/002"
-                                        class="w-full px-3.5 py-2 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                        class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                                     />
                                 </div>
 
@@ -1025,7 +1025,7 @@ function deleteDocument(doc) {
                                         v-model="form.dusun_domisili"
                                         type="text"
                                         placeholder="Nama dusun / kampung"
-                                        class="w-full px-3.5 py-2 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                        class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                                     />
                                 </div>
 
@@ -1035,7 +1035,7 @@ function deleteDocument(doc) {
                                         v-model="form.desa_domisili"
                                         type="text"
                                         placeholder="Desa / Kelurahan"
-                                        class="w-full px-3.5 py-2 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                        class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                                     />
                                 </div>
 
@@ -1045,7 +1045,7 @@ function deleteDocument(doc) {
                                         v-model="form.kecamatan_domisili"
                                         type="text"
                                         placeholder="Kecamatan"
-                                        class="w-full px-3.5 py-2 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                        class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                                     />
                                 </div>
 
@@ -1055,7 +1055,7 @@ function deleteDocument(doc) {
                                         v-model="form.kab_domisili"
                                         type="text"
                                         placeholder="Kabupaten / Kota"
-                                        class="w-full px-3.5 py-2 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                        class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                                     />
                                 </div>
 
@@ -1065,14 +1065,14 @@ function deleteDocument(doc) {
                                         v-model="form.provinsi_domisili"
                                         type="text"
                                         placeholder="Provinsi"
-                                        class="w-full px-3.5 py-2 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                        class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                                     />
                                 </div>
                             </div>
                         </div>
 
                         <!-- Tinggal Form -->
-                        <div class="bg-surface-container-low/40 p-4 sm:p-5 rounded-2xl border border-outline-variant/30 space-y-4">
+                        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-outline-variant/60 shadow-2xs space-y-4">
                             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                                 <div class="flex items-center gap-2 text-primary font-bold text-sm">
                                     <span class="material-symbols-outlined text-[18px]">home</span>
@@ -1095,7 +1095,7 @@ function deleteDocument(doc) {
                                         v-model="form.jalan_tinggal"
                                         type="text"
                                         placeholder="Nama jalan, nomor rumah / kontrakan"
-                                        class="w-full px-3.5 py-2 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                        class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                                     />
                                 </div>
 
@@ -1105,7 +1105,7 @@ function deleteDocument(doc) {
                                         v-model="form.rt_rw_tinggal"
                                         type="text"
                                         placeholder="001/002"
-                                        class="w-full px-3.5 py-2 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                        class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                                     />
                                 </div>
 
@@ -1115,7 +1115,7 @@ function deleteDocument(doc) {
                                         v-model="form.dusun_tinggal"
                                         type="text"
                                         placeholder="Nama dusun / kampung"
-                                        class="w-full px-3.5 py-2 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                        class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                                     />
                                 </div>
 
@@ -1125,7 +1125,7 @@ function deleteDocument(doc) {
                                         v-model="form.desa_tinggal"
                                         type="text"
                                         placeholder="Desa / Kelurahan"
-                                        class="w-full px-3.5 py-2 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                        class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                                     />
                                 </div>
 
@@ -1135,7 +1135,7 @@ function deleteDocument(doc) {
                                         v-model="form.kecamatan_tinggal"
                                         type="text"
                                         placeholder="Kecamatan"
-                                        class="w-full px-3.5 py-2 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                        class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                                     />
                                 </div>
 
@@ -1145,7 +1145,7 @@ function deleteDocument(doc) {
                                         v-model="form.kabupaten_tinggal"
                                         type="text"
                                         placeholder="Kabupaten / Kota"
-                                        class="w-full px-3.5 py-2 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                        class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                                     />
                                 </div>
 
@@ -1155,7 +1155,7 @@ function deleteDocument(doc) {
                                         v-model="form.provinsi_tinggal"
                                         type="text"
                                         placeholder="Provinsi"
-                                        class="w-full px-3.5 py-2 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                        class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                                     />
                                 </div>
 
@@ -1163,7 +1163,7 @@ function deleteDocument(doc) {
                                     <label class="block text-xs font-semibold text-on-surface-variant mb-1">Status Kepemilikan Rumah</label>
                                     <select
                                         v-model="form.status_rumah"
-                                        class="w-full px-3.5 py-2 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                                        class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
                                     >
                                         <option value="">-- Pilih Status Rumah --</option>
                                         <option value="Milik Sendiri">Milik Sendiri</option>
@@ -1266,7 +1266,7 @@ function deleteDocument(doc) {
                     <!-- EDIT MODE -->
                     <template v-else>
                         <!-- Pernikahan Form -->
-                        <div class="bg-surface-container-low/40 p-4 sm:p-5 rounded-2xl border border-outline-variant/30 space-y-4">
+                        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-outline-variant/60 shadow-2xs space-y-4">
                             <div class="flex items-center gap-2 text-primary font-bold text-sm">
                                 <span class="material-symbols-outlined text-[18px]">favorite</span>
                                 <h4>Status Pernikahan & Pasangan</h4>
@@ -1277,7 +1277,7 @@ function deleteDocument(doc) {
                                     <label class="block text-xs font-semibold text-on-surface-variant mb-1">Status Pernikahan</label>
                                     <select
                                         v-model="form.status_pernikahan"
-                                        class="w-full px-3.5 py-2 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                                        class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
                                     >
                                         <option value="">-- Pilih Status --</option>
                                         <option value="Belum Menikah">Belum Menikah</option>
@@ -1292,7 +1292,7 @@ function deleteDocument(doc) {
                                     <input
                                         v-model="form.tanggal_menikah"
                                         type="date"
-                                        class="w-full px-3.5 py-2 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                                        class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
                                     />
                                 </div>
 
@@ -1302,7 +1302,7 @@ function deleteDocument(doc) {
                                         v-model="form.nama_suami_istri"
                                         type="text"
                                         placeholder="Nama lengkap pasangan"
-                                        class="w-full px-3.5 py-2 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                        class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                                     />
                                 </div>
 
@@ -1312,7 +1312,7 @@ function deleteDocument(doc) {
                                         v-model="form.ttl_suami_istri"
                                         type="text"
                                         placeholder="Contoh: Solo, 10 Maret 1987"
-                                        class="w-full px-3.5 py-2 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                        class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                                     />
                                 </div>
 
@@ -1322,7 +1322,7 @@ function deleteDocument(doc) {
                                         v-model="form.pekerjaan_suami_istri"
                                         type="text"
                                         placeholder="Contoh: Guru / Wiraswasta / PNS"
-                                        class="w-full px-3.5 py-2 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                        class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                                     />
                                 </div>
 
@@ -1333,14 +1333,14 @@ function deleteDocument(doc) {
                                         type="number"
                                         min="0"
                                         placeholder="0"
-                                        class="w-full px-3.5 py-2 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                        class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                                     />
                                 </div>
                             </div>
                         </div>
 
                         <!-- Data Orangtua Form -->
-                        <div class="bg-surface-container-low/40 p-4 sm:p-5 rounded-2xl border border-outline-variant/30 space-y-4">
+                        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-outline-variant/60 shadow-2xs space-y-4">
                             <div class="flex items-center gap-2 text-primary font-bold text-sm">
                                 <span class="material-symbols-outlined text-[18px]">family_restroom</span>
                                 <h4>Data Orangtua</h4>
@@ -1353,7 +1353,7 @@ function deleteDocument(doc) {
                                         v-model="form.nama_ibu"
                                         type="text"
                                         placeholder="Nama lengkap ibu"
-                                        class="w-full px-3.5 py-2 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                        class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                                     />
                                 </div>
 
@@ -1363,7 +1363,7 @@ function deleteDocument(doc) {
                                         v-model="form.nama_ayah"
                                         type="text"
                                         placeholder="Nama lengkap ayah"
-                                        class="w-full px-3.5 py-2 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                        class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                                     />
                                 </div>
 
@@ -1373,14 +1373,14 @@ function deleteDocument(doc) {
                                         v-model="form.alamat_orangtua"
                                         type="text"
                                         placeholder="Alamat tempat tinggal orangtua"
-                                        class="w-full px-3.5 py-2 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                        class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                                     />
                                 </div>
                             </div>
                         </div>
 
                         <!-- Kontak Darurat Form -->
-                        <div class="bg-surface-container-low/40 p-4 sm:p-5 rounded-2xl border border-outline-variant/30 space-y-4">
+                        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-outline-variant/60 shadow-2xs space-y-4">
                             <div class="flex items-center gap-2 text-primary font-bold text-sm">
                                 <span class="material-symbols-outlined text-[18px]">contact_phone</span>
                                 <h4>Kontak Darurat</h4>
@@ -1393,7 +1393,7 @@ function deleteDocument(doc) {
                                         v-model="form.kontak_darurat"
                                         type="text"
                                         placeholder="Contoh: 082345678901"
-                                        class="w-full px-3.5 py-2 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                        class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                                     />
                                 </div>
 
@@ -1403,7 +1403,7 @@ function deleteDocument(doc) {
                                         v-model="form.hubungan_kontak_darurat"
                                         type="text"
                                         placeholder="Contoh: Saudara Kandung / Paman / Kerabat"
-                                        class="w-full px-3.5 py-2 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                        class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                                     />
                                 </div>
                             </div>
@@ -1414,13 +1414,13 @@ function deleteDocument(doc) {
                 <!-- TAB 4: KEPEGAWAIAN -->
                 <div v-if="activeTab === 'kepegawaian'" class="space-y-6">
                     <!-- DATA STATIS: PENGANGKATAN, KEAKTIFAN & DAPODIK (SHEET 1) -->
-                    <div class="p-4 sm:p-5 bg-surface-container-low border border-outline-variant/30 rounded-2xl shadow-xs">
+                    <div class="p-4 sm:p-5 bg-white border-2 border-outline-variant/60 rounded-2xl shadow-2xs">
                         <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
                             <h4 class="text-xs sm:text-sm font-bold text-primary flex items-center gap-2">
                                 <span class="material-symbols-outlined text-[20px]">verified</span>
                                 Informasi Pengangkatan, Keaktifan, & Dapodik (Data Statis Pegawai)
                             </h4>
-                            <span class="text-[11px] text-on-surface-variant bg-surface-container-lowest px-2.5 py-1 rounded-lg border border-outline-variant/30 font-medium">
+                            <span class="text-[11px] text-on-surface-variant bg-white px-2.5 py-1 rounded-lg border border-outline-variant/60 font-medium shadow-2xs">
                                 Database Pegawai (Sheet 1)
                             </span>
                         </div>
@@ -1428,7 +1428,7 @@ function deleteDocument(doc) {
                         <!-- View Mode Data Statis -->
                         <div v-if="!isEditing" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                             <!-- TMT & TST Pengangkatan -->
-                            <div class="p-3.5 bg-surface-container-lowest rounded-xl border border-outline-variant/20 flex items-start gap-3">
+                            <div class="p-3.5 bg-white rounded-xl border border-outline-variant/60 flex items-start gap-3 shadow-2xs">
                                 <div class="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
                                     <span class="material-symbols-outlined text-[20px]">calendar_today</span>
                                 </div>
@@ -1444,7 +1444,7 @@ function deleteDocument(doc) {
                             </div>
 
                             <!-- Masa Kerja -->
-                            <div class="p-3.5 bg-surface-container-lowest rounded-xl border border-outline-variant/20 flex items-start gap-3">
+                            <div class="p-3.5 bg-white rounded-xl border border-outline-variant/60 flex items-start gap-3 shadow-2xs">
                                 <div class="w-9 h-9 rounded-lg bg-secondary/10 text-secondary flex items-center justify-center shrink-0 mt-0.5">
                                     <span class="material-symbols-outlined text-[20px]">hourglass_top</span>
                                 </div>
@@ -1458,7 +1458,7 @@ function deleteDocument(doc) {
                             </div>
 
                             <!-- Status Keaktifan -->
-                            <div class="p-3.5 bg-surface-container-lowest rounded-xl border border-outline-variant/20 flex items-start gap-3">
+                            <div class="p-3.5 bg-white rounded-xl border border-outline-variant/60 flex items-start gap-3 shadow-2xs">
                                 <div class="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5">
                                     <span class="material-symbols-outlined text-[20px]">check_circle</span>
                                 </div>
@@ -1478,7 +1478,7 @@ function deleteDocument(doc) {
                             </div>
 
                             <!-- Keaktifan Dapodik -->
-                            <div class="p-3.5 bg-surface-container-lowest rounded-xl border border-outline-variant/20 flex items-start gap-3 sm:col-span-2 lg:col-span-3">
+                            <div class="p-3.5 bg-white rounded-xl border border-outline-variant/60 flex items-start gap-3 sm:col-span-2 lg:col-span-3 shadow-2xs">
                                 <div class="w-9 h-9 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 mt-0.5">
                                     <span class="material-symbols-outlined text-[20px]">cloud_sync</span>
                                 </div>
@@ -1508,7 +1508,7 @@ function deleteDocument(doc) {
                                 <input
                                     v-model="form.tmt_pengangkatan"
                                     type="date"
-                                    class="w-full px-3.5 py-2.5 bg-surface-container-lowest border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                                    class="w-full px-3.5 py-2.5 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
                                 />
                             </div>
 
@@ -1519,11 +1519,11 @@ function deleteDocument(doc) {
                                 <input
                                     v-model="form.tst_pengangkatan"
                                     type="date"
-                                    class="w-full px-3.5 py-2.5 bg-surface-container-lowest border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                                    class="w-full px-3.5 py-2.5 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
                                 />
                             </div>
 
-                            <div class="p-3 bg-surface-container-lowest rounded-xl border border-outline-variant/20 flex items-center justify-between gap-3">
+                            <div class="p-3 bg-white rounded-xl border border-outline-variant/60 flex items-center justify-between gap-3 shadow-2xs">
                                 <div>
                                     <label class="text-[10px] sm:text-xs font-semibold text-on-surface-variant uppercase tracking-wider block">Masa Kerja Otomatis</label>
                                     <p class="text-xs sm:text-sm font-bold text-primary mt-0.5">
@@ -1537,7 +1537,7 @@ function deleteDocument(doc) {
                                 <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">Status Keaktifan</label>
                                 <select
                                     v-model="form.status_keaktifan"
-                                    class="w-full px-3.5 py-2.5 bg-surface-container-lowest border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                                    class="w-full px-3.5 py-2.5 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
                                 >
                                     <option value="Aktif">Aktif</option>
                                     <option value="Non-Aktif">Non-Aktif</option>
@@ -1552,7 +1552,7 @@ function deleteDocument(doc) {
                                     v-model="form.keterangan_tidak_aktif"
                                     type="text"
                                     placeholder="Keterangan jika cuti / non-aktif / pensiun"
-                                    class="w-full px-3.5 py-2.5 bg-surface-container-lowest border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                    class="w-full px-3.5 py-2.5 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                                 />
                             </div>
 
@@ -1560,7 +1560,7 @@ function deleteDocument(doc) {
                                 <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">Keaktifan Dapodik</label>
                                 <select
                                     v-model="form.keaktifan_dapodik"
-                                    class="w-full px-3.5 py-2.5 bg-surface-container-lowest border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                                    class="w-full px-3.5 py-2.5 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
                                 >
                                     <option value="">-- Pilih Status Dapodik --</option>
                                     <option value="Aktif">Aktif</option>
@@ -1574,14 +1574,14 @@ function deleteDocument(doc) {
                                     v-model="form.unit_keaktifan_dapodik"
                                     type="text"
                                     placeholder="Unit yang terdaftar pada Dapodik"
-                                    class="w-full px-3.5 py-2.5 bg-surface-container-lowest border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                    class="w-full px-3.5 py-2.5 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                                 />
                             </div>
                         </div>
                     </div>
 
                     <!-- EDIT FORM FOR JENJANG KEPEGAWAIAN (Hanya saat isEditing) -->
-                    <div v-if="isEditing" class="p-4 sm:p-5 bg-surface-container-low/60 border border-primary/30 rounded-2xl space-y-4">
+                    <div v-if="isEditing" class="p-4 sm:p-5 bg-white border border-primary/40 rounded-2xl space-y-4 shadow-2xs">
                         <div class="flex items-center gap-2 text-primary font-bold text-sm">
                             <span class="material-symbols-outlined text-[20px]">workspace_premium</span>
                             <h4>Perbarui Jenjang Kepegawaian</h4>
@@ -1592,7 +1592,7 @@ function deleteDocument(doc) {
                                 <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">Jenjang Kepegawaian</label>
                                 <select
                                     v-model="form.jenjang_kepegawaian"
-                                    class="w-full px-3.5 py-2.5 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                                    class="w-full px-3.5 py-2.5 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
                                 >
                                     <option value="">-- Pilih Jenjang --</option>
                                     <option value="GTY">GTY (Guru Tetap Yayasan)</option>
@@ -1607,7 +1607,7 @@ function deleteDocument(doc) {
                                 <input
                                     v-model="form.tmt_kenaikan_jenjang"
                                     type="date"
-                                    class="w-full px-3.5 py-2.5 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                                    class="w-full px-3.5 py-2.5 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
                                 />
                             </div>
 
@@ -1616,7 +1616,7 @@ function deleteDocument(doc) {
                                 <input
                                     v-model="form.tst_kenaikan_jenjang"
                                     type="date"
-                                    class="w-full px-3.5 py-2.5 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                                    class="w-full px-3.5 py-2.5 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
                                 />
                             </div>
                         </div>
@@ -1638,10 +1638,10 @@ function deleteDocument(doc) {
                         </div>
 
                         <div v-if="employee.riwayat_kepegawaian && employee.riwayat_kepegawaian.length > 0">
-                            <div class="overflow-x-auto rounded-xl border border-outline-variant/30 bg-surface-container-low">
+                            <div class="overflow-x-auto rounded-xl border border-outline-variant/60 bg-white">
                                 <table class="w-full text-xs sm:text-sm">
                                     <thead>
-                                        <tr class="bg-surface-container-low border-b border-outline-variant/30 text-on-surface-variant font-bold text-[10px] sm:text-xs uppercase tracking-wider">
+                                        <tr class="bg-white border-b border-outline-variant/60 text-on-surface-variant font-bold text-[10px] sm:text-xs uppercase tracking-wider">
                                             <th class="px-4 py-3 text-left">No</th>
                                             <th class="px-4 py-3 text-left">Jenjang Kepegawaian</th>
                                             <th class="px-4 py-3 text-left">TMT Kenaikan Jenjang</th>
@@ -1654,7 +1654,7 @@ function deleteDocument(doc) {
                                         <tr
                                             v-for="(record, idx) in employee.riwayat_kepegawaian"
                                             :key="record.id || idx"
-                                            class="hover:bg-surface-container-lowest/50 transition-colors"
+                                            class="hover:bg-slate-50 transition-colors"
                                         >
                                             <td class="px-4 py-3 text-on-surface-variant font-mono">{{ idx + 1 }}</td>
                                             <td class="px-4 py-3 font-semibold text-on-surface">
@@ -1730,7 +1730,7 @@ function deleteDocument(doc) {
                 <!-- TAB 5: PENUGASAN (RIWAYAT JABATAN - SHEET 4) -->
                 <div v-if="activeTab === 'penugasan'" class="space-y-6">
                     <!-- EDIT FORM FOR JABATAN (Hanya saat isEditing) -->
-                    <div v-if="isEditing" class="p-4 sm:p-5 bg-surface-container-low/60 border border-primary/30 rounded-2xl space-y-4">
+                    <div v-if="isEditing" class="p-4 sm:p-5 bg-white border border-primary/40 rounded-2xl space-y-4 shadow-2xs">
                         <div class="flex items-center gap-2 text-primary font-bold text-sm">
                             <span class="material-symbols-outlined text-[20px]">assignment_ind</span>
                             <h4>Perbarui Riwayat Jabatan</h4>
@@ -1744,7 +1744,7 @@ function deleteDocument(doc) {
                                     list="unitOptionsDetail"
                                     type="text"
                                     placeholder="Pilih atau ketik unit kerja"
-                                    class="w-full px-3.5 py-2.5 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                    class="w-full px-3.5 py-2.5 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                                 />
                                 <datalist id="unitOptionsDetail">
                                     <option v-for="unit in availableUnits" :key="unit" :value="unit" />
@@ -1757,7 +1757,7 @@ function deleteDocument(doc) {
                                     v-model="form.jabatan"
                                     type="text"
                                     placeholder="Contoh: Guru Kelas, Kepala Sekolah, Bendahara"
-                                    class="w-full px-3.5 py-2.5 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                    class="w-full px-3.5 py-2.5 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                                 />
                             </div>
 
@@ -1767,7 +1767,7 @@ function deleteDocument(doc) {
                                     v-model="form.jenis_kepegawaian"
                                     type="text"
                                     placeholder="Tenaga Pendidik / Tenaga Kependidikan"
-                                    class="w-full px-3.5 py-2.5 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                    class="w-full px-3.5 py-2.5 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                                 />
                             </div>
 
@@ -1776,7 +1776,7 @@ function deleteDocument(doc) {
                                 <input
                                     v-model="form.tmt_jabatan"
                                     type="date"
-                                    class="w-full px-3.5 py-2.5 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                                    class="w-full px-3.5 py-2.5 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
                                 />
                             </div>
 
@@ -1785,7 +1785,7 @@ function deleteDocument(doc) {
                                 <input
                                     v-model="form.tst_jabatan"
                                     type="date"
-                                    class="w-full px-3.5 py-2.5 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                                    class="w-full px-3.5 py-2.5 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
                                 />
                             </div>
                         </div>
@@ -1807,10 +1807,10 @@ function deleteDocument(doc) {
                         </div>
 
                         <div v-if="employee.riwayat_jabatan && employee.riwayat_jabatan.length > 0">
-                            <div class="overflow-x-auto rounded-xl border border-outline-variant/30 bg-surface-container-low">
+                            <div class="overflow-x-auto rounded-xl border border-outline-variant/60 bg-white">
                                 <table class="w-full text-xs sm:text-sm">
                                     <thead>
-                                        <tr class="bg-surface-container-low border-b border-outline-variant/30 text-on-surface-variant font-bold text-[10px] sm:text-xs uppercase tracking-wider">
+                                        <tr class="bg-white border-b border-outline-variant/60 text-on-surface-variant font-bold text-[10px] sm:text-xs uppercase tracking-wider">
                                             <th class="px-4 py-3 text-left">No</th>
                                             <th class="px-4 py-3 text-left">Jabatan</th>
                                             <th class="px-4 py-3 text-left">Unit Kerja</th>
@@ -1825,7 +1825,7 @@ function deleteDocument(doc) {
                                         <tr
                                             v-for="(pos, idx) in employee.riwayat_jabatan"
                                             :key="pos.id || idx"
-                                            class="hover:bg-surface-container-lowest/50 transition-colors"
+                                            class="hover:bg-slate-50 transition-colors"
                                         >
                                             <td class="px-4 py-3 text-on-surface-variant font-mono">{{ idx + 1 }}</td>
                                             <td class="px-4 py-3 font-bold text-on-surface">{{ pos.jabatan || '-' }}</td>
@@ -1908,7 +1908,7 @@ function deleteDocument(doc) {
                             <div class="overflow-x-auto">
                                 <table class="w-full text-sm">
                                     <thead>
-                                        <tr class="bg-surface-container-low border-b border-outline-variant/30">
+                                        <tr class="bg-white border-b border-outline-variant/60">
                                             <th class="px-4 py-2.5 text-left text-xs font-bold text-on-surface-variant uppercase tracking-wider">Jenjang</th>
                                             <th class="px-4 py-2.5 text-left text-xs font-bold text-on-surface-variant uppercase tracking-wider">Jurusan</th>
                                             <th class="px-4 py-2.5 text-left text-xs font-bold text-on-surface-variant uppercase tracking-wider">Instansi</th>
@@ -1921,7 +1921,7 @@ function deleteDocument(doc) {
                                         <tr
                                             v-for="edu in employee.riwayat_pendidikan"
                                             :key="edu.id"
-                                            class="hover:bg-surface-container-low/50 transition-colors"
+                                            class="hover:bg-slate-50 transition-colors"
                                         >
                                             <td class="px-4 py-3">
                                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-primary/10 text-primary">
@@ -2009,7 +2009,7 @@ function deleteDocument(doc) {
                             <div
                                 v-for="(edu, index) in form.riwayat_pendidikan"
                                 :key="index"
-                                class="p-4 bg-surface-container-low rounded-2xl border border-outline-variant/40"
+                                class="p-4 bg-white rounded-2xl border border-outline-variant/60 shadow-2xs"
                             >
                                 <div class="flex items-center justify-between mb-3 border-b border-outline-variant/20 pb-2">
                                     <span class="text-xs font-bold text-primary flex items-center gap-1">
@@ -2032,7 +2032,7 @@ function deleteDocument(doc) {
                                         <label class="block text-[11px] font-semibold text-on-surface-variant mb-1">Jenjang</label>
                                         <select
                                             v-model="edu.jenjang_pendidikan"
-                                            class="w-full px-3 py-2 bg-surface-container-lowest border border-outline-variant/60 rounded-xl text-xs text-on-surface focus:outline-none focus:border-primary cursor-pointer"
+                                            class="w-full px-3 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs text-on-surface focus:outline-none focus:border-primary cursor-pointer"
                                         >
                                             <option value="">-- Pilih --</option>
                                             <option value="SD">SD / Sederajat</option>
@@ -2054,7 +2054,7 @@ function deleteDocument(doc) {
                                             v-model="edu.jurusan"
                                             type="text"
                                             placeholder="Contoh: Pendidikan Matematika"
-                                            class="w-full px-3 py-2 bg-surface-container-lowest border border-outline-variant/60 rounded-xl text-xs text-on-surface focus:outline-none focus:border-primary"
+                                            class="w-full px-3 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs text-on-surface focus:outline-none focus:border-primary"
                                         />
                                     </div>
 
@@ -2064,7 +2064,7 @@ function deleteDocument(doc) {
                                             v-model="edu.instansi_pendidikan"
                                             type="text"
                                             placeholder="Contoh: UNS Surakarta"
-                                            class="w-full px-3 py-2 bg-surface-container-lowest border border-outline-variant/60 rounded-xl text-xs text-on-surface focus:outline-none focus:border-primary"
+                                            class="w-full px-3 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs text-on-surface focus:outline-none focus:border-primary"
                                         />
                                     </div>
 
@@ -2074,7 +2074,7 @@ function deleteDocument(doc) {
                                             v-model="edu.tahun_lulus"
                                             type="text"
                                             placeholder="Contoh: 2018"
-                                            class="w-full px-3 py-2 bg-surface-container-lowest border border-outline-variant/60 rounded-xl text-xs text-on-surface focus:outline-none focus:border-primary"
+                                            class="w-full px-3 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs text-on-surface focus:outline-none focus:border-primary"
                                         />
                                     </div>
 
@@ -2084,7 +2084,7 @@ function deleteDocument(doc) {
                                             v-model="edu.pembiayaan"
                                             type="text"
                                             placeholder="Contoh: Mandiri / Beasiswa / Dinas"
-                                            class="w-full px-3 py-2 bg-surface-container-lowest border border-outline-variant/60 rounded-xl text-xs text-on-surface focus:outline-none focus:border-primary"
+                                            class="w-full px-3 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs text-on-surface focus:outline-none focus:border-primary"
                                         />
                                     </div>
                                 </div>
@@ -2096,7 +2096,7 @@ function deleteDocument(doc) {
                 <!-- TAB 7: DOKUMEN (PRIVATE STORAGE - OPSI A) -->
                 <div v-if="activeTab === 'dokumen'" class="space-y-8">
                     <!-- Banner Informasi Keamanan Dokumen -->
-                    <div class="p-5 sm:p-6 rounded-2xl bg-gradient-to-r from-primary/10 via-surface-container-high to-surface-container-low border border-primary/20">
+                    <div class="p-5 sm:p-6 rounded-2xl bg-white border-2 border-primary/30 shadow-2xs">
                         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                             <div class="flex items-start sm:items-center gap-3.5">
                                 <div class="w-12 h-12 rounded-xl bg-primary text-on-primary flex items-center justify-center shrink-0 shadow-md">
@@ -2116,7 +2116,7 @@ function deleteDocument(doc) {
                                 </div>
                             </div>
                             <div class="flex items-center gap-2 shrink-0">
-                                <span class="px-3.5 py-2 rounded-xl bg-surface-container-lowest border border-outline-variant/40 text-xs font-bold text-primary flex items-center gap-2 shadow-sm">
+                                <span class="px-3.5 py-2 rounded-xl bg-white border border-outline-variant/60 text-xs font-bold text-primary flex items-center gap-2 shadow-2xs">
                                     <span class="material-symbols-outlined text-[18px]">verified_user</span>
                                     <span>{{ employee.all_documents?.length || 0 }} Berkas Terunggah</span>
                                 </span>
@@ -2138,8 +2138,8 @@ function deleteDocument(doc) {
 
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <!-- KTP Card -->
-                            <div class="p-4 rounded-2xl border bg-surface-container-low transition-all duration-200"
-                                :class="employee.dokumen_ktp ? 'border-primary/30 shadow-sm' : 'border-outline-variant/40 border-dashed'">
+                            <div class="p-4 rounded-2xl border bg-white shadow-2xs transition-all duration-200"
+                                :class="employee.dokumen_ktp ? 'border-primary/40' : 'border-outline-variant/50 border-dashed'">
                                 <div class="flex items-start justify-between gap-2 mb-3">
                                     <div class="flex items-center gap-2.5">
                                         <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
@@ -2170,7 +2170,7 @@ function deleteDocument(doc) {
                                         </button>
                                         <a
                                             :href="employee.dokumen_ktp.download_url"
-                                            class="p-1.5 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface transition-colors cursor-pointer"
+                                            class="p-1.5 rounded-lg bg-white border border-outline-variant/60 hover:bg-slate-100 text-on-surface transition-colors cursor-pointer"
                                             title="Unduh KTP"
                                         >
                                             <span class="material-symbols-outlined text-[16px]">download</span>
@@ -2208,8 +2208,8 @@ function deleteDocument(doc) {
                             </div>
 
                             <!-- KK Card -->
-                            <div class="p-4 rounded-2xl border bg-surface-container-low transition-all duration-200"
-                                :class="employee.dokumen_kk ? 'border-primary/30 shadow-sm' : 'border-outline-variant/40 border-dashed'">
+                            <div class="p-4 rounded-2xl border bg-white shadow-2xs transition-all duration-200"
+                                :class="employee.dokumen_kk ? 'border-primary/40' : 'border-outline-variant/50 border-dashed'">
                                 <div class="flex items-start justify-between gap-2 mb-3">
                                     <div class="flex items-center gap-2.5">
                                         <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
@@ -2240,7 +2240,7 @@ function deleteDocument(doc) {
                                         </button>
                                         <a
                                             :href="employee.dokumen_kk.download_url"
-                                            class="p-1.5 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface transition-colors cursor-pointer"
+                                            class="p-1.5 rounded-lg bg-white border border-outline-variant/60 hover:bg-slate-100 text-on-surface transition-colors cursor-pointer"
                                             title="Unduh KK"
                                         >
                                             <span class="material-symbols-outlined text-[16px]">download</span>
@@ -2278,8 +2278,8 @@ function deleteDocument(doc) {
                             </div>
 
                             <!-- SK Pengangkatan Awal Card -->
-                            <div class="p-4 rounded-2xl border bg-surface-container-low transition-all duration-200"
-                                :class="employee.dokumen_sk_pengangkatan ? 'border-primary/30 shadow-sm' : 'border-outline-variant/40 border-dashed'">
+                            <div class="p-4 rounded-2xl border bg-white shadow-2xs transition-all duration-200"
+                                :class="employee.dokumen_sk_pengangkatan ? 'border-primary/40' : 'border-outline-variant/50 border-dashed'">
                                 <div class="flex items-start justify-between gap-2 mb-3">
                                     <div class="flex items-center gap-2.5">
                                         <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
@@ -2310,7 +2310,7 @@ function deleteDocument(doc) {
                                         </button>
                                         <a
                                             :href="employee.dokumen_sk_pengangkatan.download_url"
-                                            class="p-1.5 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface transition-colors cursor-pointer"
+                                            class="p-1.5 rounded-lg bg-white border border-outline-variant/60 hover:bg-slate-100 text-on-surface transition-colors cursor-pointer"
                                             title="Unduh SK Pengangkatan"
                                         >
                                             <span class="material-symbols-outlined text-[16px]">download</span>
@@ -2380,8 +2380,8 @@ function deleteDocument(doc) {
                                 <div
                                     v-for="edu in employee.riwayat_pendidikan"
                                     :key="edu.id"
-                                    class="p-4 rounded-xl border bg-surface-container-low transition-all"
-                                    :class="edu.document ? 'border-primary/30' : 'border-outline-variant/30'"
+                                    class="p-4 rounded-xl border bg-white shadow-2xs transition-all"
+                                    :class="edu.document ? 'border-primary/50' : 'border-outline-variant/60'"
                                 >
                                     <div class="flex items-start justify-between gap-3 mb-2.5">
                                         <div>
@@ -2414,7 +2414,7 @@ function deleteDocument(doc) {
                                             </button>
                                             <a
                                                 :href="edu.document.download_url"
-                                                class="p-1 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface transition-colors cursor-pointer"
+                                                class="p-1 rounded-lg bg-white border border-outline-variant/60 hover:bg-slate-100 text-on-surface transition-colors cursor-pointer"
                                                 title="Unduh Ijazah"
                                             >
                                                 <span class="material-symbols-outlined text-[15px]">download</span>
@@ -2466,7 +2466,7 @@ function deleteDocument(doc) {
                                 <div
                                     v-for="doc in employee.dokumen_ijazah_tambahan"
                                     :key="doc.id"
-                                    class="p-4 rounded-xl border border-primary/30 bg-surface-container-low transition-all"
+                                    class="p-4 rounded-xl border border-outline-variant/60 bg-white shadow-2xs transition-all"
                                 >
                                     <div class="flex items-start justify-between gap-2 mb-2">
                                         <div>
@@ -2485,7 +2485,7 @@ function deleteDocument(doc) {
                                         </button>
                                         <a
                                             :href="doc.download_url"
-                                            class="p-1 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface transition-colors cursor-pointer"
+                                            class="p-1 rounded-lg bg-white border border-outline-variant/60 hover:bg-slate-100 text-on-surface transition-colors cursor-pointer"
                                             title="Unduh"
                                         >
                                             <span class="material-symbols-outlined text-[15px]">download</span>
@@ -2522,10 +2522,10 @@ function deleteDocument(doc) {
                         </div>
 
                         <div v-if="employee.riwayat_kepegawaian && employee.riwayat_kepegawaian.length > 0">
-                            <div class="overflow-x-auto rounded-xl border border-outline-variant/30 bg-surface-container-low">
+                            <div class="overflow-x-auto rounded-xl border border-outline-variant/60 bg-white shadow-2xs">
                                 <table class="w-full text-xs sm:text-sm">
                                     <thead>
-                                        <tr class="bg-surface-container-low border-b border-outline-variant/30 text-on-surface-variant font-bold text-[10px] sm:text-xs uppercase tracking-wider">
+                                        <tr class="bg-white border-b border-outline-variant/60 text-on-surface-variant font-bold text-[10px] sm:text-xs uppercase tracking-wider">
                                             <th class="px-4 py-3 text-left">No</th>
                                             <th class="px-4 py-3 text-left">Jenjang</th>
                                             <th class="px-4 py-3 text-left">TMT Kenaikan</th>
@@ -2538,7 +2538,7 @@ function deleteDocument(doc) {
                                         <tr
                                             v-for="(record, idx) in employee.riwayat_kepegawaian"
                                             :key="record.id || idx"
-                                            class="hover:bg-surface-container-lowest/50 transition-colors"
+                                            class="hover:bg-slate-50 transition-colors"
                                         >
                                             <td class="px-4 py-3 text-on-surface-variant font-mono">{{ idx + 1 }}</td>
                                             <td class="px-4 py-3 font-semibold text-on-surface">
@@ -2575,7 +2575,7 @@ function deleteDocument(doc) {
                                                     </button>
                                                     <a
                                                         :href="record.document.download_url"
-                                                        class="p-1 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface transition-colors cursor-pointer"
+                                                        class="p-1 rounded-lg bg-white border border-outline-variant/60 hover:bg-slate-100 text-on-surface transition-colors cursor-pointer"
                                                         title="Unduh SK"
                                                     >
                                                         <span class="material-symbols-outlined text-[15px]">download</span>
@@ -2638,10 +2638,10 @@ function deleteDocument(doc) {
                         </div>
 
                         <div v-if="employee.riwayat_jabatan && employee.riwayat_jabatan.length > 0">
-                            <div class="overflow-x-auto rounded-xl border border-outline-variant/30 bg-surface-container-low">
+                            <div class="overflow-x-auto rounded-xl border border-outline-variant/60 bg-white shadow-2xs">
                                 <table class="w-full text-xs sm:text-sm">
                                     <thead>
-                                        <tr class="bg-surface-container-low border-b border-outline-variant/30 text-on-surface-variant font-bold text-[10px] sm:text-xs uppercase tracking-wider">
+                                        <tr class="bg-white border-b border-outline-variant/60 text-on-surface-variant font-bold text-[10px] sm:text-xs uppercase tracking-wider">
                                             <th class="px-4 py-3 text-left">No</th>
                                             <th class="px-4 py-3 text-left">Jabatan</th>
                                             <th class="px-4 py-3 text-left">Unit Kerja</th>
@@ -2655,7 +2655,7 @@ function deleteDocument(doc) {
                                         <tr
                                             v-for="(pos, idx) in employee.riwayat_jabatan"
                                             :key="pos.id || idx"
-                                            class="hover:bg-surface-container-lowest/50 transition-colors"
+                                            class="hover:bg-slate-50 transition-colors"
                                         >
                                             <td class="px-4 py-3 text-on-surface-variant font-mono">{{ idx + 1 }}</td>
                                             <td class="px-4 py-3 font-bold text-on-surface">{{ pos.jabatan || '-' }}</td>
@@ -2693,7 +2693,7 @@ function deleteDocument(doc) {
                                                     </button>
                                                     <a
                                                         :href="pos.document.download_url"
-                                                        class="p-1 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface transition-colors cursor-pointer"
+                                                        class="p-1 rounded-lg bg-white border border-outline-variant/60 hover:bg-slate-100 text-on-surface transition-colors cursor-pointer"
                                                         title="Unduh SK"
                                                     >
                                                         <span class="material-symbols-outlined text-[15px]">download</span>
@@ -2753,12 +2753,12 @@ function deleteDocument(doc) {
         >
             <div
                 v-if="isEditing"
-                class="fixed bottom-6 right-6 sm:bottom-8 sm:right-8 z-50 flex items-center gap-2 bg-surface-container-lowest/95 backdrop-blur-md p-2 sm:p-2.5 rounded-2xl border border-primary/30 shadow-[0_12px_36px_rgba(0,0,0,0.22)] ring-1 ring-black/5"
+                class="fixed bottom-6 right-6 sm:bottom-8 sm:right-8 z-50 flex items-center gap-2 bg-white/95 backdrop-blur-md p-2 sm:p-2.5 rounded-2xl border-2 border-outline-variant/80 shadow-[0_12px_36px_rgba(0,0,0,0.18)] ring-1 ring-black/5"
             >
                 <button
                     type="button"
                     @click="cancelEdit"
-                    class="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high border border-outline-variant/60 transition-all cursor-pointer"
+                    class="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold text-on-surface-variant hover:text-on-surface hover:bg-slate-100 border border-outline-variant/60 transition-all cursor-pointer"
                     :disabled="form.processing"
                     title="Batalkan perubahan"
                 >
@@ -2792,9 +2792,9 @@ function deleteDocument(doc) {
                 class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
                 @click.self="closeUploadModal"
             >
-                <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                <div class="bg-white rounded-2xl border border-outline-variant/60 shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                     <!-- Modal Header -->
-                    <div class="flex items-center justify-between p-5 border-b border-outline-variant/20 bg-surface-container-low/50">
+                    <div class="flex items-center justify-between p-5 border-b border-outline-variant/60 bg-white">
                         <div class="flex items-center gap-2.5">
                             <div class="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
                                 <span class="material-symbols-outlined text-[20px]">upload_file</span>
@@ -2807,7 +2807,7 @@ function deleteDocument(doc) {
                         <button
                             type="button"
                             @click="closeUploadModal"
-                            class="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors cursor-pointer"
+                            class="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-slate-100 transition-colors cursor-pointer"
                         >
                             <span class="material-symbols-outlined text-[20px]">close</span>
                         </button>
@@ -2821,7 +2821,7 @@ function deleteDocument(doc) {
                                 v-model="uploadTitle"
                                 type="text"
                                 placeholder="Contoh: KTP Pegawai, SK Pengangkatan, Ijazah S1"
-                                class="w-full px-3.5 py-2.5 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                class="w-full px-3.5 py-2.5 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                                 required
                             />
                         </div>
@@ -2835,7 +2835,7 @@ function deleteDocument(doc) {
                                 @drop.prevent="handleDrop"
                                 :class="[
                                     'border-2 border-dashed rounded-2xl p-6 text-center transition-all cursor-pointer relative',
-                                    isDragging ? 'border-primary bg-primary/5' : 'border-outline-variant/60 hover:border-primary/50 bg-surface-container-low/30',
+                                    isDragging ? 'border-primary bg-primary/5' : 'border-outline-variant/60 hover:border-primary/50 bg-white',
                                     uploadFile ? 'border-emerald-500 bg-emerald-50/20' : ''
                                 ]"
                                 @click="fileInput?.click()"
@@ -2871,7 +2871,7 @@ function deleteDocument(doc) {
                             <button
                                 type="button"
                                 @click="closeUploadModal"
-                                class="px-4 py-2 rounded-xl text-xs font-semibold text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors cursor-pointer"
+                                class="px-4 py-2 rounded-xl text-xs font-semibold text-on-surface-variant hover:text-on-surface hover:bg-slate-100 border border-outline-variant/60 transition-colors cursor-pointer"
                                 :disabled="isUploading"
                             >
                                 Batal
@@ -2905,9 +2905,9 @@ function deleteDocument(doc) {
                 class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/75 backdrop-blur-md"
                 @click.self="closePreviewModal"
             >
-                <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 shadow-2xl w-full max-w-4xl h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                <div class="bg-white rounded-2xl border border-outline-variant/60 shadow-2xl w-full max-w-4xl h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                     <!-- Modal Header -->
-                    <div class="flex items-center justify-between p-4 border-b border-outline-variant/20 bg-surface-container-low shrink-0">
+                    <div class="flex items-center justify-between p-4 border-b border-outline-variant/60 bg-white shrink-0">
                         <div class="flex items-center gap-3 truncate mr-2">
                             <div class="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
                                 <span class="material-symbols-outlined text-[18px]">
@@ -2922,7 +2922,7 @@ function deleteDocument(doc) {
                         <div class="flex items-center gap-1.5 shrink-0">
                             <a
                                 :href="previewDoc.download_url"
-                                class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-surface-container-high hover:bg-surface-container-highest text-on-surface transition-colors cursor-pointer"
+                                class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-outline-variant/60 hover:bg-slate-100 text-on-surface transition-colors cursor-pointer"
                                 title="Unduh Berkas"
                             >
                                 <span class="material-symbols-outlined text-[16px]">download</span>
@@ -2940,7 +2940,7 @@ function deleteDocument(doc) {
                             <button
                                 type="button"
                                 @click="closePreviewModal"
-                                class="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors ml-1 cursor-pointer"
+                                class="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-slate-100 transition-colors ml-1 cursor-pointer"
                                 title="Tutup Preview"
                             >
                                 <span class="material-symbols-outlined text-[20px]">close</span>
@@ -2949,7 +2949,7 @@ function deleteDocument(doc) {
                     </div>
 
                     <!-- Modal Content (PDF or Image viewer) -->
-                    <div class="flex-1 bg-surface-container-lowest overflow-auto p-4 flex items-center justify-center">
+                    <div class="flex-1 bg-white overflow-auto p-4 flex items-center justify-center">
                         <iframe
                             v-if="previewDoc.mime_type?.includes('pdf')"
                             :src="previewDoc.preview_url"
