@@ -1587,11 +1587,8 @@ function deleteDocument(doc) {
                         <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
                             <h4 class="text-xs sm:text-sm font-bold text-primary flex items-center gap-2">
                                 <span class="material-symbols-outlined text-[20px]">verified</span>
-                                Informasi Pengangkatan, Keaktifan, & Dapodik (Data Statis Pegawai)
+                                Informasi Umum Kepegawaian
                             </h4>
-                            <span class="text-[11px] text-on-surface-variant bg-white px-2.5 py-1 rounded-lg border border-outline-variant/60 font-medium shadow-2xs">
-                                Database Pegawai (Sheet 1)
-                            </span>
                         </div>
 
                         <!-- View Mode Data Statis -->
@@ -1807,37 +1804,37 @@ function deleteDocument(doc) {
                         </div>
 
                         <div v-if="employee.riwayat_kepegawaian && employee.riwayat_kepegawaian.length > 0">
-                            <div class="overflow-x-auto rounded-xl border border-outline-variant/60 bg-white">
-                                <table class="w-full text-xs sm:text-sm">
+                            <div class="overflow-x-auto rounded-xl border border-outline-variant/60 bg-white shadow-2xs">
+                                <table class="w-full text-xs sm:text-sm border-collapse border border-outline-variant/60">
                                     <thead>
-                                        <tr class="bg-white border-b border-outline-variant/60 text-on-surface-variant font-bold text-[10px] sm:text-xs uppercase tracking-wider">
-                                            <th class="px-4 py-3 text-left">No</th>
-                                            <th class="px-4 py-3 text-left">Jenjang Kepegawaian</th>
-                                            <th class="px-4 py-3 text-left">TMT Kenaikan Jenjang</th>
-                                            <th class="px-4 py-3 text-left">TST Kenaikan Jenjang</th>
-                                            <th class="px-4 py-3 text-left">Status Masa Berlaku</th>
-                                            <th class="px-4 py-3 text-center">Berkas SK Jenjang</th>
+                                        <tr class="bg-white text-on-surface-variant font-bold text-[10px] sm:text-xs uppercase tracking-wider">
+                                            <th class="border border-outline-variant/60 px-4 py-3 text-center w-12">No</th>
+                                            <th class="border border-outline-variant/60 px-4 py-3 text-left">Jenjang Kepegawaian</th>
+                                            <th class="border border-outline-variant/60 px-4 py-3 text-left">TMT Kenaikan Jenjang</th>
+                                            <th class="border border-outline-variant/60 px-4 py-3 text-left">TST Kenaikan Jenjang</th>
+                                            <th class="border border-outline-variant/60 px-4 py-3 text-left">Status Masa Berlaku</th>
+                                            <th class="border border-outline-variant/60 px-4 py-3 text-center">Berkas SK Jenjang</th>
                                         </tr>
                                     </thead>
-                                    <tbody class="divide-y divide-outline-variant/20">
+                                    <tbody>
                                         <tr
                                             v-for="(record, idx) in employee.riwayat_kepegawaian"
                                             :key="record.id || idx"
                                             class="hover:bg-slate-50 transition-colors"
                                         >
-                                            <td class="px-4 py-3 text-on-surface-variant font-mono">{{ idx + 1 }}</td>
-                                            <td class="px-4 py-3 font-semibold text-on-surface">
+                                            <td class="border border-outline-variant/60 px-4 py-3 text-center text-on-surface-variant font-mono">{{ idx + 1 }}</td>
+                                            <td class="border border-outline-variant/60 px-4 py-3 font-semibold text-on-surface">
                                                 <span :class="['inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold', getJenjangColor(record.jenjang_kepegawaian)]">
                                                     {{ record.jenjang_kepegawaian || '-' }}
                                                 </span>
                                             </td>
-                                            <td class="px-4 py-3 text-on-surface">
+                                            <td class="border border-outline-variant/60 px-4 py-3 text-on-surface">
                                                 {{ record.formatted_tmt_kenaikan_jenjang || formatTanggalIndo(record.tmt_kenaikan_jenjang) || '-' }}
                                             </td>
-                                            <td class="px-4 py-3 text-on-surface">
+                                            <td class="border border-outline-variant/60 px-4 py-3 text-on-surface">
                                                 {{ record.formatted_tst_kenaikan_jenjang || record.formatted_tst_jenjang || formatTanggalIndo(record.tst_kenaikan_jenjang || record.tst_jenjang) || 'Sekarang / Tetap' }}
                                             </td>
-                                            <td class="px-4 py-3">
+                                            <td class="border border-outline-variant/60 px-4 py-3">
                                                 <span
                                                     v-if="!record.tst_kenaikan_jenjang && !record.tst_jenjang"
                                                     class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-700"
@@ -1852,8 +1849,8 @@ function deleteDocument(doc) {
                                                     Selesai
                                                 </span>
                                             </td>
-                                            <td class="px-4 py-3 text-center">
-                                                <div v-if="record.document" class="inline-flex items-center gap-1.5">
+                                            <td class="border border-outline-variant/60 px-4 py-3 text-center">
+                                                <div v-if="record.document" class="inline-flex items-center gap-1.5 justify-center">
                                                     <button
                                                         type="button"
                                                         @click="openPreview(record.document)"
@@ -2645,16 +2642,6 @@ function deleteDocument(doc) {
                                 <span class="material-symbols-outlined text-[18px]">school</span>
                                 Dokumen Riwayat Pendidikan
                             </h4>
-                            <div class="flex items-center gap-2">
-                                <button
-                                    type="button"
-                                    @click="openUploadModal({ category: 'ijazah', recordType: null, recordId: null, title: `Ijazah Tambahan - ${employee.nama}` })"
-                                    class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary text-on-primary hover:bg-primary-container text-xs font-bold transition-all shadow-xs cursor-pointer"
-                                >
-                                    <span class="material-symbols-outlined text-[16px]">add_circle</span>
-                                    <span>+ Upload Ijazah Tambahan</span>
-                                </button>
-                            </div>
                         </div>
 
                         <div class="overflow-x-auto rounded-xl border border-outline-variant/60 bg-white shadow-2xs">
