@@ -382,6 +382,164 @@ const fileInput = ref(null);
 
 const previewDoc = ref(null);
 
+const dokumenPribadiList = computed(() => {
+    const list = [];
+    let no = 1;
+
+    // 1. KTP
+    list.push({
+        id: 'ktp',
+        no: no++,
+        nama: 'KTP (Kartu Tanda Penduduk)',
+        kategori: 'Identitas Diri',
+        icon: 'badge',
+        keterangan: props.employee.nik ? `NIK: ${props.employee.nik}` : 'NIK belum diisi',
+        document: props.employee.dokumen_ktp,
+        uploadCategory: 'ktp',
+        recordType: null,
+        recordId: null,
+        uploadTitle: `KTP - ${props.employee.nama}`,
+        isAdditional: false,
+    });
+
+    // 2. KK
+    list.push({
+        id: 'kk',
+        no: no++,
+        nama: 'KK (Kartu Keluarga)',
+        kategori: 'Identitas Keluarga',
+        icon: 'family_restroom',
+        keterangan: 'Dokumen resmi data keluarga',
+        document: props.employee.dokumen_kk,
+        uploadCategory: 'kk',
+        recordType: null,
+        recordId: null,
+        uploadTitle: `KK - ${props.employee.nama}`,
+        isAdditional: false,
+    });
+
+    // 3. Ijazah Formal dari Riwayat Pendidikan
+    if (props.employee.riwayat_pendidikan && props.employee.riwayat_pendidikan.length > 0) {
+        props.employee.riwayat_pendidikan.forEach((edu) => {
+            const jenjang = edu.jenjang_pendidikan || 'Pendidikan';
+            const jurusan = edu.jurusan ? ` - ${edu.jurusan}` : '';
+            const instansi = edu.instansi_pendidikan || '-';
+            const tahun = edu.tahun_lulus ? ` (Lulus ${edu.tahun_lulus})` : '';
+
+            list.push({
+                id: `edu_${edu.id}`,
+                no: no++,
+                nama: `Ijazah ${jenjang}${jurusan}`,
+                kategori: `Pendidikan Formal (${jenjang})`,
+                icon: 'school',
+                keterangan: `${instansi}${tahun}`,
+                document: edu.document,
+                uploadCategory: 'ijazah',
+                recordType: 'education',
+                recordId: edu.id,
+                uploadTitle: `Ijazah ${jenjang}${jurusan}`,
+                isAdditional: false,
+            });
+        });
+    }
+
+    // 4. Ijazah Tambahan Lainnya
+    if (props.employee.dokumen_ijazah_tambahan && props.employee.dokumen_ijazah_tambahan.length > 0) {
+        props.employee.dokumen_ijazah_tambahan.forEach((doc) => {
+            list.push({
+                id: `doc_${doc.id}`,
+                no: no++,
+                nama: doc.title || 'Ijazah Tambahan',
+                kategori: 'Ijazah / Sertifikat Tambahan',
+                icon: 'workspace_premium',
+                keterangan: 'Dokumen pendidikan tambahan / sertifikat profesi',
+                document: doc,
+                uploadCategory: 'ijazah',
+                recordType: null,
+                recordId: null,
+                uploadTitle: doc.title,
+                isAdditional: true,
+            });
+        });
+    }
+
+    return list;
+});
+
+const dokumenKepegawaianList = computed(() => {
+    const list = [];
+    let no = 1;
+
+    // 1. SK Pengangkatan Awal
+    const tmtAwal = props.employee.formatted_tmt_pengangkatan || formatTanggalIndo(props.employee.tmt_pengangkatan) || '-';
+    const tstAwal = props.employee.formatted_tst_pengangkatan || formatTanggalIndo(props.employee.tst_pengangkatan) || 'Tetap';
+    list.push({
+        id: 'sk_pengangkatan',
+        no: no++,
+        nama: 'SK Pengangkatan Awal',
+        kategori: 'Pengangkatan Pokok',
+        icon: 'verified',
+        keterangan: `TMT: ${tmtAwal} • TST: ${tstAwal}`,
+        document: props.employee.dokumen_sk_pengangkatan,
+        uploadCategory: 'sk_pengangkatan',
+        recordType: null,
+        recordId: null,
+        uploadTitle: `SK Pengangkatan - ${props.employee.nama}`,
+        isAdditional: false,
+    });
+
+    // 2. SK Jenjang Kepegawaian (Terkoneksi Tab Kepegawaian)
+    if (props.employee.riwayat_kepegawaian && props.employee.riwayat_kepegawaian.length > 0) {
+        props.employee.riwayat_kepegawaian.forEach((rec) => {
+            const jenjang = rec.jenjang_kepegawaian || '-';
+            const tmt = rec.formatted_tmt_kenaikan_jenjang || formatTanggalIndo(rec.tmt_kenaikan_jenjang) || '-';
+            const tst = rec.formatted_tst_kenaikan_jenjang || rec.formatted_tst_jenjang || formatTanggalIndo(rec.tst_kenaikan_jenjang || rec.tst_jenjang) || 'Sekarang / Tetap';
+
+            list.push({
+                id: `rec_${rec.id}`,
+                no: no++,
+                nama: `SK Jenjang ${jenjang}`,
+                kategori: 'Riwayat Jenjang',
+                icon: 'military_tech',
+                keterangan: `TMT: ${tmt} • TST: ${tst}`,
+                document: rec.document,
+                uploadCategory: 'sk_jenjang',
+                recordType: 'record',
+                recordId: rec.id,
+                uploadTitle: `SK Jenjang ${jenjang}`,
+                isAdditional: false,
+            });
+        });
+    }
+
+    // 3. SK Penugasan / Jabatan (Terkoneksi Tab Penugasan / Jabatan)
+    if (props.employee.riwayat_jabatan && props.employee.riwayat_jabatan.length > 0) {
+        props.employee.riwayat_jabatan.forEach((pos) => {
+            const jabatan = pos.jabatan || '-';
+            const unit = pos.unit_kerja ? `Unit: ${pos.unit_kerja}` : '';
+            const tmt = pos.formatted_tmt_jabatan || formatTanggalIndo(pos.tmt_jabatan) || '-';
+            const tst = pos.formatted_tst_jabatan || formatTanggalIndo(pos.tst_jabatan) || 'Sekarang / Aktif';
+
+            list.push({
+                id: `pos_${pos.id}`,
+                no: no++,
+                nama: `SK Penugasan: ${jabatan}`,
+                kategori: 'Riwayat Jabatan',
+                icon: 'assignment_ind',
+                keterangan: `${unit ? unit + ' • ' : ''}TMT: ${tmt} • TST: ${tst}`,
+                document: pos.document,
+                uploadCategory: 'sk_penugasan',
+                recordType: 'position',
+                recordId: pos.id,
+                uploadTitle: `SK Penugasan ${jabatan}${pos.unit_kerja ? ' (' + pos.unit_kerja + ')' : ''}`,
+                isAdditional: false,
+            });
+        });
+    }
+
+    return list;
+});
+
 function openUploadModal({ category, recordType = null, recordId = null, title = '' }) {
     uploadCategory.value = category;
     uploadRecordType.value = recordType;
@@ -2093,648 +2251,272 @@ function deleteDocument(doc) {
                     </template>
                 </div>
 
-                <!-- TAB 7: DOKUMEN (PRIVATE STORAGE - OPSI A) -->
+                <!-- TAB 7: DOKUMEN -->
                 <div v-if="activeTab === 'dokumen'" class="space-y-8">
-                    <!-- Banner Informasi Keamanan Dokumen -->
-                    <div class="p-5 sm:p-6 rounded-2xl bg-white border-2 border-primary/30 shadow-2xs">
-                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                            <div class="flex items-start sm:items-center gap-3.5">
-                                <div class="w-12 h-12 rounded-xl bg-primary text-on-primary flex items-center justify-center shrink-0 shadow-md">
-                                    <span class="material-symbols-outlined text-2xl">folder_shared</span>
-                                </div>
-                                <div>
-                                    <div class="flex items-center gap-2">
-                                        <h3 class="text-base sm:text-lg font-bold text-on-surface">Dokumen Digital Pegawai</h3>
-                                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
-                                            Penyimpanan Terproteksi (Opsi A)
-                                        </span>
-                                    </div>
-                                    <p class="text-xs text-on-surface-variant mt-1 leading-relaxed">
-                                        Dokumen tersimpan aman di direktori privat sistem (tidak dapat diakses publik secara langsung). Akses unduh dan pratinjau diautentikasi ketat.
-                                    </p>
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-2 shrink-0">
-                                <span class="px-3.5 py-2 rounded-xl bg-white border border-outline-variant/60 text-xs font-bold text-primary flex items-center gap-2 shadow-2xs">
-                                    <span class="material-symbols-outlined text-[18px]">verified_user</span>
-                                    <span>{{ employee.all_documents?.length || 0 }} Berkas Terunggah</span>
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 1. DOKUMEN POKOK (KTP, KK, SK PENGANGKATAN) -->
+                    <!-- 1. TABEL DOKUMEN PRIBADI -->
                     <div class="space-y-3">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <h4 class="text-sm font-bold text-on-surface flex items-center gap-2">
-                                    <span class="material-symbols-outlined text-primary text-[20px]">badge</span>
-                                    Dokumen Pokok Pegawai
-                                </h4>
-                                <span class="text-xs text-on-surface-variant">Dokumen identitas dasar dan SK awal pengangkatan</span>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <!-- KTP Card -->
-                            <div class="p-4 rounded-2xl border bg-white shadow-2xs transition-all duration-200"
-                                :class="employee.dokumen_ktp ? 'border-primary/40' : 'border-outline-variant/50 border-dashed'">
-                                <div class="flex items-start justify-between gap-2 mb-3">
-                                    <div class="flex items-center gap-2.5">
-                                        <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-                                            :class="employee.dokumen_ktp ? 'bg-primary/10 text-primary' : 'bg-outline-variant/15 text-outline'">
-                                            <span class="material-symbols-outlined text-[20px]">badge</span>
-                                        </div>
-                                        <div>
-                                            <h5 class="text-xs font-bold text-on-surface">KTP (Kartu Tanda Penduduk)</h5>
-                                            <p class="text-[11px] text-on-surface-variant font-mono">{{ employee.nik || 'NIK belum diisi' }}</p>
-                                        </div>
-                                    </div>
-                                    <span v-if="employee.dokumen_ktp" class="material-symbols-outlined text-emerald-600 text-[18px]">check_circle</span>
-                                </div>
-
-                                <div v-if="employee.dokumen_ktp" class="space-y-3 pt-2 border-t border-outline-variant/20">
-                                    <div class="flex items-center justify-between text-[11px] text-on-surface-variant">
-                                        <span class="truncate max-w-[170px]" :title="employee.dokumen_ktp.file_name">{{ employee.dokumen_ktp.file_name }}</span>
-                                        <span class="font-semibold text-outline">{{ employee.dokumen_ktp.formatted_file_size }}</span>
-                                    </div>
-                                    <div class="flex items-center gap-1.5">
-                                        <button
-                                            type="button"
-                                            @click="openPreview(employee.dokumen_ktp)"
-                                            class="flex-1 inline-flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors border border-emerald-200 cursor-pointer"
-                                        >
-                                            <span class="material-symbols-outlined text-[15px]">visibility</span>
-                                            <span>Lihat</span>
-                                        </button>
-                                        <a
-                                            :href="employee.dokumen_ktp.download_url"
-                                            class="p-1.5 rounded-lg bg-white border border-outline-variant/60 hover:bg-slate-100 text-on-surface transition-colors cursor-pointer"
-                                            title="Unduh KTP"
-                                        >
-                                            <span class="material-symbols-outlined text-[16px]">download</span>
-                                        </a>
-                                        <button
-                                            type="button"
-                                            @click="openUploadModal({ category: 'ktp', title: `KTP - ${employee.nama}` })"
-                                            class="p-1.5 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-100 transition-colors cursor-pointer"
-                                            title="Ganti Berkas KTP"
-                                        >
-                                            <span class="material-symbols-outlined text-[16px]">sync</span>
-                                        </button>
-                                        <button
-                                            type="button"
-                                            @click="deleteDocument(employee.dokumen_ktp)"
-                                            class="p-1.5 rounded-lg text-slate-400 hover:text-error hover:bg-error/10 transition-colors cursor-pointer"
-                                            title="Hapus KTP"
-                                        >
-                                            <span class="material-symbols-outlined text-[16px]">delete</span>
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div v-else class="text-center py-4">
-                                    <p class="text-[11px] text-on-surface-variant mb-2.5">Belum ada berkas KTP yang diunggah</p>
-                                    <button
-                                        type="button"
-                                        @click="openUploadModal({ category: 'ktp', title: `KTP - ${employee.nama}` })"
-                                        class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 text-xs font-bold transition-all cursor-pointer"
-                                    >
-                                        <span class="material-symbols-outlined text-[15px]">upload_file</span>
-                                        <span>Unggah KTP</span>
-                                    </button>
-                                </div>
-                            </div>
-
-                            <!-- KK Card -->
-                            <div class="p-4 rounded-2xl border bg-white shadow-2xs transition-all duration-200"
-                                :class="employee.dokumen_kk ? 'border-primary/40' : 'border-outline-variant/50 border-dashed'">
-                                <div class="flex items-start justify-between gap-2 mb-3">
-                                    <div class="flex items-center gap-2.5">
-                                        <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-                                            :class="employee.dokumen_kk ? 'bg-primary/10 text-primary' : 'bg-outline-variant/15 text-outline'">
-                                            <span class="material-symbols-outlined text-[20px]">family_restroom</span>
-                                        </div>
-                                        <div>
-                                            <h5 class="text-xs font-bold text-on-surface">KK (Kartu Keluarga)</h5>
-                                            <p class="text-[11px] text-on-surface-variant">Dokumen resmi keluarga</p>
-                                        </div>
-                                    </div>
-                                    <span v-if="employee.dokumen_kk" class="material-symbols-outlined text-emerald-600 text-[18px]">check_circle</span>
-                                </div>
-
-                                <div v-if="employee.dokumen_kk" class="space-y-3 pt-2 border-t border-outline-variant/20">
-                                    <div class="flex items-center justify-between text-[11px] text-on-surface-variant">
-                                        <span class="truncate max-w-[170px]" :title="employee.dokumen_kk.file_name">{{ employee.dokumen_kk.file_name }}</span>
-                                        <span class="font-semibold text-outline">{{ employee.dokumen_kk.formatted_file_size }}</span>
-                                    </div>
-                                    <div class="flex items-center gap-1.5">
-                                        <button
-                                            type="button"
-                                            @click="openPreview(employee.dokumen_kk)"
-                                            class="flex-1 inline-flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors border border-emerald-200 cursor-pointer"
-                                        >
-                                            <span class="material-symbols-outlined text-[15px]">visibility</span>
-                                            <span>Lihat</span>
-                                        </button>
-                                        <a
-                                            :href="employee.dokumen_kk.download_url"
-                                            class="p-1.5 rounded-lg bg-white border border-outline-variant/60 hover:bg-slate-100 text-on-surface transition-colors cursor-pointer"
-                                            title="Unduh KK"
-                                        >
-                                            <span class="material-symbols-outlined text-[16px]">download</span>
-                                        </a>
-                                        <button
-                                            type="button"
-                                            @click="openUploadModal({ category: 'kk', title: `KK - ${employee.nama}` })"
-                                            class="p-1.5 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-100 transition-colors cursor-pointer"
-                                            title="Ganti Berkas KK"
-                                        >
-                                            <span class="material-symbols-outlined text-[16px]">sync</span>
-                                        </button>
-                                        <button
-                                            type="button"
-                                            @click="deleteDocument(employee.dokumen_kk)"
-                                            class="p-1.5 rounded-lg text-slate-400 hover:text-error hover:bg-error/10 transition-colors cursor-pointer"
-                                            title="Hapus KK"
-                                        >
-                                            <span class="material-symbols-outlined text-[16px]">delete</span>
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div v-else class="text-center py-4">
-                                    <p class="text-[11px] text-on-surface-variant mb-2.5">Belum ada berkas KK yang diunggah</p>
-                                    <button
-                                        type="button"
-                                        @click="openUploadModal({ category: 'kk', title: `KK - ${employee.nama}` })"
-                                        class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 text-xs font-bold transition-all cursor-pointer"
-                                    >
-                                        <span class="material-symbols-outlined text-[15px]">upload_file</span>
-                                        <span>Unggah KK</span>
-                                    </button>
-                                </div>
-                            </div>
-
-                            <!-- SK Pengangkatan Awal Card -->
-                            <div class="p-4 rounded-2xl border bg-white shadow-2xs transition-all duration-200"
-                                :class="employee.dokumen_sk_pengangkatan ? 'border-primary/40' : 'border-outline-variant/50 border-dashed'">
-                                <div class="flex items-start justify-between gap-2 mb-3">
-                                    <div class="flex items-center gap-2.5">
-                                        <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-                                            :class="employee.dokumen_sk_pengangkatan ? 'bg-primary/10 text-primary' : 'bg-outline-variant/15 text-outline'">
-                                            <span class="material-symbols-outlined text-[20px]">workspace_premium</span>
-                                        </div>
-                                        <div>
-                                            <h5 class="text-xs font-bold text-on-surface">SK Pengangkatan Awal</h5>
-                                            <p class="text-[11px] text-on-surface-variant">TMT: {{ employee.formatted_tmt_pengangkatan || formatTanggalIndo(employee.tmt_pengangkatan) || '-' }}</p>
-                                        </div>
-                                    </div>
-                                    <span v-if="employee.dokumen_sk_pengangkatan" class="material-symbols-outlined text-emerald-600 text-[18px]">check_circle</span>
-                                </div>
-
-                                <div v-if="employee.dokumen_sk_pengangkatan" class="space-y-3 pt-2 border-t border-outline-variant/20">
-                                    <div class="flex items-center justify-between text-[11px] text-on-surface-variant">
-                                        <span class="truncate max-w-[170px]" :title="employee.dokumen_sk_pengangkatan.file_name">{{ employee.dokumen_sk_pengangkatan.file_name }}</span>
-                                        <span class="font-semibold text-outline">{{ employee.dokumen_sk_pengangkatan.formatted_file_size }}</span>
-                                    </div>
-                                    <div class="flex items-center gap-1.5">
-                                        <button
-                                            type="button"
-                                            @click="openPreview(employee.dokumen_sk_pengangkatan)"
-                                            class="flex-1 inline-flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors border border-emerald-200 cursor-pointer"
-                                        >
-                                            <span class="material-symbols-outlined text-[15px]">visibility</span>
-                                            <span>Lihat</span>
-                                        </button>
-                                        <a
-                                            :href="employee.dokumen_sk_pengangkatan.download_url"
-                                            class="p-1.5 rounded-lg bg-white border border-outline-variant/60 hover:bg-slate-100 text-on-surface transition-colors cursor-pointer"
-                                            title="Unduh SK Pengangkatan"
-                                        >
-                                            <span class="material-symbols-outlined text-[16px]">download</span>
-                                        </a>
-                                        <button
-                                            type="button"
-                                            @click="openUploadModal({ category: 'sk_pengangkatan', title: `SK Pengangkatan - ${employee.nama}` })"
-                                            class="p-1.5 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-100 transition-colors cursor-pointer"
-                                            title="Ganti Berkas SK Pengangkatan"
-                                        >
-                                            <span class="material-symbols-outlined text-[16px]">sync</span>
-                                        </button>
-                                        <button
-                                            type="button"
-                                            @click="deleteDocument(employee.dokumen_sk_pengangkatan)"
-                                            class="p-1.5 rounded-lg text-slate-400 hover:text-error hover:bg-error/10 transition-colors cursor-pointer"
-                                            title="Hapus SK Pengangkatan"
-                                        >
-                                            <span class="material-symbols-outlined text-[16px]">delete</span>
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div v-else class="text-center py-4">
-                                    <p class="text-[11px] text-on-surface-variant mb-2.5">Belum ada SK Pengangkatan</p>
-                                    <button
-                                        type="button"
-                                        @click="openUploadModal({ category: 'sk_pengangkatan', title: `SK Pengangkatan - ${employee.nama}` })"
-                                        class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 text-xs font-bold transition-all cursor-pointer"
-                                    >
-                                        <span class="material-symbols-outlined text-[15px]">upload_file</span>
-                                        <span>Unggah SK</span>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 2. IJAZAH KULIAH / PENDIDIKAN (MULTI DOKUMEN: S1, S2, DLL) -->
-                    <div class="space-y-4">
                         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                             <div>
                                 <h4 class="text-sm font-bold text-on-surface flex items-center gap-2">
-                                    <span class="material-symbols-outlined text-primary text-[20px]">school</span>
-                                    Berkas Ijazah Kuliah & Pendidikan
+                                    <span class="material-symbols-outlined text-primary text-[20px]">badge</span>
+                                    Dokumen Pribadi
                                 </h4>
                                 <p class="text-xs text-on-surface-variant">
-                                    Mendukung upload lebih dari 1 ijazah secara terpisah (S1, S2, program profesi, dll)
+                                    Dokumen identitas dasar pegawai dan riwayat ijazah pendidikan formal maupun tambahan
                                 </p>
                             </div>
-                            <button
-                                type="button"
-                                @click="openUploadModal({ category: 'ijazah', recordType: null, recordId: null, title: `Ijazah Tambahan - ${employee.nama}` })"
-                                class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary text-on-primary hover:bg-primary-container text-xs font-bold transition-all shadow-sm cursor-pointer self-start sm:self-auto"
-                            >
-                                <span class="material-symbols-outlined text-[16px]">add_circle</span>
-                                <span>+ Upload Ijazah Tambahan</span>
-                            </button>
+                            <div class="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    @click="openUploadModal({ category: 'ijazah', recordType: null, recordId: null, title: `Ijazah Tambahan - ${employee.nama}` })"
+                                    class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary text-on-primary hover:bg-primary-container text-xs font-bold transition-all shadow-xs cursor-pointer"
+                                >
+                                    <span class="material-symbols-outlined text-[16px]">add_circle</span>
+                                    <span>+ Upload Ijazah Tambahan</span>
+                                </button>
+                            </div>
                         </div>
 
-                        <!-- Ijazah Formal Terkait Riwayat Pendidikan -->
-                        <div class="space-y-3">
-                            <span class="text-xs font-bold text-on-surface-variant uppercase tracking-wider block">
-                                Ijazah dari Riwayat Pendidikan Formal
-                            </span>
-                            <div v-if="employee.riwayat_pendidikan && employee.riwayat_pendidikan.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                                <div
-                                    v-for="edu in employee.riwayat_pendidikan"
-                                    :key="edu.id"
-                                    class="p-4 rounded-xl border bg-white shadow-2xs transition-all"
-                                    :class="edu.document ? 'border-primary/50' : 'border-outline-variant/60'"
-                                >
-                                    <div class="flex items-start justify-between gap-3 mb-2.5">
-                                        <div>
+                        <div class="overflow-x-auto rounded-xl border border-outline-variant/60 bg-white shadow-2xs">
+                            <table class="w-full text-xs sm:text-sm">
+                                <thead>
+                                    <tr class="bg-white border-b border-outline-variant/60 text-on-surface-variant font-bold text-[10px] sm:text-xs uppercase tracking-wider">
+                                        <th class="px-4 py-3 text-center w-12">No</th>
+                                        <th class="px-4 py-3 text-left">Nama Dokumen</th>
+                                        <th class="px-4 py-3 text-left">Kategori</th>
+                                        <th class="px-4 py-3 text-left">Keterangan / Rincian</th>
+                                        <th class="px-4 py-3 text-left">Berkas Terunggah</th>
+                                        <th class="px-4 py-3 text-center">Status Unggah</th>
+                                        <th class="px-4 py-3 text-center">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-outline-variant/20">
+                                    <tr
+                                        v-for="item in dokumenPribadiList"
+                                        :key="item.id"
+                                        class="hover:bg-slate-50 transition-colors"
+                                    >
+                                        <td class="px-4 py-3 text-center text-on-surface-variant font-mono">{{ item.no }}</td>
+                                        <td class="px-4 py-3 font-semibold text-on-surface">
                                             <div class="flex items-center gap-2">
-                                                <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold bg-primary/10 text-primary">
-                                                    {{ edu.jenjang_pendidikan || '-' }}
-                                                </span>
-                                                <span class="text-xs font-bold text-on-surface">{{ edu.jurusan || 'Tanpa Jurusan' }}</span>
+                                                <span class="material-symbols-outlined text-primary text-[18px] shrink-0">{{ item.icon || 'description' }}</span>
+                                                <span>{{ item.nama }}</span>
                                             </div>
-                                            <p class="text-[11px] text-on-surface-variant mt-1">
-                                                {{ edu.instansi_pendidikan || '-' }} • Lulus {{ edu.tahun_lulus || '-' }}
-                                            </p>
-                                        </div>
-                                        <span v-if="edu.document" class="material-symbols-outlined text-emerald-600 text-[18px]">check_circle</span>
-                                    </div>
-
-                                    <div v-if="edu.document" class="pt-2 border-t border-outline-variant/20 flex items-center justify-between gap-2">
-                                        <div class="text-[11px] text-on-surface-variant truncate max-w-[180px]" :title="edu.document.file_name">
-                                            <span class="font-medium text-on-surface">{{ edu.document.file_name }}</span>
-                                            <span class="text-outline block text-[10px]">{{ edu.document.formatted_file_size }}</span>
-                                        </div>
-                                        <div class="flex items-center gap-1">
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-semibold bg-primary/10 text-primary">
+                                                {{ item.kategori }}
+                                            </span>
+                                        </td>
+                                        <td class="px-4 py-3 text-on-surface-variant">
+                                            {{ item.keterangan || '-' }}
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            <div v-if="item.document">
+                                                <span class="font-medium text-on-surface text-xs block truncate max-w-[180px]" :title="item.document.file_name">
+                                                    {{ item.document.file_name }}
+                                                </span>
+                                                <span class="text-[10px] text-outline block">{{ item.document.formatted_file_size }}</span>
+                                            </div>
+                                            <span v-else class="text-xs text-outline italic">Belum ada berkas</span>
+                                        </td>
+                                        <td class="px-4 py-3 text-center">
+                                            <span
+                                                v-if="item.document"
+                                                class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800"
+                                            >
+                                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                                                Sudah Diunggah
+                                            </span>
+                                            <span
+                                                v-else
+                                                class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800"
+                                            >
+                                                <span class="w-1.5 h-1.5 rounded-full bg-amber-600"></span>
+                                                Belum Diunggah
+                                            </span>
+                                        </td>
+                                        <td class="px-4 py-3 text-center">
+                                            <div v-if="item.document" class="inline-flex items-center gap-1.5 justify-center flex-wrap">
+                                                <button
+                                                    type="button"
+                                                    @click="openPreview(item.document)"
+                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors border border-emerald-200 cursor-pointer"
+                                                    title="Lihat Pratinjau Dokumen"
+                                                >
+                                                    <span class="material-symbols-outlined text-[15px]">visibility</span>
+                                                    <span>Lihat</span>
+                                                </button>
+                                                <a
+                                                    :href="item.document.download_url"
+                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-outline-variant/60 hover:bg-slate-100 text-on-surface transition-colors cursor-pointer"
+                                                    title="Unduh Berkas"
+                                                >
+                                                    <span class="material-symbols-outlined text-[15px]">download</span>
+                                                    <span>Unduh</span>
+                                                </a>
+                                                <button
+                                                    v-if="!item.isAdditional"
+                                                    type="button"
+                                                    @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
+                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-outline-variant/60 hover:bg-slate-100 text-slate-700 transition-colors cursor-pointer"
+                                                    title="Ganti Berkas Dokumen"
+                                                >
+                                                    <span class="material-symbols-outlined text-[15px]">sync</span>
+                                                    <span>Ganti</span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    @click="deleteDocument(item.document)"
+                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                                                    title="Hapus Berkas Dokumen"
+                                                >
+                                                    <span class="material-symbols-outlined text-[15px]">delete</span>
+                                                    <span>Hapus</span>
+                                                </button>
+                                            </div>
                                             <button
+                                                v-else
                                                 type="button"
-                                                @click="openPreview(edu.document)"
-                                                class="px-2 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors border border-emerald-200 cursor-pointer"
-                                                title="Lihat Ijazah"
+                                                @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
+                                                class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"
+                                                title="Upload Dokumen"
                                             >
-                                                Lihat
+                                                <span class="material-symbols-outlined text-[15px]">upload_file</span>
+                                                <span>Unggah</span>
                                             </button>
-                                            <a
-                                                :href="edu.document.download_url"
-                                                class="p-1 rounded-lg bg-white border border-outline-variant/60 hover:bg-slate-100 text-on-surface transition-colors cursor-pointer"
-                                                title="Unduh Ijazah"
-                                            >
-                                                <span class="material-symbols-outlined text-[15px]">download</span>
-                                            </a>
-                                            <button
-                                                type="button"
-                                                @click="openUploadModal({ category: 'ijazah', recordType: 'education', recordId: edu.id, title: `Ijazah ${edu.jenjang_pendidikan} - ${edu.jurusan || ''}` })"
-                                                class="p-1 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-100 transition-colors cursor-pointer"
-                                                title="Ganti Berkas Ijazah"
-                                            >
-                                                <span class="material-symbols-outlined text-[15px]">sync</span>
-                                            </button>
-                                            <button
-                                                type="button"
-                                                @click="deleteDocument(edu.document)"
-                                                class="p-1 rounded-lg text-slate-400 hover:text-error hover:bg-error/10 transition-colors cursor-pointer"
-                                                title="Hapus Berkas Ijazah"
-                                            >
-                                                <span class="material-symbols-outlined text-[15px]">delete</span>
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <div v-else class="pt-2 border-t border-outline-variant/20 flex items-center justify-between">
-                                        <span class="text-[11px] text-on-surface-variant italic">Belum ada berkas ijazah</span>
-                                        <button
-                                            type="button"
-                                            @click="openUploadModal({ category: 'ijazah', recordType: 'education', recordId: edu.id, title: `Ijazah ${edu.jenjang_pendidikan} - ${edu.jurusan || ''}` })"
-                                            class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-primary/10 text-primary hover:bg-primary/20 transition-all cursor-pointer"
-                                        >
-                                            <span class="material-symbols-outlined text-[14px]">upload_file</span>
-                                            <span>Upload</span>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div v-else class="p-6 text-center border-2 border-dashed border-outline-variant/30 rounded-xl">
-                                <p class="text-xs text-on-surface-variant">Belum ada data riwayat pendidikan formal.</p>
-                            </div>
-                        </div>
-
-                        <!-- Ijazah Tambahan Lainnya (Opsional S2, Sertifikat Gelar, dll) -->
-                        <div v-if="employee.dokumen_ijazah_tambahan && employee.dokumen_ijazah_tambahan.length > 0" class="space-y-3 pt-2">
-                            <span class="text-xs font-bold text-on-surface-variant uppercase tracking-wider block">
-                                Ijazah Tambahan Lainnya ({{ employee.dokumen_ijazah_tambahan.length }})
-                            </span>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                                <div
-                                    v-for="doc in employee.dokumen_ijazah_tambahan"
-                                    :key="doc.id"
-                                    class="p-4 rounded-xl border border-outline-variant/60 bg-white shadow-2xs transition-all"
-                                >
-                                    <div class="flex items-start justify-between gap-2 mb-2">
-                                        <div>
-                                            <h5 class="text-xs font-bold text-on-surface">{{ doc.title }}</h5>
-                                            <p class="text-[11px] text-on-surface-variant font-mono mt-0.5">{{ doc.file_name }}</p>
-                                        </div>
-                                        <span class="text-[10px] font-semibold text-outline">{{ doc.formatted_file_size }}</span>
-                                    </div>
-                                    <div class="pt-2 border-t border-outline-variant/20 flex items-center justify-end gap-1.5">
-                                        <button
-                                            type="button"
-                                            @click="openPreview(doc)"
-                                            class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors border border-emerald-200 cursor-pointer"
-                                        >
-                                            Lihat
-                                        </button>
-                                        <a
-                                            :href="doc.download_url"
-                                            class="p-1 rounded-lg bg-white border border-outline-variant/60 hover:bg-slate-100 text-on-surface transition-colors cursor-pointer"
-                                            title="Unduh"
-                                        >
-                                            <span class="material-symbols-outlined text-[15px]">download</span>
-                                        </a>
-                                        <button
-                                            type="button"
-                                            @click="deleteDocument(doc)"
-                                            class="p-1 rounded-lg text-slate-400 hover:text-error hover:bg-error/10 transition-colors cursor-pointer"
-                                            title="Hapus"
-                                        >
-                                            <span class="material-symbols-outlined text-[15px]">delete</span>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
 
-                    <!-- 3. SK JENJANG KEPEGAWAIAN (TERHUBUNG KE RIWAYAT JENJANG) -->
+                    <!-- 2. TABEL DOKUMEN KEPEGAWAIAN -->
                     <div class="space-y-3">
-                        <div class="flex items-center justify-between">
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                             <div>
                                 <h4 class="text-sm font-bold text-on-surface flex items-center gap-2">
-                                    <span class="material-symbols-outlined text-primary text-[20px]">military_tech</span>
-                                    SK Jenjang Kepegawaian (Terkoneksi Riwayat Kepegawaian)
+                                    <span class="material-symbols-outlined text-primary text-[20px]">work</span>
+                                    Dokumen Kepegawaian & Jabatan
                                 </h4>
                                 <p class="text-xs text-on-surface-variant">
-                                    Daftar otomatis diambil dari Tabel Riwayat Kepegawaian (GTY, GTT, PTY, PTT). Berkas otomatis tersinkron saat riwayat diubah.
+                                    Daftar dokumen legalitas kepegawaian (SK Pengangkatan Awal), riwayat jenjang kepegawaian, dan riwayat penugasan/jabatan
                                 </p>
                             </div>
-                            <span class="text-xs text-outline font-medium">
-                                {{ employee.riwayat_kepegawaian?.length || 0 }} Jenjang
-                            </span>
                         </div>
 
-                        <div v-if="employee.riwayat_kepegawaian && employee.riwayat_kepegawaian.length > 0">
-                            <div class="overflow-x-auto rounded-xl border border-outline-variant/60 bg-white shadow-2xs">
-                                <table class="w-full text-xs sm:text-sm">
-                                    <thead>
-                                        <tr class="bg-white border-b border-outline-variant/60 text-on-surface-variant font-bold text-[10px] sm:text-xs uppercase tracking-wider">
-                                            <th class="px-4 py-3 text-left">No</th>
-                                            <th class="px-4 py-3 text-left">Jenjang</th>
-                                            <th class="px-4 py-3 text-left">TMT Kenaikan</th>
-                                            <th class="px-4 py-3 text-left">TST Kenaikan</th>
-                                            <th class="px-4 py-3 text-left">Status Berkas</th>
-                                            <th class="px-4 py-3 text-center">Aksi Dokumen</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-outline-variant/20">
-                                        <tr
-                                            v-for="(record, idx) in employee.riwayat_kepegawaian"
-                                            :key="record.id || idx"
-                                            class="hover:bg-slate-50 transition-colors"
-                                        >
-                                            <td class="px-4 py-3 text-on-surface-variant font-mono">{{ idx + 1 }}</td>
-                                            <td class="px-4 py-3 font-semibold text-on-surface">
-                                                <span :class="['inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold', getJenjangColor(record.jenjang_kepegawaian)]">
-                                                    {{ record.jenjang_kepegawaian || '-' }}
+                        <div class="overflow-x-auto rounded-xl border border-outline-variant/60 bg-white shadow-2xs">
+                            <table class="w-full text-xs sm:text-sm">
+                                <thead>
+                                    <tr class="bg-white border-b border-outline-variant/60 text-on-surface-variant font-bold text-[10px] sm:text-xs uppercase tracking-wider">
+                                        <th class="px-4 py-3 text-center w-12">No</th>
+                                        <th class="px-4 py-3 text-left">Nama Dokumen</th>
+                                        <th class="px-4 py-3 text-left">Kategori</th>
+                                        <th class="px-4 py-3 text-left">Keterangan / Rincian</th>
+                                        <th class="px-4 py-3 text-left">Berkas Terunggah</th>
+                                        <th class="px-4 py-3 text-center">Status Unggah</th>
+                                        <th class="px-4 py-3 text-center">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-outline-variant/20">
+                                    <tr
+                                        v-for="item in dokumenKepegawaianList"
+                                        :key="item.id"
+                                        class="hover:bg-slate-50 transition-colors"
+                                    >
+                                        <td class="px-4 py-3 text-center text-on-surface-variant font-mono">{{ item.no }}</td>
+                                        <td class="px-4 py-3 font-semibold text-on-surface">
+                                            <div class="flex items-center gap-2">
+                                                <span class="material-symbols-outlined text-primary text-[18px] shrink-0">{{ item.icon || 'description' }}</span>
+                                                <span>{{ item.nama }}</span>
+                                            </div>
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-semibold bg-primary/10 text-primary">
+                                                {{ item.kategori }}
+                                            </span>
+                                        </td>
+                                        <td class="px-4 py-3 text-on-surface-variant">
+                                            {{ item.keterangan || '-' }}
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            <div v-if="item.document">
+                                                <span class="font-medium text-on-surface text-xs block truncate max-w-[180px]" :title="item.document.file_name">
+                                                    {{ item.document.file_name }}
                                                 </span>
-                                            </td>
-                                            <td class="px-4 py-3 text-on-surface">
-                                                {{ record.formatted_tmt_kenaikan_jenjang || formatTanggalIndo(record.tmt_kenaikan_jenjang) || '-' }}
-                                            </td>
-                                            <td class="px-4 py-3 text-on-surface">
-                                                {{ record.formatted_tst_kenaikan_jenjang || record.formatted_tst_jenjang || formatTanggalIndo(record.tst_kenaikan_jenjang || record.tst_jenjang) || 'Sekarang / Tetap' }}
-                                            </td>
-                                            <td class="px-4 py-3">
-                                                <span v-if="record.document" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800">
-                                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
-                                                    Terunggah ({{ record.document.formatted_file_size }})
-                                                </span>
-                                                <span v-else class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800">
-                                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-600"></span>
-                                                    Belum Ada Berkas
-                                                </span>
-                                            </td>
-                                            <td class="px-4 py-3 text-center">
-                                                <div v-if="record.document" class="inline-flex items-center gap-1.5">
-                                                    <button
-                                                        type="button"
-                                                        @click="openPreview(record.document)"
-                                                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors border border-emerald-200 cursor-pointer"
-                                                        title="Lihat / Preview SK Jenjang"
-                                                    >
-                                                        <span class="material-symbols-outlined text-[15px]">visibility</span>
-                                                        <span>Lihat</span>
-                                                    </button>
-                                                    <a
-                                                        :href="record.document.download_url"
-                                                        class="p-1 rounded-lg bg-white border border-outline-variant/60 hover:bg-slate-100 text-on-surface transition-colors cursor-pointer"
-                                                        title="Unduh SK"
-                                                    >
-                                                        <span class="material-symbols-outlined text-[15px]">download</span>
-                                                    </a>
-                                                    <button
-                                                        type="button"
-                                                        @click="openUploadModal({ category: 'sk_jenjang', recordType: 'record', recordId: record.id, title: `SK Jenjang ${record.jenjang_kepegawaian}` })"
-                                                        class="p-1 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-100 transition-colors cursor-pointer"
-                                                        title="Ganti Berkas SK"
-                                                    >
-                                                        <span class="material-symbols-outlined text-[15px]">sync</span>
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        @click="deleteDocument(record.document)"
-                                                        class="p-1 rounded-lg text-slate-400 hover:text-error hover:bg-error/10 transition-colors cursor-pointer"
-                                                        title="Hapus SK"
-                                                    >
-                                                        <span class="material-symbols-outlined text-[15px]">delete</span>
-                                                    </button>
-                                                </div>
+                                                <span class="text-[10px] text-outline block">{{ item.document.formatted_file_size }}</span>
+                                            </div>
+                                            <span v-else class="text-xs text-outline italic">Belum ada berkas</span>
+                                        </td>
+                                        <td class="px-4 py-3 text-center">
+                                            <span
+                                                v-if="item.document"
+                                                class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800"
+                                            >
+                                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                                                Sudah Diunggah
+                                            </span>
+                                            <span
+                                                v-else
+                                                class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800"
+                                            >
+                                                <span class="w-1.5 h-1.5 rounded-full bg-amber-600"></span>
+                                                Belum Diunggah
+                                            </span>
+                                        </td>
+                                        <td class="px-4 py-3 text-center">
+                                            <div v-if="item.document" class="inline-flex items-center gap-1.5 justify-center flex-wrap">
                                                 <button
-                                                    v-else
                                                     type="button"
-                                                    @click="openUploadModal({ category: 'sk_jenjang', recordType: 'record', recordId: record.id, title: `SK Jenjang ${record.jenjang_kepegawaian}` })"
-                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"
-                                                    title="Upload SK Jenjang"
+                                                    @click="openPreview(item.document)"
+                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors border border-emerald-200 cursor-pointer"
+                                                    title="Lihat Pratinjau Dokumen"
                                                 >
-                                                    <span class="material-symbols-outlined text-[15px]">upload_file</span>
-                                                    <span>Upload SK</span>
+                                                    <span class="material-symbols-outlined text-[15px]">visibility</span>
+                                                    <span>Lihat</span>
                                                 </button>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        <div v-else class="py-8 text-center border-2 border-dashed border-outline-variant/30 rounded-2xl">
-                            <span class="material-symbols-outlined text-3xl text-outline/60 block mb-1">work_history</span>
-                            <p class="text-xs text-on-surface-variant">Belum ada riwayat jenjang kepegawaian. Tambahkan di Tab Kepegawaian.</p>
-                        </div>
-                    </div>
-
-                    <!-- 4. SK PENUGASAN (TERHUBUNG KE RIWAYAT JABATAN) -->
-                    <div class="space-y-3">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <h4 class="text-sm font-bold text-on-surface flex items-center gap-2">
-                                    <span class="material-symbols-outlined text-primary text-[20px]">assignment_turned_in</span>
-                                    SK Penugasan / Jabatan (Terkoneksi Riwayat Jabatan)
-                                </h4>
-                                <p class="text-xs text-on-surface-variant">
-                                    Daftar otomatis diambil dari Tabel Riwayat Jabatan (Sheet 4). Berkas otomatis tersinkron saat riwayat diubah.
-                                </p>
-                            </div>
-                            <span class="text-xs text-outline font-medium">
-                                {{ employee.riwayat_jabatan?.length || 0 }} Jabatan
-                            </span>
-                        </div>
-
-                        <div v-if="employee.riwayat_jabatan && employee.riwayat_jabatan.length > 0">
-                            <div class="overflow-x-auto rounded-xl border border-outline-variant/60 bg-white shadow-2xs">
-                                <table class="w-full text-xs sm:text-sm">
-                                    <thead>
-                                        <tr class="bg-white border-b border-outline-variant/60 text-on-surface-variant font-bold text-[10px] sm:text-xs uppercase tracking-wider">
-                                            <th class="px-4 py-3 text-left">No</th>
-                                            <th class="px-4 py-3 text-left">Jabatan</th>
-                                            <th class="px-4 py-3 text-left">Unit Kerja</th>
-                                            <th class="px-4 py-3 text-left">TMT Jabatan</th>
-                                            <th class="px-4 py-3 text-left">TST Jabatan</th>
-                                            <th class="px-4 py-3 text-left">Status Berkas</th>
-                                            <th class="px-4 py-3 text-center">Aksi Dokumen</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-outline-variant/20">
-                                        <tr
-                                            v-for="(pos, idx) in employee.riwayat_jabatan"
-                                            :key="pos.id || idx"
-                                            class="hover:bg-slate-50 transition-colors"
-                                        >
-                                            <td class="px-4 py-3 text-on-surface-variant font-mono">{{ idx + 1 }}</td>
-                                            <td class="px-4 py-3 font-bold text-on-surface">{{ pos.jabatan || '-' }}</td>
-                                            <td class="px-4 py-3">
-                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-semibold bg-primary/10 text-primary">
-                                                    {{ pos.unit_kerja || '-' }}
-                                                </span>
-                                            </td>
-                                            <td class="px-4 py-3 text-on-surface">
-                                                {{ pos.formatted_tmt_jabatan || formatTanggalIndo(pos.tmt_jabatan) || '-' }}
-                                            </td>
-                                            <td class="px-4 py-3 text-on-surface">
-                                                {{ pos.formatted_tst_jabatan || formatTanggalIndo(pos.tst_jabatan) || 'Sekarang / Aktif' }}
-                                            </td>
-                                            <td class="px-4 py-3">
-                                                <span v-if="pos.document" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800">
-                                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
-                                                    Terunggah ({{ pos.document.formatted_file_size }})
-                                                </span>
-                                                <span v-else class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800">
-                                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-600"></span>
-                                                    Belum Ada Berkas
-                                                </span>
-                                            </td>
-                                            <td class="px-4 py-3 text-center">
-                                                <div v-if="pos.document" class="inline-flex items-center gap-1.5">
-                                                    <button
-                                                        type="button"
-                                                        @click="openPreview(pos.document)"
-                                                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors border border-emerald-200 cursor-pointer"
-                                                        title="Lihat / Preview SK Penugasan"
-                                                    >
-                                                        <span class="material-symbols-outlined text-[15px]">visibility</span>
-                                                        <span>Lihat</span>
-                                                    </button>
-                                                    <a
-                                                        :href="pos.document.download_url"
-                                                        class="p-1 rounded-lg bg-white border border-outline-variant/60 hover:bg-slate-100 text-on-surface transition-colors cursor-pointer"
-                                                        title="Unduh SK"
-                                                    >
-                                                        <span class="material-symbols-outlined text-[15px]">download</span>
-                                                    </a>
-                                                    <button
-                                                        type="button"
-                                                        @click="openUploadModal({ category: 'sk_penugasan', recordType: 'position', recordId: pos.id, title: `SK Penugasan ${pos.jabatan} (${pos.unit_kerja})` })"
-                                                        class="p-1 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-100 transition-colors cursor-pointer"
-                                                        title="Ganti Berkas SK"
-                                                    >
-                                                        <span class="material-symbols-outlined text-[15px]">sync</span>
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        @click="deleteDocument(pos.document)"
-                                                        class="p-1 rounded-lg text-slate-400 hover:text-error hover:bg-error/10 transition-colors cursor-pointer"
-                                                        title="Hapus SK"
-                                                    >
-                                                        <span class="material-symbols-outlined text-[15px]">delete</span>
-                                                    </button>
-                                                </div>
+                                                <a
+                                                    :href="item.document.download_url"
+                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-outline-variant/60 hover:bg-slate-100 text-on-surface transition-colors cursor-pointer"
+                                                    title="Unduh Berkas"
+                                                >
+                                                    <span class="material-symbols-outlined text-[15px]">download</span>
+                                                    <span>Unduh</span>
+                                                </a>
                                                 <button
-                                                    v-else
                                                     type="button"
-                                                    @click="openUploadModal({ category: 'sk_penugasan', recordType: 'position', recordId: pos.id, title: `SK Penugasan ${pos.jabatan} (${pos.unit_kerja})` })"
-                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"
-                                                    title="Upload SK Penugasan"
+                                                    @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
+                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-outline-variant/60 hover:bg-slate-100 text-slate-700 transition-colors cursor-pointer"
+                                                    title="Ganti Berkas Dokumen"
                                                 >
-                                                    <span class="material-symbols-outlined text-[15px]">upload_file</span>
-                                                    <span>Upload SK</span>
+                                                    <span class="material-symbols-outlined text-[15px]">sync</span>
+                                                    <span>Ganti</span>
                                                 </button>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        <div v-else class="py-8 text-center border-2 border-dashed border-outline-variant/30 rounded-2xl">
-                            <span class="material-symbols-outlined text-3xl text-outline/60 block mb-1">assignment_late</span>
-                            <p class="text-xs text-on-surface-variant">Belum ada riwayat jabatan / penugasan. Tambahkan di Tab Penugasan.</p>
+                                                <button
+                                                    type="button"
+                                                    @click="deleteDocument(item.document)"
+                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                                                    title="Hapus Berkas Dokumen"
+                                                >
+                                                    <span class="material-symbols-outlined text-[15px]">delete</span>
+                                                    <span>Hapus</span>
+                                                </button>
+                                            </div>
+                                            <button
+                                                v-else
+                                                type="button"
+                                                @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
+                                                class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"
+                                                title="Upload Dokumen"
+                                            >
+                                                <span class="material-symbols-outlined text-[15px]">upload_file</span>
+                                                <span>Unggah</span>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
