@@ -655,7 +655,7 @@ function deleteDocument(doc) {
 </script>
 
 <template>
-    <div class="flex-1 overflow-y-auto p-4 md:p-margin-desktop bg-white" :class="{ 'pb-24': isEditing }">
+    <div class="flex-1 overflow-y-auto p-4 md:p-margin-desktop bg-white">
         <Head :title="`${isEditing ? 'Edit' : 'Detail'} Pegawai - ${employee.nama}`" />
 
         <!-- Back Button -->
@@ -748,17 +748,43 @@ function deleteDocument(doc) {
                     </div>
                 </div>
 
-                <!-- Action Button in Header -->
-                <div v-if="!isEditing" class="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                <!-- Action Buttons in Header -->
+                <div class="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                    <!-- View Mode: Edit Data Button (Kuning Sesuai Tema Web) -->
                     <button
+                        v-if="!isEditing"
                         type="button"
                         @click="startEdit"
-                        class="inline-flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl bg-primary hover:bg-primary-container text-on-primary font-semibold text-xs sm:text-sm transition-all shadow-xs hover:shadow-md cursor-pointer"
+                        class="inline-flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-emerald-950 font-bold text-xs sm:text-sm transition-all shadow-xs hover:shadow-md cursor-pointer border border-amber-300"
                         title="Edit data pegawai ini langsung di tab"
                     >
                         <span class="material-symbols-outlined text-[18px]">edit_square</span>
-                        <span>Edit Data Pegawai</span>
+                        <span>Edit Data</span>
                     </button>
+
+                    <!-- Edit Mode: Batal & Simpan Perubahan Buttons (Hijau Tema Web) -->
+                    <div v-else class="flex items-center gap-2">
+                        <button
+                            type="button"
+                            @click="cancelEdit"
+                            class="px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-on-surface-variant hover:text-on-surface hover:bg-slate-100 border border-outline-variant/60 transition-all cursor-pointer"
+                            :disabled="form.processing"
+                            title="Batalkan perubahan"
+                        >
+                            Batal
+                        </button>
+                        <button
+                            type="button"
+                            @click="saveChanges"
+                            class="inline-flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl bg-primary hover:bg-primary-container text-on-primary font-bold text-xs sm:text-sm transition-all shadow-xs hover:shadow-md active:scale-95 cursor-pointer disabled:opacity-60"
+                            :disabled="form.processing"
+                            title="Simpan semua perubahan data pegawai"
+                        >
+                            <span v-if="form.processing" class="material-symbols-outlined text-[18px] animate-spin">sync</span>
+                            <span v-else class="material-symbols-outlined text-[18px]">save</span>
+                            <span>{{ form.processing ? 'Menyimpan...' : 'Simpan Perubahan' }}</span>
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -789,7 +815,7 @@ function deleteDocument(doc) {
                     <div>
                         <h4 class="font-bold text-sm">NIK Belum Dimasukkan</h4>
                         <p class="text-xs mt-1 leading-relaxed text-error/90">
-                            Pegawai ini belum memiliki data NIK. Relasi data (Riwayat Pendidikan dan Catatan Kepegawaian) sangat bergantung pada NIK sebagai pengenal unik. Klik tombol <strong>Edit Data Pegawai</strong> untuk melengkapi NIK.
+                            Pegawai ini belum memiliki data NIK. Relasi data (Riwayat Pendidikan dan Catatan Kepegawaian) sangat bergantung pada NIK sebagai pengenal unik. Klik tombol <strong>Edit Data</strong> untuk melengkapi NIK.
                         </p>
                     </div>
                 </div>
@@ -2723,41 +2749,6 @@ function deleteDocument(doc) {
             </div>
         </div>
 
-        <!-- Floating Action Button when in Edit Mode -->
-        <Transition
-            enter-active-class="transition duration-300 ease-out"
-            enter-from-class="opacity-0 translate-y-8 scale-95"
-            enter-to-class="opacity-100 translate-y-0 scale-100"
-            leave-active-class="transition duration-200 ease-in"
-            leave-from-class="opacity-100 translate-y-0 scale-100"
-            leave-to-class="opacity-0 translate-y-8 scale-95"
-        >
-            <div
-                v-if="isEditing"
-                class="fixed bottom-6 right-6 sm:bottom-8 sm:right-8 z-50 flex items-center gap-2 bg-white/95 backdrop-blur-md p-2 sm:p-2.5 rounded-2xl border-2 border-outline-variant/80 shadow-[0_12px_36px_rgba(0,0,0,0.18)] ring-1 ring-black/5"
-            >
-                <button
-                    type="button"
-                    @click="cancelEdit"
-                    class="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold text-on-surface-variant hover:text-on-surface hover:bg-slate-100 border border-outline-variant/60 transition-all cursor-pointer"
-                    :disabled="form.processing"
-                    title="Batalkan perubahan"
-                >
-                    Batal
-                </button>
-                <button
-                    type="button"
-                    @click="saveChanges"
-                    class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-container text-on-primary font-bold text-xs sm:text-sm transition-all shadow-md hover:shadow-lg active:scale-95 cursor-pointer disabled:opacity-60"
-                    :disabled="form.processing"
-                    title="Simpan semua perubahan data pegawai"
-                >
-                    <span v-if="form.processing" class="material-symbols-outlined text-[18px] animate-spin">sync</span>
-                    <span v-else class="material-symbols-outlined text-[18px]">save</span>
-                    <span>{{ form.processing ? 'Menyimpan...' : 'Simpan Perubahan' }}</span>
-                </button>
-            </div>
-        </Transition>
 
         <!-- MODAL UPLOAD DOKUMEN -->
         <Transition
