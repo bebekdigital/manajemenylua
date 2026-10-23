@@ -724,10 +724,10 @@ function deleteDocument(doc) {
                             {{ employee.nama ? employee.nama.charAt(0) : '?' }}
                         </span>
                     </div>
-                    <div>
-                        <h3 class="text-lg sm:text-xl font-bold text-on-surface">{{ employee.nama_lengkap_gelar || employee.nama }}</h3>
+                    <div class="space-y-2">
+                        <h3 class="text-lg sm:text-xl font-bold text-on-surface leading-snug">{{ employee.nama_lengkap_gelar || employee.nama }}</h3>
                         <p class="text-xs sm:text-sm text-on-surface-variant font-medium">NIPY: {{ employee.nipy || '-' }}</p>
-                        <div class="flex flex-wrap items-center gap-2 mt-2">
+                        <div class="flex flex-wrap items-center gap-2 pt-0.5">
                             <span
                                 v-if="employee.jenjang_kepegawaian"
                                 :class="['inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-semibold border border-outline-variant/40 shadow-2xs', getJenjangColor(employee.jenjang_kepegawaian)]"
@@ -742,7 +742,7 @@ function deleteDocument(doc) {
                                 {{ employee.status_keaktifan }}
                             </span>
                         </div>
-                        <p v-if="employee.jabatan" class="text-xs text-on-surface-variant mt-1">
+                        <p v-if="employee.jabatan" class="text-xs sm:text-sm text-on-surface-variant font-medium pt-0.5">
                             {{ employee.jabatan }}{{ employee.unit_kerja ? ` · ${employee.unit_kerja}` : '' }}
                         </p>
                     </div>
@@ -1847,7 +1847,7 @@ function deleteDocument(doc) {
                                                 </span>
                                             </td>
                                             <td class="border border-outline-variant/60 px-4 py-3 text-center">
-                                                <div v-if="record.document" class="inline-flex items-center gap-1.5 justify-center">
+                                                <div v-if="record.document" class="inline-flex items-center justify-center">
                                                     <button
                                                         type="button"
                                                         @click="openPreview(record.document)"
@@ -1857,25 +1857,8 @@ function deleteDocument(doc) {
                                                         <span class="material-symbols-outlined text-[15px]">visibility</span>
                                                         <span>Lihat SK</span>
                                                     </button>
-                                                    <button
-                                                        type="button"
-                                                        @click="openUploadModal({ category: 'sk_jenjang', recordType: 'record', recordId: record.id, title: `SK Jenjang ${record.jenjang_kepegawaian}` })"
-                                                        class="p-1 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-100 transition-colors cursor-pointer"
-                                                        title="Ganti Berkas SK"
-                                                    >
-                                                        <span class="material-symbols-outlined text-[16px]">sync</span>
-                                                    </button>
                                                 </div>
-                                                <button
-                                                    v-else
-                                                    type="button"
-                                                    @click="openUploadModal({ category: 'sk_jenjang', recordType: 'record', recordId: record.id, title: `SK Jenjang ${record.jenjang_kepegawaian}` })"
-                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"
-                                                    title="Upload SK Jenjang"
-                                                >
-                                                    <span class="material-symbols-outlined text-[15px]">upload_file</span>
-                                                    <span>Upload SK</span>
-                                                </button>
+                                                <span v-else class="text-outline text-xs">-</span>
                                             </td>
                                         </tr>
                                     </tbody>
@@ -2017,7 +2000,7 @@ function deleteDocument(doc) {
                                                 </span>
                                             </td>
                                             <td class="border border-outline-variant/60 px-4 py-3 text-center">
-                                                <div v-if="pos.document" class="inline-flex items-center gap-1.5 justify-center">
+                                                <div v-if="pos.document" class="inline-flex items-center justify-center">
                                                     <button
                                                         type="button"
                                                         @click="openPreview(pos.document)"
@@ -2027,25 +2010,8 @@ function deleteDocument(doc) {
                                                         <span class="material-symbols-outlined text-[15px]">visibility</span>
                                                         <span>Lihat SK</span>
                                                     </button>
-                                                    <button
-                                                        type="button"
-                                                        @click="openUploadModal({ category: 'sk_penugasan', recordType: 'position', recordId: pos.id, title: `SK Penugasan ${pos.jabatan} (${pos.unit_kerja})` })"
-                                                        class="p-1 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-100 transition-colors cursor-pointer"
-                                                        title="Ganti Berkas SK"
-                                                    >
-                                                        <span class="material-symbols-outlined text-[16px]">sync</span>
-                                                    </button>
                                                 </div>
-                                                <button
-                                                    v-else
-                                                    type="button"
-                                                    @click="openUploadModal({ category: 'sk_penugasan', recordType: 'position', recordId: pos.id, title: `SK Penugasan ${pos.jabatan} (${pos.unit_kerja})` })"
-                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"
-                                                    title="Upload SK Penugasan"
-                                                >
-                                                    <span class="material-symbols-outlined text-[15px]">upload_file</span>
-                                                    <span>Upload SK</span>
-                                                </button>
+                                                <span v-else class="text-outline text-xs">-</span>
                                             </td>
                                         </tr>
                                     </tbody>
@@ -2105,7 +2071,7 @@ function deleteDocument(doc) {
                                             <td class="border border-outline-variant/60 px-4 py-3 text-center font-semibold text-on-surface">{{ edu.tahun_lulus || '-' }}</td>
                                             <td class="border border-outline-variant/60 px-4 py-3 text-on-surface">{{ edu.pembiayaan || '-' }}</td>
                                             <td class="border border-outline-variant/60 px-4 py-3 text-center">
-                                                <div v-if="edu.document" class="inline-flex items-center gap-1.5 justify-center">
+                                                <div v-if="edu.document" class="inline-flex items-center justify-center">
                                                     <button
                                                         type="button"
                                                         @click="openPreview(edu.document)"
@@ -2115,25 +2081,8 @@ function deleteDocument(doc) {
                                                         <span class="material-symbols-outlined text-[15px]">visibility</span>
                                                         <span>Lihat Ijazah</span>
                                                     </button>
-                                                    <button
-                                                        type="button"
-                                                        @click="openUploadModal({ category: 'ijazah', recordType: 'education', recordId: edu.id, title: `Ijazah ${edu.jenjang_pendidikan} - ${edu.jurusan || ''}` })"
-                                                        class="p-1 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-100 transition-colors cursor-pointer"
-                                                        title="Ganti Berkas Ijazah"
-                                                    >
-                                                        <span class="material-symbols-outlined text-[16px]">sync</span>
-                                                    </button>
                                                 </div>
-                                                <button
-                                                    v-else
-                                                    type="button"
-                                                    @click="openUploadModal({ category: 'ijazah', recordType: 'education', recordId: edu.id, title: `Ijazah ${edu.jenjang_pendidikan} - ${edu.jurusan || ''}` })"
-                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"
-                                                    title="Upload Ijazah"
-                                                >
-                                                    <span class="material-symbols-outlined text-[15px]">upload_file</span>
-                                                    <span>Upload Ijazah</span>
-                                                </button>
+                                                <span v-else class="text-outline text-xs">-</span>
                                             </td>
                                         </tr>
                                     </tbody>
