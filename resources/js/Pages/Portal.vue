@@ -367,26 +367,30 @@ function formatDate(dateStr) {
 
             <!-- Table -->
             <div class="overflow-x-auto">
-                <table class="w-full text-sm">
+                <table class="w-full text-xs sm:text-sm border-collapse border border-outline-variant/60">
                     <thead>
-                        <tr class="bg-surface-container-low/50">
-                            <th class="text-left px-5 py-3 font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Tahun Ajaran</th>
-                            <th class="text-left px-5 py-3 font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Semester</th>
-                            <th class="text-left px-5 py-3 font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Periode</th>
-                            <th class="text-center px-5 py-3 font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Kelas</th>
-                            <th class="text-center px-5 py-3 font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Aksi</th>
+                        <tr class="bg-surface-container-low/70 text-on-surface-variant font-bold text-[10px] sm:text-xs uppercase tracking-wider">
+                            <th class="border border-outline-variant/60 px-4 py-3 text-center w-12">No</th>
+                            <th class="border border-outline-variant/60 px-5 py-3 text-left">Tahun Ajaran</th>
+                            <th class="border border-outline-variant/60 px-4 py-3 text-center w-32">Semester</th>
+                            <th class="border border-outline-variant/60 px-5 py-3 text-left">Periode</th>
+                            <th class="border border-outline-variant/60 px-4 py-3 text-center w-24">Kelas</th>
+                            <th class="border border-outline-variant/60 px-4 py-3 text-center w-28">Aksi</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-outline-variant/20">
+                    <tbody>
                         <tr
-                            v-for="year in academicYears"
+                            v-for="(year, index) in academicYears"
                             :key="year.id"
                             class="hover:bg-surface-container-low/40 transition-colors"
                         >
-                            <td class="px-5 py-3.5">
-                                <span class="font-semibold text-on-surface">{{ year.name }}</span>
+                            <td class="border border-outline-variant/60 px-4 py-3.5 text-center text-on-surface-variant font-mono text-xs">
+                                {{ index + 1 }}
                             </td>
-                            <td class="px-5 py-3.5">
+                            <td class="border border-outline-variant/60 px-5 py-3.5">
+                                <span class="font-bold text-on-surface">{{ year.name }}</span>
+                            </td>
+                            <td class="border border-outline-variant/60 px-4 py-3.5 text-center">
                                 <span
                                     class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold"
                                     :class="year.semester === 'Ganjil'
@@ -396,15 +400,15 @@ function formatDate(dateStr) {
                                     {{ year.semester }}
                                 </span>
                             </td>
-                            <td class="px-5 py-3.5 text-on-surface-variant text-xs">
+                            <td class="border border-outline-variant/60 px-5 py-3.5 text-on-surface-variant text-xs">
                                 {{ formatDate(year.start_date) }} — {{ formatDate(year.end_date) }}
                             </td>
 
-                            <td class="px-5 py-3.5 text-center">
+                            <td class="border border-outline-variant/60 px-4 py-3.5 text-center">
                                 <span class="text-on-surface font-semibold">{{ year.classrooms_count }}</span>
                             </td>
 
-                            <td class="px-5 py-3.5 text-center">
+                            <td class="border border-outline-variant/60 px-4 py-3.5 text-center">
                                 <div class="flex items-center justify-center gap-1">
                                     <button
                                         type="button"
@@ -431,25 +435,25 @@ function formatDate(dateStr) {
                                 </div>
                             </td>
                         </tr>
+                        <tr v-if="academicYears.length === 0">
+                            <td colspan="6" class="border border-outline-variant/60 px-5 py-12 text-center">
+                                <span class="material-symbols-outlined text-4xl text-outline/40 mb-2">calendar_month</span>
+                                <h4 class="text-sm font-semibold text-on-surface mb-1">Belum Ada Tahun Ajaran</h4>
+                                <p class="text-xs text-on-surface-variant mb-4">
+                                    Buat Tahun Ajaran pertama untuk mulai mengelola data siswa.
+                                </p>
+                                <button
+                                    type="button"
+                                    @click="openCreateModal"
+                                    class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary hover:bg-primary-container text-on-primary font-semibold text-xs transition-all shadow-xs cursor-pointer"
+                                >
+                                    <span class="material-symbols-outlined text-[16px]">add</span>
+                                    <span>Tambah Tahun Ajaran Pertama</span>
+                                </button>
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
-            </div>
-
-            <!-- Empty State -->
-            <div v-if="academicYears.length === 0" class="px-5 py-16 text-center">
-                <span class="material-symbols-outlined text-5xl text-outline/40 mb-3">calendar_month</span>
-                <h4 class="text-base font-semibold text-on-surface mb-1">Belum Ada Tahun Ajaran</h4>
-                <p class="text-sm text-on-surface-variant mb-6">
-                    Buat Tahun Ajaran pertama untuk mulai mengelola data siswa.
-                </p>
-                <button
-                    type="button"
-                    @click="openCreateModal"
-                    class="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-container text-on-primary font-semibold text-sm transition-all shadow-xs hover:shadow-md cursor-pointer"
-                >
-                    <span class="material-symbols-outlined text-[18px]">add</span>
-                    <span>Tambah Tahun Ajaran Pertama</span>
-                </button>
             </div>
         </div>
 
@@ -478,20 +482,20 @@ function formatDate(dateStr) {
 
                 <!-- Table -->
                 <div class="overflow-x-auto">
-                    <table class="w-full text-sm">
+                    <table class="w-full text-xs sm:text-sm border-collapse border border-outline-variant/60">
                         <thead>
-                            <tr class="bg-surface-container-low/50">
-                                <th class="text-left px-5 py-3 font-semibold text-on-surface-variant text-xs uppercase tracking-wider w-1/4">Jenjang</th>
-                                <th class="text-left px-5 py-3 font-semibold text-on-surface-variant text-xs uppercase tracking-wider w-1/4 border-l border-outline-variant/10">Unit Sekolah</th>
-                                <th class="text-left px-5 py-3 font-semibold text-on-surface-variant text-xs uppercase tracking-wider border-l border-outline-variant/10">Program Pendidikan</th>
-                                <th class="text-left px-5 py-3 font-semibold text-on-surface-variant text-xs uppercase tracking-wider border-l border-outline-variant/10">Kelas</th>
+                            <tr class="bg-surface-container-low/70 text-on-surface-variant font-bold text-[10px] sm:text-xs uppercase tracking-wider">
+                                <th class="border border-outline-variant/60 px-5 py-3 text-left w-1/4">Jenjang</th>
+                                <th class="border border-outline-variant/60 px-5 py-3 text-left w-1/4">Unit Sekolah</th>
+                                <th class="border border-outline-variant/60 px-5 py-3 text-left">Program Pendidikan</th>
+                                <th class="border border-outline-variant/60 px-5 py-3 text-left">Kelas</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-outline-variant/20">
+                        <tbody>
                             <template v-for="level in schoolLevels" :key="level.id">
                                 <!-- State: Belum ada unit -->
-                                <tr v-if="!level.units || level.units.length === 0" class="hover:bg-surface-container-low/40 transition-colors border-b border-outline-variant/20">
-                                    <td class="px-5 py-4 align-top border-r border-outline-variant/10">
+                                <tr v-if="!level.units || level.units.length === 0" class="hover:bg-surface-container-low/40 transition-colors">
+                                    <td class="border border-outline-variant/60 px-5 py-4 align-top bg-surface-container-low/20">
                                         <div class="font-bold text-on-surface text-base mb-2">{{ level.name }}</div>
                                         <div class="flex items-center gap-1.5 flex-wrap">
                                             <button type="button" @click="openLevelEditModal(level)" class="p-1.5 rounded-md bg-surface-container-high text-on-surface-variant hover:text-primary hover:bg-primary/10 transition-colors" title="Edit Jenjang">
@@ -505,17 +509,17 @@ function formatDate(dateStr) {
                                             </button>
                                         </div>
                                     </td>
-                                    <td colspan="3" class="px-5 py-4 align-middle text-on-surface-variant italic text-sm">
+                                    <td colspan="3" class="border border-outline-variant/60 px-5 py-4 align-middle text-on-surface-variant italic text-sm bg-surface-container-low/10">
                                         Belum ada unit sekolah ditambahkan.
                                     </td>
                                 </tr>
 
                                 <!-- State: Ada unit -->
                                 <template v-else>
-                                    <tr v-for="(unit, index) in level.units" :key="unit.id" class="hover:bg-surface-container-low/40 transition-colors border-b border-outline-variant/10 group/row">
+                                    <tr v-for="(unit, index) in level.units" :key="unit.id" class="hover:bg-surface-container-low/40 transition-colors group/row">
                                         
                                         <!-- Kolom Jenjang (Hanya di baris pertama, di-rowspan) -->
-                                        <td v-if="index === 0" :rowspan="level.units.length" class="px-5 py-4 align-top bg-surface-container-lowest border-r border-outline-variant/10 border-b border-outline-variant/20">
+                                        <td v-if="index === 0" :rowspan="level.units.length" class="border border-outline-variant/60 px-5 py-4 align-top bg-surface-container-low/20">
                                             <div class="font-bold text-on-surface text-base mb-2">{{ level.name }}</div>
                                             <div class="flex items-center gap-1.5 flex-wrap">
                                                 <button type="button" @click="openLevelEditModal(level)" class="p-1.5 rounded-md bg-surface-container-high text-on-surface-variant hover:text-primary hover:bg-primary/10 transition-colors" title="Edit Jenjang">
@@ -531,7 +535,7 @@ function formatDate(dateStr) {
                                         </td>
 
                                         <!-- Kolom Unit -->
-                                        <td class="px-5 py-4 align-top border-r border-outline-variant/10">
+                                        <td class="border border-outline-variant/60 px-5 py-4 align-top">
                                             <div class="flex items-start justify-between gap-2">
                                                 <span class="font-semibold text-on-surface">{{ unit.name }}</span>
                                                 <div class="flex items-center gap-1 shrink-0">
@@ -546,10 +550,10 @@ function formatDate(dateStr) {
                                         </td>
 
                                         <!-- Kolom Program -->
-                                        <td class="px-5 py-4 align-top border-r border-outline-variant/10">
+                                        <td class="border border-outline-variant/60 px-5 py-4 align-top">
                                             <div class="flex flex-col gap-2.5">
                                                 <div v-if="unit.programs && unit.programs.length > 0" class="flex flex-wrap gap-2">
-                                                    <div v-for="program in unit.programs" :key="program.id" class="group/pill inline-flex items-center gap-1 bg-surface-container-high border border-outline-variant/40 pl-2.5 pr-1 py-1 rounded-lg hover:border-primary/30 transition-colors">
+                                                    <div v-for="program in unit.programs" :key="program.id" class="group/pill inline-flex items-center gap-1 bg-surface-container-high border border-outline-variant/60 pl-2.5 pr-1 py-1 rounded-lg hover:border-primary/40 transition-colors">
                                                         <span class="text-xs font-medium text-on-surface">{{ program.name }}</span>
                                                         <div class="flex items-center ml-1">
                                                             <button type="button" @click="openProgramEditModal(program, unit)" class="text-on-surface-variant hover:text-primary transition-colors p-0.5 rounded" title="Edit Program">
@@ -572,10 +576,10 @@ function formatDate(dateStr) {
                                         </td>
 
                                         <!-- Kolom Kelas -->
-                                        <td class="px-5 py-4 align-top">
+                                        <td class="border border-outline-variant/60 px-5 py-4 align-top">
                                             <div class="flex flex-col gap-2.5">
                                                 <div v-if="unit.classes && unit.classes.length > 0" class="flex flex-wrap gap-2">
-                                                    <div v-for="cls in unit.classes" :key="cls.id" class="group/pill inline-flex items-center gap-1 bg-surface-container-high border border-outline-variant/40 pl-2.5 pr-1 py-1 rounded-lg hover:border-primary/30 transition-colors">
+                                                    <div v-for="cls in unit.classes" :key="cls.id" class="group/pill inline-flex items-center gap-1 bg-surface-container-high border border-outline-variant/60 pl-2.5 pr-1 py-1 rounded-lg hover:border-primary/40 transition-colors">
                                                         <span class="text-xs font-medium text-on-surface">{{ cls.name }}</span>
                                                         <div class="flex items-center ml-1">
                                                             <button type="button" @click="openClassEditModal(cls, unit)" class="text-on-surface-variant hover:text-primary transition-colors p-0.5 rounded" title="Edit Kelas">
@@ -597,13 +601,11 @@ function formatDate(dateStr) {
                                             </div>
                                         </td>
                                     </tr>
-                                
-        </template>
-                            
-        </template>
+                                </template>
+                            </template>
 
                             <tr v-if="schoolLevels.length === 0">
-                                <td colspan="3" class="px-5 py-12 text-center text-on-surface-variant">
+                                <td colspan="4" class="border border-outline-variant/60 px-5 py-12 text-center text-on-surface-variant">
                                     <span class="material-symbols-outlined text-4xl mb-2 opacity-50">domain_disabled</span>
                                     <p class="text-sm">Belum ada jenjang pendidikan.<br/>Silakan tambah jenjang pertama Anda.</p>
                                 </td>
@@ -641,45 +643,49 @@ function formatDate(dateStr) {
 
             <!-- Table -->
             <div class="overflow-x-auto">
-                <table class="w-full text-sm">
+                <table class="w-full text-xs sm:text-sm border-collapse border border-outline-variant/60">
                     <thead>
-                        <tr class="bg-surface-container-low/50">
-                            <th class="text-left px-5 py-3 font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Nama Lengkap</th>
-                            <th class="text-left px-5 py-3 font-semibold text-on-surface-variant text-xs uppercase tracking-wider">NIP / Username</th>
-                            <th class="text-left px-5 py-3 font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Email</th>
-                            <th class="text-center px-5 py-3 font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Role</th>
-                            <th class="text-center px-5 py-3 font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Dibuat Pada</th>
-                            <th class="text-center px-5 py-3 font-semibold text-on-surface-variant text-xs uppercase tracking-wider">Aksi</th>
+                        <tr class="bg-surface-container-low/70 text-on-surface-variant font-bold text-[10px] sm:text-xs uppercase tracking-wider">
+                            <th class="border border-outline-variant/60 px-4 py-3 text-center w-12">No</th>
+                            <th class="border border-outline-variant/60 px-5 py-3 text-left">Nama Lengkap</th>
+                            <th class="border border-outline-variant/60 px-5 py-3 text-left">NIP / Username</th>
+                            <th class="border border-outline-variant/60 px-5 py-3 text-left">Email</th>
+                            <th class="border border-outline-variant/60 px-4 py-3 text-center w-32">Role</th>
+                            <th class="border border-outline-variant/60 px-4 py-3 text-center w-36">Dibuat Pada</th>
+                            <th class="border border-outline-variant/60 px-4 py-3 text-center w-28">Aksi</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-outline-variant/20">
+                    <tbody>
                         <tr
-                            v-for="u in users"
+                            v-for="(u, idx) in users"
                             :key="u.id"
                             class="hover:bg-surface-container-low/40 transition-colors"
                         >
-                            <td class="px-5 py-3.5">
-                                <span class="font-semibold text-on-surface">{{ u.name }}</span>
+                            <td class="border border-outline-variant/60 px-4 py-3.5 text-center text-on-surface-variant font-mono text-xs">
+                                {{ idx + 1 }}
+                            </td>
+                            <td class="border border-outline-variant/60 px-5 py-3.5">
+                                <span class="font-bold text-on-surface">{{ u.name }}</span>
                                 <span v-if="u.id === $page.props.auth?.user?.id" class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-primary/10 text-primary border border-primary/20">
                                     Anda
                                 </span>
                             </td>
-                            <td class="px-5 py-3.5 text-on-surface-variant">
+                            <td class="border border-outline-variant/60 px-5 py-3.5 text-on-surface-variant">
                                 {{ u.username }}
                             </td>
-                            <td class="px-5 py-3.5 text-on-surface-variant">
+                            <td class="border border-outline-variant/60 px-5 py-3.5 text-on-surface-variant">
                                 {{ u.email || '—' }}
                             </td>
-                            <td class="px-5 py-3.5 text-center">
+                            <td class="border border-outline-variant/60 px-4 py-3.5 text-center">
                                 <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider"
                                       :class="u.role === 'superadmin' ? 'bg-error/10 text-error border border-error/20' : 'bg-secondary-container/40 text-on-secondary-container border border-secondary-container/60'">
                                     {{ u.role }}
                                 </span>
                             </td>
-                            <td class="px-5 py-3.5 text-center text-on-surface-variant text-xs">
+                            <td class="border border-outline-variant/60 px-4 py-3.5 text-center text-on-surface-variant text-xs">
                                 {{ u.created_at }}
                             </td>
-                            <td class="px-5 py-3.5 text-center">
+                            <td class="border border-outline-variant/60 px-4 py-3.5 text-center">
                                 <div class="flex items-center justify-center gap-1">
                                     <button
                                         type="button"
@@ -708,13 +714,13 @@ function formatDate(dateStr) {
                                 </div>
                             </td>
                         </tr>
+                        <tr v-if="users.length === 0">
+                            <td colspan="7" class="border border-outline-variant/60 px-5 py-10 text-center text-on-surface-variant">
+                                Belum ada data pengguna lainnya.
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
-            </div>
-            
-            <!-- Empty State Users -->
-            <div v-if="users.length === 0" class="px-5 py-10 text-center text-on-surface-variant">
-                Belum ada data pengguna lainnya.
             </div>
         </div>
         </div>
