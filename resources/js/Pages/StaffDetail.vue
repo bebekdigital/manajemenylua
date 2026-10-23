@@ -2274,26 +2274,26 @@ function deleteDocument(doc) {
                         </div>
 
                         <div class="overflow-x-auto rounded-xl border border-outline-variant/60 bg-white shadow-2xs">
-                            <table class="w-full text-xs sm:text-sm">
+                            <table class="w-full text-xs sm:text-sm border-collapse border border-outline-variant/60">
                                 <thead>
-                                    <tr class="bg-white border-b border-outline-variant/60 text-on-surface-variant font-bold text-[10px] sm:text-xs uppercase tracking-wider">
-                                        <th class="px-4 py-3 text-center w-12">No</th>
-                                        <th class="px-4 py-3 text-left">Nama Dokumen</th>
-                                        <th class="px-4 py-3 text-center">Status Unggah</th>
-                                        <th class="px-4 py-3 text-center">Aksi</th>
+                                    <tr class="bg-white text-on-surface-variant font-bold text-[10px] sm:text-xs uppercase tracking-wider">
+                                        <th class="border border-outline-variant/60 px-4 py-3 text-center w-12">No</th>
+                                        <th class="border border-outline-variant/60 px-4 py-3 text-left">Nama Dokumen</th>
+                                        <th class="border border-outline-variant/60 px-4 py-3 text-center">Status Unggah</th>
+                                        <th class="border border-outline-variant/60 px-4 py-3 text-center">Aksi</th>
                                     </tr>
                                 </thead>
-                                <tbody class="divide-y divide-outline-variant/20">
+                                <tbody>
                                     <tr
                                         v-for="item in dokumenPribadiList"
                                         :key="item.id"
                                         class="hover:bg-slate-50 transition-colors"
                                     >
-                                        <td class="px-4 py-3 text-center text-on-surface-variant font-mono">{{ item.no }}</td>
-                                        <td class="px-4 py-3 font-semibold text-on-surface">
+                                        <td class="border border-outline-variant/60 px-4 py-3 text-center text-on-surface-variant font-mono">{{ item.no }}</td>
+                                        <td class="border border-outline-variant/60 px-4 py-3 font-semibold text-on-surface">
                                             {{ item.nama }}
                                         </td>
-                                        <td class="px-4 py-3 text-center">
+                                        <td class="border border-outline-variant/60 px-4 py-3 text-center">
                                             <span
                                                 v-if="item.document"
                                                 class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800"
@@ -2309,7 +2309,7 @@ function deleteDocument(doc) {
                                                 Belum Diunggah
                                             </span>
                                         </td>
-                                        <td class="px-4 py-3 text-center">
+                                        <td class="border border-outline-variant/60 px-4 py-3 text-center">
                                             <div v-if="item.document" class="inline-flex items-center gap-1.5 justify-center flex-wrap">
                                                 <button
                                                     type="button"
@@ -2371,7 +2371,7 @@ function deleteDocument(doc) {
                                         </td>
                                     </tr>
                                     <tr v-if="dokumenPribadiList.length === 0">
-                                        <td colspan="4" class="px-4 py-8 text-center text-xs text-on-surface-variant">
+                                        <td colspan="4" class="border border-outline-variant/60 px-4 py-8 text-center text-xs text-on-surface-variant">
                                             Belum ada dokumen pribadi.
                                         </td>
                                     </tr>
@@ -2390,40 +2390,30 @@ function deleteDocument(doc) {
                         </div>
 
                         <div class="overflow-x-auto rounded-xl border border-outline-variant/60 bg-white shadow-2xs">
-                            <table class="w-full text-xs sm:text-sm">
+                            <table class="w-full text-xs sm:text-sm border-collapse border border-outline-variant/60">
                                 <thead>
-                                    <tr class="bg-white border-b border-outline-variant/60 text-on-surface-variant font-bold text-[10px] sm:text-xs uppercase tracking-wider">
-                                        <th class="px-4 py-3 text-center w-12">No</th>
-                                        <th class="px-4 py-3 text-left">Nama Dokumen</th>
-                                        <th class="px-4 py-3 text-left">Keterangan / Rincian</th>
-                                        <th class="px-4 py-3 text-left">Berkas Terunggah</th>
-                                        <th class="px-4 py-3 text-center">Status Unggah</th>
-                                        <th class="px-4 py-3 text-center">Aksi</th>
+                                    <tr class="bg-white text-on-surface-variant font-bold text-[10px] sm:text-xs uppercase tracking-wider">
+                                        <th class="border border-outline-variant/60 px-4 py-3 text-center w-12">No</th>
+                                        <th class="border border-outline-variant/60 px-4 py-3 text-left">Nama Dokumen</th>
+                                        <th class="border border-outline-variant/60 px-4 py-3 text-left">Keterangan / Rincian</th>
+                                        <th class="border border-outline-variant/60 px-4 py-3 text-center">Status Unggah</th>
+                                        <th class="border border-outline-variant/60 px-4 py-3 text-center">Aksi</th>
                                     </tr>
                                 </thead>
-                                <tbody class="divide-y divide-outline-variant/20">
+                                <tbody>
                                     <tr
                                         v-for="item in dokumenKepegawaianList"
                                         :key="item.id"
                                         class="hover:bg-slate-50 transition-colors"
                                     >
-                                        <td class="px-4 py-3 text-center text-on-surface-variant font-mono">{{ item.no }}</td>
-                                        <td class="px-4 py-3 font-semibold text-on-surface">
+                                        <td class="border border-outline-variant/60 px-4 py-3 text-center text-on-surface-variant font-mono">{{ item.no }}</td>
+                                        <td class="border border-outline-variant/60 px-4 py-3 font-semibold text-on-surface">
                                             {{ item.nama }}
                                         </td>
-                                        <td class="px-4 py-3 text-on-surface-variant">
+                                        <td class="border border-outline-variant/60 px-4 py-3 text-on-surface-variant">
                                             {{ item.keterangan || '-' }}
                                         </td>
-                                        <td class="px-4 py-3">
-                                            <div v-if="item.document">
-                                                <span class="font-medium text-on-surface text-xs block truncate max-w-[180px]" :title="item.document.file_name">
-                                                    {{ item.document.file_name }}
-                                                </span>
-                                                <span class="text-[10px] text-outline block">{{ item.document.formatted_file_size }}</span>
-                                            </div>
-                                            <span v-else class="text-xs text-outline italic">Belum ada berkas</span>
-                                        </td>
-                                        <td class="px-4 py-3 text-center">
+                                        <td class="border border-outline-variant/60 px-4 py-3 text-center">
                                             <span
                                                 v-if="item.document"
                                                 class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800"
@@ -2439,7 +2429,7 @@ function deleteDocument(doc) {
                                                 Belum Diunggah
                                             </span>
                                         </td>
-                                        <td class="px-4 py-3 text-center">
+                                        <td class="border border-outline-variant/60 px-4 py-3 text-center">
                                             <div v-if="item.document" class="inline-flex items-center gap-1.5 justify-center flex-wrap">
                                                 <button
                                                     type="button"
@@ -2510,7 +2500,7 @@ function deleteDocument(doc) {
                                         </td>
                                     </tr>
                                     <tr v-if="dokumenKepegawaianList.length === 0">
-                                        <td colspan="6" class="px-4 py-8 text-center text-xs text-on-surface-variant">
+                                        <td colspan="5" class="border border-outline-variant/60 px-4 py-8 text-center text-xs text-on-surface-variant">
                                             Belum ada dokumen riwayat kepegawaian.
                                         </td>
                                     </tr>
@@ -2529,40 +2519,30 @@ function deleteDocument(doc) {
                         </div>
 
                         <div class="overflow-x-auto rounded-xl border border-outline-variant/60 bg-white shadow-2xs">
-                            <table class="w-full text-xs sm:text-sm">
+                            <table class="w-full text-xs sm:text-sm border-collapse border border-outline-variant/60">
                                 <thead>
-                                    <tr class="bg-white border-b border-outline-variant/60 text-on-surface-variant font-bold text-[10px] sm:text-xs uppercase tracking-wider">
-                                        <th class="px-4 py-3 text-center w-12">No</th>
-                                        <th class="px-4 py-3 text-left">Nama Dokumen</th>
-                                        <th class="px-4 py-3 text-left">Keterangan / Rincian</th>
-                                        <th class="px-4 py-3 text-left">Berkas Terunggah</th>
-                                        <th class="px-4 py-3 text-center">Status Unggah</th>
-                                        <th class="px-4 py-3 text-center">Aksi</th>
+                                    <tr class="bg-white text-on-surface-variant font-bold text-[10px] sm:text-xs uppercase tracking-wider">
+                                        <th class="border border-outline-variant/60 px-4 py-3 text-center w-12">No</th>
+                                        <th class="border border-outline-variant/60 px-4 py-3 text-left">Nama Dokumen</th>
+                                        <th class="border border-outline-variant/60 px-4 py-3 text-left">Keterangan / Rincian</th>
+                                        <th class="border border-outline-variant/60 px-4 py-3 text-center">Status Unggah</th>
+                                        <th class="border border-outline-variant/60 px-4 py-3 text-center">Aksi</th>
                                     </tr>
                                 </thead>
-                                <tbody class="divide-y divide-outline-variant/20">
+                                <tbody>
                                     <tr
                                         v-for="item in dokumenJabatanList"
                                         :key="item.id"
                                         class="hover:bg-slate-50 transition-colors"
                                     >
-                                        <td class="px-4 py-3 text-center text-on-surface-variant font-mono">{{ item.no }}</td>
-                                        <td class="px-4 py-3 font-semibold text-on-surface">
+                                        <td class="border border-outline-variant/60 px-4 py-3 text-center text-on-surface-variant font-mono">{{ item.no }}</td>
+                                        <td class="border border-outline-variant/60 px-4 py-3 font-semibold text-on-surface">
                                             {{ item.nama }}
                                         </td>
-                                        <td class="px-4 py-3 text-on-surface-variant">
+                                        <td class="border border-outline-variant/60 px-4 py-3 text-on-surface-variant">
                                             {{ item.keterangan || '-' }}
                                         </td>
-                                        <td class="px-4 py-3">
-                                            <div v-if="item.document">
-                                                <span class="font-medium text-on-surface text-xs block truncate max-w-[180px]" :title="item.document.file_name">
-                                                    {{ item.document.file_name }}
-                                                </span>
-                                                <span class="text-[10px] text-outline block">{{ item.document.formatted_file_size }}</span>
-                                            </div>
-                                            <span v-else class="text-xs text-outline italic">Belum ada berkas</span>
-                                        </td>
-                                        <td class="px-4 py-3 text-center">
+                                        <td class="border border-outline-variant/60 px-4 py-3 text-center">
                                             <span
                                                 v-if="item.document"
                                                 class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800"
@@ -2578,7 +2558,7 @@ function deleteDocument(doc) {
                                                 Belum Diunggah
                                             </span>
                                         </td>
-                                        <td class="px-4 py-3 text-center">
+                                        <td class="border border-outline-variant/60 px-4 py-3 text-center">
                                             <div v-if="item.document" class="inline-flex items-center gap-1.5 justify-center flex-wrap">
                                                 <button
                                                     type="button"
@@ -2649,7 +2629,7 @@ function deleteDocument(doc) {
                                         </td>
                                     </tr>
                                     <tr v-if="dokumenJabatanList.length === 0">
-                                        <td colspan="6" class="px-4 py-8 text-center text-xs text-on-surface-variant">
+                                        <td colspan="5" class="border border-outline-variant/60 px-4 py-8 text-center text-xs text-on-surface-variant">
                                             Belum ada data riwayat jabatan.
                                         </td>
                                     </tr>
@@ -2678,40 +2658,30 @@ function deleteDocument(doc) {
                         </div>
 
                         <div class="overflow-x-auto rounded-xl border border-outline-variant/60 bg-white shadow-2xs">
-                            <table class="w-full text-xs sm:text-sm">
+                            <table class="w-full text-xs sm:text-sm border-collapse border border-outline-variant/60">
                                 <thead>
-                                    <tr class="bg-white border-b border-outline-variant/60 text-on-surface-variant font-bold text-[10px] sm:text-xs uppercase tracking-wider">
-                                        <th class="px-4 py-3 text-center w-12">No</th>
-                                        <th class="px-4 py-3 text-left">Nama Dokumen</th>
-                                        <th class="px-4 py-3 text-left">Keterangan / Rincian</th>
-                                        <th class="px-4 py-3 text-left">Berkas Terunggah</th>
-                                        <th class="px-4 py-3 text-center">Status Unggah</th>
-                                        <th class="px-4 py-3 text-center">Aksi</th>
+                                    <tr class="bg-white text-on-surface-variant font-bold text-[10px] sm:text-xs uppercase tracking-wider">
+                                        <th class="border border-outline-variant/60 px-4 py-3 text-center w-12">No</th>
+                                        <th class="border border-outline-variant/60 px-4 py-3 text-left">Nama Dokumen</th>
+                                        <th class="border border-outline-variant/60 px-4 py-3 text-left">Keterangan / Rincian</th>
+                                        <th class="border border-outline-variant/60 px-4 py-3 text-center">Status Unggah</th>
+                                        <th class="border border-outline-variant/60 px-4 py-3 text-center">Aksi</th>
                                     </tr>
                                 </thead>
-                                <tbody class="divide-y divide-outline-variant/20">
+                                <tbody>
                                     <tr
                                         v-for="item in dokumenPendidikanList"
                                         :key="item.id"
                                         class="hover:bg-slate-50 transition-colors"
                                     >
-                                        <td class="px-4 py-3 text-center text-on-surface-variant font-mono">{{ item.no }}</td>
-                                        <td class="px-4 py-3 font-semibold text-on-surface">
+                                        <td class="border border-outline-variant/60 px-4 py-3 text-center text-on-surface-variant font-mono">{{ item.no }}</td>
+                                        <td class="border border-outline-variant/60 px-4 py-3 font-semibold text-on-surface">
                                             {{ item.nama }}
                                         </td>
-                                        <td class="px-4 py-3 text-on-surface-variant">
+                                        <td class="border border-outline-variant/60 px-4 py-3 text-on-surface-variant">
                                             {{ item.keterangan || '-' }}
                                         </td>
-                                        <td class="px-4 py-3">
-                                            <div v-if="item.document">
-                                                <span class="font-medium text-on-surface text-xs block truncate max-w-[180px]" :title="item.document.file_name">
-                                                    {{ item.document.file_name }}
-                                                </span>
-                                                <span class="text-[10px] text-outline block">{{ item.document.formatted_file_size }}</span>
-                                            </div>
-                                            <span v-else class="text-xs text-outline italic">Belum ada berkas</span>
-                                        </td>
-                                        <td class="px-4 py-3 text-center">
+                                        <td class="border border-outline-variant/60 px-4 py-3 text-center">
                                             <span
                                                 v-if="item.document"
                                                 class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800"
@@ -2727,7 +2697,7 @@ function deleteDocument(doc) {
                                                 Belum Diunggah
                                             </span>
                                         </td>
-                                        <td class="px-4 py-3 text-center">
+                                        <td class="border border-outline-variant/60 px-4 py-3 text-center">
                                             <div v-if="item.document" class="inline-flex items-center gap-1.5 justify-center flex-wrap">
                                                 <button
                                                     type="button"
@@ -2798,7 +2768,7 @@ function deleteDocument(doc) {
                                         </td>
                                     </tr>
                                     <tr v-if="dokumenPendidikanList.length === 0">
-                                        <td colspan="6" class="px-4 py-8 text-center text-xs text-on-surface-variant">
+                                        <td colspan="5" class="border border-outline-variant/60 px-4 py-8 text-center text-xs text-on-surface-variant">
                                             Belum ada dokumen riwayat pendidikan.
                                         </td>
                                     </tr>
