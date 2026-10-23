@@ -1788,16 +1788,13 @@ function deleteDocument(doc) {
                         </div>
                     </div>
 
-                    <!-- RIWAYAT JENJANG KEPEGAWAIAN LIST (SHEET 3 - Murni Tanggal TMT & TST) -->
+                    <!-- RIWAYAT JENJANG KEPEGAWAIAN LIST -->
                     <div>
                         <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
-                            <div>
-                                <h4 class="text-xs sm:text-sm font-bold text-primary flex items-center gap-2">
-                                    <span class="material-symbols-outlined text-[18px]">work_history</span>
-                                    Riwayat Jenjang Kepegawaian (Sheet 3)
-                                </h4>
-                                <span class="text-[11px] text-on-surface-variant">Berdasarkan tanggal TMT dan TST Kenaikan Jenjang</span>
-                            </div>
+                            <h4 class="text-xs sm:text-sm font-bold text-primary flex items-center gap-2">
+                                <span class="material-symbols-outlined text-[18px]">work_history</span>
+                                Riwayat Jenjang Kepegawaian
+                            </h4>
                             <span class="text-xs text-outline font-medium">
                                 {{ employee.riwayat_kepegawaian?.length || 0 }} Catatan
                             </span>
@@ -1893,7 +1890,7 @@ function deleteDocument(doc) {
                     </div>
                 </div>
 
-                <!-- TAB 5: PENUGASAN (RIWAYAT JABATAN - SHEET 4) -->
+                <!-- TAB 5: PENUGASAN (RIWAYAT JABATAN) -->
                 <div v-if="activeTab === 'penugasan'" class="space-y-6">
                     <!-- EDIT FORM FOR JABATAN (Hanya saat isEditing) -->
                     <div v-if="isEditing" class="p-4 sm:p-5 bg-white border border-primary/40 rounded-2xl space-y-4 shadow-2xs">
@@ -1957,57 +1954,54 @@ function deleteDocument(doc) {
                         </div>
                     </div>
 
-                    <!-- RIWAYAT JABATAN LIST (SHEET 4 - Murni Tanggal TMT & TST) -->
+                    <!-- RIWAYAT JABATAN LIST -->
                     <div>
                         <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
-                            <div>
-                                <h4 class="text-xs sm:text-sm font-bold text-primary flex items-center gap-2">
-                                    <span class="material-symbols-outlined text-[18px]">assignment_turned_in</span>
-                                    Riwayat Jabatan (Sheet 4)
-                                </h4>
-                                <span class="text-[11px] text-on-surface-variant">Berdasarkan tanggal TMT dan TST Jabatan</span>
-                            </div>
+                            <h4 class="text-xs sm:text-sm font-bold text-primary flex items-center gap-2">
+                                <span class="material-symbols-outlined text-[18px]">assignment_turned_in</span>
+                                Riwayat Jabatan
+                            </h4>
                             <span class="text-xs text-outline font-medium">
                                 {{ employee.riwayat_jabatan?.length || 0 }} Jabatan
                             </span>
                         </div>
 
                         <div v-if="employee.riwayat_jabatan && employee.riwayat_jabatan.length > 0">
-                            <div class="overflow-x-auto rounded-xl border border-outline-variant/60 bg-white">
-                                <table class="w-full text-xs sm:text-sm">
+                            <div class="overflow-x-auto rounded-xl border border-outline-variant/60 bg-white shadow-2xs">
+                                <table class="w-full text-xs sm:text-sm border-collapse border border-outline-variant/60">
                                     <thead>
-                                        <tr class="bg-white border-b border-outline-variant/60 text-on-surface-variant font-bold text-[10px] sm:text-xs uppercase tracking-wider">
-                                            <th class="px-4 py-3 text-left">No</th>
-                                            <th class="px-4 py-3 text-left">Jabatan</th>
-                                            <th class="px-4 py-3 text-left">Unit Kerja</th>
-                                            <th class="px-4 py-3 text-left">Jenis Kepegawaian</th>
-                                            <th class="px-4 py-3 text-left">TMT Jabatan</th>
-                                            <th class="px-4 py-3 text-left">TST Jabatan</th>
-                                            <th class="px-4 py-3 text-left">Status</th>
-                                            <th class="px-4 py-3 text-center">Dokumen SK Penugasan</th>
+                                        <tr class="bg-white text-on-surface-variant font-bold text-[10px] sm:text-xs uppercase tracking-wider">
+                                            <th class="border border-outline-variant/60 px-4 py-3 text-center w-12">No</th>
+                                            <th class="border border-outline-variant/60 px-4 py-3 text-left">Jabatan</th>
+                                            <th class="border border-outline-variant/60 px-4 py-3 text-left">Unit Kerja</th>
+                                            <th class="border border-outline-variant/60 px-4 py-3 text-left">Jenis Kepegawaian</th>
+                                            <th class="border border-outline-variant/60 px-4 py-3 text-left">TMT Jabatan</th>
+                                            <th class="border border-outline-variant/60 px-4 py-3 text-left">TST Jabatan</th>
+                                            <th class="border border-outline-variant/60 px-4 py-3 text-left">Status</th>
+                                            <th class="border border-outline-variant/60 px-4 py-3 text-center">Dokumen SK Penugasan</th>
                                         </tr>
                                     </thead>
-                                    <tbody class="divide-y divide-outline-variant/20">
+                                    <tbody>
                                         <tr
                                             v-for="(pos, idx) in employee.riwayat_jabatan"
                                             :key="pos.id || idx"
                                             class="hover:bg-slate-50 transition-colors"
                                         >
-                                            <td class="px-4 py-3 text-on-surface-variant font-mono">{{ idx + 1 }}</td>
-                                            <td class="px-4 py-3 font-bold text-on-surface">{{ pos.jabatan || '-' }}</td>
-                                            <td class="px-4 py-3">
+                                            <td class="border border-outline-variant/60 px-4 py-3 text-center text-on-surface-variant font-mono">{{ idx + 1 }}</td>
+                                            <td class="border border-outline-variant/60 px-4 py-3 font-bold text-on-surface">{{ pos.jabatan || '-' }}</td>
+                                            <td class="border border-outline-variant/60 px-4 py-3">
                                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-semibold bg-primary/10 text-primary">
                                                     {{ pos.unit_kerja || '-' }}
                                                 </span>
                                             </td>
-                                            <td class="px-4 py-3 text-on-surface">{{ pos.jenis_kepegawaian || '-' }}</td>
-                                            <td class="px-4 py-3 text-on-surface">
+                                            <td class="border border-outline-variant/60 px-4 py-3 text-on-surface">{{ pos.jenis_kepegawaian || '-' }}</td>
+                                            <td class="border border-outline-variant/60 px-4 py-3 text-on-surface">
                                                 {{ pos.formatted_tmt_jabatan || formatTanggalIndo(pos.tmt_jabatan) || '-' }}
                                             </td>
-                                            <td class="px-4 py-3 text-on-surface">
+                                            <td class="border border-outline-variant/60 px-4 py-3 text-on-surface">
                                                 {{ pos.formatted_tst_jabatan || formatTanggalIndo(pos.tst_jabatan) || 'Sekarang / Aktif' }}
                                             </td>
-                                            <td class="px-4 py-3">
+                                            <td class="border border-outline-variant/60 px-4 py-3">
                                                 <span
                                                     v-if="!pos.tst_jabatan"
                                                     class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-700"
@@ -2022,8 +2016,8 @@ function deleteDocument(doc) {
                                                     Selesai
                                                 </span>
                                             </td>
-                                            <td class="px-4 py-3 text-center">
-                                                <div v-if="pos.document" class="inline-flex items-center gap-1.5">
+                                            <td class="border border-outline-variant/60 px-4 py-3 text-center">
+                                                <div v-if="pos.document" class="inline-flex items-center gap-1.5 justify-center">
                                                     <button
                                                         type="button"
                                                         @click="openPreview(pos.document)"
@@ -2070,36 +2064,48 @@ function deleteDocument(doc) {
                 <div v-if="activeTab === 'pendidikan'" class="space-y-4">
                     <!-- VIEW MODE -->
                     <template v-if="!isEditing">
+                        <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+                            <h4 class="text-xs sm:text-sm font-bold text-primary flex items-center gap-2">
+                                <span class="material-symbols-outlined text-[18px]">school</span>
+                                Riwayat Pendidikan
+                            </h4>
+                            <span class="text-xs text-outline font-medium">
+                                {{ employee.riwayat_pendidikan?.length || 0 }} Catatan
+                            </span>
+                        </div>
+
                         <div v-if="employee.riwayat_pendidikan && employee.riwayat_pendidikan.length > 0">
-                            <div class="overflow-x-auto">
-                                <table class="w-full text-sm">
+                            <div class="overflow-x-auto rounded-xl border border-outline-variant/60 bg-white shadow-2xs">
+                                <table class="w-full text-xs sm:text-sm border-collapse border border-outline-variant/60">
                                     <thead>
-                                        <tr class="bg-white border-b border-outline-variant/60">
-                                            <th class="px-4 py-2.5 text-left text-xs font-bold text-on-surface-variant uppercase tracking-wider">Jenjang</th>
-                                            <th class="px-4 py-2.5 text-left text-xs font-bold text-on-surface-variant uppercase tracking-wider">Jurusan</th>
-                                            <th class="px-4 py-2.5 text-left text-xs font-bold text-on-surface-variant uppercase tracking-wider">Instansi</th>
-                                            <th class="px-4 py-2.5 text-left text-xs font-bold text-on-surface-variant uppercase tracking-wider">Tahun Lulus</th>
-                                            <th class="px-4 py-2.5 text-left text-xs font-bold text-on-surface-variant uppercase tracking-wider">Pembiayaan</th>
-                                            <th class="px-4 py-2.5 text-center text-xs font-bold text-on-surface-variant uppercase tracking-wider">Berkas Ijazah</th>
+                                        <tr class="bg-white text-on-surface-variant font-bold text-[10px] sm:text-xs uppercase tracking-wider">
+                                            <th class="border border-outline-variant/60 px-4 py-3 text-center w-12">No</th>
+                                            <th class="border border-outline-variant/60 px-4 py-3 text-left">Jenjang</th>
+                                            <th class="border border-outline-variant/60 px-4 py-3 text-left">Jurusan</th>
+                                            <th class="border border-outline-variant/60 px-4 py-3 text-left">Instansi Pendidikan</th>
+                                            <th class="border border-outline-variant/60 px-4 py-3 text-center">Tahun Lulus</th>
+                                            <th class="border border-outline-variant/60 px-4 py-3 text-left">Pembiayaan</th>
+                                            <th class="border border-outline-variant/60 px-4 py-3 text-center">Berkas Ijazah</th>
                                         </tr>
                                     </thead>
-                                    <tbody class="divide-y divide-outline-variant/20">
+                                    <tbody>
                                         <tr
-                                            v-for="edu in employee.riwayat_pendidikan"
-                                            :key="edu.id"
+                                            v-for="(edu, idx) in employee.riwayat_pendidikan"
+                                            :key="edu.id || idx"
                                             class="hover:bg-slate-50 transition-colors"
                                         >
-                                            <td class="px-4 py-3">
+                                            <td class="border border-outline-variant/60 px-4 py-3 text-center text-on-surface-variant font-mono">{{ idx + 1 }}</td>
+                                            <td class="border border-outline-variant/60 px-4 py-3">
                                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-primary/10 text-primary">
                                                     {{ edu.jenjang_pendidikan || '-' }}
                                                 </span>
                                             </td>
-                                            <td class="px-4 py-3 text-xs text-on-surface">{{ edu.jurusan || '-' }}</td>
-                                            <td class="px-4 py-3 text-xs text-on-surface">{{ edu.instansi_pendidikan || '-' }}</td>
-                                            <td class="px-4 py-3 text-xs font-semibold text-on-surface">{{ edu.tahun_lulus || '-' }}</td>
-                                            <td class="px-4 py-3 text-xs text-on-surface">{{ edu.pembiayaan || '-' }}</td>
-                                            <td class="px-4 py-3 text-center">
-                                                <div v-if="edu.document" class="inline-flex items-center gap-1.5">
+                                            <td class="border border-outline-variant/60 px-4 py-3 text-on-surface">{{ edu.jurusan || '-' }}</td>
+                                            <td class="border border-outline-variant/60 px-4 py-3 text-on-surface">{{ edu.instansi_pendidikan || '-' }}</td>
+                                            <td class="border border-outline-variant/60 px-4 py-3 text-center font-semibold text-on-surface">{{ edu.tahun_lulus || '-' }}</td>
+                                            <td class="border border-outline-variant/60 px-4 py-3 text-on-surface">{{ edu.pembiayaan || '-' }}</td>
+                                            <td class="border border-outline-variant/60 px-4 py-3 text-center">
+                                                <div v-if="edu.document" class="inline-flex items-center gap-1.5 justify-center">
                                                     <button
                                                         type="button"
                                                         @click="openPreview(edu.document)"
