@@ -2266,13 +2266,11 @@ function deleteDocument(doc) {
                 <div v-if="activeTab === 'dokumen'" class="space-y-8">
                     <!-- 1. TABEL DOKUMEN PRIBADI -->
                     <div class="space-y-3">
-                        <div>
-                            <h4 class="text-sm font-bold text-on-surface">
+                        <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+                            <h4 class="text-xs sm:text-sm font-bold text-primary flex items-center gap-2">
+                                <span class="material-symbols-outlined text-[18px]">badge</span>
                                 Dokumen Pribadi
                             </h4>
-                            <p class="text-xs text-on-surface-variant">
-                                Dokumen identitas dasar pegawai (KTP dan Kartu Keluarga)
-                            </p>
                         </div>
 
                         <div class="overflow-x-auto rounded-xl border border-outline-variant/60 bg-white shadow-2xs">
@@ -2281,8 +2279,6 @@ function deleteDocument(doc) {
                                     <tr class="bg-white border-b border-outline-variant/60 text-on-surface-variant font-bold text-[10px] sm:text-xs uppercase tracking-wider">
                                         <th class="px-4 py-3 text-center w-12">No</th>
                                         <th class="px-4 py-3 text-left">Nama Dokumen</th>
-                                        <th class="px-4 py-3 text-left">Keterangan / Rincian</th>
-                                        <th class="px-4 py-3 text-left">Berkas Terunggah</th>
                                         <th class="px-4 py-3 text-center">Status Unggah</th>
                                         <th class="px-4 py-3 text-center">Aksi</th>
                                     </tr>
@@ -2296,18 +2292,6 @@ function deleteDocument(doc) {
                                         <td class="px-4 py-3 text-center text-on-surface-variant font-mono">{{ item.no }}</td>
                                         <td class="px-4 py-3 font-semibold text-on-surface">
                                             {{ item.nama }}
-                                        </td>
-                                        <td class="px-4 py-3 text-on-surface-variant">
-                                            {{ item.keterangan || '-' }}
-                                        </td>
-                                        <td class="px-4 py-3">
-                                            <div v-if="item.document">
-                                                <span class="font-medium text-on-surface text-xs block truncate max-w-[180px]" :title="item.document.file_name">
-                                                    {{ item.document.file_name }}
-                                                </span>
-                                                <span class="text-[10px] text-outline block">{{ item.document.formatted_file_size }}</span>
-                                            </div>
-                                            <span v-else class="text-xs text-outline italic">Belum ada berkas</span>
                                         </td>
                                         <td class="px-4 py-3 text-center">
                                             <span
@@ -2336,23 +2320,14 @@ function deleteDocument(doc) {
                                                     <span class="material-symbols-outlined text-[15px]">visibility</span>
                                                     <span>Lihat</span>
                                                 </button>
-                                                <a
-                                                    :href="item.document.download_url"
-                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-outline-variant/60 hover:bg-slate-100 text-on-surface transition-colors cursor-pointer"
-                                                    title="Unduh Berkas"
-                                                >
-                                                    <span class="material-symbols-outlined text-[15px]">download</span>
-                                                    <span>Unduh</span>
-                                                </a>
                                                 <button
-                                                    v-if="!item.isAdditional"
                                                     type="button"
                                                     @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
                                                     class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-outline-variant/60 hover:bg-slate-100 text-slate-700 transition-colors cursor-pointer"
-                                                    title="Ganti Berkas Dokumen"
+                                                    title="Unggah Ulang / Ganti Berkas"
                                                 >
                                                     <span class="material-symbols-outlined text-[15px]">sync</span>
-                                                    <span>Ganti</span>
+                                                    <span>Unggah</span>
                                                 </button>
                                                 <button
                                                     type="button"
@@ -2364,20 +2339,39 @@ function deleteDocument(doc) {
                                                     <span>Hapus</span>
                                                 </button>
                                             </div>
-                                            <button
-                                                v-else
-                                                type="button"
-                                                @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
-                                                class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"
-                                                title="Upload Dokumen"
-                                            >
-                                                <span class="material-symbols-outlined text-[15px]">upload_file</span>
-                                                <span>Unggah</span>
-                                            </button>
+                                            <div v-else class="inline-flex items-center gap-1.5 justify-center flex-wrap">
+                                                <button
+                                                    type="button"
+                                                    @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
+                                                    class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"
+                                                    title="Upload Dokumen"
+                                                >
+                                                    <span class="material-symbols-outlined text-[15px]">upload_file</span>
+                                                    <span>Unggah</span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    disabled
+                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60"
+                                                    title="Belum ada berkas untuk dilihat"
+                                                >
+                                                    <span class="material-symbols-outlined text-[15px]">visibility_off</span>
+                                                    <span>Lihat</span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    disabled
+                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60"
+                                                    title="Belum ada berkas untuk dihapus"
+                                                >
+                                                    <span class="material-symbols-outlined text-[15px]">delete</span>
+                                                    <span>Hapus</span>
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                     <tr v-if="dokumenPribadiList.length === 0">
-                                        <td colspan="6" class="px-4 py-8 text-center text-xs text-on-surface-variant">
+                                        <td colspan="4" class="px-4 py-8 text-center text-xs text-on-surface-variant">
                                             Belum ada dokumen pribadi.
                                         </td>
                                     </tr>
@@ -2388,13 +2382,11 @@ function deleteDocument(doc) {
 
                     <!-- 2. TABEL DOKUMEN RIWAYAT KEPEGAWAIAN -->
                     <div class="space-y-3">
-                        <div>
-                            <h4 class="text-sm font-bold text-on-surface">
+                        <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+                            <h4 class="text-xs sm:text-sm font-bold text-primary flex items-center gap-2">
+                                <span class="material-symbols-outlined text-[18px]">work_history</span>
                                 Dokumen Riwayat Kepegawaian
                             </h4>
-                            <p class="text-xs text-on-surface-variant">
-                                SK Pengangkatan awal dan SK kenaikan jenjang kepegawaian (diambil dari tab Kepegawaian)
-                            </p>
                         </div>
 
                         <div class="overflow-x-auto rounded-xl border border-outline-variant/60 bg-white shadow-2xs">
@@ -2474,7 +2466,7 @@ function deleteDocument(doc) {
                                                     title="Ganti Berkas Dokumen"
                                                 >
                                                     <span class="material-symbols-outlined text-[15px]">sync</span>
-                                                    <span>Ganti</span>
+                                                    <span>Unggah</span>
                                                 </button>
                                                 <button
                                                     type="button"
@@ -2486,16 +2478,35 @@ function deleteDocument(doc) {
                                                     <span>Hapus</span>
                                                 </button>
                                             </div>
-                                            <button
-                                                v-else
-                                                type="button"
-                                                @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
-                                                class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"
-                                                title="Upload Dokumen"
-                                            >
-                                                <span class="material-symbols-outlined text-[15px]">upload_file</span>
-                                                <span>Unggah</span>
-                                            </button>
+                                            <div v-else class="inline-flex items-center gap-1.5 justify-center flex-wrap">
+                                                <button
+                                                    type="button"
+                                                    @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
+                                                    class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"
+                                                    title="Upload Dokumen"
+                                                >
+                                                    <span class="material-symbols-outlined text-[15px]">upload_file</span>
+                                                    <span>Unggah</span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    disabled
+                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60"
+                                                    title="Belum ada berkas untuk dilihat"
+                                                >
+                                                    <span class="material-symbols-outlined text-[15px]">visibility_off</span>
+                                                    <span>Lihat</span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    disabled
+                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60"
+                                                    title="Belum ada berkas untuk dihapus"
+                                                >
+                                                    <span class="material-symbols-outlined text-[15px]">delete</span>
+                                                    <span>Hapus</span>
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                     <tr v-if="dokumenKepegawaianList.length === 0">
@@ -2510,13 +2521,11 @@ function deleteDocument(doc) {
 
                     <!-- 3. TABEL DOKUMEN RIWAYAT JABATAN -->
                     <div class="space-y-3">
-                        <div>
-                            <h4 class="text-sm font-bold text-on-surface">
+                        <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+                            <h4 class="text-xs sm:text-sm font-bold text-primary flex items-center gap-2">
+                                <span class="material-symbols-outlined text-[18px]">assignment_turned_in</span>
                                 Dokumen Riwayat Jabatan
                             </h4>
-                            <p class="text-xs text-on-surface-variant">
-                                SK Penugasan dan riwayat jabatan (diambil dari tab Penugasan / Jabatan)
-                            </p>
                         </div>
 
                         <div class="overflow-x-auto rounded-xl border border-outline-variant/60 bg-white shadow-2xs">
@@ -2596,7 +2605,7 @@ function deleteDocument(doc) {
                                                     title="Ganti Berkas Dokumen"
                                                 >
                                                     <span class="material-symbols-outlined text-[15px]">sync</span>
-                                                    <span>Ganti</span>
+                                                    <span>Unggah</span>
                                                 </button>
                                                 <button
                                                     type="button"
@@ -2608,16 +2617,35 @@ function deleteDocument(doc) {
                                                     <span>Hapus</span>
                                                 </button>
                                             </div>
-                                            <button
-                                                v-else
-                                                type="button"
-                                                @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
-                                                class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"
-                                                title="Upload Dokumen"
-                                            >
-                                                <span class="material-symbols-outlined text-[15px]">upload_file</span>
-                                                <span>Unggah</span>
-                                            </button>
+                                            <div v-else class="inline-flex items-center gap-1.5 justify-center flex-wrap">
+                                                <button
+                                                    type="button"
+                                                    @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
+                                                    class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"
+                                                    title="Upload Dokumen"
+                                                >
+                                                    <span class="material-symbols-outlined text-[15px]">upload_file</span>
+                                                    <span>Unggah</span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    disabled
+                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60"
+                                                    title="Belum ada berkas untuk dilihat"
+                                                >
+                                                    <span class="material-symbols-outlined text-[15px]">visibility_off</span>
+                                                    <span>Lihat</span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    disabled
+                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60"
+                                                    title="Belum ada berkas untuk dihapus"
+                                                >
+                                                    <span class="material-symbols-outlined text-[15px]">delete</span>
+                                                    <span>Hapus</span>
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                     <tr v-if="dokumenJabatanList.length === 0">
@@ -2632,15 +2660,11 @@ function deleteDocument(doc) {
 
                     <!-- 4. TABEL DOKUMEN RIWAYAT PENDIDIKAN -->
                     <div class="space-y-3">
-                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                            <div>
-                                <h4 class="text-sm font-bold text-on-surface">
-                                    Dokumen Riwayat Pendidikan
-                                </h4>
-                                <p class="text-xs text-on-surface-variant">
-                                    Dokumen ijazah formal dari riwayat pendidikan dan ijazah / sertifikat tambahan (diambil dari tab Pendidikan)
-                                </p>
-                            </div>
+                        <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+                            <h4 class="text-xs sm:text-sm font-bold text-primary flex items-center gap-2">
+                                <span class="material-symbols-outlined text-[18px]">school</span>
+                                Dokumen Riwayat Pendidikan
+                            </h4>
                             <div class="flex items-center gap-2">
                                 <button
                                     type="button"
@@ -2730,7 +2754,7 @@ function deleteDocument(doc) {
                                                     title="Ganti Berkas Dokumen"
                                                 >
                                                     <span class="material-symbols-outlined text-[15px]">sync</span>
-                                                    <span>Ganti</span>
+                                                    <span>Unggah</span>
                                                 </button>
                                                 <button
                                                     type="button"
@@ -2742,16 +2766,35 @@ function deleteDocument(doc) {
                                                     <span>Hapus</span>
                                                 </button>
                                             </div>
-                                            <button
-                                                v-else
-                                                type="button"
-                                                @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
-                                                class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"
-                                                title="Upload Dokumen"
-                                            >
-                                                <span class="material-symbols-outlined text-[15px]">upload_file</span>
-                                                <span>Unggah</span>
-                                            </button>
+                                            <div v-else class="inline-flex items-center gap-1.5 justify-center flex-wrap">
+                                                <button
+                                                    type="button"
+                                                    @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
+                                                    class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"
+                                                    title="Upload Dokumen"
+                                                >
+                                                    <span class="material-symbols-outlined text-[15px]">upload_file</span>
+                                                    <span>Unggah</span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    disabled
+                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60"
+                                                    title="Belum ada berkas untuk dilihat"
+                                                >
+                                                    <span class="material-symbols-outlined text-[15px]">visibility_off</span>
+                                                    <span>Lihat</span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    disabled
+                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60"
+                                                    title="Belum ada berkas untuk dihapus"
+                                                >
+                                                    <span class="material-symbols-outlined text-[15px]">delete</span>
+                                                    <span>Hapus</span>
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                     <tr v-if="dokumenPendidikanList.length === 0">
