@@ -939,16 +939,28 @@ function deleteDocument(doc) {
                         </div>
 
                         <div>
-                            <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
-                                NIPY
-                            </label>
+                            <div class="flex items-center justify-between mb-1.5">
+                                <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider">
+                                    NIPY
+                                </label>
+                                <span class="inline-flex items-center gap-1 text-[10px] font-semibold text-on-surface-variant/80 bg-slate-100 px-2 py-0.5 rounded-md border border-outline-variant/40">
+                                    <span class="material-symbols-outlined text-[13px]">lock</span>
+                                    Hanya SDM
+                                </span>
+                            </div>
                             <input
                                 v-model="form.nipy"
                                 type="text"
                                 placeholder="Nomor Induk Pegawai Yayasan"
-                                class="w-full px-3.5 py-2 sm:py-2.5 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface placeholder:text-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-mono"
+                                disabled
+                                readonly
+                                class="w-full px-3.5 py-2 sm:py-2.5 bg-slate-100/90 border border-outline-variant/50 rounded-xl text-xs sm:text-sm text-slate-500 placeholder:text-outline cursor-not-allowed font-mono select-none"
                                 :class="{ 'border-error': form.errors.nipy }"
                             />
+                            <p class="text-[11px] text-on-surface-variant/75 mt-1 flex items-center gap-1">
+                                <span class="material-symbols-outlined text-[13px]">info</span>
+                                Terkunci — hanya dapat diisi oleh bagian SDM.
+                            </p>
                             <div v-if="form.errors.nipy" class="text-error text-xs mt-1">{{ form.errors.nipy }}</div>
                         </div>
 
@@ -1061,12 +1073,24 @@ function deleteDocument(doc) {
                             <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
                                 Penanggung BPJS
                             </label>
-                            <input
+                            <select
                                 v-model="form.penanggung_bpjs"
-                                type="text"
-                                placeholder="Contoh: Yayasan / Pribadi / Mandiri"
-                                class="w-full px-3.5 py-2 sm:py-2.5 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface placeholder:text-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-                            />
+                                class="w-full px-3.5 py-2 sm:py-2.5 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
+                                :class="{ 'border-error': form.errors.penanggung_bpjs }"
+                            >
+                                <option value="">-- Pilih Penanggung BPJS --</option>
+                                <option value="Yayasan">Yayasan</option>
+                                <option value="Pemerintah">Pemerintah</option>
+                                <option value="Suami/Istri">Suami/Istri</option>
+                                <option value="Mandiri">Mandiri</option>
+                                <option
+                                    v-if="form.penanggung_bpjs && !['Yayasan', 'Pemerintah', 'Suami/Istri', 'Mandiri'].includes(form.penanggung_bpjs)"
+                                    :value="form.penanggung_bpjs"
+                                >
+                                    {{ form.penanggung_bpjs }}
+                                </option>
+                            </select>
+                            <div v-if="form.errors.penanggung_bpjs" class="text-error text-xs mt-1">{{ form.errors.penanggung_bpjs }}</div>
                         </div>
 
                         <div class="md:col-span-2">
