@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue';
 import { Head, Link, usePage, useForm, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import EditDataButton from '@/Components/Shared/EditDataButton.vue';
+import { useWilayah } from '@/Composables/useWilayah';
 
 defineOptions({
     layout: AppLayout,
@@ -185,24 +186,256 @@ function initFormFromProps() {
     }));
 }
 
-onMounted(() => {
+// ==========================================
+// WILAYAH INDONESIA API & CASCADING STATE
+// ==========================================
+const { getProvinces, getRegencies, getDistricts, getVillages, isMatch } = useWilayah();
+
+const provincesList = ref([]);
+
+// Domisili Wilayah State
+const selectedProvDomisiliId = ref('');
+const selectedKabDomisiliId = ref('');
+const selectedKecDomisiliId = ref('');
+const selectedDesDomisiliId = ref('');
+const regenciesDomisili = ref([]);
+const districtsDomisili = ref([]);
+const villagesDomisili = ref([]);
+const loadingDomisili = ref({ prov: false, kab: false, kec: false, des: false });
+
+// Tinggal Wilayah State
+const selectedProvTinggalId = ref('');
+const selectedKabTinggalId = ref('');
+const selectedKecTinggalId = ref('');
+const selectedDesTinggalId = ref('');
+const regenciesTinggal = ref([]);
+const districtsTinggal = ref([]);
+const villagesTinggal = ref([]);
+const loadingTinggal = ref({ prov: false, kab: false, kec: false, des: false });
+
+async function initWilayahFromForm() {
+    loadingDomisili.value.prov = true;
+    loadingTinggal.value.prov = true;
+    provincesList.value = await getProvinces();
+    loadingDomisili.value.prov = false;
+    loadingTinggal.value.prov = false;
+
+    // 1. Domisili
+    if (form.provinsi_domisili) {
+        const prov = provincesList.value.find((p) => isMatch(p.name, form.provinsi_domisili));
+        if (prov) {
+            selectedProvDomisiliId.value = prov.id;
+            loadingDomisili.value.kab = true;
+            regenciesDomisili.value = await getRegencies(prov.id);
+            loadingDomisili.value.kab = false;
+
+            if (form.kab_domisili) {
+                const kab = regenciesDomisili.value.find((k) => isMatch(k.name, form.kab_domisili));
+                if (kab) {
+                    selectedKabDomisiliId.value = kab.id;
+                    loadingDomisili.value.kec = true;
+                    districtsDomisili.value = await getDistricts(kab.id);
+                    loadingDomisili.value.kec = false;
+
+                    if (form.kecamatan_domisili) {
+                        const kec = districtsDomisili.value.find((d) => isMatch(d.name, form.kecamatan_domisili));
+                        if (kec) {
+                            selectedKecDomisiliId.value = kec.id;
+                            loadingDomisili.value.des = true;
+                            villagesDomisili.value = await getVillages(kec.id);
+                            loadingDomisili.value.des = false;
+
+                            if (form.desa_domisili) {
+                                const des = villagesDomisili.value.find((v) => isMatch(v.name, form.desa_domisili));
+                                if (des) {
+                                    selectedDesDomisiliId.value = des.id;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // 2. Tinggal
+    if (form.provinsi_tinggal) {
+        const prov = provincesList.value.find((p) => isMatch(p.name, form.provinsi_tinggal));
+        if (prov) {
+            selectedProvTinggalId.value = prov.id;
+            loadingTinggal.value.kab = true;
+            regenciesTinggal.value = await getRegencies(prov.id);
+            loadingTinggal.value.kab = false;
+
+            if (form.kabupaten_tinggal) {
+                const kab = regenciesTinggal.value.find((k) => isMatch(k.name, form.kabupaten_tinggal));
+                if (kab) {
+                    selectedKabTinggalId.value = kab.id;
+                    loadingTinggal.value.kec = true;
+                    districtsTinggal.value = await getDistricts(kab.id);
+                    loadingTinggal.value.kec = false;
+
+                    if (form.kecamatan_tinggal) {
+                        const kec = districtsTinggal.value.find((d) => isMatch(d.name, form.kecamatan_tinggal));
+                        if (kec) {
+                            selectedKecTinggalId.value = kec.id;
+                            loadingTinggal.value.des = true;
+                            villagesTinggal.value = await getVillages(kec.id);
+                            loadingTinggal.value.des = false;
+
+                            if (form.desa_tinggal) {
+                                const des = villagesTinggal.value.find((v) => isMatch(v.name, form.desa_tinggal));
+                                if (des) {
+                                    selectedDesTinggalId.value = des.id;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+async function onProvinsiDomisiliChange() {
+    const prov = provincesList.value.find((p) => p.id === selectedProvDomisiliId.value);
+    form.provinsi_domisili = prov ? prov.name : '';
+
+    selectedKabDomisiliId.value = '';
+    selectedKecDomisiliId.value = '';
+    selectedDesDomisiliId.value = '';
+    form.kab_domisili = '';
+    form.kecamatan_domisili = '';
+    form.desa_domisili = '';
+    regenciesDomisili.value = [];
+    districtsDomisili.value = [];
+    villagesDomisili.value = [];
+
+    if (selectedProvDomisiliId.value) {
+        loadingDomisili.value.kab = true;
+        regenciesDomisili.value = await getRegencies(selectedProvDomisiliId.value);
+        loadingDomisili.value.kab = false;
+    }
+}
+
+async function onKabupatenDomisiliChange() {
+    const kab = regenciesDomisili.value.find((k) => k.id === selectedKabDomisiliId.value);
+    form.kab_domisili = kab ? kab.name : '';
+
+    selectedKecDomisiliId.value = '';
+    selectedDesDomisiliId.value = '';
+    form.kecamatan_domisili = '';
+    form.desa_domisili = '';
+    districtsDomisili.value = [];
+    villagesDomisili.value = [];
+
+    if (selectedKabDomisiliId.value) {
+        loadingDomisili.value.kec = true;
+        districtsDomisili.value = await getDistricts(selectedKabDomisiliId.value);
+        loadingDomisili.value.kec = false;
+    }
+}
+
+async function onKecamatanDomisiliChange() {
+    const kec = districtsDomisili.value.find((d) => d.id === selectedKecDomisiliId.value);
+    form.kecamatan_domisili = kec ? kec.name : '';
+
+    selectedDesDomisiliId.value = '';
+    form.desa_domisili = '';
+    villagesDomisili.value = [];
+
+    if (selectedKecDomisiliId.value) {
+        loadingDomisili.value.des = true;
+        villagesDomisili.value = await getVillages(selectedKecDomisiliId.value);
+        loadingDomisili.value.des = false;
+    }
+}
+
+function onDesaDomisiliChange() {
+    const des = villagesDomisili.value.find((v) => v.id === selectedDesDomisiliId.value);
+    form.desa_domisili = des ? des.name : '';
+}
+
+async function onProvinsiTinggalChange() {
+    const prov = provincesList.value.find((p) => p.id === selectedProvTinggalId.value);
+    form.provinsi_tinggal = prov ? prov.name : '';
+
+    selectedKabTinggalId.value = '';
+    selectedKecTinggalId.value = '';
+    selectedDesTinggalId.value = '';
+    form.kabupaten_tinggal = '';
+    form.kecamatan_tinggal = '';
+    form.desa_tinggal = '';
+    regenciesTinggal.value = [];
+    districtsTinggal.value = [];
+    villagesTinggal.value = [];
+
+    if (selectedProvTinggalId.value) {
+        loadingTinggal.value.kab = true;
+        regenciesTinggal.value = await getRegencies(selectedProvTinggalId.value);
+        loadingTinggal.value.kab = false;
+    }
+}
+
+async function onKabupatenTinggalChange() {
+    const kab = regenciesTinggal.value.find((k) => k.id === selectedKabTinggalId.value);
+    form.kabupaten_tinggal = kab ? kab.name : '';
+
+    selectedKecTinggalId.value = '';
+    selectedDesTinggalId.value = '';
+    form.kecamatan_tinggal = '';
+    form.desa_tinggal = '';
+    districtsTinggal.value = [];
+    villagesTinggal.value = [];
+
+    if (selectedKabTinggalId.value) {
+        loadingTinggal.value.kec = true;
+        districtsTinggal.value = await getDistricts(selectedKabTinggalId.value);
+        loadingTinggal.value.kec = false;
+    }
+}
+
+async function onKecamatanTinggalChange() {
+    const kec = districtsTinggal.value.find((d) => d.id === selectedKecTinggalId.value);
+    form.kecamatan_tinggal = kec ? kec.name : '';
+
+    selectedDesTinggalId.value = '';
+    form.desa_tinggal = '';
+    villagesTinggal.value = [];
+
+    if (selectedKecTinggalId.value) {
+        loadingTinggal.value.des = true;
+        villagesTinggal.value = await getVillages(selectedKecTinggalId.value);
+        loadingTinggal.value.des = false;
+    }
+}
+
+function onDesaTinggalChange() {
+    const des = villagesTinggal.value.find((v) => v.id === selectedDesTinggalId.value);
+    form.desa_tinggal = des ? des.name : '';
+}
+
+onMounted(async () => {
     initFormFromProps();
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('edit') === 'true') {
         isEditing.value = true;
     }
+    await initWilayahFromForm();
 });
 
 function startEdit() {
     initFormFromProps();
     form.clearErrors();
     isEditing.value = true;
+    initWilayahFromForm();
 }
 
 function cancelEdit() {
     initFormFromProps();
     form.clearErrors();
     isEditing.value = false;
+    initWilayahFromForm();
 }
 
 function saveChanges() {
@@ -223,6 +456,15 @@ function copyDomisiliToTinggal() {
     form.kecamatan_tinggal = form.kecamatan_domisili;
     form.kabupaten_tinggal = form.kab_domisili;
     form.provinsi_tinggal = form.provinsi_domisili;
+
+    // Sync cascading dropdown state
+    selectedProvTinggalId.value = selectedProvDomisiliId.value;
+    regenciesTinggal.value = [...regenciesDomisili.value];
+    selectedKabTinggalId.value = selectedKabDomisiliId.value;
+    districtsTinggal.value = [...districtsDomisili.value];
+    selectedKecTinggalId.value = selectedKecDomisiliId.value;
+    villagesTinggal.value = [...villagesDomisili.value];
+    selectedDesTinggalId.value = selectedDesDomisiliId.value;
 }
 
 function addEducationRow() {
@@ -1214,16 +1456,137 @@ function deleteDocument(doc) {
                             </div>
 
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                                <div class="md:col-span-2">
-                                    <label class="block text-xs font-semibold text-on-surface-variant mb-1">Jalan Domisili</label>
+                                <!-- 1. Provinsi -->
+                                <div>
+                                    <div class="flex items-center justify-between mb-1">
+                                        <label class="block text-xs font-semibold text-on-surface-variant">Provinsi</label>
+                                        <span v-if="loadingDomisili.prov" class="text-[11px] text-primary flex items-center gap-1 font-medium">
+                                            <span class="material-symbols-outlined text-[13px] animate-spin">sync</span>
+                                            Memuat...
+                                        </span>
+                                    </div>
+                                    <select
+                                        v-model="selectedProvDomisiliId"
+                                        @change="onProvinsiDomisiliChange"
+                                        class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
+                                        :class="{ 'border-error': form.errors.provinsi_domisili }"
+                                    >
+                                        <option value="">-- Pilih Provinsi --</option>
+                                        <option v-for="prov in provincesList" :key="prov.id" :value="prov.id">
+                                            {{ prov.name }}
+                                        </option>
+                                        <option
+                                            v-if="form.provinsi_domisili && !provincesList.some(p => p.id === selectedProvDomisiliId)"
+                                            :value="selectedProvDomisiliId || form.provinsi_domisili"
+                                        >
+                                            {{ form.provinsi_domisili }}
+                                        </option>
+                                    </select>
+                                    <div v-if="form.errors.provinsi_domisili" class="text-error text-xs mt-1">{{ form.errors.provinsi_domisili }}</div>
+                                </div>
+
+                                <!-- 2. Kabupaten / Kota -->
+                                <div>
+                                    <div class="flex items-center justify-between mb-1">
+                                        <label class="block text-xs font-semibold text-on-surface-variant">Kabupaten / Kota</label>
+                                        <span v-if="loadingDomisili.kab" class="text-[11px] text-primary flex items-center gap-1 font-medium">
+                                            <span class="material-symbols-outlined text-[13px] animate-spin">sync</span>
+                                            Memuat...
+                                        </span>
+                                    </div>
+                                    <select
+                                        v-model="selectedKabDomisiliId"
+                                        @change="onKabupatenDomisiliChange"
+                                        :disabled="!selectedProvDomisiliId || loadingDomisili.kab"
+                                        class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+                                        :class="{ 'border-error': form.errors.kab_domisili }"
+                                    >
+                                        <option value="">{{ !selectedProvDomisiliId ? '-- Pilih Provinsi Terlebih Dahulu --' : '-- Pilih Kabupaten / Kota --' }}</option>
+                                        <option v-for="kab in regenciesDomisili" :key="kab.id" :value="kab.id">
+                                            {{ kab.name }}
+                                        </option>
+                                        <option
+                                            v-if="form.kab_domisili && !regenciesDomisili.some(k => k.id === selectedKabDomisiliId)"
+                                            :value="selectedKabDomisiliId || form.kab_domisili"
+                                        >
+                                            {{ form.kab_domisili }}
+                                        </option>
+                                    </select>
+                                    <div v-if="form.errors.kab_domisili" class="text-error text-xs mt-1">{{ form.errors.kab_domisili }}</div>
+                                </div>
+
+                                <!-- 3. Kecamatan -->
+                                <div>
+                                    <div class="flex items-center justify-between mb-1">
+                                        <label class="block text-xs font-semibold text-on-surface-variant">Kecamatan</label>
+                                        <span v-if="loadingDomisili.kec" class="text-[11px] text-primary flex items-center gap-1 font-medium">
+                                            <span class="material-symbols-outlined text-[13px] animate-spin">sync</span>
+                                            Memuat...
+                                        </span>
+                                    </div>
+                                    <select
+                                        v-model="selectedKecDomisiliId"
+                                        @change="onKecamatanDomisiliChange"
+                                        :disabled="!selectedKabDomisiliId || loadingDomisili.kec"
+                                        class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+                                        :class="{ 'border-error': form.errors.kecamatan_domisili }"
+                                    >
+                                        <option value="">{{ !selectedKabDomisiliId ? '-- Pilih Kab/Kota Terlebih Dahulu --' : '-- Pilih Kecamatan --' }}</option>
+                                        <option v-for="kec in districtsDomisili" :key="kec.id" :value="kec.id">
+                                            {{ kec.name }}
+                                        </option>
+                                        <option
+                                            v-if="form.kecamatan_domisili && !districtsDomisili.some(k => k.id === selectedKecDomisiliId)"
+                                            :value="selectedKecDomisiliId || form.kecamatan_domisili"
+                                        >
+                                            {{ form.kecamatan_domisili }}
+                                        </option>
+                                    </select>
+                                    <div v-if="form.errors.kecamatan_domisili" class="text-error text-xs mt-1">{{ form.errors.kecamatan_domisili }}</div>
+                                </div>
+
+                                <!-- 4. Desa / Kelurahan -->
+                                <div>
+                                    <div class="flex items-center justify-between mb-1">
+                                        <label class="block text-xs font-semibold text-on-surface-variant">Desa / Kelurahan</label>
+                                        <span v-if="loadingDomisili.des" class="text-[11px] text-primary flex items-center gap-1 font-medium">
+                                            <span class="material-symbols-outlined text-[13px] animate-spin">sync</span>
+                                            Memuat...
+                                        </span>
+                                    </div>
+                                    <select
+                                        v-model="selectedDesDomisiliId"
+                                        @change="onDesaDomisiliChange"
+                                        :disabled="!selectedKecDomisiliId || loadingDomisili.des"
+                                        class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+                                        :class="{ 'border-error': form.errors.desa_domisili }"
+                                    >
+                                        <option value="">{{ !selectedKecDomisiliId ? '-- Pilih Kecamatan Terlebih Dahulu --' : '-- Pilih Desa / Kelurahan --' }}</option>
+                                        <option v-for="des in villagesDomisili" :key="des.id" :value="des.id">
+                                            {{ des.name }}
+                                        </option>
+                                        <option
+                                            v-if="form.desa_domisili && !villagesDomisili.some(d => d.id === selectedDesDomisiliId)"
+                                            :value="selectedDesDomisiliId || form.desa_domisili"
+                                        >
+                                            {{ form.desa_domisili }}
+                                        </option>
+                                    </select>
+                                    <div v-if="form.errors.desa_domisili" class="text-error text-xs mt-1">{{ form.errors.desa_domisili }}</div>
+                                </div>
+
+                                <!-- 5. Dusun -->
+                                <div>
+                                    <label class="block text-xs font-semibold text-on-surface-variant mb-1">Dusun / Dukuh</label>
                                     <input
-                                        v-model="form.jalan_domisili"
+                                        v-model="form.dusun_domisili"
                                         type="text"
-                                        placeholder="Nama jalan, nomor rumah / blok"
+                                        placeholder="Nama dusun / dukuh / kampung"
                                         class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                                     />
                                 </div>
 
+                                <!-- 6. RT / RW -->
                                 <div>
                                     <label class="block text-xs font-semibold text-on-surface-variant mb-1">RT / RW</label>
                                     <input
@@ -1234,52 +1597,13 @@ function deleteDocument(doc) {
                                     />
                                 </div>
 
-                                <div>
-                                    <label class="block text-xs font-semibold text-on-surface-variant mb-1">Dusun</label>
+                                <!-- 7. Jalan Domisili (span 2) -->
+                                <div class="md:col-span-2">
+                                    <label class="block text-xs font-semibold text-on-surface-variant mb-1">Jalan / Alamat Tambahan</label>
                                     <input
-                                        v-model="form.dusun_domisili"
+                                        v-model="form.jalan_domisili"
                                         type="text"
-                                        placeholder="Nama dusun / kampung"
-                                        class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label class="block text-xs font-semibold text-on-surface-variant mb-1">Desa / Kelurahan</label>
-                                    <input
-                                        v-model="form.desa_domisili"
-                                        type="text"
-                                        placeholder="Desa / Kelurahan"
-                                        class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label class="block text-xs font-semibold text-on-surface-variant mb-1">Kecamatan</label>
-                                    <input
-                                        v-model="form.kecamatan_domisili"
-                                        type="text"
-                                        placeholder="Kecamatan"
-                                        class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label class="block text-xs font-semibold text-on-surface-variant mb-1">Kabupaten / Kota</label>
-                                    <input
-                                        v-model="form.kab_domisili"
-                                        type="text"
-                                        placeholder="Kabupaten / Kota"
-                                        class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label class="block text-xs font-semibold text-on-surface-variant mb-1">Provinsi</label>
-                                    <input
-                                        v-model="form.provinsi_domisili"
-                                        type="text"
-                                        placeholder="Provinsi"
+                                        placeholder="Nama jalan, nomor rumah / blok / gang"
                                         class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                                     />
                                 </div>
@@ -1304,16 +1628,137 @@ function deleteDocument(doc) {
                             </div>
 
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                                <div class="md:col-span-2">
-                                    <label class="block text-xs font-semibold text-on-surface-variant mb-1">Jalan Tinggal</label>
+                                <!-- 1. Provinsi -->
+                                <div>
+                                    <div class="flex items-center justify-between mb-1">
+                                        <label class="block text-xs font-semibold text-on-surface-variant">Provinsi</label>
+                                        <span v-if="loadingTinggal.prov" class="text-[11px] text-primary flex items-center gap-1 font-medium">
+                                            <span class="material-symbols-outlined text-[13px] animate-spin">sync</span>
+                                            Memuat...
+                                        </span>
+                                    </div>
+                                    <select
+                                        v-model="selectedProvTinggalId"
+                                        @change="onProvinsiTinggalChange"
+                                        class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
+                                        :class="{ 'border-error': form.errors.provinsi_tinggal }"
+                                    >
+                                        <option value="">-- Pilih Provinsi --</option>
+                                        <option v-for="prov in provincesList" :key="prov.id" :value="prov.id">
+                                            {{ prov.name }}
+                                        </option>
+                                        <option
+                                            v-if="form.provinsi_tinggal && !provincesList.some(p => p.id === selectedProvTinggalId)"
+                                            :value="selectedProvTinggalId || form.provinsi_tinggal"
+                                        >
+                                            {{ form.provinsi_tinggal }}
+                                        </option>
+                                    </select>
+                                    <div v-if="form.errors.provinsi_tinggal" class="text-error text-xs mt-1">{{ form.errors.provinsi_tinggal }}</div>
+                                </div>
+
+                                <!-- 2. Kabupaten / Kota -->
+                                <div>
+                                    <div class="flex items-center justify-between mb-1">
+                                        <label class="block text-xs font-semibold text-on-surface-variant">Kabupaten / Kota</label>
+                                        <span v-if="loadingTinggal.kab" class="text-[11px] text-primary flex items-center gap-1 font-medium">
+                                            <span class="material-symbols-outlined text-[13px] animate-spin">sync</span>
+                                            Memuat...
+                                        </span>
+                                    </div>
+                                    <select
+                                        v-model="selectedKabTinggalId"
+                                        @change="onKabupatenTinggalChange"
+                                        :disabled="!selectedProvTinggalId || loadingTinggal.kab"
+                                        class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+                                        :class="{ 'border-error': form.errors.kabupaten_tinggal }"
+                                    >
+                                        <option value="">{{ !selectedProvTinggalId ? '-- Pilih Provinsi Terlebih Dahulu --' : '-- Pilih Kabupaten / Kota --' }}</option>
+                                        <option v-for="kab in regenciesTinggal" :key="kab.id" :value="kab.id">
+                                            {{ kab.name }}
+                                        </option>
+                                        <option
+                                            v-if="form.kabupaten_tinggal && !regenciesTinggal.some(k => k.id === selectedKabTinggalId)"
+                                            :value="selectedKabTinggalId || form.kabupaten_tinggal"
+                                        >
+                                            {{ form.kabupaten_tinggal }}
+                                        </option>
+                                    </select>
+                                    <div v-if="form.errors.kabupaten_tinggal" class="text-error text-xs mt-1">{{ form.errors.kabupaten_tinggal }}</div>
+                                </div>
+
+                                <!-- 3. Kecamatan -->
+                                <div>
+                                    <div class="flex items-center justify-between mb-1">
+                                        <label class="block text-xs font-semibold text-on-surface-variant">Kecamatan</label>
+                                        <span v-if="loadingTinggal.kec" class="text-[11px] text-primary flex items-center gap-1 font-medium">
+                                            <span class="material-symbols-outlined text-[13px] animate-spin">sync</span>
+                                            Memuat...
+                                        </span>
+                                    </div>
+                                    <select
+                                        v-model="selectedKecTinggalId"
+                                        @change="onKecamatanTinggalChange"
+                                        :disabled="!selectedKabTinggalId || loadingTinggal.kec"
+                                        class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+                                        :class="{ 'border-error': form.errors.kecamatan_tinggal }"
+                                    >
+                                        <option value="">{{ !selectedKabTinggalId ? '-- Pilih Kab/Kota Terlebih Dahulu --' : '-- Pilih Kecamatan --' }}</option>
+                                        <option v-for="kec in districtsTinggal" :key="kec.id" :value="kec.id">
+                                            {{ kec.name }}
+                                        </option>
+                                        <option
+                                            v-if="form.kecamatan_tinggal && !districtsTinggal.some(k => k.id === selectedKecTinggalId)"
+                                            :value="selectedKecTinggalId || form.kecamatan_tinggal"
+                                        >
+                                            {{ form.kecamatan_tinggal }}
+                                        </option>
+                                    </select>
+                                    <div v-if="form.errors.kecamatan_tinggal" class="text-error text-xs mt-1">{{ form.errors.kecamatan_tinggal }}</div>
+                                </div>
+
+                                <!-- 4. Desa / Kelurahan -->
+                                <div>
+                                    <div class="flex items-center justify-between mb-1">
+                                        <label class="block text-xs font-semibold text-on-surface-variant">Desa / Kelurahan</label>
+                                        <span v-if="loadingTinggal.des" class="text-[11px] text-primary flex items-center gap-1 font-medium">
+                                            <span class="material-symbols-outlined text-[13px] animate-spin">sync</span>
+                                            Memuat...
+                                        </span>
+                                    </div>
+                                    <select
+                                        v-model="selectedDesTinggalId"
+                                        @change="onDesaTinggalChange"
+                                        :disabled="!selectedKecTinggalId || loadingTinggal.des"
+                                        class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+                                        :class="{ 'border-error': form.errors.desa_tinggal }"
+                                    >
+                                        <option value="">{{ !selectedKecTinggalId ? '-- Pilih Kecamatan Terlebih Dahulu --' : '-- Pilih Desa / Kelurahan --' }}</option>
+                                        <option v-for="des in villagesTinggal" :key="des.id" :value="des.id">
+                                            {{ des.name }}
+                                        </option>
+                                        <option
+                                            v-if="form.desa_tinggal && !villagesTinggal.some(d => d.id === selectedDesTinggalId)"
+                                            :value="selectedDesTinggalId || form.desa_tinggal"
+                                        >
+                                            {{ form.desa_tinggal }}
+                                        </option>
+                                    </select>
+                                    <div v-if="form.errors.desa_tinggal" class="text-error text-xs mt-1">{{ form.errors.desa_tinggal }}</div>
+                                </div>
+
+                                <!-- 5. Dusun -->
+                                <div>
+                                    <label class="block text-xs font-semibold text-on-surface-variant mb-1">Dusun / Dukuh</label>
                                     <input
-                                        v-model="form.jalan_tinggal"
+                                        v-model="form.dusun_tinggal"
                                         type="text"
-                                        placeholder="Nama jalan, nomor rumah / kontrakan"
+                                        placeholder="Nama dusun / dukuh / kampung"
                                         class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                                     />
                                 </div>
 
+                                <!-- 6. RT / RW -->
                                 <div>
                                     <label class="block text-xs font-semibold text-on-surface-variant mb-1">RT / RW</label>
                                     <input
@@ -1324,57 +1769,19 @@ function deleteDocument(doc) {
                                     />
                                 </div>
 
+                                <!-- 7. Jalan Tinggal -->
                                 <div>
-                                    <label class="block text-xs font-semibold text-on-surface-variant mb-1">Dusun</label>
+                                    <label class="block text-xs font-semibold text-on-surface-variant mb-1">Jalan / Alamat Tambahan</label>
                                     <input
-                                        v-model="form.dusun_tinggal"
+                                        v-model="form.jalan_tinggal"
                                         type="text"
-                                        placeholder="Nama dusun / kampung"
+                                        placeholder="Nama jalan, nomor rumah / kontrakan"
                                         class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                                     />
                                 </div>
 
+                                <!-- 8. Status Kepemilikan Rumah -->
                                 <div>
-                                    <label class="block text-xs font-semibold text-on-surface-variant mb-1">Desa / Kelurahan</label>
-                                    <input
-                                        v-model="form.desa_tinggal"
-                                        type="text"
-                                        placeholder="Desa / Kelurahan"
-                                        class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label class="block text-xs font-semibold text-on-surface-variant mb-1">Kecamatan</label>
-                                    <input
-                                        v-model="form.kecamatan_tinggal"
-                                        type="text"
-                                        placeholder="Kecamatan"
-                                        class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label class="block text-xs font-semibold text-on-surface-variant mb-1">Kabupaten / Kota</label>
-                                    <input
-                                        v-model="form.kabupaten_tinggal"
-                                        type="text"
-                                        placeholder="Kabupaten / Kota"
-                                        class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label class="block text-xs font-semibold text-on-surface-variant mb-1">Provinsi</label>
-                                    <input
-                                        v-model="form.provinsi_tinggal"
-                                        type="text"
-                                        placeholder="Provinsi"
-                                        class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                                    />
-                                </div>
-
-                                <div class="md:col-span-2">
                                     <label class="block text-xs font-semibold text-on-surface-variant mb-1">Status Kepemilikan Rumah</label>
                                     <select
                                         v-model="form.status_rumah"
