@@ -6,6 +6,7 @@ import StudentToolbar from '@/Components/Students/StudentToolbar.vue';
 import StudentTable from '@/Components/Students/StudentTable.vue';
 import StudentImportModal from '@/Components/Students/StudentImportModal.vue';
 import StudentPhotoUploadModal from '@/Components/Students/StudentPhotoUploadModal.vue';
+import EditDataButton from '@/Components/Shared/EditDataButton.vue';
 
 defineOptions({
     layout: AppLayout,
@@ -292,17 +293,11 @@ function unitStudentCount(unitId) {
             <div class="flex items-center gap-3 shrink-0 relative z-30">
                 <!-- Edit Data Dropdown -->
                 <div class="relative">
-                    <button
-                        type="button"
+                    <EditDataButton
+                        :is-dropdown="true"
+                        :is-open="showEditDropdown"
                         @click="showEditDropdown = !showEditDropdown"
-                        class="inline-flex items-center justify-between gap-2 px-3 py-1.5 sm:px-4 sm:py-2.5 rounded-lg sm:rounded-xl border border-amber-500 text-amber-700 bg-amber-50 hover:bg-amber-100 active:bg-amber-200 font-semibold text-[11px] sm:text-sm transition-all shadow-2xs hover:shadow-sm"
-                    >
-                        <div class="flex items-center gap-1.5">
-                            <span class="material-symbols-outlined text-[16px] sm:text-[18px]">edit</span>
-                            <span>Edit Data</span>
-                        </div>
-                        <span class="material-symbols-outlined text-[16px] sm:text-[18px] transition-transform duration-200" :class="{ 'rotate-180': showEditDropdown }">expand_more</span>
-                    </button>
+                    />
 
                     <!-- Overlay -->
                     <div v-if="showEditDropdown" @click="showEditDropdown = false" class="fixed inset-0 z-40"></div>

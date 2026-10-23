@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { Head, Link, usePage, useForm, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import EditDataButton from '@/Components/Shared/EditDataButton.vue';
 
 defineOptions({
     layout: AppLayout,
@@ -750,17 +751,12 @@ function deleteDocument(doc) {
 
                 <!-- Action Buttons in Header -->
                 <div class="flex items-center gap-2 self-start sm:self-auto shrink-0">
-                    <!-- View Mode: Edit Data Button (Kuning Sesuai Tema Web) -->
-                    <button
+                    <!-- View Mode: Edit Data Button (Reusable Component dari Database Siswa) -->
+                    <EditDataButton
                         v-if="!isEditing"
-                        type="button"
                         @click="startEdit"
-                        class="inline-flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-emerald-950 font-bold text-xs sm:text-sm transition-all shadow-xs hover:shadow-md cursor-pointer border border-amber-300"
                         title="Edit data pegawai ini langsung di tab"
-                    >
-                        <span class="material-symbols-outlined text-[18px]">edit_square</span>
-                        <span>Edit Data</span>
-                    </button>
+                    />
 
                     <!-- Edit Mode: Batal & Simpan Perubahan Buttons (Hijau Tema Web) -->
                     <div v-else class="flex items-center gap-2">
