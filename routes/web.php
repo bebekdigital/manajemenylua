@@ -16,6 +16,7 @@ use App\Http\Controllers\StatisticsController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\StudentMappingController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\WilayahController;
 use App\Models\StudentAcademicRecord;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -107,6 +108,14 @@ Route::middleware('auth')->group(function () {
     Route::get('/staff/{id}/documents/{documentId}/preview', [EmployeeDocumentController::class, 'preview'])->name('staff.documents.preview');
     Route::get('/staff/{id}/documents/{documentId}/download', [EmployeeDocumentController::class, 'download'])->name('staff.documents.download');
     Route::delete('/staff/{id}/documents/{documentId}', [EmployeeDocumentController::class, 'destroy'])->name('staff.documents.destroy');
+
+    // Wilayah Indonesia (Proxy & Caching)
+    Route::prefix('api/wilayah')->name('api.wilayah.')->group(function () {
+        Route::get('/provinces', [WilayahController::class, 'provinces'])->name('provinces');
+        Route::get('/regencies/{provinceId}', [WilayahController::class, 'regencies'])->name('regencies');
+        Route::get('/districts/{regencyId}', [WilayahController::class, 'districts'])->name('districts');
+        Route::get('/villages/{districtId}', [WilayahController::class, 'villages'])->name('villages');
+    });
 
     // Administrasi & Cetak Berkas Siswa
     Route::get('/administration', [AdministrationController::class, 'index'])->name('administration.index');
