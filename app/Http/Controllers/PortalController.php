@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\AcademicYear;
 use App\Models\Department;
 use App\Models\Employee;
+use App\Models\RolePermission;
 use App\Models\SchoolLevel;
 use App\Models\SchoolPosition;
 use App\Models\User;
@@ -91,6 +92,14 @@ class PortalController extends Controller
                 })
             : collect([]);
 
+        $primaryRoles = ['superadmin', 'Kepala Bidang SDM', 'Guru'];
+        $permissionsData = [];
+        if (Schema::hasTable('role_permissions')) {
+            foreach ($primaryRoles as $r) {
+                $permissionsData[$r] = RolePermission::getPermissionsMatrix($r);
+            }
+        }
+
         return Inertia::render('Portal', [
             'academicYears' => $academicYears,
             'users' => $users,
@@ -101,6 +110,8 @@ class PortalController extends Controller
             'schoolRoles' => $schoolRoles,
             'deptRoles' => $deptRoles,
             'employees' => $employees,
+            'permissionsData' => $permissionsData,
+            'primaryRoles' => $primaryRoles,
         ]);
     }
 }

@@ -12,6 +12,7 @@ import DepartmentFormModal from '@/Components/Portal/DepartmentFormModal.vue';
 import DepartmentPositionFormModal from '@/Components/Portal/DepartmentPositionFormModal.vue';
 import SchoolPositionFormModal from '@/Components/Portal/SchoolPositionFormModal.vue';
 import GenerateUserModal from '@/Components/Portal/GenerateUserModal.vue';
+import RolePermissionPanel from '@/Components/Portal/RolePermissionPanel.vue';
 import SuccessModal from '@/Components/Shared/SuccessModal.vue';
 import ConfirmDeleteModal from '@/Components/Shared/ConfirmDeleteModal.vue';
 
@@ -60,6 +61,14 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    permissionsData: {
+        type: Object,
+        default: () => ({}),
+    },
+    primaryRoles: {
+        type: Array,
+        default: () => ['superadmin', 'Kepala Bidang SDM', 'Guru'],
+    },
 });
 
 const page = usePage();
@@ -72,6 +81,7 @@ const tabs = computed(() => {
     ];
     if (page.props.auth?.user?.role === 'superadmin') {
         list.push({ id: 'pengguna', label: 'Pengguna', icon: 'manage_accounts' });
+        list.push({ id: 'hak_akses', label: 'Hak Akses', icon: 'shield_person' });
     }
     return list;
 });
@@ -502,6 +512,12 @@ function closeGenerateUserModal() {
 
 function onGenerateUserSuccess() {
     closeGenerateUserModal();
+    dismissedFlash.value = false;
+}
+
+function onRolePermissionSaved(message) {
+    successMessage.value = message || 'Hak akses berhasil disimpan.';
+    showSuccessModal.value = true;
     dismissedFlash.value = false;
 }
 
@@ -1149,6 +1165,16 @@ function formatDate(dateStr) {
                 </table>
             </div>
         </div>
+        </div>
+
+        <!-- Tab Content: Hak Akses -->
+        <div v-show="activeTab === 'hak_akses'" class="space-y-8 animate-in fade-in duration-300">
+            <RolePermissionPanel
+                :permissions-data="permissionsData"
+                :primary-roles="primaryRoles"
+                :available-roles="availableRoles"
+                @saved="onRolePermissionSaved"
+            />
         </div>
     </div>
 

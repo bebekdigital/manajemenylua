@@ -11,6 +11,7 @@ use App\Http\Controllers\EmployeeDocumentController;
 use App\Http\Controllers\PembelajaranController;
 use App\Http\Controllers\PortalController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\RolePermissionController;
 use App\Http\Controllers\SchoolClassController;
 use App\Http\Controllers\SchoolLevelController;
 use App\Http\Controllers\SchoolPositionController;
@@ -182,6 +183,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/portal/users', [UserController::class, 'store'])->name('portal.users.store');
     Route::put('/portal/users/{user}', [UserController::class, 'update'])->name('portal.users.update');
     Route::delete('/portal/users/{user}', [UserController::class, 'destroy'])->name('portal.users.destroy');
+
+    // Portal Management - Role Permissions (Hak Akses)
+    Route::get('/portal/permissions/matrix', [RolePermissionController::class, 'getMatrix'])->name('portal.permissions.matrix');
+    Route::post('/portal/permissions', [RolePermissionController::class, 'update'])->name('portal.permissions.update');
 
     // Portal Management - School Levels and Units
     Route::post('/portal/school-levels', [SchoolLevelController::class, 'store'])->name('portal.school-levels.store');

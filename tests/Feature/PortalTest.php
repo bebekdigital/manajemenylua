@@ -136,4 +136,62 @@ class PortalTest extends TestCase
             'role' => 'Kepala Sekolah',
         ]);
     }
+
+    public function test_superadmin_can_get_permissions_matrix(): void
+    {
+        $superadmin = User::factory()->create([
+            'role' => 'superadmin',
+        ]);
+
+        $response = $this->actingAs($superadmin)->get(route('portal.permissions.matrix', ['role' => 'Kepala Bidang SDM']));
+
+        $response->assertStatus(200);
+        $response->assertJsonPath('role', 'Kepala Bidang SDM');
+        $response->assertJsonStructure(['role', 'matrix']);
+    }
+
+    public function test_superadmin_can_update_role_permissions(): void
+    {
+        $superadmin = User::factory()->create([
+            'role' => 'superadmin',
+        ]);
+
+        $response = $this->actingAs($superadmin)->post(route('portal.permissions.update'), [
+            'role' => 'Guru',
+            'permissions' => [
+                [
+                    'group' => 'database_students',
+                    'name' => 'Data Siswa',
+                    'can_view' => true,
+                    'can_create' => true,
+                    'can_update' => false,
+                    'can_delete' => false,
+                    'can_export' => true,
+                    'can_import' => false,
+                ],
+            ],
+        ]);
+
+        $response->assertSessionHas('success');
+        $this->assertDatabaseHas('role_permissions', [
+            'role' => 'Guru',
+            'feature_group' => 'database_students',
+            'can_create' => 1,
+            'can_update' => 0,
+        ]);
+    }
+
+    public function test_non_superadmin_cannot_update_role_permissions(): void
+    {
+        $guru = User::factory()->create([
+            'role' => 'Guru',
+        ]);
+
+        $response = $this->actingAs($guru)->post(route('portal.permissions.update'), [
+            'role' => 'Guru',
+            'permissions' => [],
+        ]);
+
+        $response->assertStatus(403);
+    }
 }
