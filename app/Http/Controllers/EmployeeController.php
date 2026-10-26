@@ -29,17 +29,31 @@ class EmployeeController extends Controller
      */
     public function index(Request $request): Response
     {
+        $user = auth()->user();
+        $isTeacher = $user?->isTeacher() ?? false;
+        $myEmployee = $isTeacher ? $user?->employeeProfile() : null;
+
         $selectedYearId = $request->query('academic_year_id') ?? session('selected_academic_year_id');
         $selectedYear = $selectedYearId
             ? AcademicYear::find($selectedYearId)
             : (AcademicYear::current() ?? AcademicYear::first());
 
-        $employees = Employee::with([
+        $query = Employee::with([
             'records',
             'positions',
             'educationHistories',
-        ])
-            ->orderBy('nama')
+        ])->orderBy('nama');
+
+        // Batasi akses: Role Guru hanya bisa melihat data pegawai atas nama dia sendiri
+        if ($isTeacher) {
+            if ($myEmployee) {
+                $query->where('id', $myEmployee->id);
+            } else {
+                $query->whereRaw('1 = 0');
+            }
+        }
+
+        $employees = $query
             ->get()
             ->map(function (Employee $employee) {
                 return $this->mapEmployeeForList($employee);
@@ -47,6 +61,11 @@ class EmployeeController extends Controller
 
         return Inertia::render('Staff', [
             'employees' => $employees,
+            'isTeacher' => $isTeacher,
+            'teacherEmployee' => $myEmployee ? [
+                'id' => $myEmployee->id,
+                'nama' => $myEmployee->nama_lengkap_gelar ?: $myEmployee->nama,
+            ] : null,
             'selectedAcademicYear' => $selectedYear ? [
                 'id' => $selectedYear->id,
                 'name' => $selectedYear->name,
@@ -60,6 +79,14 @@ class EmployeeController extends Controller
      */
     public function show(string $id, Request $request): Response
     {
+        $user = auth()->user();
+        if ($user?->isTeacher()) {
+            $myEmployee = $user->employeeProfile();
+            if (! $myEmployee || (string) $myEmployee->id !== (string) $id) {
+                abort(403, 'Akses ditolak: Sebagai Guru, Anda hanya dapat melihat data profil pegawai atas nama Anda sendiri.');
+            }
+        }
+
         $selectedYearId = $request->query('academic_year_id') ?? session('selected_academic_year_id');
         $selectedYear = $selectedYearId
             ? AcademicYear::find($selectedYearId)
@@ -259,6 +286,14 @@ class EmployeeController extends Controller
      */
     public function update(Request $request, string $id): RedirectResponse
     {
+        $user = auth()->user();
+        if ($user?->isTeacher()) {
+            $myEmployee = $user->employeeProfile();
+            if (! $myEmployee || (string) $myEmployee->id !== (string) $id) {
+                abort(403, 'Akses ditolak: Sebagai Guru, Anda hanya dapat mengubah data profil pegawai atas nama Anda sendiri.');
+            }
+        }
+
         $employee = Employee::findOrFail($id);
 
         $validated = $request->validate([
@@ -529,6 +564,10 @@ class EmployeeController extends Controller
      */
     public function import(Request $request, EmployeeImportService $importService): RedirectResponse
     {
+        if (auth()->user()?->isTeacher()) {
+            abort(403, 'Akses ditolak: Role Guru tidak memiliki izin untuk mengimpor data pegawai.');
+        }
+
         $request->validate([
             'file' => ['required', 'file', 'mimes:xlsx,xls', 'max:10240'],
         ], [
@@ -555,6 +594,10 @@ class EmployeeController extends Controller
      */
     public function downloadTemplate(): BinaryFileResponse
     {
+        if (auth()->user()?->isTeacher()) {
+            abort(403, 'Akses ditolak: Role Guru tidak memiliki izin untuk mengunduh template data pegawai.');
+        }
+
         $spreadsheet = $this->buildTemplate();
 
         $tmpFile = tempnam(sys_get_temp_dir(), 'employee_template_');

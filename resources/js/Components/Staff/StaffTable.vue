@@ -83,33 +83,33 @@ function getJenjangColor(jenjang) {
 <template>
     <div class="bg-surface-container-lowest rounded-xl border border-primary/10 shadow-[0px_4px_20px_rgba(0,40,20,0.08)] overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
+            <table class="w-full text-left border-collapse border border-outline-variant/60">
                 <thead>
-                    <tr class="border-b border-emerald-700 bg-emerald-600">
-                        <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider w-10 sm:w-12">No</th>
-                        <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">Nama Lengkap</th>
-                        <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">NIPY</th>
-                        <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider w-10 sm:w-14">JK</th>
-                        <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">TTL</th>
-                        <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">Unit</th>
-                        <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">Jabatan</th>
-                        <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">Jenjang</th>
-                        <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">Status</th>
-                        <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">No WA</th>
+                    <tr class="bg-emerald-600 text-white">
+                        <th class="border border-emerald-700/80 p-2.5 sm:p-3.5 text-[12px] sm:text-sm font-semibold uppercase tracking-wider w-10 sm:w-12 text-center">No</th>
+                        <th class="border border-emerald-700/80 p-2.5 sm:p-3.5 text-[12px] sm:text-sm font-semibold uppercase tracking-wider">Nama Lengkap</th>
+                        <th class="border border-emerald-700/80 p-2.5 sm:p-3.5 text-[12px] sm:text-sm font-semibold uppercase tracking-wider">NIPY</th>
+                        <th class="border border-emerald-700/80 p-2.5 sm:p-3.5 text-[12px] sm:text-sm font-semibold uppercase tracking-wider w-10 sm:w-14 text-center">JK</th>
+                        <th class="border border-emerald-700/80 p-2.5 sm:p-3.5 text-[12px] sm:text-sm font-semibold uppercase tracking-wider">TTL</th>
+                        <th class="border border-emerald-700/80 p-2.5 sm:p-3.5 text-[12px] sm:text-sm font-semibold uppercase tracking-wider">Unit</th>
+                        <th class="border border-emerald-700/80 p-2.5 sm:p-3.5 text-[12px] sm:text-sm font-semibold uppercase tracking-wider">Jabatan</th>
+                        <th class="border border-emerald-700/80 p-2.5 sm:p-3.5 text-[12px] sm:text-sm font-semibold uppercase tracking-wider text-center">Jenjang</th>
+                        <th class="border border-emerald-700/80 p-2.5 sm:p-3.5 text-[12px] sm:text-sm font-semibold uppercase tracking-wider text-center">Status</th>
+                        <th class="border border-emerald-700/80 p-2.5 sm:p-3.5 text-[12px] sm:text-sm font-semibold uppercase tracking-wider">No WA</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-outline-variant/10">
+                <tbody class="divide-y divide-outline-variant/30">
                     <tr
                         v-for="(emp, index) in employees"
                         :key="emp.id"
                         class="hover:bg-surface-container-high/50 transition-colors group"
                     >
                         <!-- No -->
-                        <td class="p-2.5 sm:p-4 text-[12px] sm:text-sm text-on-surface-variant">
+                        <td class="border border-outline-variant/40 p-2.5 sm:p-3.5 text-[12px] sm:text-sm text-on-surface-variant text-center">
                             {{ startEntry + index }}
                         </td>
                         <!-- Nama Lengkap + eye icon -->
-                        <td class="p-2.5 sm:p-4">
+                        <td class="border border-outline-variant/40 p-2.5 sm:p-3.5">
                             <div class="flex items-center gap-2">
                                 <Link
                                     :href="`/staff/${emp.id}`"
@@ -129,27 +129,27 @@ function getJenjangColor(jenjang) {
                             </div>
                         </td>
                         <!-- NIPY -->
-                        <td class="p-2.5 sm:p-4 text-[12px] sm:text-sm text-on-surface-variant font-mono whitespace-nowrap">
+                        <td class="border border-outline-variant/40 p-2.5 sm:p-3.5 text-[12px] sm:text-sm text-on-surface-variant font-mono whitespace-nowrap">
                             {{ emp.nipy || '-' }}
                         </td>
                         <!-- JK -->
-                        <td class="p-2.5 sm:p-4 text-[12px] sm:text-sm text-on-surface text-center">
+                        <td class="border border-outline-variant/40 p-2.5 sm:p-3.5 text-[12px] sm:text-sm text-on-surface text-center">
                             {{ emp.jk || '-' }}
                         </td>
                         <!-- TTL -->
-                        <td class="p-2.5 sm:p-4 text-[12px] sm:text-sm text-on-surface-variant whitespace-nowrap">
+                        <td class="border border-outline-variant/40 p-2.5 sm:p-3.5 text-[12px] sm:text-sm text-on-surface-variant whitespace-nowrap">
                             {{ emp.ttl || '-' }}
                         </td>
                         <!-- Unit -->
-                        <td class="p-2.5 sm:p-4 text-[12px] sm:text-sm text-on-surface-variant whitespace-nowrap">
+                        <td class="border border-outline-variant/40 p-2.5 sm:p-3.5 text-[12px] sm:text-sm text-on-surface-variant whitespace-nowrap">
                             {{ emp.unit_kerja || '-' }}
                         </td>
                         <!-- Jabatan -->
-                        <td class="p-2.5 sm:p-4 text-[12px] sm:text-sm text-on-surface-variant whitespace-nowrap">
+                        <td class="border border-outline-variant/40 p-2.5 sm:p-3.5 text-[12px] sm:text-sm text-on-surface-variant whitespace-nowrap">
                             {{ emp.jabatan || '-' }}
                         </td>
                         <!-- Jenjang Kepegawaian -->
-                        <td class="p-2.5 sm:p-4 text-center">
+                        <td class="border border-outline-variant/40 p-2.5 sm:p-3.5 text-center">
                             <span
                                 v-if="emp.jenjang_kepegawaian"
                                 :class="['inline-flex items-center justify-center px-1.5 py-0.5 sm:px-2 sm:py-0.5 rounded-md text-[11px] sm:text-xs font-semibold', getJenjangColor(emp.jenjang_kepegawaian)]"
@@ -159,7 +159,7 @@ function getJenjangColor(jenjang) {
                             <span v-else class="text-[12px] sm:text-sm text-on-surface-variant">-</span>
                         </td>
                         <!-- Status Keaktifan -->
-                        <td class="p-2.5 sm:p-4 text-center">
+                        <td class="border border-outline-variant/40 p-2.5 sm:p-3.5 text-center">
                             <span
                                 v-if="emp.status_keaktifan"
                                 :class="['inline-flex items-center gap-1 px-1.5 py-0.5 sm:px-2 sm:py-0.5 rounded-full text-[11px] sm:text-xs font-semibold', getStatusColor(emp.status_keaktifan)]"
@@ -170,7 +170,7 @@ function getJenjangColor(jenjang) {
                             <span v-else class="text-[12px] sm:text-sm text-on-surface-variant">-</span>
                         </td>
                         <!-- No WA -->
-                        <td class="p-2.5 sm:p-4 text-[12px] sm:text-sm text-on-surface-variant whitespace-nowrap">
+                        <td class="border border-outline-variant/40 p-2.5 sm:p-3.5 text-[12px] sm:text-sm text-on-surface-variant whitespace-nowrap">
                             {{ emp.no_wa || '-' }}
                         </td>
                     </tr>

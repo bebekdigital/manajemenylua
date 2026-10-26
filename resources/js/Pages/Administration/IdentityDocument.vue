@@ -295,7 +295,7 @@ const clearSelection = () => { selectedStudentIds.value = []; };
                     <!-- Custom Table Header -->
                     <template #thead>
                         <tr class="bg-surface-container-low border-b border-outline-variant text-xs font-bold text-on-surface-variant uppercase tracking-wide">
-                            <th class="p-3 w-12 text-center">
+                            <th class="border border-outline-variant/60 p-3 w-12 text-center">
                                 <input
                                     type="checkbox"
                                     :checked="isAllSelected"
@@ -304,17 +304,17 @@ const clearSelection = () => { selectedStudentIds.value = []; };
                                     class="w-4 h-4 rounded cursor-pointer accent-primary"
                                 />
                             </th>
-                            <th class="py-3 px-3 w-10">No</th>
-                            <th class="py-3 px-3 whitespace-nowrap w-1">Nama Siswa</th>
-                            <th class="py-3 px-3 w-28">Kelas</th>
-                            <th class="py-3 px-3">Unit</th>
-                            <th class="py-3 px-4 text-right w-28">Aksi</th>
+                            <th class="border border-outline-variant/60 py-3 px-3 w-10 text-center">No</th>
+                            <th class="border border-outline-variant/60 py-3 px-3 whitespace-nowrap">Nama Siswa</th>
+                            <th class="border border-outline-variant/60 py-3 px-3 w-28">Kelas</th>
+                            <th class="border border-outline-variant/60 py-3 px-3">Unit</th>
+                            <th class="border border-outline-variant/60 py-3 px-4 text-center w-28">Aksi</th>
                         </tr>
                     </template>
 
                     <!-- Custom Table Row -->
                     <template #row="{ student, index, startEntry }">
-                        <td class="p-3 text-center">
+                        <td class="border border-outline-variant/40 p-3 text-center">
                             <input
                                 type="checkbox"
                                 :checked="isSelected(student.nisn)"
@@ -322,23 +322,23 @@ const clearSelection = () => { selectedStudentIds.value = []; };
                                 class="w-4 h-4 rounded cursor-pointer accent-primary"
                             />
                         </td>
-                        <td class="py-2.5 px-3 text-xs text-on-surface-variant font-mono">
+                        <td class="border border-outline-variant/40 py-2.5 px-3 text-xs text-on-surface-variant font-mono text-center">
                             {{ startEntry + index }}
                         </td>
-                        <td class="py-2.5 px-3 whitespace-nowrap">
+                        <td class="border border-outline-variant/40 py-2.5 px-3 whitespace-nowrap">
                             <button @click="openPreview(student)" class="text-left">
                                 <div class="font-semibold text-on-surface group-hover:text-primary transition-colors cursor-pointer">
                                     {{ student.nama }}
                                 </div>
                             </button>
                         </td>
-                        <td class="py-2.5 px-3">
+                        <td class="border border-outline-variant/40 py-2.5 px-3">
                             <div class="font-medium text-on-surface text-sm">{{ student.kelas || '-' }}</div>
                         </td>
-                        <td class="py-2.5 px-3">
+                        <td class="border border-outline-variant/40 py-2.5 px-3">
                             <div class="text-sm text-on-surface-variant">{{ student.unit || '-' }}</div>
                         </td>
-                        <td class="py-2.5 px-4 text-right">
+                        <td class="border border-outline-variant/40 py-2.5 px-4 text-right">
                             <div class="flex items-center justify-end space-x-1.5">
                                 <button
                                     @click="openPreview(student)"

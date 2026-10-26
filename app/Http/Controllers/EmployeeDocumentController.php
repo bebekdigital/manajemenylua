@@ -18,6 +18,8 @@ class EmployeeDocumentController extends Controller
      */
     public function store(Request $request, string $id): RedirectResponse
     {
+        $this->authorizeEmployeeAccess($id);
+
         $employee = Employee::findOrFail($id);
 
         $validated = $request->validate([
@@ -120,6 +122,8 @@ class EmployeeDocumentController extends Controller
      */
     public function preview(string $id, string $documentId): BinaryFileResponse
     {
+        $this->authorizeEmployeeAccess($id);
+
         $document = EmployeeDocument::where('employee_id', $id)->findOrFail($documentId);
 
         if (! Storage::disk('local')->exists($document->file_path)) {
@@ -139,6 +143,8 @@ class EmployeeDocumentController extends Controller
      */
     public function download(string $id, string $documentId): StreamedResponse
     {
+        $this->authorizeEmployeeAccess($id);
+
         $document = EmployeeDocument::where('employee_id', $id)->findOrFail($documentId);
 
         if (! Storage::disk('local')->exists($document->file_path)) {
@@ -153,6 +159,8 @@ class EmployeeDocumentController extends Controller
      */
     public function destroy(string $id, string $documentId): RedirectResponse
     {
+        $this->authorizeEmployeeAccess($id);
+
         $document = EmployeeDocument::where('employee_id', $id)->findOrFail($documentId);
 
         if (Storage::disk('local')->exists($document->file_path)) {
@@ -163,5 +171,19 @@ class EmployeeDocumentController extends Controller
         $document->delete();
 
         return back()->with('success', "Dokumen {$title} berhasil dihapus.");
+    }
+
+    /**
+     * Authorize that a teacher user can only access their own employee documents.
+     */
+    private function authorizeEmployeeAccess(string $employeeId): void
+    {
+        $user = auth()->user();
+        if ($user?->isTeacher()) {
+            $myEmployee = $user->employeeProfile();
+            if (! $myEmployee || (string) $myEmployee->id !== (string) $employeeId) {
+                abort(403, 'Akses ditolak: Anda hanya memiliki izin mengakses dokumen pegawai atas nama Anda sendiri.');
+            }
+        }
     }
 }

@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue';
-import { Head, usePage } from '@inertiajs/vue3';
+import { Head, Link, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import StaffToolbar from '@/Components/Staff/StaffToolbar.vue';
 import StaffTable from '@/Components/Staff/StaffTable.vue';
@@ -14,6 +14,14 @@ const props = defineProps({
     employees: {
         type: Array,
         default: () => [],
+    },
+    isTeacher: {
+        type: Boolean,
+        default: false,
+    },
+    teacherEmployee: {
+        type: Object,
+        default: null,
     },
     selectedAcademicYear: {
         type: Object,
@@ -115,8 +123,8 @@ function onPageChange(p) {
                 </p>
             </div>
 
-            <!-- Action Buttons -->
-            <div class="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
+            <!-- Action Buttons (Khusus Non-Guru) -->
+            <div v-if="!isTeacher" class="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
                 <a
                     href="/staff/template"
                     download
@@ -136,6 +144,33 @@ function onPageChange(p) {
                     <span class="material-symbols-outlined text-[16px] sm:text-[18px]">upload_file</span>
                     <span>Import Data Pegawai</span>
                 </button>
+            </div>
+            <div v-else-if="teacherEmployee" class="flex items-center gap-2 shrink-0">
+                <Link
+                    :href="`/staff/${teacherEmployee.id}`"
+                    class="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary hover:bg-primary-container text-on-primary font-semibold text-xs sm:text-sm transition-all shadow-xs hover:shadow-md"
+                >
+                    <span class="material-symbols-outlined text-[18px]">person</span>
+                    <span>Buka Profil Saya</span>
+                </Link>
+            </div>
+        </div>
+
+        <!-- Teacher Role Scoping Notice Banner -->
+        <div
+            v-if="isTeacher"
+            class="mb-5 p-4 bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800 rounded-2xl flex items-start gap-3.5 shadow-2xs"
+        >
+            <span class="material-symbols-outlined text-sky-600 dark:text-sky-400 text-2xl shrink-0 mt-0.5">shield_person</span>
+            <div class="flex-1">
+                <h4 class="text-sm font-bold text-sky-900 dark:text-sky-200">Mode Akses Guru</h4>
+                <p v-if="teacherEmployee" class="text-xs text-sky-800 dark:text-sky-300 mt-0.5 leading-relaxed">
+                    Sesuai kebijakan hak akses, Anda hanya dapat melihat dan mengelola data kepegawaian atas nama Anda sendiri:
+                    <strong class="font-semibold text-sky-950 dark:text-sky-100 underline">{{ teacherEmployee.nama }}</strong>.
+                </p>
+                <p v-else class="text-xs text-amber-800 dark:text-amber-300 mt-0.5 leading-relaxed">
+                    Akun login Anda belum terhubung dengan data profil pegawai di sistem. Harap hubungi Superadmin atau Bagian SDM untuk menautkan NIPY atau Nama Anda.
+                </p>
             </div>
         </div>
 

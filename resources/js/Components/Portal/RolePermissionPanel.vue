@@ -380,26 +380,26 @@ function savePermissions() {
         </div>
 
         <!-- Matrix Table -->
-        <div class="overflow-x-auto">
-            <table class="w-full text-xs text-left border-collapse border-b border-outline-variant/40">
+        <div class="overflow-x-auto p-6">
+            <table class="w-full text-xs text-left border-collapse border border-outline-variant/60">
                 <thead>
-                    <tr class="bg-surface-container-low text-on-surface-variant font-bold text-[10px] uppercase tracking-wider border-b border-outline-variant/60">
-                        <th class="p-4 w-72">Modul & Fitur Web</th>
-                        <th class="p-3 text-center w-28">Kategori</th>
-                        <th class="p-3 text-center w-24">Lihat (View)</th>
-                        <th class="p-3 text-center w-24">Tambah (Create)</th>
-                        <th class="p-3 text-center w-24">Ubah (Update)</th>
-                        <th class="p-3 text-center w-24">Hapus (Delete)</th>
-                        <th class="p-3 text-center w-24">Ekspor</th>
-                        <th class="p-3 text-center w-24">Impor</th>
-                        <th class="p-3 text-center w-24" v-if="!isSuperadminActive">Pilih Baris</th>
+                    <tr class="bg-surface-container-low text-on-surface-variant font-bold text-[10px] uppercase tracking-wider">
+                        <th class="border border-outline-variant/60 p-3.5 w-72">Modul & Fitur Web</th>
+                        <th class="border border-outline-variant/60 p-3 text-center w-28">Kategori</th>
+                        <th class="border border-outline-variant/60 p-3 text-center w-24">Lihat (View)</th>
+                        <th class="border border-outline-variant/60 p-3 text-center w-24">Tambah (Create)</th>
+                        <th class="border border-outline-variant/60 p-3 text-center w-24">Ubah (Update)</th>
+                        <th class="border border-outline-variant/60 p-3 text-center w-24">Hapus (Delete)</th>
+                        <th class="border border-outline-variant/60 p-3 text-center w-24">Ekspor</th>
+                        <th class="border border-outline-variant/60 p-3 text-center w-24">Impor</th>
+                        <th class="border border-outline-variant/60 p-3 text-center w-20" v-if="!isSuperadminActive">Pilih Baris</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-outline-variant/30">
+                <tbody>
                     <template v-for="(items, catName) in groupedMatrix" :key="catName">
                         <!-- Category Header Row -->
-                        <tr class="bg-surface-container-low/70 border-y border-outline-variant/50">
-                            <td colspan="9" class="px-4 py-2.5">
+                        <tr class="bg-surface-container-low/80">
+                            <td colspan="9" class="border border-outline-variant/60 px-4 py-2.5">
                                 <div class="flex items-center justify-between">
                                     <div class="flex items-center gap-2">
                                         <span class="material-symbols-outlined text-[18px] text-primary">{{ getCategoryMeta(catName).icon }}</span>
@@ -437,7 +437,7 @@ function savePermissions() {
                             class="hover:bg-surface-container-low/30 transition-colors"
                         >
                             <!-- Nama Fitur & Deskripsi -->
-                            <td class="p-4 pl-6">
+                            <td class="border border-outline-variant/60 p-3 pl-5">
                                 <div class="font-bold text-on-surface text-xs sm:text-sm flex items-center gap-2">
                                     <span>{{ item.name }}</span>
                                     <code class="text-[10px] text-on-surface-variant font-mono bg-surface-container-high px-1 rounded">{{ item.group }}</code>
@@ -446,14 +446,14 @@ function savePermissions() {
                             </td>
 
                             <!-- Kategori Badge -->
-                            <td class="p-3 text-center">
+                            <td class="border border-outline-variant/60 p-3 text-center">
                                 <span class="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold border" :class="getCategoryMeta(item.category).color">
                                     {{ item.category }}
                                 </span>
                             </td>
 
                             <!-- Aksi: View -->
-                            <td class="p-3 text-center">
+                            <td class="border border-outline-variant/60 p-3 text-center">
                                 <input
                                     v-if="item.supported_actions.includes('view')"
                                     type="checkbox"
@@ -465,7 +465,7 @@ function savePermissions() {
                             </td>
 
                             <!-- Aksi: Create -->
-                            <td class="p-3 text-center">
+                            <td class="border border-outline-variant/60 p-3 text-center">
                                 <input
                                     v-if="item.supported_actions.includes('create')"
                                     type="checkbox"
@@ -477,7 +477,7 @@ function savePermissions() {
                             </td>
 
                             <!-- Aksi: Update -->
-                            <td class="p-3 text-center">
+                            <td class="border border-outline-variant/60 p-3 text-center">
                                 <input
                                     v-if="item.supported_actions.includes('update')"
                                     type="checkbox"
@@ -489,7 +489,7 @@ function savePermissions() {
                             </td>
 
                             <!-- Aksi: Delete -->
-                            <td class="p-3 text-center">
+                            <td class="border border-outline-variant/60 p-3 text-center">
                                 <input
                                     v-if="item.supported_actions.includes('delete')"
                                     type="checkbox"
@@ -501,7 +501,7 @@ function savePermissions() {
                             </td>
 
                             <!-- Aksi: Export -->
-                            <td class="p-3 text-center">
+                            <td class="border border-outline-variant/60 p-3 text-center">
                                 <input
                                     v-if="item.supported_actions.includes('export')"
                                     type="checkbox"
@@ -513,7 +513,7 @@ function savePermissions() {
                             </td>
 
                             <!-- Aksi: Import -->
-                            <td class="p-3 text-center">
+                            <td class="border border-outline-variant/60 p-3 text-center">
                                 <input
                                     v-if="item.supported_actions.includes('import')"
                                     type="checkbox"
@@ -525,7 +525,7 @@ function savePermissions() {
                             </td>
 
                             <!-- Aksi Cepat Baris -->
-                            <td class="p-3 text-center" v-if="!isSuperadminActive">
+                            <td class="border border-outline-variant/60 p-3 text-center" v-if="!isSuperadminActive">
                                 <button
                                     type="button"
                                     @click="toggleRow(item)"
@@ -539,7 +539,7 @@ function savePermissions() {
                     </template>
 
                     <tr v-if="Object.keys(groupedMatrix).length === 0">
-                        <td colspan="9" class="p-8 text-center text-on-surface-variant italic">
+                        <td colspan="9" class="border border-outline-variant/60 p-8 text-center text-on-surface-variant italic">
                             <span class="material-symbols-outlined text-3xl text-outline/40 block mb-1">search_off</span>
                             Tidak ada modul fitur yang sesuai dengan pencarian atau filter kategori.
                         </td>

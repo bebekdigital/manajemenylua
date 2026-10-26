@@ -83,25 +83,25 @@ function getAlamatLengkap(s) {
 <template>
     <div class="bg-surface-container-lowest rounded-xl border border-primary/10 shadow-[0px_4px_20px_rgba(0,40,20,0.08)] overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
+            <table class="w-full text-left border-collapse border border-outline-variant/60">
                 <thead>
                     <slot name="thead">
-                        <tr class="border-b border-emerald-700 bg-emerald-600">
-                            <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider w-10 sm:w-12">No</th>
-                            <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">NISN</th>
-                            <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">Nama</th>
-                            <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">NIPD</th>
-                            <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">Jenjang</th>
-                            <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">Unit</th>
-                            <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">Angkatan</th>
-                            <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider w-10 sm:w-14">JK</th>
-                            <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">TTL</th>
-                            <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">No WA</th>
-                            <th class="p-2.5 sm:p-4 text-[12px] sm:text-sm font-semibold text-white uppercase tracking-wider">Alamat Lengkap</th>
+                        <tr class="bg-emerald-600 text-white">
+                            <th class="border border-emerald-700/80 p-2.5 sm:p-3.5 text-[12px] sm:text-sm font-semibold uppercase tracking-wider w-10 sm:w-12 text-center">No</th>
+                            <th class="border border-emerald-700/80 p-2.5 sm:p-3.5 text-[12px] sm:text-sm font-semibold uppercase tracking-wider">NISN</th>
+                            <th class="border border-emerald-700/80 p-2.5 sm:p-3.5 text-[12px] sm:text-sm font-semibold uppercase tracking-wider">Nama</th>
+                            <th class="border border-emerald-700/80 p-2.5 sm:p-3.5 text-[12px] sm:text-sm font-semibold uppercase tracking-wider">NIPD</th>
+                            <th class="border border-emerald-700/80 p-2.5 sm:p-3.5 text-[12px] sm:text-sm font-semibold uppercase tracking-wider">Jenjang</th>
+                            <th class="border border-emerald-700/80 p-2.5 sm:p-3.5 text-[12px] sm:text-sm font-semibold uppercase tracking-wider">Unit</th>
+                            <th class="border border-emerald-700/80 p-2.5 sm:p-3.5 text-[12px] sm:text-sm font-semibold uppercase tracking-wider text-center">Angkatan</th>
+                            <th class="border border-emerald-700/80 p-2.5 sm:p-3.5 text-[12px] sm:text-sm font-semibold uppercase tracking-wider w-10 sm:w-14 text-center">JK</th>
+                            <th class="border border-emerald-700/80 p-2.5 sm:p-3.5 text-[12px] sm:text-sm font-semibold uppercase tracking-wider">TTL</th>
+                            <th class="border border-emerald-700/80 p-2.5 sm:p-3.5 text-[12px] sm:text-sm font-semibold uppercase tracking-wider">No WA</th>
+                            <th class="border border-emerald-700/80 p-2.5 sm:p-3.5 text-[12px] sm:text-sm font-semibold uppercase tracking-wider">Alamat Lengkap</th>
                         </tr>
                     </slot>
                 </thead>
-                <tbody class="divide-y divide-outline-variant/10">
+                <tbody class="divide-y divide-outline-variant/30">
                     <tr
                         v-for="(student, index) in students"
                         :key="student.id || student.nisn"
@@ -109,15 +109,15 @@ function getAlamatLengkap(s) {
                     >
                         <slot name="row" :student="student" :index="index" :start-entry="startEntry">
                             <!-- No -->
-                        <td class="p-2.5 sm:p-4 text-[12px] sm:text-sm text-on-surface-variant">
+                        <td class="border border-outline-variant/40 p-2.5 sm:p-3.5 text-[12px] sm:text-sm text-on-surface-variant text-center">
                             {{ startEntry + index }}
                         </td>
                         <!-- NISN -->
-                        <td class="p-2.5 sm:p-4 text-[12px] sm:text-sm text-on-surface-variant font-mono">
+                        <td class="border border-outline-variant/40 p-2.5 sm:p-3.5 text-[12px] sm:text-sm text-on-surface-variant font-mono">
                             {{ student.nisn }}
                         </td>
                         <!-- Nama -->
-                        <td class="p-2.5 sm:p-4">
+                        <td class="border border-outline-variant/40 p-2.5 sm:p-3.5">
                             <div class="flex items-center gap-2">
                                 <Link
                                     :href="`/students/${student.nisn}`"
@@ -130,37 +130,37 @@ function getAlamatLengkap(s) {
                             </div>
                         </td>
                         <!-- NIPD -->
-                        <td class="p-2.5 sm:p-4 text-[12px] sm:text-sm text-on-surface-variant font-mono">
+                        <td class="border border-outline-variant/40 p-2.5 sm:p-3.5 text-[12px] sm:text-sm text-on-surface-variant font-mono">
                             {{ student.nipd }}
                         </td>
                         <!-- Jenjang -->
-                        <td class="p-2.5 sm:p-4 text-[12px] sm:text-sm text-on-surface-variant">
+                        <td class="border border-outline-variant/40 p-2.5 sm:p-3.5 text-[12px] sm:text-sm text-on-surface-variant">
                             {{ student.jenjang || '-' }}
                         </td>
                         <!-- Unit -->
-                        <td class="p-2.5 sm:p-4 text-[12px] sm:text-sm text-on-surface-variant whitespace-nowrap">
+                        <td class="border border-outline-variant/40 p-2.5 sm:p-3.5 text-[12px] sm:text-sm text-on-surface-variant whitespace-nowrap">
                             {{ student.unit || '-' }}
                         </td>
                         <!-- Angkatan -->
-                        <td class="p-2.5 sm:p-4 text-[12px] sm:text-sm text-center">
+                        <td class="border border-outline-variant/40 p-2.5 sm:p-3.5 text-[12px] sm:text-sm text-center">
                             <span class="inline-flex items-center justify-center px-1.5 py-0.5 sm:px-2 sm:py-0.5 bg-primary/10 text-primary rounded-md text-[11px] sm:text-xs font-semibold">
                                 {{ student.angkatan || '-' }}
                             </span>
                         </td>
                         <!-- JK -->
-                        <td class="p-2.5 sm:p-4 text-[12px] sm:text-sm text-on-surface text-center">
+                        <td class="border border-outline-variant/40 p-2.5 sm:p-3.5 text-[12px] sm:text-sm text-on-surface text-center">
                             {{ student.jk }}
                         </td>
                         <!-- TTL -->
-                        <td class="p-2.5 sm:p-4 text-[12px] sm:text-sm text-on-surface-variant whitespace-nowrap">
+                        <td class="border border-outline-variant/40 p-2.5 sm:p-3.5 text-[12px] sm:text-sm text-on-surface-variant whitespace-nowrap">
                             {{ student.ttl }}
                         </td>
                         <!-- No WA -->
-                        <td class="p-2.5 sm:p-4 text-[12px] sm:text-sm text-on-surface-variant whitespace-nowrap">
+                        <td class="border border-outline-variant/40 p-2.5 sm:p-3.5 text-[12px] sm:text-sm text-on-surface-variant whitespace-nowrap">
                             {{ student.no_wa || '-' }}
                         </td>
                         <!-- Alamat Lengkap -->
-                        <td class="p-2.5 sm:p-4 text-[12px] sm:text-sm text-on-surface-variant max-w-[150px] sm:max-w-[220px] truncate" :title="getAlamatLengkap(student)">
+                        <td class="border border-outline-variant/40 p-2.5 sm:p-3.5 text-[12px] sm:text-sm text-on-surface-variant max-w-[150px] sm:max-w-[220px] truncate" :title="getAlamatLengkap(student)">
                             {{ getAlamatLengkap(student) }}
                         </td>
                         </slot>
