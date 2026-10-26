@@ -321,6 +321,20 @@ class EmployeeController extends Controller
             'riwayat_kepegawaian.*.tst_kenaikan_jenjang' => ['nullable', 'date'],
             // Riwayat Jabatan array (opsional jika diedit multi-row)
             'riwayat_jabatan' => ['nullable', 'array'],
+            'riwayat_jabatan.*.id' => ['nullable'],
+            'riwayat_jabatan.*.unit_kerja' => ['nullable', 'string', 'max:100'],
+            'riwayat_jabatan.*.jabatan' => ['nullable', 'string', 'max:100'],
+            'riwayat_jabatan.*.jenis_kepegawaian' => ['nullable', 'string', 'max:100'],
+            'riwayat_jabatan.*.tmt_jabatan' => ['nullable', 'date'],
+            'riwayat_jabatan.*.tst_jabatan' => ['nullable', 'date'],
+            // Riwayat Pendidikan array
+            'riwayat_pendidikan' => ['nullable', 'array'],
+            'riwayat_pendidikan.*.id' => ['nullable'],
+            'riwayat_pendidikan.*.jenjang_pendidikan' => ['nullable', 'string', 'max:50'],
+            'riwayat_pendidikan.*.jurusan' => ['nullable', 'string', 'max:100'],
+            'riwayat_pendidikan.*.instansi_pendidikan' => ['nullable', 'string', 'max:150'],
+            'riwayat_pendidikan.*.tahun_lulus' => ['nullable', 'string', 'max:20'],
+            'riwayat_pendidikan.*.pembiayaan' => ['nullable', 'string', 'max:50'],
         ], [
             'nama.required' => 'Nama lengkap wajib diisi.',
             'nik.unique' => 'NIK sudah digunakan oleh pegawai lain.',
@@ -339,17 +353,35 @@ class EmployeeController extends Controller
 
             // Handle Jabatan / Penugasan (Sheet 4)
             if (isset($validated['riwayat_jabatan']) && is_array($validated['riwayat_jabatan'])) {
-                $employee->positions()->delete();
+                $keptPositionIds = [];
                 foreach ($validated['riwayat_jabatan'] as $pos) {
                     if (! empty($pos['unit_kerja']) || ! empty($pos['jabatan']) || ! empty($pos['tmt_jabatan'])) {
-                        $employee->positions()->create([
+                        $posData = [
                             'unit_kerja' => $pos['unit_kerja'] ?? null,
                             'jabatan' => $pos['jabatan'] ?? null,
                             'jenis_kepegawaian' => $pos['jenis_kepegawaian'] ?? null,
                             'tmt_jabatan' => $pos['tmt_jabatan'] ?? null,
                             'tst_jabatan' => $pos['tst_jabatan'] ?? null,
-                        ]);
+                        ];
+
+                        if (! empty($pos['id'])) {
+                            $existingPos = $employee->positions()->find($pos['id']);
+                            if ($existingPos) {
+                                $existingPos->update($posData);
+                                $keptPositionIds[] = $existingPos->id;
+                                continue;
+                            }
+                        }
+
+                        $newPos = $employee->positions()->create($posData);
+                        $keptPositionIds[] = $newPos->id;
                     }
+                }
+
+                $positionsToDelete = $employee->positions()->whereNotIn('id', $keptPositionIds)->get();
+                foreach ($positionsToDelete as $delPos) {
+                    $employee->documents()->where('record_type', 'position')->where('record_id', $delPos->id)->delete();
+                    $delPos->delete();
                 }
             } elseif (! empty($validated['unit_kerja']) || ! empty($validated['jabatan']) || ! empty($validated['tmt_jabatan'])) {
                 $latestPos = $employee->positions()->latest('tmt_jabatan')->first();
@@ -422,18 +454,36 @@ class EmployeeController extends Controller
             }
 
             // Handle Pendidikan (Sheet 2)
-            if (isset($validated['riwayat_pendidikan'])) {
-                $employee->educationHistories()->delete();
+            if (isset($validated['riwayat_pendidikan']) && is_array($validated['riwayat_pendidikan'])) {
+                $keptEducationIds = [];
                 foreach ($validated['riwayat_pendidikan'] as $edu) {
                     if (! empty($edu['jenjang_pendidikan']) || ! empty($edu['instansi_pendidikan']) || ! empty($edu['jurusan'])) {
-                        $employee->educationHistories()->create([
+                        $eduData = [
                             'jenjang_pendidikan' => $edu['jenjang_pendidikan'] ?? null,
                             'jurusan' => $edu['jurusan'] ?? null,
                             'instansi_pendidikan' => $edu['instansi_pendidikan'] ?? null,
                             'tahun_lulus' => $edu['tahun_lulus'] ?? null,
                             'pembiayaan' => $edu['pembiayaan'] ?? null,
-                        ]);
+                        ];
+
+                        if (! empty($edu['id'])) {
+                            $existingEdu = $employee->educationHistories()->find($edu['id']);
+                            if ($existingEdu) {
+                                $existingEdu->update($eduData);
+                                $keptEducationIds[] = $existingEdu->id;
+                                continue;
+                            }
+                        }
+
+                        $newEdu = $employee->educationHistories()->create($eduData);
+                        $keptEducationIds[] = $newEdu->id;
                     }
+                }
+
+                $educationToDelete = $employee->educationHistories()->whereNotIn('id', $keptEducationIds)->get();
+                foreach ($educationToDelete as $delEdu) {
+                    $employee->documents()->where('record_type', 'education')->where('record_id', $delEdu->id)->delete();
+                    $delEdu->delete();
                 }
             }
         });
