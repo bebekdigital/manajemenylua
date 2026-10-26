@@ -6,10 +6,12 @@ use Illuminate\Database\Eloquent\Model;
 
 class SchoolPosition extends Model
 {
-    protected $fillable = ['school_unit_id', 'name', 'order'];
+    protected $fillable = ['name'];
 
-    public function unit()
+    public function units()
     {
-        return $this->belongsTo(SchoolUnit::class, 'school_unit_id');
+        return $this->belongsToMany(SchoolUnit::class, 'school_unit_positions')
+            ->withPivot('id', 'order')
+            ->withTimestamps();
     }
 }

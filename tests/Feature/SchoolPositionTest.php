@@ -15,50 +15,82 @@ class SchoolPositionTest extends TestCase
 
     private User $admin;
 
-    private SchoolUnit $unit;
+    private SchoolUnit $unitSD;
+
+    private SchoolUnit $unitSMP;
 
     protected function setUp(): void
     {
         parent::setUp();
 
         $this->admin = User::factory()->create(['role' => 'admin']);
-        $level = SchoolLevel::create(['name' => 'SD', 'order' => 1]);
-        $this->unit = SchoolUnit::create(['school_level_id' => $level->id, 'name' => 'SDIT Ulil Albab']);
+        $levelSD = SchoolLevel::create(['name' => 'SD', 'order' => 1]);
+        $levelSMP = SchoolLevel::create(['name' => 'SMP', 'order' => 2]);
+        $this->unitSD = SchoolUnit::create(['school_level_id' => $levelSD->id, 'name' => 'SDIT Ulil Albab']);
+        $this->unitSMP = SchoolUnit::create(['school_level_id' => $levelSMP->id, 'name' => 'SMPIT Ulil Albab']);
     }
 
-    public function test_can_create_school_unit_position(): void
+    public function test_can_create_new_master_position_and_attach_to_unit(): void
     {
-        $response = $this->actingAs($this->admin)->post(route('portal.school-positions.store', $this->unit), [
-            'name' => 'Wali Kelas 1',
+        $response = $this->actingAs($this->admin)->post(route('portal.school-positions.store', $this->unitSD), [
+            'name' => 'Guru',
         ]);
 
         $response->assertSessionHas('success');
         $this->assertDatabaseHas('school_positions', [
-            'school_unit_id' => $this->unit->id,
-            'name' => 'Wali Kelas 1',
+            'name' => 'Guru',
+        ]);
+
+        $position = SchoolPosition::where('name', 'Guru')->first();
+        $this->assertDatabaseHas('school_unit_positions', [
+            'school_unit_id' => $this->unitSD->id,
+            'school_position_id' => $position->id,
         ]);
     }
 
-    public function test_cannot_create_duplicate_position_in_same_unit(): void
+    public function test_can_assign_existing_master_position_to_another_unit_with_same_id(): void
     {
-        SchoolPosition::create([
-            'school_unit_id' => $this->unit->id,
-            'name' => 'Kepala Sekolah',
+        // 1. Buat master posisi "Guru"
+        $position = SchoolPosition::create(['name' => 'Guru']);
+        $this->unitSD->positions()->attach($position->id);
+
+        // 2. Unit SMP memilih jabatan "Guru" yang sudah ada via dropdown ID
+        $response = $this->actingAs($this->admin)->post(route('portal.school-positions.store', $this->unitSMP), [
+            'school_position_id' => $position->id,
         ]);
 
-        $response = $this->actingAs($this->admin)->post(route('portal.school-positions.store', $this->unit), [
-            'name' => 'Kepala Sekolah',
+        $response->assertSessionHas('success');
+
+        // Pastikan hanya ada 1 record master "Guru" di database
+        $this->assertEquals(1, SchoolPosition::where('name', 'Guru')->count());
+
+        // Pastikan terhubung ke kedua unit
+        $this->assertDatabaseHas('school_unit_positions', [
+            'school_unit_id' => $this->unitSD->id,
+            'school_position_id' => $position->id,
+        ]);
+        $this->assertDatabaseHas('school_unit_positions', [
+            'school_unit_id' => $this->unitSMP->id,
+            'school_position_id' => $position->id,
+        ]);
+    }
+
+    public function test_cannot_assign_duplicate_position_to_same_unit(): void
+    {
+        $position = SchoolPosition::create(['name' => 'Kepala Sekolah']);
+        $this->unitSD->positions()->attach($position->id);
+
+        $response = $this->actingAs($this->admin)->post(route('portal.school-positions.store', $this->unitSD), [
+            'school_position_id' => $position->id,
         ]);
 
         $response->assertSessionHasErrors(['name']);
     }
 
-    public function test_can_update_school_unit_position(): void
+    public function test_can_update_master_position_name(): void
     {
-        $pos = SchoolPosition::create([
-            'school_unit_id' => $this->unit->id,
-            'name' => 'Guru Agama',
-        ]);
+        $pos = SchoolPosition::create(['name' => 'Guru Agama']);
+        $this->unitSD->positions()->attach($pos->id);
 
         $response = $this->actingAs($this->admin)->put(route('portal.school-positions.update', $pos), [
             'name' => 'Guru PAI',
@@ -71,18 +103,36 @@ class SchoolPositionTest extends TestCase
         ]);
     }
 
-    public function test_can_delete_school_unit_position(): void
+    public function test_can_detach_position_from_specific_unit_without_deleting_from_other_unit(): void
     {
-        $pos = SchoolPosition::create([
-            'school_unit_id' => $this->unit->id,
-            'name' => 'Staff TU',
-        ]);
+        $pos = SchoolPosition::create(['name' => 'Guru']);
+        $this->unitSD->positions()->attach($pos->id);
+        $this->unitSMP->positions()->attach($pos->id);
 
-        $response = $this->actingAs($this->admin)->delete(route('portal.school-positions.destroy', $pos));
+        // Hapus dari SD
+        $response = $this->actingAs($this->admin)->delete(route('portal.school-positions.detach', [
+            'schoolUnit' => $this->unitSD,
+            'schoolPosition' => $pos,
+        ]));
 
         $response->assertSessionHas('success');
-        $this->assertDatabaseMissing('school_positions', [
+
+        // Tidak lagi ada di SD
+        $this->assertDatabaseMissing('school_unit_positions', [
+            'school_unit_id' => $this->unitSD->id,
+            'school_position_id' => $pos->id,
+        ]);
+
+        // Tetap ada di SMP
+        $this->assertDatabaseHas('school_unit_positions', [
+            'school_unit_id' => $this->unitSMP->id,
+            'school_position_id' => $pos->id,
+        ]);
+
+        // Master posisi "Guru" tetap ada
+        $this->assertDatabaseHas('school_positions', [
             'id' => $pos->id,
+            'name' => 'Guru',
         ]);
     }
 }

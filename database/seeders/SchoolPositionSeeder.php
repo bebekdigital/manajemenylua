@@ -25,13 +25,19 @@ class SchoolPositionSeeder extends Seeder
 
         $units = SchoolUnit::all();
 
+        // 1. Buat master positions (hanya 1 id per nama posisi)
+        $positionMap = [];
+        foreach ($defaultPositions as $posName) {
+            $pos = SchoolPosition::firstOrCreate(['name' => $posName]);
+            $positionMap[$posName] = $pos->id;
+        }
+
+        // 2. Hubungkan ke unit sekolah
         foreach ($units as $unit) {
             foreach ($defaultPositions as $order => $posName) {
-                SchoolPosition::firstOrCreate([
-                    'school_unit_id' => $unit->id,
-                    'name' => $posName,
-                ], [
-                    'order' => $order,
+                $posId = $positionMap[$posName];
+                $unit->positions()->syncWithoutDetaching([
+                    $posId => ['order' => $order],
                 ]);
             }
         }

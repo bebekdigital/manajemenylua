@@ -201,6 +201,7 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/portal/school-units/{schoolUnit}/positions', [SchoolPositionController::class, 'store'])->name('portal.school-positions.store');
     Route::put('/portal/school-positions/{schoolPosition}', [SchoolPositionController::class, 'update'])->name('portal.school-positions.update');
+    Route::delete('/portal/school-units/{schoolUnit}/positions/{schoolPosition}', [SchoolPositionController::class, 'detach'])->name('portal.school-positions.detach');
     Route::delete('/portal/school-positions/{schoolPosition}', [SchoolPositionController::class, 'destroy'])->name('portal.school-positions.destroy');
 
     // Portal Management - Departments and Positions (Bidang & Jabatan)

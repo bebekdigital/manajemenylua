@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\AcademicYear;
 use App\Models\Department;
 use App\Models\SchoolLevel;
+use App\Models\SchoolPosition;
 use App\Models\User;
 use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
@@ -41,7 +42,7 @@ class PortalController extends Controller
         ]);
 
         $unitRelations = ['units.programs', 'units.classes'];
-        if (Schema::hasTable('school_positions')) {
+        if (Schema::hasTable('school_positions') && Schema::hasTable('school_unit_positions')) {
             $unitRelations[] = 'units.positions';
         }
 
@@ -51,11 +52,16 @@ class PortalController extends Controller
             ? Department::with('positions')->orderBy('order')->orderBy('name')->get()
             : collect([]);
 
+        $allSchoolPositions = Schema::hasTable('school_positions')
+            ? SchoolPosition::orderBy('name')->get(['id', 'name'])
+            : collect([]);
+
         return Inertia::render('Portal', [
             'academicYears' => $academicYears,
             'users' => $users,
             'schoolLevels' => $schoolLevels,
             'departments' => $departments,
+            'allSchoolPositions' => $allSchoolPositions,
         ]);
     }
 }

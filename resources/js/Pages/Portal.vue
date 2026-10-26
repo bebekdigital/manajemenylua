@@ -39,6 +39,10 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    allSchoolPositions: {
+        type: Array,
+        default: () => [],
+    },
 });
 
 const page = usePage();
@@ -246,13 +250,13 @@ function onUnitPositionSuccess() {
     dismissedFlash.value = false;
 }
 
-function confirmUnitPositionDelete(pos) {
+function confirmUnitPositionDelete(pos, unit) {
     openConfirmModal({
         title: 'Hapus Jabatan Unit',
-        message: 'Yakin ingin menghapus jabatan unit ini?',
+        message: `Yakin ingin menghapus jabatan dari unit ${unit?.name || 'ini'}?`,
         itemName: pos.name,
         onConfirm: (done) => {
-            router.delete(`/portal/school-positions/${pos.id}`, {
+            router.delete(`/portal/school-units/${unit.id}/positions/${pos.id}`, {
                 preserveScroll: true,
                 onFinish: done,
             });
@@ -914,7 +918,7 @@ function formatDate(dateStr) {
                                                             <button type="button" @click="openPositionEditModalForUnit(pos, unit)" class="text-on-surface-variant hover:text-primary transition-colors p-0.5 rounded" title="Edit Jabatan">
                                                                 <span class="material-symbols-outlined text-[14px]">edit</span>
                                                             </button>
-                                                            <button type="button" @click="confirmUnitPositionDelete(pos)" class="text-on-surface-variant hover:text-error transition-colors p-0.5 rounded" title="Hapus Jabatan">
+                                                            <button type="button" @click="confirmUnitPositionDelete(pos, unit)" class="text-on-surface-variant hover:text-error transition-colors p-0.5 rounded" title="Hapus Jabatan">
                                                                 <span class="material-symbols-outlined text-[14px]">close</span>
                                                             </button>
                                                         </div>
@@ -1180,6 +1184,7 @@ function formatDate(dateStr) {
         :show="showUnitPositionModal"
         :editing="editingUnitPosition"
         :school-unit="selectedUnitForPosition"
+        :all-positions="allSchoolPositions"
         @close="closeUnitPositionModal"
         @success="onUnitPositionSuccess"
     />

@@ -25,6 +25,10 @@ class SchoolUnit extends Model
 
     public function positions()
     {
-        return $this->hasMany(SchoolPosition::class)->orderBy('order')->orderBy('name');
+        return $this->belongsToMany(SchoolPosition::class, 'school_unit_positions')
+            ->withPivot('id', 'order')
+            ->withTimestamps()
+            ->orderByPivot('order')
+            ->orderBy('name');
     }
 }
