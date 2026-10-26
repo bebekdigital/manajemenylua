@@ -11,6 +11,7 @@ import SchoolClassFormModal from '@/Components/Portal/SchoolClassFormModal.vue';
 import DepartmentFormModal from '@/Components/Portal/DepartmentFormModal.vue';
 import DepartmentPositionFormModal from '@/Components/Portal/DepartmentPositionFormModal.vue';
 import SuccessModal from '@/Components/Shared/SuccessModal.vue';
+import ConfirmDeleteModal from '@/Components/Shared/ConfirmDeleteModal.vue';
 
 defineOptions({
     layout: AppLayout,
@@ -84,8 +85,17 @@ function onLevelSuccess() {
 }
 
 function confirmLevelDelete(level) {
-    if (!confirm(`Yakin ingin menghapus Jenjang "${level.name}"?`)) return;
-    router.delete(`/portal/school-levels/${level.id}`, { preserveScroll: true });
+    openConfirmModal({
+        title: 'Hapus Jenjang',
+        message: 'Yakin ingin menghapus jenjang pendidikan ini beserta unit dan kelas di dalamnya?',
+        itemName: level.name,
+        onConfirm: (done) => {
+            router.delete(`/portal/school-levels/${level.id}`, {
+                preserveScroll: true,
+                onFinish: done,
+            });
+        },
+    });
 }
 
 function openUnitCreateModal(level) {
@@ -112,8 +122,17 @@ function onUnitSuccess() {
 }
 
 function confirmUnitDelete(unit) {
-    if (!confirm(`Yakin ingin menghapus Unit "${unit.name}"?`)) return;
-    router.delete(`/portal/school-units/${unit.id}`, { preserveScroll: true });
+    openConfirmModal({
+        title: 'Hapus Unit Sekolah',
+        message: 'Yakin ingin menghapus unit sekolah ini beserta kelas di dalamnya?',
+        itemName: unit.name,
+        onConfirm: (done) => {
+            router.delete(`/portal/school-units/${unit.id}`, {
+                preserveScroll: true,
+                onFinish: done,
+            });
+        },
+    });
 }
 
 const showProgramModal = ref(false);
@@ -144,8 +163,17 @@ function onProgramSuccess() {
 }
 
 function confirmProgramDelete(program) {
-    if (!confirm(`Yakin ingin menghapus Program "${program.name}"?`)) return;
-    router.delete(`/portal/school-programs/${program.id}`, { preserveScroll: true });
+    openConfirmModal({
+        title: 'Hapus Program Pendidikan',
+        message: 'Yakin ingin menghapus program pendidikan ini?',
+        itemName: program.name,
+        onConfirm: (done) => {
+            router.delete(`/portal/school-programs/${program.id}`, {
+                preserveScroll: true,
+                onFinish: done,
+            });
+        },
+    });
 }
 
 const showClassModal = ref(false);
@@ -176,8 +204,17 @@ function onClassSuccess() {
 }
 
 function confirmClassDelete(cls) {
-    if (!confirm(`Yakin ingin menghapus Kelas "${cls.name}"?`)) return;
-    router.delete(`/portal/school-classes/${cls.id}`, { preserveScroll: true });
+    openConfirmModal({
+        title: 'Hapus Kelas',
+        message: 'Yakin ingin menghapus kelas ini dari master data?',
+        itemName: cls.name,
+        onConfirm: (done) => {
+            router.delete(`/portal/school-classes/${cls.id}`, {
+                preserveScroll: true,
+                onFinish: done,
+            });
+        },
+    });
 }
 
 // Department (Bidang) Modals
@@ -206,11 +243,26 @@ function onDepartmentSuccess() {
 
 function confirmDepartmentDelete(department) {
     if (department.positions && department.positions.length > 0) {
-        alert(`Tidak dapat menghapus Bidang "${department.name}" karena masih memiliki ${department.positions.length} jabatan terdaftar.`);
+        openConfirmModal({
+            title: 'Tidak Dapat Dihapus',
+            message: `Bidang "${department.name}" masih memiliki ${department.positions.length} jabatan terdaftar. Hapus semua jabatan di dalamnya terlebih dahulu.`,
+            itemName: department.name,
+            hideConfirmButton: true,
+        });
         return;
     }
-    if (!confirm(`Yakin ingin menghapus Bidang "${department.name}"?`)) return;
-    router.delete(`/portal/departments/${department.id}`, { preserveScroll: true });
+
+    openConfirmModal({
+        title: 'Hapus Bidang',
+        message: 'Yakin ingin menghapus bidang yayasan ini?',
+        itemName: department.name,
+        onConfirm: (done) => {
+            router.delete(`/portal/departments/${department.id}`, {
+                preserveScroll: true,
+                onFinish: done,
+            });
+        },
+    });
 }
 
 // Department Position (Jabatan) Modals
@@ -242,8 +294,17 @@ function onPositionSuccess() {
 }
 
 function confirmPositionDelete(position) {
-    if (!confirm(`Yakin ingin menghapus Jabatan "${position.name}"?`)) return;
-    router.delete(`/portal/department-positions/${position.id}`, { preserveScroll: true });
+    openConfirmModal({
+        title: 'Hapus Jabatan',
+        message: 'Yakin ingin menghapus jabatan ini dari struktur bidang?',
+        itemName: position.name,
+        onConfirm: (done) => {
+            router.delete(`/portal/department-positions/${position.id}`, {
+                preserveScroll: true,
+                onFinish: done,
+            });
+        },
+    });
 }
 
 const showUserModal = ref(false);
@@ -258,6 +319,51 @@ const deletingId = ref(null);
 
 const showSuccessModal = ref(false);
 const successMessage = ref('');
+
+// Confirmation Modal State
+const confirmModal = ref({
+    show: false,
+    title: 'Konfirmasi Hapus',
+    message: '',
+    itemName: '',
+    confirmText: 'Ya, Hapus',
+    isDeleting: false,
+    hideConfirmButton: false,
+    onConfirm: null,
+});
+
+function openConfirmModal(config) {
+    confirmModal.value = {
+        show: true,
+        title: config.title || 'Konfirmasi Hapus',
+        message: config.message || 'Apakah Anda yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.',
+        itemName: config.itemName || '',
+        confirmText: config.confirmText || 'Ya, Hapus',
+        isDeleting: false,
+        hideConfirmButton: !!config.hideConfirmButton,
+        onConfirm: config.onConfirm || null,
+    };
+}
+
+function closeConfirmModal() {
+    if (!confirmModal.value.isDeleting) {
+        confirmModal.value.show = false;
+        confirmModal.value.onConfirm = null;
+    }
+}
+
+function handleConfirmModalAction() {
+    if (typeof confirmModal.value.onConfirm === 'function') {
+        confirmModal.value.isDeleting = true;
+        confirmModal.value.onConfirm(() => {
+            confirmModal.value.isDeleting = false;
+            confirmModal.value.show = false;
+            confirmModal.value.onConfirm = null;
+        });
+    } else {
+        closeConfirmModal();
+    }
+}
 
 watch(
     () => page.props.flash?.success,
@@ -322,33 +428,37 @@ function onUserFormSuccess() {
 }
 
 function confirmUserDelete(user) {
-    if (!confirm(`Yakin ingin menghapus akun pengguna "${user.name}"?\n\nAksi ini tidak bisa dibatalkan.`)) {
-        return;
-    }
-
-    deletingUserId.value = user.id;
-    dismissedFlash.value = false;
-
-    router.delete(`/portal/users/${user.id}`, {
-        preserveScroll: true,
-        onFinish: () => {
-            deletingUserId.value = null;
+    openConfirmModal({
+        title: 'Hapus Akun Pengguna',
+        message: 'Yakin ingin menghapus akun pengguna ini? Tindakan ini tidak dapat dibatalkan.',
+        itemName: `${user.name} (${user.username})`,
+        onConfirm: (done) => {
+            deletingUserId.value = user.id;
+            router.delete(`/portal/users/${user.id}`, {
+                preserveScroll: true,
+                onFinish: () => {
+                    deletingUserId.value = null;
+                    done();
+                },
+            });
         },
     });
 }
 
 function confirmDelete(year) {
-    if (!confirm(`Yakin ingin menghapus Tahun Ajaran "${year.name} ${year.semester}"?\n\nAksi ini tidak bisa dibatalkan.`)) {
-        return;
-    }
-
-    deletingId.value = year.id;
-    dismissedFlash.value = false;
-
-    router.delete(`/portal/academic-years/${year.id}`, {
-        preserveScroll: true,
-        onFinish: () => {
-            deletingId.value = null;
+    openConfirmModal({
+        title: 'Hapus Tahun Ajaran',
+        message: 'Yakin ingin menghapus Tahun Ajaran ini? Tindakan ini tidak dapat dibatalkan.',
+        itemName: `${year.name} ${year.semester}`,
+        onConfirm: (done) => {
+            deletingId.value = year.id;
+            router.delete(`/portal/academic-years/${year.id}`, {
+                preserveScroll: true,
+                onFinish: () => {
+                    deletingId.value = null;
+                    done();
+                },
+            });
         },
     });
 }
@@ -1000,6 +1110,19 @@ function formatDate(dateStr) {
         :show="showSuccessModal"
         :message="successMessage"
         @close="closeSuccessModal"
+    />
+
+    <!-- Pop-up Modal Konfirmasi Hapus -->
+    <ConfirmDeleteModal
+        :show="confirmModal.show"
+        :title="confirmModal.title"
+        :message="confirmModal.message"
+        :item-name="confirmModal.itemName"
+        :confirm-text="confirmModal.confirmText"
+        :is-deleting="confirmModal.isDeleting"
+        :hide-confirm-button="confirmModal.hideConfirmButton"
+        @close="closeConfirmModal"
+        @confirm="handleConfirmModalAction"
     />
 
         </template>
