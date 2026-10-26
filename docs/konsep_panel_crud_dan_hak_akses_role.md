@@ -27,37 +27,57 @@ Berdasarkan struktur jabatan yang terdaftar di master data yayasan dan unit seko
 
 ---
 
-### 3. Matriks Hak Akses CRUD pada Menu "Pengaturan" (Portal Master)
+### 3. Daftar 18 Modul Fitur Web Riil yang Dikelola dalam Matriks Hak Akses
 
-Menu Pengaturan (`/portal`) mengelola data induk yayasan, struktur sekolah, dan akun akses sistem:
+Berikut adalah daftar 18 modul fitur riil di aplikasi yang dapat dikonfigurasi hak aksesnya secara granular (Lihat, Tambah, Ubah, Hapus, Ekspor, Impor):
 
-| Menu / Tab | Tabel Database | Klaster 1: Superadmin | Klaster 2: Pimpinan Yayasan | Klaster 3: Pimpinan Unit | Klaster 4: TU & Operator | Klaster 5: Guru |
-| :--- | :--- | :---: | :---: | :---: | :---: | :---: |
-| **Tab Akademik: Tahun Pelajaran** | `academic_years` | **CRUD Penuh** (Set TA aktif, semester baru) | **Read-Only** | **Read-Only** | **Read-Only** | Disembunyikan |
-| **Tab Akademik: Mapping Kelas Aktif** | `academic_year_classes` | **CRUD Penuh** | **Read-Only** | **Update** (Rombel unitnya) | **Read-Only** | Disembunyikan |
-| **Tab Unit & Bidang: Jenjang Pendidikan** | `school_levels` | **CRUD Penuh** (PAUD/TK, SD, SMP, SMA) | **Read-Only** | **Read-Only** | Disembunyikan | Disembunyikan |
-| **Tab Unit & Bidang: Unit Sekolah** | `school_units` | **CRUD Penuh** (Tambah/Hapus Unit Sekolah) | **Read-Only** | **Read-Only** | Disembunyikan | Disembunyikan |
-| **Tab Unit & Bidang: Program Sekolah** | `school_programs` | **CRUD Penuh** (Reguler, Tahfidz, Boarding) | **Read / Update** | **Read-Only** | Disembunyikan | Disembunyikan |
-| **Tab Unit & Bidang: Master Rombel / Kelas** | `school_classes` | **CRUD Penuh** | **Read-Only** | **CRUD** (Unit bersangkutan) | **Read-Only** | Disembunyikan |
-| **Tab Unit & Bidang: Jabatan Unit** | `school_positions` | **CRUD Penuh** | **Read / Update** | **Read-Only** | Disembunyikan | Disembunyikan |
-| **Tab Unit & Bidang: Bidang Yayasan & Jabatan** | `departments`, `department_positions` | **CRUD Penuh** | **CRUD** (Khusus pada bidangnya) | Disembunyikan | Disembunyikan | Disembunyikan |
-| **Tab Pengguna: Akun Pengguna** | `users` | **CRUD Penuh** | **Read-Only** (Staf di bidangnya) | **Read-Only** (Staf di unitnya) | Disembunyikan | Disembunyikan |
-| **Tab Pengguna: Generate Akun Otomatis** | `users` $\leftarrow$ `employees` | **Full Action** | Disembunyikan | Disembunyikan | Disembunyikan | Disembunyikan |
+| No | Grup Fitur (`feature_group`) | Nama Modul | Kategori | Aksi yang Didukung |
+| :---: | :--- | :--- | :--- | :--- |
+| 1 | `dashboard_overview` | Beranda & Ringkasan | Dashboard | Lihat |
+| 2 | `student_directory` | Direktori Data Siswa | Database Siswa | Lihat, Tambah, Ubah, Hapus, Ekspor, Impor |
+| 3 | `student_detail` | Detail Profil & Mutasi Siswa | Database Siswa | Lihat, Tambah, Ubah, Hapus |
+| 4 | `student_inline_edit` | Edit Cepat (Inline Edit Siswa) | Database Siswa | Lihat, Ubah |
+| 5 | `student_photos` | Upload & Galeri Foto Siswa | Database Siswa | Lihat, Tambah, Hapus |
+| 6 | `student_mapping` | Pemetaan (Mapping) Kelas Siswa | Database Siswa | Lihat, Tambah, Ubah |
+| 7 | `employee_directory` | Direktori Data Pegawai | Database Pegawai | Lihat, Tambah, Ubah, Hapus, Ekspor, Impor |
+| 8 | `employee_detail_history` | Detail Profil & Riwayat Penugasan | Database Pegawai | Lihat, Tambah, Ubah, Hapus |
+| 9 | `employee_documents` | Dokumen & Berkas SK Pegawai | Database Pegawai | Lihat, Tambah, Hapus, Ekspor |
+| 10 | `administration_identity_document` | Cetak Dokumen & Biodata Siswa | Administrasi | Lihat, Tambah, Ekspor |
+| 11 | `administration_template_editor` | Editor Template Surat & Dokumen | Administrasi | Lihat, Ubah |
+| 12 | `statistics_student_analytics` | Statistik & Analisis Kesiswaan | Statistik | Lihat, Ekspor |
+| 13 | `pembelajaran_classrooms` | Rombongan Belajar (Rombel) & Kelas | Pembelajaran | Lihat, Tambah, Ubah, Hapus |
+| 14 | `portal_academic_years` | Pengaturan: Tahun Ajaran & Semester | Pengaturan Master | Lihat, Tambah, Ubah, Hapus |
+| 15 | `portal_school_units` | Pengaturan: Jenjang, Unit & Program | Pengaturan Master | Lihat, Tambah, Ubah, Hapus |
+| 16 | `portal_positions` | Pengaturan: Struktur Bidang & Jabatan | Pengaturan Master | Lihat, Tambah, Ubah, Hapus |
+| 17 | `portal_user_accounts` | Pengaturan: Manajemen Akun Pengguna | Pengaturan Master | Lihat, Tambah, Ubah, Hapus |
+| 18 | `portal_user_generate` | Pengaturan: Generate Akun Otomatis | Pengaturan Master | Lihat, Tambah |
+| 19 | `portal_role_permissions` | Pengaturan: Matriks Hak Akses | Pengaturan Master | Lihat, Ubah |
 
 ---
 
-### 4. Matriks Hak Akses CRUD pada Menu Utama Aplikasi
+### 4. Matriks Rekomendasi Awal Hak Akses untuk 3 Role Utama
 
-| Modul Menu | Tabel Database Terkait | Klaster 1: Superadmin | Klaster 2: Pimpinan Yayasan | Klaster 3: Pimpinan Unit | Klaster 4: TU & Operator | Klaster 5: Guru |
-| :--- | :--- | :---: | :---: | :---: | :---: | :---: |
-| **Data Siswa: Direktori & Detail** | `students`, `student_siblings` | **CRUD Penuh** (Semua unit) | **Read-Only** (Semua unit) | **CRUD** (Hanya unitnya) | **CRUD** (Hanya unitnya) | **Read-Only** (Hanya kelasnya) |
-| **Data Siswa: Impor / Ekspor Excel** | `students` | **Akses Penuh** | **Ekspor Saja** | **Ekspor Saja** | **Impor & Ekspor** | Disembunyikan |
-| **Data Siswa: Riwayat Akademik / Mutasi** | `student_academic_records` | **CRUD Penuh** | **Read-Only** | **Approval / CRUD** | **Input Mutasi** | **Read-Only** |
-| **Data Pegawai: Direktori & Biodata** | `employees`, `employee_records` | **CRUD Penuh** | **CRUD** (Khusus SDM) / Read (Kabid lain) | **Read-Only** (Staf unitnya) | **Read-Only** (Data umum) | **Read / Update** (Profil pribadi) |
-| **Data Pegawai: SK & Riwayat Penugasan** | `employee_positions`, `employee_documents` | **CRUD Penuh** | **CRUD** (Khusus Kabid SDM) | **Usulan Penugasan** | Disembunyikan | Disembunyikan |
-| **Pembelajaran: Plotting Rombel & Siswa** | `classrooms`, `student_classrooms` | **CRUD Penuh** | **Read-Only** | **Approval & Setting Wali** | **Operasional Plotting** | Disembunyikan |
-| **Pembelajaran: Jurnal & Presensi Kelas** | `attendances`, `learning_records` *(roadmap)* | **CRUD Penuh** | **Monitoring** | **Monitoring & Rekap** | **Bantu Rekap** | **CRUD** (Kelas ampunya) |
-| **Administrasi: Template & Cetak Dokumen** | `student_documents`, Pengaturan Blanko | **CRUD Penuh** | **Read & Cetak** | **Cetak & TTD Unit** | **Cetak Massal Siswa** | **Cetak Rapor/Biodata Kelas** |
+| No | Modul Fitur | Superadmin | Pimpinan: Kepala Bidang SDM | Pendidik: Guru |
+| :---: | :--- | :---: | :---: | :---: |
+| 1 | Beranda & Ringkasan | **Full (Lihat)** | **Lihat** | **Lihat** |
+| 2 | Direktori Data Siswa | **Full CRUD + Ex/Im** | **Lihat, Ekspor** | **Lihat** *(kelas ampunya)* |
+| 3 | Detail Profil & Mutasi Siswa | **Full CRUD** | **Lihat** | **Lihat** *(kelas ampunya)* |
+| 4 | Edit Cepat (Inline Edit) | **Full (Lihat, Ubah)** | *Tidak Diizinkan* | *Tidak Diizinkan* |
+| 5 | Upload & Galeri Foto Siswa | **Full (Lihat, Tambah, Hapus)** | **Lihat** | **Lihat** |
+| 6 | Pemetaan (Mapping) Kelas | **Full (Lihat, Tambah, Ubah)** | **Lihat** | *Tidak Diizinkan* |
+| 7 | Direktori Data Pegawai | **Full CRUD + Ex/Im** | **Full CRUD + Ex/Im** *(Tupoksi SDM)* | **Lihat** *(biodata rekan)* |
+| 8 | Detail Pegawai & Penugasan | **Full CRUD** | **Full CRUD** | **Lihat** *(profil pribadi)* |
+| 9 | Dokumen & Berkas SK Pegawai | **Full (Lihat, Tambah, Hapus, Ekspor)** | **Full (Lihat, Tambah, Hapus, Ekspor)** | **Lihat, Ekspor** *(SK pribadi)* |
+| 10 | Cetak Dokumen & Biodata | **Full (Lihat, Tambah, Ekspor)** | **Lihat, Ekspor** | **Lihat, Ekspor** *(kelas ampunya)* |
+| 11 | Editor Template Surat | **Full (Lihat, Ubah)** | *Tidak Diizinkan* | *Tidak Diizinkan* |
+| 12 | Statistik & Analisis Kesiswaan | **Full (Lihat, Ekspor)** | **Lihat, Ekspor** | **Lihat** |
+| 13 | Rombel & Kelas (Pembelajaran) | **Full CRUD** | **Lihat** | **Lihat, Ubah** *(kelas ampunya)* |
+| 14 | Pengaturan: Tahun Ajaran | **Full CRUD** | **Lihat** | *Disembunyikan* |
+| 15 | Pengaturan: Jenjang & Unit | **Full CRUD** | **Lihat** | *Disembunyikan* |
+| 16 | Pengaturan: Bidang & Jabatan | **Full CRUD** | **Full CRUD** *(Bidang SDM)* | *Disembunyikan* |
+| 17 | Pengaturan: Manajemen Akun | **Full CRUD** | **Lihat** | *Disembunyikan* |
+| 18 | Pengaturan: Generate Akun | **Full (Lihat, Tambah)** | *Disembunyikan* | *Disembunyikan* |
+| 19 | Pengaturan: Matriks Hak Akses | **Full (Lihat, Ubah)** | **Lihat** | *Disembunyikan* |
 | **Statistik & Laporan Analitik** | Agregasi data siswa & pegawai | **Global (Semua)** | **Global & Eksekutif** | **Spesifik Unitnya** | **Spesifik Unitnya** | **Spesifik Kelasnya** |
 
 ---

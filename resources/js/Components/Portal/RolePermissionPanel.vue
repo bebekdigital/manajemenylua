@@ -22,6 +22,8 @@ const emit = defineEmits(['saved']);
 const activeRole = ref('Kepala Bidang SDM');
 const isSaving = ref(false);
 const isLoading = ref(false);
+const searchQuery = ref('');
+const selectedCategory = ref('all');
 
 // Local cache for matrix per role
 const localMatrices = ref({ ...props.permissionsData });
@@ -69,6 +71,59 @@ function setRole(role) {
 
 const isSuperadminActive = computed(() => activeRole.value === 'superadmin');
 
+// Categories list
+const categories = computed(() => {
+    const set = new Set();
+    currentMatrix.value.forEach((item) => {
+        if (item.category) set.add(item.category);
+    });
+    return Array.from(set);
+});
+
+// Category Styling & Icons
+const categoryMeta = {
+    'Dashboard': { icon: 'dashboard', color: 'bg-emerald-50 text-emerald-800 border-emerald-200' },
+    'Database Siswa': { icon: 'groups', color: 'bg-blue-50 text-blue-800 border-blue-200' },
+    'Database Pegawai': { icon: 'badge', color: 'bg-indigo-50 text-indigo-800 border-indigo-200' },
+    'Administrasi': { icon: 'description', color: 'bg-amber-50 text-amber-800 border-amber-200' },
+    'Statistik': { icon: 'bar_chart', color: 'bg-purple-50 text-purple-800 border-purple-200' },
+    'Pembelajaran': { icon: 'menu_book', color: 'bg-teal-50 text-teal-800 border-teal-200' },
+    'Pengaturan Master': { icon: 'settings', color: 'bg-rose-50 text-rose-800 border-rose-200' },
+};
+
+function getCategoryMeta(cat) {
+    return categoryMeta[cat] || { icon: 'folder', color: 'bg-surface-container-high text-on-surface border-outline-variant/40' };
+}
+
+// Filtered and grouped matrix
+const filteredMatrix = computed(() => {
+    return currentMatrix.value.filter((item) => {
+        const matchesCategory = selectedCategory.value === 'all' || item.category === selectedCategory.value;
+        const q = searchQuery.value.trim().toLowerCase();
+        const matchesSearch =
+            !q ||
+            item.name.toLowerCase().includes(q) ||
+            item.group.toLowerCase().includes(q) ||
+            item.description.toLowerCase().includes(q) ||
+            item.category.toLowerCase().includes(q);
+
+        return matchesCategory && matchesSearch;
+    });
+});
+
+// Group filtered matrix by category
+const groupedMatrix = computed(() => {
+    const groups = {};
+    filteredMatrix.value.forEach((item) => {
+        const cat = item.category || 'Lainnya';
+        if (!groups[cat]) {
+            groups[cat] = [];
+        }
+        groups[cat].push(item);
+    });
+    return groups;
+});
+
 // Toggle entire row (all actions in a feature)
 function toggleRow(item) {
     if (isSuperadminActive.value) return;
@@ -81,7 +136,20 @@ function toggleRow(item) {
     });
 }
 
-// Toggle all checkboxes in the matrix
+// Toggle all in a category
+function toggleCategory(catName, value) {
+    if (isSuperadminActive.value) return;
+
+    currentMatrix.value.forEach((item) => {
+        if (item.category === catName) {
+            item.supported_actions.forEach((act) => {
+                item[`can_${act}`] = value;
+            });
+        }
+    });
+}
+
+// Toggle all checkboxes in the entire matrix
 function toggleAll(value) {
     if (isSuperadminActive.value) return;
 
@@ -91,16 +159,6 @@ function toggleAll(value) {
         });
     });
 }
-
-// Action label mapping
-const actionLabels = {
-    view: { label: 'Lihat / Akses', icon: 'visibility', color: 'text-blue-600' },
-    create: { label: 'Tambah', icon: 'add_circle', color: 'text-emerald-600' },
-    update: { label: 'Ubah / Edit', icon: 'edit', color: 'text-amber-600' },
-    delete: { label: 'Hapus', icon: 'delete', color: 'text-red-600' },
-    export: { label: 'Ekspor', icon: 'download', color: 'text-teal-600' },
-    import: { label: 'Impor', icon: 'upload', color: 'text-purple-600' },
-};
 
 // Save changes
 function savePermissions() {
@@ -115,7 +173,7 @@ function savePermissions() {
             preserveScroll: true,
             onSuccess: () => {
                 localMatrices.value[activeRole.value] = JSON.parse(JSON.stringify(currentMatrix.value));
-                emit('saved', `Hak akses untuk role "${activeRole.value}" berhasil diperbarui.`);
+                emit('saved', `Hak akses untuk role "${activeRole.value}" berhasil disimpan.`);
             },
             onFinish: () => {
                 isSaving.value = false;
@@ -218,34 +276,58 @@ function savePermissions() {
             </div>
         </div>
 
-        <!-- Banner Keterangan Role Aktif -->
-        <div class="px-6 py-3 bg-surface-container-low/40 border-b border-outline-variant/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+        <!-- Filter & Search Toolbar -->
+        <div class="px-6 py-3 bg-surface-container-low/40 border-b border-outline-variant/30 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
             <div class="flex items-center gap-2">
                 <span class="material-symbols-outlined text-[18px] text-primary">info</span>
                 <span v-if="isSuperadminActive" class="text-on-surface font-medium">
                     Role <strong>Superadmin</strong> memiliki hak akses penuh ke seluruh fitur dan tidak dibatasi oleh matriks perizinan.
                 </span>
                 <span v-else class="text-on-surface">
-                    Sedang mengatur hak akses untuk role: <strong class="text-primary text-sm font-bold ml-1">{{ activeRole }}</strong>
+                    Sedang mengatur hak akses role: <strong class="text-primary text-sm font-bold ml-1">{{ activeRole }}</strong>
                 </span>
             </div>
 
-            <!-- Quick Action Helpers -->
-            <div v-if="!isSuperadminActive" class="flex items-center gap-2">
-                <button
-                    type="button"
-                    @click="toggleAll(true)"
-                    class="px-2.5 py-1 rounded-lg bg-surface-container-highest hover:bg-surface-variant text-on-surface font-medium transition-colors cursor-pointer text-[11px]"
+            <div class="flex flex-wrap items-center gap-2">
+                <!-- Search Input -->
+                <div class="relative w-full sm:w-56">
+                    <span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-[16px] text-on-surface-variant">search</span>
+                    <input
+                        v-model="searchQuery"
+                        type="text"
+                        placeholder="Cari modul..."
+                        class="w-full pl-8 pr-3 py-1.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest text-xs text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                    />
+                </div>
+
+                <!-- Category Dropdown Filter -->
+                <select
+                    v-model="selectedCategory"
+                    class="px-3 py-1.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest text-xs text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary font-medium"
                 >
-                    Centang Semua
-                </button>
-                <button
-                    type="button"
-                    @click="toggleAll(false)"
-                    class="px-2.5 py-1 rounded-lg bg-surface-container-highest hover:bg-surface-variant text-on-surface font-medium transition-colors cursor-pointer text-[11px]"
-                >
-                    Kosongkan Semua
-                </button>
+                    <option value="all">Semua Kategori ({{ currentMatrix.length }})</option>
+                    <option v-for="cat in categories" :key="cat" :value="cat">
+                        {{ cat }}
+                    </option>
+                </select>
+
+                <!-- Quick Action Helpers -->
+                <div v-if="!isSuperadminActive" class="flex items-center gap-1.5">
+                    <button
+                        type="button"
+                        @click="toggleAll(true)"
+                        class="px-2.5 py-1.5 rounded-lg bg-surface-container-high hover:bg-surface-variant text-on-surface font-semibold transition-colors cursor-pointer text-[11px]"
+                    >
+                        Centang Semua
+                    </button>
+                    <button
+                        type="button"
+                        @click="toggleAll(false)"
+                        class="px-2.5 py-1.5 rounded-lg bg-surface-container-high hover:bg-surface-variant text-on-surface font-semibold transition-colors cursor-pointer text-[11px]"
+                    >
+                        Kosongkan Semua
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -254,7 +336,7 @@ function savePermissions() {
             <table class="w-full text-xs text-left border-collapse border-b border-outline-variant/40">
                 <thead>
                     <tr class="bg-surface-container-low text-on-surface-variant font-bold text-[10px] uppercase tracking-wider border-b border-outline-variant/60">
-                        <th class="p-4 w-64">Modul / Fitur</th>
+                        <th class="p-4 w-72">Modul & Fitur Web</th>
                         <th class="p-3 text-center w-28">Kategori</th>
                         <th class="p-3 text-center w-24">Lihat (View)</th>
                         <th class="p-3 text-center w-24">Tambah (Create)</th>
@@ -266,106 +348,152 @@ function savePermissions() {
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-outline-variant/30">
-                    <tr
-                        v-for="item in currentMatrix"
-                        :key="item.group"
-                        class="hover:bg-surface-container-low/30 transition-colors"
-                    >
-                        <!-- Nama Fitur & Deskripsi -->
-                        <td class="p-4">
-                            <div class="font-bold text-on-surface text-xs sm:text-sm">{{ item.name }}</div>
-                            <div class="text-[11px] text-on-surface-variant leading-relaxed mt-0.5">{{ item.description }}</div>
-                        </td>
+                    <template v-for="(items, catName) in groupedMatrix" :key="catName">
+                        <!-- Category Header Row -->
+                        <tr class="bg-surface-container-low/70 border-y border-outline-variant/50">
+                            <td colspan="9" class="px-4 py-2.5">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-2">
+                                        <span class="material-symbols-outlined text-[18px] text-primary">{{ getCategoryMeta(catName).icon }}</span>
+                                        <span class="font-bold text-on-surface text-xs tracking-wide uppercase">{{ catName }}</span>
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold" :class="getCategoryMeta(catName).color">
+                                            {{ items.length }} modul
+                                        </span>
+                                    </div>
 
-                        <!-- Kategori -->
-                        <td class="p-3 text-center">
-                            <span class="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-surface-container-high text-on-surface-variant border border-outline-variant/40">
-                                {{ item.category }}
-                            </span>
-                        </td>
+                                    <div v-if="!isSuperadminActive" class="flex items-center gap-2">
+                                        <button
+                                            type="button"
+                                            @click="toggleCategory(catName, true)"
+                                            class="text-[10px] text-primary hover:underline font-semibold cursor-pointer"
+                                        >
+                                            + Centang Kategori Ini
+                                        </button>
+                                        <span class="text-outline-variant">|</span>
+                                        <button
+                                            type="button"
+                                            @click="toggleCategory(catName, false)"
+                                            class="text-[10px] text-on-surface-variant hover:underline font-semibold cursor-pointer"
+                                        >
+                                            - Kosongkan Kategori Ini
+                                        </button>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
 
-                        <!-- Aksi: View -->
-                        <td class="p-3 text-center">
-                            <input
-                                v-if="item.supported_actions.includes('view')"
-                                type="checkbox"
-                                v-model="item.can_view"
-                                :disabled="isSuperadminActive"
-                                class="rounded border-outline-variant text-primary focus:ring-primary/20 cursor-pointer disabled:opacity-60 w-4 h-4"
-                            />
-                            <span v-else class="text-outline-variant">-</span>
-                        </td>
+                        <!-- Feature Rows under this Category -->
+                        <tr
+                            v-for="item in items"
+                            :key="item.group"
+                            class="hover:bg-surface-container-low/30 transition-colors"
+                        >
+                            <!-- Nama Fitur & Deskripsi -->
+                            <td class="p-4 pl-6">
+                                <div class="font-bold text-on-surface text-xs sm:text-sm flex items-center gap-2">
+                                    <span>{{ item.name }}</span>
+                                    <code class="text-[10px] text-on-surface-variant font-mono bg-surface-container-high px-1 rounded">{{ item.group }}</code>
+                                </div>
+                                <div class="text-[11px] text-on-surface-variant leading-relaxed mt-0.5">{{ item.description }}</div>
+                            </td>
 
-                        <!-- Aksi: Create -->
-                        <td class="p-3 text-center">
-                            <input
-                                v-if="item.supported_actions.includes('create')"
-                                type="checkbox"
-                                v-model="item.can_create"
-                                :disabled="isSuperadminActive"
-                                class="rounded border-outline-variant text-primary focus:ring-primary/20 cursor-pointer disabled:opacity-60 w-4 h-4"
-                            />
-                            <span v-else class="text-outline-variant">-</span>
-                        </td>
+                            <!-- Kategori Badge -->
+                            <td class="p-3 text-center">
+                                <span class="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold border" :class="getCategoryMeta(item.category).color">
+                                    {{ item.category }}
+                                </span>
+                            </td>
 
-                        <!-- Aksi: Update -->
-                        <td class="p-3 text-center">
-                            <input
-                                v-if="item.supported_actions.includes('update')"
-                                type="checkbox"
-                                v-model="item.can_update"
-                                :disabled="isSuperadminActive"
-                                class="rounded border-outline-variant text-primary focus:ring-primary/20 cursor-pointer disabled:opacity-60 w-4 h-4"
-                            />
-                            <span v-else class="text-outline-variant">-</span>
-                        </td>
+                            <!-- Aksi: View -->
+                            <td class="p-3 text-center">
+                                <input
+                                    v-if="item.supported_actions.includes('view')"
+                                    type="checkbox"
+                                    v-model="item.can_view"
+                                    :disabled="isSuperadminActive"
+                                    class="rounded border-outline-variant text-primary focus:ring-primary/20 cursor-pointer disabled:opacity-60 w-4 h-4"
+                                />
+                                <span v-else class="text-outline-variant">-</span>
+                            </td>
 
-                        <!-- Aksi: Delete -->
-                        <td class="p-3 text-center">
-                            <input
-                                v-if="item.supported_actions.includes('delete')"
-                                type="checkbox"
-                                v-model="item.can_delete"
-                                :disabled="isSuperadminActive"
-                                class="rounded border-outline-variant text-primary focus:ring-primary/20 cursor-pointer disabled:opacity-60 w-4 h-4"
-                            />
-                            <span v-else class="text-outline-variant">-</span>
-                        </td>
+                            <!-- Aksi: Create -->
+                            <td class="p-3 text-center">
+                                <input
+                                    v-if="item.supported_actions.includes('create')"
+                                    type="checkbox"
+                                    v-model="item.can_create"
+                                    :disabled="isSuperadminActive"
+                                    class="rounded border-outline-variant text-primary focus:ring-primary/20 cursor-pointer disabled:opacity-60 w-4 h-4"
+                                />
+                                <span v-else class="text-outline-variant">-</span>
+                            </td>
 
-                        <!-- Aksi: Export -->
-                        <td class="p-3 text-center">
-                            <input
-                                v-if="item.supported_actions.includes('export')"
-                                type="checkbox"
-                                v-model="item.can_export"
-                                :disabled="isSuperadminActive"
-                                class="rounded border-outline-variant text-primary focus:ring-primary/20 cursor-pointer disabled:opacity-60 w-4 h-4"
-                            />
-                            <span v-else class="text-outline-variant">-</span>
-                        </td>
+                            <!-- Aksi: Update -->
+                            <td class="p-3 text-center">
+                                <input
+                                    v-if="item.supported_actions.includes('update')"
+                                    type="checkbox"
+                                    v-model="item.can_update"
+                                    :disabled="isSuperadminActive"
+                                    class="rounded border-outline-variant text-primary focus:ring-primary/20 cursor-pointer disabled:opacity-60 w-4 h-4"
+                                />
+                                <span v-else class="text-outline-variant">-</span>
+                            </td>
 
-                        <!-- Aksi: Import -->
-                        <td class="p-3 text-center">
-                            <input
-                                v-if="item.supported_actions.includes('import')"
-                                type="checkbox"
-                                v-model="item.can_import"
-                                :disabled="isSuperadminActive"
-                                class="rounded border-outline-variant text-primary focus:ring-primary/20 cursor-pointer disabled:opacity-60 w-4 h-4"
-                            />
-                            <span v-else class="text-outline-variant">-</span>
-                        </td>
+                            <!-- Aksi: Delete -->
+                            <td class="p-3 text-center">
+                                <input
+                                    v-if="item.supported_actions.includes('delete')"
+                                    type="checkbox"
+                                    v-model="item.can_delete"
+                                    :disabled="isSuperadminActive"
+                                    class="rounded border-outline-variant text-primary focus:ring-primary/20 cursor-pointer disabled:opacity-60 w-4 h-4"
+                                />
+                                <span v-else class="text-outline-variant">-</span>
+                            </td>
 
-                        <!-- Aksi Cepat Baris -->
-                        <td class="p-3 text-center" v-if="!isSuperadminActive">
-                            <button
-                                type="button"
-                                @click="toggleRow(item)"
-                                class="p-1 rounded-lg hover:bg-surface-container-high text-on-surface-variant hover:text-primary transition-colors cursor-pointer"
-                                title="Beralih centang semua aksi pada fitur ini"
-                            >
-                                <span class="material-symbols-outlined text-[16px]">select_all</span>
-                            </button>
+                            <!-- Aksi: Export -->
+                            <td class="p-3 text-center">
+                                <input
+                                    v-if="item.supported_actions.includes('export')"
+                                    type="checkbox"
+                                    v-model="item.can_export"
+                                    :disabled="isSuperadminActive"
+                                    class="rounded border-outline-variant text-primary focus:ring-primary/20 cursor-pointer disabled:opacity-60 w-4 h-4"
+                                />
+                                <span v-else class="text-outline-variant">-</span>
+                            </td>
+
+                            <!-- Aksi: Import -->
+                            <td class="p-3 text-center">
+                                <input
+                                    v-if="item.supported_actions.includes('import')"
+                                    type="checkbox"
+                                    v-model="item.can_import"
+                                    :disabled="isSuperadminActive"
+                                    class="rounded border-outline-variant text-primary focus:ring-primary/20 cursor-pointer disabled:opacity-60 w-4 h-4"
+                                />
+                                <span v-else class="text-outline-variant">-</span>
+                            </td>
+
+                            <!-- Aksi Cepat Baris -->
+                            <td class="p-3 text-center" v-if="!isSuperadminActive">
+                                <button
+                                    type="button"
+                                    @click="toggleRow(item)"
+                                    class="p-1 rounded-lg hover:bg-surface-container-high text-on-surface-variant hover:text-primary transition-colors cursor-pointer"
+                                    title="Beralih centang semua aksi pada fitur ini"
+                                >
+                                    <span class="material-symbols-outlined text-[16px]">select_all</span>
+                                </button>
+                            </td>
+                        </tr>
+                    </template>
+
+                    <tr v-if="Object.keys(groupedMatrix).length === 0">
+                        <td colspan="9" class="p-8 text-center text-on-surface-variant italic">
+                            <span class="material-symbols-outlined text-3xl text-outline/40 block mb-1">search_off</span>
+                            Tidak ada modul fitur yang sesuai dengan pencarian atau filter kategori.
                         </td>
                     </tr>
                 </tbody>
@@ -375,7 +503,7 @@ function savePermissions() {
         <!-- Footer Info -->
         <div class="p-4 bg-surface-container-low/30 border-t border-outline-variant/30 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-on-surface-variant">
             <div>
-                Menampilkan <strong>{{ currentMatrix.length }}</strong> modul dan fitur sistem yang dapat dikonfigurasi perannya.
+                Menampilkan <strong>{{ filteredMatrix.length }}</strong> dari <strong>{{ currentMatrix.length }}</strong> modul fitur web terdaftar.
             </div>
             <button
                 type="button"
