@@ -315,6 +315,10 @@ class EmployeeController extends Controller
 
             // Riwayat Kepegawaian array (opsional jika diedit multi-row)
             'riwayat_kepegawaian' => ['nullable', 'array'],
+            'riwayat_kepegawaian.*.id' => ['nullable'],
+            'riwayat_kepegawaian.*.jenjang_kepegawaian' => ['nullable', 'string', 'max:50'],
+            'riwayat_kepegawaian.*.tmt_kenaikan_jenjang' => ['nullable', 'date'],
+            'riwayat_kepegawaian.*.tst_kenaikan_jenjang' => ['nullable', 'date'],
             // Riwayat Jabatan array (opsional jika diedit multi-row)
             'riwayat_jabatan' => ['nullable', 'array'],
         ], [
@@ -371,15 +375,34 @@ class EmployeeController extends Controller
             // Handle Riwayat Kepegawaian (Sheet 3)
             $tstJenjangVal = $validated['tst_kenaikan_jenjang'] ?? ($validated['tst_jenjang'] ?? null);
             if (isset($validated['riwayat_kepegawaian']) && is_array($validated['riwayat_kepegawaian'])) {
-                $employee->records()->delete();
+                $keptRecordIds = [];
                 foreach ($validated['riwayat_kepegawaian'] as $rec) {
                     if (! empty($rec['jenjang_kepegawaian']) || ! empty($rec['tmt_kenaikan_jenjang'])) {
-                        $employee->records()->create([
+                        $recordData = [
                             'jenjang_kepegawaian' => $rec['jenjang_kepegawaian'] ?? null,
                             'tmt_kenaikan_jenjang' => $rec['tmt_kenaikan_jenjang'] ?? null,
                             'tst_kenaikan_jenjang' => $rec['tst_kenaikan_jenjang'] ?? ($rec['tst_jenjang'] ?? null),
-                        ]);
+                        ];
+
+                        if (! empty($rec['id'])) {
+                            $existingRecord = $employee->records()->find($rec['id']);
+                            if ($existingRecord) {
+                                $existingRecord->update($recordData);
+                                $keptRecordIds[] = $existingRecord->id;
+                                continue;
+                            }
+                        }
+
+                        $newRecord = $employee->records()->create($recordData);
+                        $keptRecordIds[] = $newRecord->id;
                     }
+                }
+
+                // Delete records that were removed by the user
+                $recordsToDelete = $employee->records()->whereNotIn('id', $keptRecordIds)->get();
+                foreach ($recordsToDelete as $delRec) {
+                    $employee->documents()->where('record_type', 'record')->where('record_id', $delRec->id)->delete();
+                    $delRec->delete();
                 }
             } elseif (! empty($validated['jenjang_kepegawaian']) || ! empty($validated['tmt_kenaikan_jenjang'])) {
                 $latestRec = $employee->records()->latest('tmt_kenaikan_jenjang')->first();
