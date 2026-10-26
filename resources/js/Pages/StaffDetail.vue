@@ -2157,7 +2157,7 @@ function deleteDocument(doc) {
                 <!-- TAB 4: KEPEGAWAIAN -->
                 <div v-if="activeTab === 'kepegawaian'" class="space-y-6">
                     <!-- DATA STATIS: PENGANGKATAN, KEAKTIFAN & DAPODIK (SHEET 1) -->
-                    <div class="p-4 sm:p-5 bg-white border-2 border-outline-variant/60 rounded-2xl shadow-2xs">
+                    <div>
                         <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
                             <h4 class="text-xs sm:text-sm font-bold text-primary flex items-center gap-2">
                                 <span class="material-symbols-outlined text-[20px]">verified</span>
@@ -2167,19 +2167,31 @@ function deleteDocument(doc) {
 
                         <!-- View Mode Data Statis -->
                         <div v-if="!isEditing" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                            <!-- TMT & TST Pengangkatan -->
+                            <!-- TMT Pengangkatan -->
                             <div class="p-3.5 bg-white rounded-xl border border-outline-variant/60 flex items-start gap-3 shadow-2xs">
                                 <div class="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
                                     <span class="material-symbols-outlined text-[20px]">calendar_today</span>
                                 </div>
                                 <div class="min-w-0 flex-1">
-                                    <label class="text-[10px] sm:text-xs font-semibold text-on-surface-variant uppercase tracking-wider block">TMT / TST Pengangkatan</label>
+                                    <label class="text-[10px] sm:text-xs font-semibold text-on-surface-variant uppercase tracking-wider block">TMT Pengangkatan</label>
                                     <p class="text-xs sm:text-sm font-bold text-on-surface mt-0.5">
                                         {{ employee.formatted_tmt_pengangkatan || formatTanggalIndo(employee.tmt_pengangkatan) || '-' }}
-                                        <span class="text-outline font-normal">s.d.</span>
+                                    </p>
+                                    <span class="text-[11px] text-outline mt-0.5 block">Terhitung mulai tanggal pengangkatan</span>
+                                </div>
+                            </div>
+
+                            <!-- TST Pengangkatan -->
+                            <div class="p-3.5 bg-white rounded-xl border border-outline-variant/60 flex items-start gap-3 shadow-2xs">
+                                <div class="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
+                                    <span class="material-symbols-outlined text-[20px]">calendar_month</span>
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <label class="text-[10px] sm:text-xs font-semibold text-on-surface-variant uppercase tracking-wider block">TST Pengangkatan</label>
+                                    <p class="text-xs sm:text-sm font-bold text-on-surface mt-0.5">
                                         {{ employee.formatted_tst_pengangkatan || formatTanggalIndo(employee.tst_pengangkatan) || 'Sekarang' }}
                                     </p>
-                                    <span class="text-[11px] text-outline mt-0.5 block">Masa pengangkatan pegawai yayasan</span>
+                                    <span class="text-[11px] text-outline mt-0.5 block">Terhitung selesai tanggal pengangkatan</span>
                                 </div>
                             </div>
 
@@ -2218,7 +2230,7 @@ function deleteDocument(doc) {
                             </div>
 
                             <!-- Keaktifan Dapodik -->
-                            <div class="p-3.5 bg-white rounded-xl border border-outline-variant/60 flex items-start gap-3 sm:col-span-2 lg:col-span-3 shadow-2xs">
+                            <div class="p-3.5 bg-white rounded-xl border border-outline-variant/60 flex items-start gap-3 sm:col-span-2 lg:col-span-2 shadow-2xs">
                                 <div class="w-9 h-9 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 mt-0.5">
                                     <span class="material-symbols-outlined text-[20px]">cloud_sync</span>
                                 </div>
