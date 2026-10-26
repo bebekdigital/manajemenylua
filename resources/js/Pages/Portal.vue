@@ -539,7 +539,7 @@ function formatDate(dateStr) {
                 <div class="flex items-center justify-between px-5 py-4 border-b border-outline-variant/30">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                            <span class="material-symbols-outlined text-primary text-xl">corporate_fare</span>
+                            <span class="material-symbols-outlined text-primary text-xl">account_tree</span>
                         </div>
                         <div>
                             <h3 class="text-base font-bold text-on-surface">Bidang & Jabatan</h3>
@@ -608,9 +608,8 @@ function formatDate(dateStr) {
                                             <div
                                                 v-for="pos in dept.positions"
                                                 :key="pos.id"
-                                                class="group/pill inline-flex items-center gap-1.5 bg-surface-container-high border border-outline-variant/60 pl-3 pr-1.5 py-1.5 rounded-lg hover:border-primary/40 transition-colors shadow-2xs"
+                                                class="group/pill inline-flex items-center gap-1.5 bg-surface-container-high border border-outline-variant/60 pl-2.5 pr-1.5 py-1 rounded-lg hover:border-primary/40 transition-colors shadow-2xs"
                                             >
-                                                <span class="material-symbols-outlined text-[15px] text-primary/70">badge</span>
                                                 <span class="text-xs font-semibold text-on-surface">{{ pos.name }}</span>
                                                 <div class="flex items-center ml-1">
                                                     <button
@@ -649,7 +648,7 @@ function formatDate(dateStr) {
 
                             <tr v-if="departments.length === 0">
                                 <td colspan="2" class="border border-outline-variant/60 px-5 py-12 text-center text-on-surface-variant">
-                                    <span class="material-symbols-outlined text-4xl mb-2 opacity-50">corporate_fare</span>
+                                    <span class="material-symbols-outlined text-4xl mb-2 opacity-50">account_tree</span>
                                     <p class="text-sm">Belum ada bidang kerja.<br/>Silakan tambah bidang pertama Anda.</p>
                                 </td>
                             </tr>
@@ -664,7 +663,7 @@ function formatDate(dateStr) {
                 <div class="flex items-center justify-between px-5 py-4 border-b border-outline-variant/30">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                            <span class="material-symbols-outlined text-primary text-xl">domain</span>
+                            <span class="material-symbols-outlined text-primary text-xl">apartment</span>
                         </div>
                         <div>
                             <h3 class="text-base font-bold text-on-surface">Jenjang & Unit Sekolah</h3>
@@ -807,7 +806,7 @@ function formatDate(dateStr) {
 
                             <tr v-if="schoolLevels.length === 0">
                                 <td colspan="4" class="border border-outline-variant/60 px-5 py-12 text-center text-on-surface-variant">
-                                    <span class="material-symbols-outlined text-4xl mb-2 opacity-50">domain_disabled</span>
+                                    <span class="material-symbols-outlined text-4xl mb-2 opacity-50">apartment</span>
                                     <p class="text-sm">Belum ada jenjang pendidikan.<br/>Silakan tambah jenjang pertama Anda.</p>
                                 </td>
                             </tr>
