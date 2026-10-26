@@ -4,54 +4,18 @@ namespace App\Http\Controllers;
 
 use App\Models\AcademicYear;
 use App\Models\Classroom;
-use App\Models\Department;
 use App\Models\SchoolClass;
-use App\Models\SchoolLevel;
-use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
-use Inertia\Response;
 
 class AcademicYearController extends Controller
 {
     /**
-     * Display the Portal Management page with Academic Years.
+     * Redirect to the Portal Management page.
      */
-    public function index(): Response
+    public function index(): RedirectResponse
     {
-        $academicYears = AcademicYear::orderByDesc('name')
-            ->orderByRaw("CASE WHEN semester = 'Genap' THEN 1 ELSE 2 END")
-            ->get()
-            ->map(fn (AcademicYear $year) => [
-                'id' => $year->id,
-                'name' => $year->name,
-                'semester' => $year->semester,
-                'start_date' => $year->start_date?->format('Y-m-d'),
-                'end_date' => $year->end_date?->format('Y-m-d'),
-                'is_active' => (bool) $year->is_active,
-                'students_count' => $year->studentRecords()->count(),
-                'classrooms_count' => $year->classrooms()->count(),
-            ]);
-
-        $users = User::orderBy('name')->get()->map(fn ($user) => [
-            'id' => $user->id,
-            'name' => $user->name,
-            'username' => $user->username,
-            'email' => $user->email,
-            'role' => $user->role,
-            'created_at' => $user->created_at?->format('Y-m-d H:i'),
-        ]);
-
-        $schoolLevels = SchoolLevel::with(['units.programs', 'units.classes'])->orderBy('order')->get();
-        $departments = Department::with('positions')->orderBy('order')->orderBy('name')->get();
-
-        return Inertia::render('Portal', [
-            'academicYears' => $academicYears,
-            'users' => $users,
-            'schoolLevels' => $schoolLevels,
-            'departments' => $departments,
-        ]);
+        return redirect()->route('portal.index');
     }
 
     /**
@@ -103,7 +67,7 @@ class AcademicYearController extends Controller
             }
         }
 
-        // Hapus semua kelas di TA ini yang TIDAk ada di list validClassroomIds DAN tidak punya siswa
+        // Hapus semua kelas di TA ini yang TIDAK ada di list validClassroomIds DAN tidak punya siswa
         Classroom::where('academic_year_id', $academicYear->id)
             ->whereNotIn('id', $validClassroomIds)
             ->doesntHave('studentRecords')
@@ -162,7 +126,7 @@ class AcademicYearController extends Controller
             }
         }
 
-        // Hapus semua kelas di TA ini yang TIDAk ada di list validClassroomIds DAN tidak punya siswa
+        // Hapus semua kelas di TA ini yang TIDAK ada di list validClassroomIds DAN tidak punya siswa
         Classroom::where('academic_year_id', $academicYear->id)
             ->whereNotIn('id', $validClassroomIds)
             ->doesntHave('studentRecords')

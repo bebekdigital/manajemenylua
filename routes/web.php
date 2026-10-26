@@ -9,6 +9,7 @@ use App\Http\Controllers\DepartmentPositionController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeeDocumentController;
 use App\Http\Controllers\PembelajaranController;
+use App\Http\Controllers\PortalController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SchoolClassController;
 use App\Http\Controllers\SchoolLevelController;
@@ -59,6 +60,29 @@ Route::get('/setup-superadmin', function () {
         ]);
     } catch (Exception $e) {
         return response()->json(['error' => $e->getMessage()]);
+    }
+});
+
+// ROUTE BANTUAN MIGRASI SERVER (bisa diakses via browser di hosting data.ulilalbabkra.sch.id/run-migration)
+Route::get('/run-migration', function () {
+    try {
+        Artisan::call('migrate', ['--force' => true]);
+        $migrateOutput = Artisan::output();
+
+        Artisan::call('db:seed', ['--class' => 'DepartmentSeeder', '--force' => true]);
+        $seedOutput = Artisan::output();
+
+        return response()->json([
+            'status' => 'Sukses!',
+            'pesan' => 'Migrasi dan seeding data Bidang berhasil dijalankan di hosting.',
+            'migrate_output' => $migrateOutput,
+            'seed_output' => $seedOutput,
+        ]);
+    } catch (Throwable $e) {
+        return response()->json([
+            'status' => 'Gagal',
+            'error' => $e->getMessage(),
+        ]);
     }
 });
 
@@ -144,7 +168,7 @@ Route::middleware('auth')->group(function () {
     })->name('academic-years.switch');
 
     // Portal Management
-    Route::get('/portal', [AcademicYearController::class, 'index'])->name('portal.index');
+    Route::get('/portal', [PortalController::class, 'index'])->name('portal.index');
     Route::post('/portal/academic-years', [AcademicYearController::class, 'store'])->name('portal.academic-years.store');
     Route::put('/portal/academic-years/{academicYear}', [AcademicYearController::class, 'update'])->name('portal.academic-years.update');
     Route::delete('/portal/academic-years/{academicYear}', [AcademicYearController::class, 'destroy'])->name('portal.academic-years.destroy');
