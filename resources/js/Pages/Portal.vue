@@ -34,10 +34,11 @@ const props = defineProps({
 
 const page = usePage();
 
-const activeTab = ref('pendidikan');
+const activeTab = ref('akademik');
 const tabs = computed(() => {
     const list = [
-        { id: 'pendidikan', label: 'Pendidikan', icon: 'school' }
+        { id: 'akademik', label: 'Akademik', icon: 'school' },
+        { id: 'unit_bidang', label: 'Unit & Bidang', icon: 'domain' },
     ];
     if (page.props.auth?.user?.role === 'superadmin') {
         list.push({ id: 'pengguna', label: 'Pengguna', icon: 'manage_accounts' });
@@ -340,8 +341,8 @@ function formatDate(dateStr) {
             </button>
         </div>
 
-        <!-- Tab Content: Pendidikan -->
-        <div v-show="activeTab === 'pendidikan'" class="space-y-8 animate-in fade-in duration-300">
+        <!-- Tab Content: Akademik -->
+        <div v-show="activeTab === 'akademik'" class="space-y-8 animate-in fade-in duration-300">
             <!-- Academic Year Section -->
             <div class="bg-surface-container-lowest rounded-2xl border border-primary/10 shadow-[0px_4px_20px_rgba(0,40,20,0.06)] overflow-hidden">
             <!-- Section Header -->
@@ -456,7 +457,10 @@ function formatDate(dateStr) {
                 </table>
             </div>
         </div>
+    </div>
 
+        <!-- Tab Content: Unit & Bidang -->
+        <div v-show="activeTab === 'unit_bidang'" class="space-y-8 animate-in fade-in duration-300">
             <!-- School Levels & Units Section -->
             <div class="bg-surface-container-lowest rounded-2xl border border-primary/10 shadow-[0px_4px_20px_rgba(0,40,20,0.06)] overflow-hidden">
                 <!-- Section Header -->
