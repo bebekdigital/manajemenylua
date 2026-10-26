@@ -2,9 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Models\Department;
 use App\Models\Employee;
 use App\Models\EmployeePosition;
 use App\Models\EmployeeRecord;
+use App\Models\SchoolLevel;
+use App\Models\SchoolPosition;
+use App\Models\SchoolUnit;
 use App\Models\User;
 use App\Services\EmployeeImportService;
 use Carbon\Carbon;
@@ -384,5 +388,32 @@ class EmployeeStructureTest extends TestCase
         $this->assertEquals('GTY Tingkat 2', $rec->jenjang_kepegawaian);
         $this->assertEquals('2019-01-01', $rec->tmt_kenaikan_jenjang);
         $this->assertEquals('2023-01-01', $rec->tst_kenaikan_jenjang);
+    }
+
+    public function test_staff_detail_page_includes_school_units_and_departments(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $employee = Employee::create(['nama' => 'Ahmad Dahlan', 'nik' => '3301010101019999']);
+
+        $level = SchoolLevel::create(['name' => 'SD', 'order' => 1]);
+        $unit = SchoolUnit::create(['school_level_id' => $level->id, 'name' => 'SDIT Ulil Albab']);
+        $pos = SchoolPosition::create(['name' => 'Guru Kelas']);
+        $unit->positions()->attach($pos->id);
+
+        $dept = Department::create(['name' => 'Bidang Sarpras']);
+        $dept->positions()->create(['name' => 'Kepala Bidang']);
+
+        $response = $this->actingAs($admin)->get(route('staff.show', $employee));
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('StaffDetail')
+            ->has('schoolUnits', 1)
+            ->where('schoolUnits.0.name', 'SDIT Ulil Albab')
+            ->where('schoolUnits.0.positions.0', 'Guru Kelas')
+            ->has('departments', 1)
+            ->where('departments.0.name', 'Bidang Sarpras')
+            ->where('departments.0.positions.0', 'Kepala Bidang')
+        );
     }
 }

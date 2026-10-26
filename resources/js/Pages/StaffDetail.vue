@@ -26,6 +26,14 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    schoolUnits: {
+        type: Array,
+        default: () => [],
+    },
+    departments: {
+        type: Array,
+        default: () => [],
+    },
 });
 
 const page = usePage();
@@ -196,6 +204,7 @@ function initFormFromProps() {
         tmt_jabatan: p.tmt_jabatan || '',
         tst_jabatan: p.tst_jabatan || '',
         document: p.document || null,
+        custom_jabatan: false,
     }));
 
     form.riwayat_pendidikan = (props.employee.riwayat_pendidikan || []).map((p) => ({
@@ -659,11 +668,54 @@ function addRiwayatJabatanRow() {
         tmt_jabatan: '',
         tst_jabatan: '',
         document: null,
+        custom_jabatan: false,
     });
 }
 
 function removeRiwayatJabatanRow(index) {
     form.riwayat_jabatan.splice(index, 1);
+}
+
+// Daftar nama Unit Sekolah dari Tab Jenjang & Unit Sekolah
+const unitSekolahList = computed(() => {
+    return (props.schoolUnits || []).map((u) => u.name);
+});
+
+// Daftar nama Bidang dari Tab Bidang & Jabatan
+const bidangList = computed(() => {
+    return (props.departments || []).map((d) => d.name);
+});
+
+// Semua nama unit kerja terdaftar di master
+const allMasterUnitNames = computed(() => {
+    return [...unitSekolahList.value, ...bidangList.value];
+});
+
+// Mengambil daftar nama jabatan yang cocok dengan unit kerja yang dipilih
+function getJabatanOptionsForUnit(unitName) {
+    if (!unitName) return [];
+
+    // Cari di Unit Sekolah
+    const foundSchool = (props.schoolUnits || []).find((u) => u.name === unitName);
+    if (foundSchool && Array.isArray(foundSchool.positions) && foundSchool.positions.length > 0) {
+        return foundSchool.positions;
+    }
+
+    // Cari di Bidang (Departments)
+    const foundDept = (props.departments || []).find((d) => d.name === unitName);
+    if (foundDept && Array.isArray(foundDept.positions) && foundDept.positions.length > 0) {
+        return foundDept.positions;
+    }
+
+    return [];
+}
+
+// Reset jabatan jika unit kerja diganti dan jabatan lama tidak ada di unit baru
+function onUnitKerjaChange(pos) {
+    const available = getJabatanOptionsForUnit(pos.unit_kerja);
+    if (pos.jabatan && available.length > 0 && !available.includes(pos.jabatan)) {
+        pos.jabatan = '';
+    }
 }
 
 function copyDomisiliToTinggal() {
@@ -2649,8 +2701,8 @@ function deleteDocument(doc) {
                                     <thead>
                                         <tr class="bg-white text-on-surface-variant font-bold text-[10px] sm:text-xs uppercase tracking-wider">
                                             <th class="border border-outline-variant/60 px-4 py-3 text-center w-12">No</th>
-                                            <th class="border border-outline-variant/60 px-4 py-3 text-left">Jabatan</th>
                                             <th class="border border-outline-variant/60 px-4 py-3 text-left">Unit Kerja</th>
+                                            <th class="border border-outline-variant/60 px-4 py-3 text-left">Jabatan</th>
                                             <th class="border border-outline-variant/60 px-4 py-3 text-left">Jenis Kepegawaian</th>
                                             <th class="border border-outline-variant/60 px-4 py-3 text-left">TMT Jabatan</th>
                                             <th class="border border-outline-variant/60 px-4 py-3 text-left">TST Jabatan</th>
@@ -2665,12 +2717,12 @@ function deleteDocument(doc) {
                                             class="hover:bg-slate-50 transition-colors"
                                         >
                                             <td class="border border-outline-variant/60 px-4 py-3 text-center text-on-surface-variant font-mono">{{ idx + 1 }}</td>
-                                            <td class="border border-outline-variant/60 px-4 py-3 font-bold text-on-surface">{{ pos.jabatan || '-' }}</td>
                                             <td class="border border-outline-variant/60 px-4 py-3">
                                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-semibold bg-primary/10 text-primary">
                                                     {{ pos.unit_kerja || '-' }}
                                                 </span>
                                             </td>
+                                            <td class="border border-outline-variant/60 px-4 py-3 font-bold text-on-surface">{{ pos.jabatan || '-' }}</td>
                                             <td class="border border-outline-variant/60 px-4 py-3 text-on-surface">{{ pos.jenis_kepegawaian || '-' }}</td>
                                             <td class="border border-outline-variant/60 px-4 py-3 text-on-surface">
                                                 {{ pos.formatted_tmt_jabatan || formatTanggalIndo(pos.tmt_jabatan) || '-' }}
@@ -2720,15 +2772,12 @@ function deleteDocument(doc) {
 
                         <!-- EDIT MODE (Edit langsung di tabel dan tombol tambah di baris paling bawah) -->
                         <div v-else class="overflow-x-auto rounded-xl border border-primary/30 bg-white shadow-2xs">
-                            <datalist id="unitOptionsDetail">
-                                <option v-for="unit in availableUnits" :key="unit" :value="unit" />
-                            </datalist>
                             <table class="w-full text-xs sm:text-sm border-collapse border border-outline-variant/60 min-w-[850px]">
                                 <thead>
                                     <tr class="bg-primary/5 text-primary font-bold text-[10px] sm:text-xs uppercase tracking-wider">
                                         <th class="border border-outline-variant/60 px-3 py-2.5 text-center w-12">No</th>
+                                        <th class="border border-outline-variant/60 px-3 py-2.5 text-left min-w-[170px]">Unit Kerja</th>
                                         <th class="border border-outline-variant/60 px-3 py-2.5 text-left min-w-[170px]">Jabatan</th>
-                                        <th class="border border-outline-variant/60 px-3 py-2.5 text-left min-w-[150px]">Unit Kerja</th>
                                         <th class="border border-outline-variant/60 px-3 py-2.5 text-left min-w-[160px]">Jenis Kepegawaian</th>
                                         <th class="border border-outline-variant/60 px-3 py-2.5 text-left min-w-[150px]">TMT Jabatan</th>
                                         <th class="border border-outline-variant/60 px-3 py-2.5 text-left min-w-[150px]">TST Jabatan</th>
@@ -2751,22 +2800,76 @@ function deleteDocument(doc) {
                                         <td class="border border-outline-variant/60 px-3 py-2.5 text-center text-on-surface-variant font-mono font-bold">
                                             {{ idx + 1 }}
                                         </td>
+                                        <!-- KOLOM 2: UNIT KERJA (DROPDOWN DARI TAB UNIT & BIDANG) -->
                                         <td class="border border-outline-variant/60 px-3 py-2.5">
-                                            <input
-                                                v-model="pos.jabatan"
-                                                type="text"
-                                                placeholder="Contoh: Guru Kelas, Bendahara"
-                                                class="w-full px-3 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface font-semibold focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                                            />
-                                        </td>
-                                        <td class="border border-outline-variant/60 px-3 py-2.5">
-                                            <input
+                                            <select
                                                 v-model="pos.unit_kerja"
-                                                list="unitOptionsDetail"
-                                                type="text"
-                                                placeholder="Pilih atau ketik unit"
-                                                class="w-full px-3 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                                            />
+                                                @change="onUnitKerjaChange(pos)"
+                                                class="w-full px-3 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                                            >
+                                                <option value="" disabled>-- Pilih Unit Kerja --</option>
+                                                <optgroup v-if="unitSekolahList.length > 0" label="Unit Sekolah (Jenjang & Unit Sekolah)">
+                                                    <option v-for="unit in unitSekolahList" :key="'school_' + unit" :value="unit">
+                                                        {{ unit }}
+                                                    </option>
+                                                </optgroup>
+                                                <optgroup v-if="bidangList.length > 0" label="Bidang (Bidang & Jabatan)">
+                                                    <option v-for="dept in bidangList" :key="'dept_' + dept" :value="dept">
+                                                        {{ dept }}
+                                                    </option>
+                                                </optgroup>
+                                                <option
+                                                    v-if="pos.unit_kerja && !allMasterUnitNames.includes(pos.unit_kerja)"
+                                                    :value="pos.unit_kerja"
+                                                >
+                                                    {{ pos.unit_kerja }} (Lainnya)
+                                                </option>
+                                            </select>
+                                        </td>
+                                        <!-- KOLOM 3: JABATAN (DROPDOWN COCOK DENGAN UNIT KERJA) -->
+                                        <td class="border border-outline-variant/60 px-3 py-2.5">
+                                            <div class="flex items-center gap-1.5">
+                                                <select
+                                                    v-if="!pos.custom_jabatan && getJabatanOptionsForUnit(pos.unit_kerja).length > 0"
+                                                    v-model="pos.jabatan"
+                                                    class="w-full px-3 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface font-semibold focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                                                >
+                                                    <option value="" disabled>-- Pilih Jabatan --</option>
+                                                    <option
+                                                        v-for="jbt in getJabatanOptionsForUnit(pos.unit_kerja)"
+                                                        :key="jbt"
+                                                        :value="jbt"
+                                                    >
+                                                        {{ jbt }}
+                                                    </option>
+                                                    <option
+                                                        v-if="pos.jabatan && !getJabatanOptionsForUnit(pos.unit_kerja).includes(pos.jabatan)"
+                                                        :value="pos.jabatan"
+                                                    >
+                                                        {{ pos.jabatan }} (Lainnya)
+                                                    </option>
+                                                </select>
+
+                                                <input
+                                                    v-else
+                                                    v-model="pos.jabatan"
+                                                    type="text"
+                                                    :placeholder="pos.unit_kerja ? 'Ketik nama jabatan' : 'Pilih unit kerja dahulu'"
+                                                    class="w-full px-3 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface font-semibold focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                                />
+
+                                                <button
+                                                    v-if="getJabatanOptionsForUnit(pos.unit_kerja).length > 0"
+                                                    type="button"
+                                                    @click="pos.custom_jabatan = !pos.custom_jabatan"
+                                                    class="p-1.5 rounded-lg text-on-surface-variant hover:text-primary hover:bg-primary/10 transition-colors shrink-0 cursor-pointer"
+                                                    :title="pos.custom_jabatan ? 'Kembali ke pilihan dropdown jabatan' : 'Ketik nama jabatan secara manual'"
+                                                >
+                                                    <span class="material-symbols-outlined text-[16px]">
+                                                        {{ pos.custom_jabatan ? 'list' : 'edit' }}
+                                                    </span>
+                                                </button>
+                                            </div>
                                         </td>
                                         <td class="border border-outline-variant/60 px-3 py-2.5">
                                             <input

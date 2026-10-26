@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\AcademicYear;
+use App\Models\Department;
 use App\Models\Employee;
 use App\Models\EmployeePosition;
 use App\Models\SchoolUnit;
@@ -10,6 +11,7 @@ use App\Services\EmployeeImportService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -203,9 +205,35 @@ class EmployeeController extends Controller
             'all_documents' => $employee->documents->values()->toArray(),
         ];
 
-        $units = SchoolUnit::orderBy('name')->pluck('name')->toArray();
+        $schoolUnitRelations = [];
+        if (Schema::hasTable('school_positions') && Schema::hasTable('school_unit_positions')) {
+            $schoolUnitRelations[] = 'positions';
+        }
+
+        $schoolUnits = Schema::hasTable('school_units')
+            ? SchoolUnit::with($schoolUnitRelations)->orderBy('name')->get()->map(fn ($unit) => [
+                'id' => $unit->id,
+                'name' => $unit->name,
+                'positions' => $unit->relationLoaded('positions')
+                    ? $unit->positions->pluck('name')->values()->toArray()
+                    : [],
+            ])->toArray()
+            : [];
+
+        $departments = Schema::hasTable('departments')
+            ? Department::with('positions')->orderBy('order')->orderBy('name')->get()->map(fn ($dept) => [
+                'id' => $dept->id,
+                'name' => $dept->name,
+                'positions' => $dept->relationLoaded('positions')
+                    ? $dept->positions->pluck('name')->values()->toArray()
+                    : [],
+            ])->toArray()
+            : [];
+
+        $units = array_column($schoolUnits, 'name');
+        $deptNames = array_column($departments, 'name');
         $posUnits = EmployeePosition::whereNotNull('unit_kerja')->distinct()->pluck('unit_kerja')->toArray();
-        $availableUnits = array_values(array_unique(array_filter(array_merge($units, $posUnits))));
+        $availableUnits = array_values(array_unique(array_filter(array_merge($units, $deptNames, $posUnits))));
         sort($availableUnits);
 
         return Inertia::render('StaffDetail', [
@@ -221,6 +249,8 @@ class EmployeeController extends Controller
                 'semester' => $y->semester,
             ])->toArray(),
             'availableUnits' => $availableUnits,
+            'schoolUnits' => $schoolUnits,
+            'departments' => $departments,
         ]);
     }
 
@@ -369,6 +399,7 @@ class EmployeeController extends Controller
                             if ($existingPos) {
                                 $existingPos->update($posData);
                                 $keptPositionIds[] = $existingPos->id;
+
                                 continue;
                             }
                         }
@@ -421,6 +452,7 @@ class EmployeeController extends Controller
                             if ($existingRecord) {
                                 $existingRecord->update($recordData);
                                 $keptRecordIds[] = $existingRecord->id;
+
                                 continue;
                             }
                         }
@@ -471,6 +503,7 @@ class EmployeeController extends Controller
                             if ($existingEdu) {
                                 $existingEdu->update($eduData);
                                 $keptEducationIds[] = $existingEdu->id;
+
                                 continue;
                             }
                         }
