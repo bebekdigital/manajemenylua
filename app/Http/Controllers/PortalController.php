@@ -40,7 +40,12 @@ class PortalController extends Controller
             'created_at' => $user->created_at?->format('Y-m-d H:i'),
         ]);
 
-        $schoolLevels = SchoolLevel::with(['units.programs', 'units.classes'])->orderBy('order')->get();
+        $unitRelations = ['units.programs', 'units.classes'];
+        if (Schema::hasTable('school_positions')) {
+            $unitRelations[] = 'units.positions';
+        }
+
+        $schoolLevels = SchoolLevel::with($unitRelations)->orderBy('order')->get();
 
         $departments = Schema::hasTable('departments')
             ? Department::with('positions')->orderBy('order')->orderBy('name')->get()

@@ -22,4 +22,9 @@ class SchoolUnit extends Model
     {
         return $this->hasMany(SchoolClass::class);
     }
+
+    public function positions()
+    {
+        return $this->hasMany(SchoolPosition::class)->orderBy('order')->orderBy('name');
+    }
 }

@@ -13,6 +13,7 @@ use App\Http\Controllers\PortalController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SchoolClassController;
 use App\Http\Controllers\SchoolLevelController;
+use App\Http\Controllers\SchoolPositionController;
 use App\Http\Controllers\SchoolProgramController;
 use App\Http\Controllers\SchoolUnitController;
 use App\Http\Controllers\StatisticsController;
@@ -70,11 +71,12 @@ Route::get('/run-migration', function () {
         $migrateOutput = Artisan::output();
 
         Artisan::call('db:seed', ['--class' => 'DepartmentSeeder', '--force' => true]);
+        Artisan::call('db:seed', ['--class' => 'SchoolPositionSeeder', '--force' => true]);
         $seedOutput = Artisan::output();
 
         return response()->json([
             'status' => 'Sukses!',
-            'pesan' => 'Migrasi dan seeding data Bidang berhasil dijalankan di hosting.',
+            'pesan' => 'Migrasi dan seeding data Bidang & Jabatan Unit berhasil dijalankan di hosting.',
             'migrate_output' => $migrateOutput,
             'seed_output' => $seedOutput,
         ]);
@@ -196,6 +198,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/portal/school-units/{schoolUnit}/classes', [SchoolClassController::class, 'store'])->name('portal.school-classes.store');
     Route::put('/portal/school-classes/{schoolClass}', [SchoolClassController::class, 'update'])->name('portal.school-classes.update');
     Route::delete('/portal/school-classes/{schoolClass}', [SchoolClassController::class, 'destroy'])->name('portal.school-classes.destroy');
+
+    Route::post('/portal/school-units/{schoolUnit}/positions', [SchoolPositionController::class, 'store'])->name('portal.school-positions.store');
+    Route::put('/portal/school-positions/{schoolPosition}', [SchoolPositionController::class, 'update'])->name('portal.school-positions.update');
+    Route::delete('/portal/school-positions/{schoolPosition}', [SchoolPositionController::class, 'destroy'])->name('portal.school-positions.destroy');
 
     // Portal Management - Departments and Positions (Bidang & Jabatan)
     Route::post('/portal/departments', [DepartmentController::class, 'store'])->name('portal.departments.store');

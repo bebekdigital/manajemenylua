@@ -10,6 +10,7 @@ import SchoolProgramFormModal from '@/Components/Portal/SchoolProgramFormModal.v
 import SchoolClassFormModal from '@/Components/Portal/SchoolClassFormModal.vue';
 import DepartmentFormModal from '@/Components/Portal/DepartmentFormModal.vue';
 import DepartmentPositionFormModal from '@/Components/Portal/DepartmentPositionFormModal.vue';
+import SchoolPositionFormModal from '@/Components/Portal/SchoolPositionFormModal.vue';
 import SuccessModal from '@/Components/Shared/SuccessModal.vue';
 import ConfirmDeleteModal from '@/Components/Shared/ConfirmDeleteModal.vue';
 
@@ -210,6 +211,48 @@ function confirmClassDelete(cls) {
         itemName: cls.name,
         onConfirm: (done) => {
             router.delete(`/portal/school-classes/${cls.id}`, {
+                preserveScroll: true,
+                onFinish: done,
+            });
+        },
+    });
+}
+
+// School Unit Position (Jabatan Unit) Modals
+const showUnitPositionModal = ref(false);
+const editingUnitPosition = ref(null);
+const selectedUnitForPosition = ref(null);
+
+function openPositionCreateModalForUnit(unit) {
+    editingUnitPosition.value = null;
+    selectedUnitForPosition.value = unit;
+    showUnitPositionModal.value = true;
+}
+
+function openPositionEditModalForUnit(pos, unit) {
+    editingUnitPosition.value = { ...pos };
+    selectedUnitForPosition.value = unit;
+    showUnitPositionModal.value = true;
+}
+
+function closeUnitPositionModal() {
+    showUnitPositionModal.value = false;
+    editingUnitPosition.value = null;
+    selectedUnitForPosition.value = null;
+}
+
+function onUnitPositionSuccess() {
+    closeUnitPositionModal();
+    dismissedFlash.value = false;
+}
+
+function confirmUnitPositionDelete(pos) {
+    openConfirmModal({
+        title: 'Hapus Jabatan Unit',
+        message: 'Yakin ingin menghapus jabatan unit ini?',
+        itemName: pos.name,
+        onConfirm: (done) => {
+            router.delete(`/portal/school-positions/${pos.id}`, {
                 preserveScroll: true,
                 onFinish: done,
             });
@@ -796,8 +839,9 @@ function formatDate(dateStr) {
                     <table class="w-full text-xs sm:text-sm border-collapse border border-outline-variant/60">
                         <thead>
                             <tr class="bg-surface-container-low/70 text-on-surface-variant font-bold text-[10px] sm:text-xs uppercase tracking-wider">
-                                <th class="border border-outline-variant/60 px-5 py-3 text-left w-1/4">Jenjang</th>
-                                <th class="border border-outline-variant/60 px-5 py-3 text-left w-1/4">Unit Sekolah</th>
+                                <th class="border border-outline-variant/60 px-5 py-3 text-left w-1/5">Jenjang</th>
+                                <th class="border border-outline-variant/60 px-5 py-3 text-left w-1/5">Unit Sekolah</th>
+                                <th class="border border-outline-variant/60 px-5 py-3 text-left">Jabatan</th>
                                 <th class="border border-outline-variant/60 px-5 py-3 text-left">Program Pendidikan</th>
                                 <th class="border border-outline-variant/60 px-5 py-3 text-left">Kelas</th>
                             </tr>
@@ -820,7 +864,7 @@ function formatDate(dateStr) {
                                             </button>
                                         </div>
                                     </td>
-                                    <td colspan="3" class="border border-outline-variant/60 px-5 py-4 align-middle text-on-surface-variant italic text-sm bg-surface-container-low/10">
+                                    <td colspan="4" class="border border-outline-variant/60 px-5 py-4 align-middle text-on-surface-variant italic text-sm bg-surface-container-low/10">
                                         Belum ada unit sekolah ditambahkan.
                                     </td>
                                 </tr>
@@ -855,6 +899,32 @@ function formatDate(dateStr) {
                                                     </button>
                                                     <button type="button" @click="confirmUnitDelete(unit)" class="p-1 rounded text-on-surface-variant hover:text-error hover:bg-error/10 transition-colors" title="Hapus Unit">
                                                         <span class="material-symbols-outlined text-[16px]">close</span>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </td>
+
+                                        <!-- Kolom Jabatan -->
+                                        <td class="border border-outline-variant/60 px-5 py-4 align-top">
+                                            <div class="flex flex-col gap-2.5">
+                                                <div v-if="unit.positions && unit.positions.length > 0" class="flex flex-wrap gap-2">
+                                                    <div v-for="pos in unit.positions" :key="pos.id" class="group/pill inline-flex items-center gap-1 bg-surface-container-high border border-outline-variant/60 pl-2.5 pr-1 py-1 rounded-lg hover:border-primary/40 transition-colors">
+                                                        <span class="text-xs font-medium text-on-surface">{{ pos.name }}</span>
+                                                        <div class="flex items-center ml-1">
+                                                            <button type="button" @click="openPositionEditModalForUnit(pos, unit)" class="text-on-surface-variant hover:text-primary transition-colors p-0.5 rounded" title="Edit Jabatan">
+                                                                <span class="material-symbols-outlined text-[14px]">edit</span>
+                                                            </button>
+                                                            <button type="button" @click="confirmUnitPositionDelete(pos)" class="text-on-surface-variant hover:text-error transition-colors p-0.5 rounded" title="Hapus Jabatan">
+                                                                <span class="material-symbols-outlined text-[14px]">close</span>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div v-else class="text-xs text-on-surface-variant italic">Belum ada jabatan.</div>
+                                                
+                                                <div>
+                                                    <button type="button" @click="openPositionCreateModalForUnit(unit)" class="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:bg-primary/10 px-2 py-1 rounded-md transition-colors border border-primary/20 hover:border-primary/40">
+                                                        <span class="material-symbols-outlined text-[14px]">add</span> Tambah Jabatan
                                                     </button>
                                                 </div>
                                             </div>
@@ -916,7 +986,7 @@ function formatDate(dateStr) {
                             </template>
 
                             <tr v-if="schoolLevels.length === 0">
-                                <td colspan="4" class="border border-outline-variant/60 px-5 py-12 text-center text-on-surface-variant">
+                                <td colspan="5" class="border border-outline-variant/60 px-5 py-12 text-center text-on-surface-variant">
                                     <span class="material-symbols-outlined text-4xl mb-2 opacity-50">apartment</span>
                                     <p class="text-sm">Belum ada jenjang pendidikan.<br/>Silakan tambah jenjang pertama Anda.</p>
                                 </td>
@@ -1103,6 +1173,15 @@ function formatDate(dateStr) {
         :department="selectedDepartmentForPosition"
         @close="closePositionModal"
         @success="onPositionSuccess"
+    />
+
+    <!-- School Position Form Modal -->
+    <SchoolPositionFormModal
+        :show="showUnitPositionModal"
+        :editing="editingUnitPosition"
+        :school-unit="selectedUnitForPosition"
+        @close="closeUnitPositionModal"
+        @success="onUnitPositionSuccess"
     />
 
     <!-- Pop-up Modal Sukses -->
