@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AcademicYear;
 use App\Models\Classroom;
+use App\Models\Department;
 use App\Models\SchoolClass;
 use App\Models\SchoolLevel;
 use App\Models\User;
@@ -20,7 +21,7 @@ class AcademicYearController extends Controller
     public function index(): Response
     {
         $academicYears = AcademicYear::orderByDesc('name')
-            ->orderByRaw("FIELD(semester, 'Genap', 'Ganjil')")
+            ->orderByRaw("CASE WHEN semester = 'Genap' THEN 1 ELSE 2 END")
             ->get()
             ->map(fn (AcademicYear $year) => [
                 'id' => $year->id,
@@ -43,11 +44,13 @@ class AcademicYearController extends Controller
         ]);
 
         $schoolLevels = SchoolLevel::with(['units.programs', 'units.classes'])->orderBy('order')->get();
+        $departments = Department::with('positions')->orderBy('order')->orderBy('name')->get();
 
         return Inertia::render('Portal', [
             'academicYears' => $academicYears,
             'users' => $users,
             'schoolLevels' => $schoolLevels,
+            'departments' => $departments,
         ]);
     }
 
