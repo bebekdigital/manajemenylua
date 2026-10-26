@@ -7,6 +7,10 @@ const props = defineProps({
         type: Object,
         default: () => ({}),
     },
+    defaultFeatures: {
+        type: Array,
+        default: () => [],
+    },
     primaryRoles: {
         type: Array,
         default: () => ['superadmin', 'Kepala Bidang SDM', 'Guru'],
@@ -19,7 +23,7 @@ const props = defineProps({
 
 const emit = defineEmits(['saved']);
 
-const activeRole = ref('Kepala Bidang SDM');
+const activeRole = ref('superadmin');
 const isSaving = ref(false);
 const isLoading = ref(false);
 const searchQuery = ref('');
@@ -28,30 +32,58 @@ const selectedCategory = ref('all');
 // Local cache for matrix per role
 const localMatrices = ref({ ...props.permissionsData });
 
-// Watch props in case server updates permissionsData
-watch(
-    () => props.permissionsData,
-    (newVal) => {
-        localMatrices.value = { ...newVal };
-    },
-    { deep: true }
-);
-
 // Current matrix being edited
 const currentMatrix = ref([]);
 
 function loadRoleMatrix(role) {
-    if (localMatrices.value[role]) {
+    if (localMatrices.value[role] && localMatrices.value[role].length > 0) {
         currentMatrix.value = JSON.parse(JSON.stringify(localMatrices.value[role]));
         return;
     }
 
+    if (props.permissionsData && props.permissionsData[role] && props.permissionsData[role].length > 0) {
+        localMatrices.value[role] = props.permissionsData[role];
+        currentMatrix.value = JSON.parse(JSON.stringify(props.permissionsData[role]));
+        return;
+    }
+
+    if (role === 'superadmin' && props.defaultFeatures && props.defaultFeatures.length > 0) {
+        const fullAccess = props.defaultFeatures.map((feat) => ({
+            group: feat.group,
+            name: feat.name,
+            category: feat.category,
+            description: feat.description,
+            supported_actions: feat.supported_actions,
+            can_view: true,
+            can_create: true,
+            can_update: true,
+            can_delete: true,
+            can_export: true,
+            can_import: true,
+        }));
+        localMatrices.value[role] = fullAccess;
+        currentMatrix.value = JSON.parse(JSON.stringify(fullAccess));
+        return;
+    }
+
     isLoading.value = true;
-    fetch(`/portal/permissions/matrix?role=${encodeURIComponent(role)}`)
-        .then((res) => res.json())
+    fetch(`/portal/permissions/matrix?role=${encodeURIComponent(role)}`, {
+        headers: {
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+        },
+    })
+        .then((res) => {
+            if (!res.ok) throw new Error('Network error');
+            return res.json();
+        })
         .then((data) => {
-            localMatrices.value[role] = data.matrix;
-            currentMatrix.value = JSON.parse(JSON.stringify(data.matrix));
+            if (data && data.matrix && data.matrix.length > 0) {
+                localMatrices.value[role] = data.matrix;
+                if (activeRole.value === role) {
+                    currentMatrix.value = JSON.parse(JSON.stringify(data.matrix));
+                }
+            }
         })
         .catch((err) => {
             console.error('Gagal memuat hak akses role:', err);
@@ -60,6 +92,22 @@ function loadRoleMatrix(role) {
             isLoading.value = false;
         });
 }
+
+// Watch props in case server updates permissionsData
+watch(
+    () => props.permissionsData,
+    (newVal) => {
+        if (newVal) {
+            localMatrices.value = { ...localMatrices.value, ...newVal };
+            if (newVal[activeRole.value] && newVal[activeRole.value].length > 0) {
+                currentMatrix.value = JSON.parse(JSON.stringify(newVal[activeRole.value]));
+            } else {
+                loadRoleMatrix(activeRole.value);
+            }
+        }
+    },
+    { deep: true, immediate: true }
+);
 
 // Initial load
 loadRoleMatrix(activeRole.value);

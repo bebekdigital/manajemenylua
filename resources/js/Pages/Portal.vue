@@ -69,6 +69,10 @@ const props = defineProps({
         type: Array,
         default: () => ['superadmin', 'Kepala Bidang SDM', 'Guru'],
     },
+    defaultFeatures: {
+        type: Array,
+        default: () => [],
+    },
 });
 
 const page = usePage();
@@ -1171,6 +1175,7 @@ function formatDate(dateStr) {
         <div v-show="activeTab === 'hak_akses'" class="space-y-8 animate-in fade-in duration-300">
             <RolePermissionPanel
                 :permissions-data="permissionsData"
+                :default-features="defaultFeatures"
                 :primary-roles="primaryRoles"
                 :available-roles="availableRoles"
                 @saved="onRolePermissionSaved"

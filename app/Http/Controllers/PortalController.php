@@ -93,11 +93,29 @@ class PortalController extends Controller
             : collect([]);
 
         $primaryRoles = ['superadmin', 'Kepala Bidang SDM', 'Guru'];
+        $defaultFeatures = RolePermission::defaultFeatures();
         $permissionsData = [];
-        if (Schema::hasTable('role_permissions')) {
-            foreach ($primaryRoles as $r) {
-                $permissionsData[$r] = RolePermission::getPermissionsMatrix($r);
-            }
+
+        foreach ($primaryRoles as $r) {
+            $permissionsData[$r] = Schema::hasTable('role_permissions')
+                ? RolePermission::getPermissionsMatrix($r)
+                : array_map(function ($feat) use ($r) {
+                    $isSuper = ($r === 'superadmin');
+
+                    return [
+                        'group' => $feat['group'],
+                        'name' => $feat['name'],
+                        'category' => $feat['category'],
+                        'description' => $feat['description'],
+                        'supported_actions' => $feat['supported_actions'],
+                        'can_view' => $isSuper,
+                        'can_create' => $isSuper,
+                        'can_update' => $isSuper,
+                        'can_delete' => $isSuper,
+                        'can_export' => $isSuper,
+                        'can_import' => $isSuper,
+                    ];
+                }, $defaultFeatures);
         }
 
         return Inertia::render('Portal', [
@@ -111,6 +129,7 @@ class PortalController extends Controller
             'deptRoles' => $deptRoles,
             'employees' => $employees,
             'permissionsData' => $permissionsData,
+            'defaultFeatures' => $defaultFeatures,
             'primaryRoles' => $primaryRoles,
         ]);
     }
