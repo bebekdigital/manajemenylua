@@ -1,6 +1,6 @@
 <script setup>
 import { useForm } from '@inertiajs/vue3';
-import { watch, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 const showPassword = ref(false);
 
@@ -88,14 +88,15 @@ function submit() {
 </script>
 
 <template>
-    <Transition
-        enter-active-class="transition duration-200 ease-out"
-        enter-from-class="opacity-0"
-        enter-to-class="opacity-100"
-        leave-active-class="transition duration-150 ease-in"
-        leave-from-class="opacity-100"
-        leave-to-class="opacity-0"
-    >
+    <Teleport to="body">
+        <Transition
+            enter-active-class="transition duration-200 ease-out"
+            enter-from-class="opacity-0"
+            enter-to-class="opacity-100"
+            leave-active-class="transition duration-150 ease-in"
+            leave-from-class="opacity-100"
+            leave-to-class="opacity-0"
+        >
         <div v-if="show" class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0">
             <!-- Backdrop -->
             <div
@@ -271,4 +272,5 @@ function submit() {
             </Transition>
         </div>
     </Transition>
+    </Teleport>
 </template>

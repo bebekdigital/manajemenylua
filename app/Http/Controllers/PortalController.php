@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AcademicYear;
 use App\Models\Department;
+use App\Models\Employee;
 use App\Models\SchoolLevel;
 use App\Models\SchoolPosition;
 use App\Models\User;
@@ -63,6 +64,33 @@ class PortalController extends Controller
         sort($allJabatan);
         $availableRoles = array_merge(['superadmin'], $allJabatan);
 
+        $employees = Schema::hasTable('employees')
+            ? Employee::with(['currentPosition', 'positions'])
+                ->orderBy('nama')
+                ->get()
+                ->map(function (Employee $emp) use ($users) {
+                    $latestPos = $emp->currentPosition ?? $emp->positions->sortByDesc('tmt_jabatan')->first();
+                    $hasAccount = $users->contains(function ($u) use ($emp) {
+                        return ($emp->nipy && ! empty($u['username']) && $u['username'] === $emp->nipy)
+                            || strcasecmp($u['name'], $emp->nama) === 0
+                            || ($emp->nama_lengkap_gelar && strcasecmp($u['name'], $emp->nama_lengkap_gelar) === 0);
+                    });
+
+                    return [
+                        'id' => $emp->id,
+                        'nama' => $emp->nama,
+                        'nama_lengkap_gelar' => $emp->nama_lengkap_gelar,
+                        'nipy' => $emp->nipy,
+                        'tanggal_lahir' => $emp->tanggal_lahir?->format('Y-m-d'),
+                        'tanggal_lahir_formatted' => $emp->tanggal_lahir?->translatedFormat('d F Y') ?? '-',
+                        'default_password' => $emp->tanggal_lahir ? $emp->tanggal_lahir->format('Ymd') : '12345678',
+                        'jabatan' => $latestPos?->jabatan ?: 'Guru',
+                        'unit_kerja' => $latestPos?->unit_kerja ?: '-',
+                        'has_account' => $hasAccount,
+                    ];
+                })
+            : collect([]);
+
         return Inertia::render('Portal', [
             'academicYears' => $academicYears,
             'users' => $users,
@@ -72,6 +100,7 @@ class PortalController extends Controller
             'availableRoles' => $availableRoles,
             'schoolRoles' => $schoolRoles,
             'deptRoles' => $deptRoles,
+            'employees' => $employees,
         ]);
     }
 }

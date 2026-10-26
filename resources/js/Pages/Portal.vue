@@ -11,6 +11,7 @@ import SchoolClassFormModal from '@/Components/Portal/SchoolClassFormModal.vue';
 import DepartmentFormModal from '@/Components/Portal/DepartmentFormModal.vue';
 import DepartmentPositionFormModal from '@/Components/Portal/DepartmentPositionFormModal.vue';
 import SchoolPositionFormModal from '@/Components/Portal/SchoolPositionFormModal.vue';
+import GenerateUserModal from '@/Components/Portal/GenerateUserModal.vue';
 import SuccessModal from '@/Components/Shared/SuccessModal.vue';
 import ConfirmDeleteModal from '@/Components/Shared/ConfirmDeleteModal.vue';
 
@@ -52,6 +53,10 @@ const props = defineProps({
         default: () => [],
     },
     deptRoles: {
+        type: Array,
+        default: () => [],
+    },
+    employees: {
         type: Array,
         default: () => [],
     },
@@ -367,6 +372,7 @@ function confirmPositionDelete(position) {
 }
 
 const showUserModal = ref(false);
+const showGenerateUserModal = ref(false);
 const editingUser = ref(null);
 const deletingUserId = ref(null);
 
@@ -483,6 +489,19 @@ function closeUserModal() {
 
 function onUserFormSuccess() {
     closeUserModal();
+    dismissedFlash.value = false;
+}
+
+function openGenerateUserModal() {
+    showGenerateUserModal.value = true;
+}
+
+function closeGenerateUserModal() {
+    showGenerateUserModal.value = false;
+}
+
+function onGenerateUserSuccess() {
+    closeGenerateUserModal();
     dismissedFlash.value = false;
 }
 
@@ -1028,14 +1047,24 @@ function formatDate(dateStr) {
                         <p class="text-xs text-on-surface-variant">Kelola akun dan kewenangan staf/guru di sistem</p>
                     </div>
                 </div>
-                <button
-                    type="button"
-                    @click="openUserCreateModal"
-                    class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-container text-on-primary font-semibold text-sm transition-all shadow-xs hover:shadow-md cursor-pointer"
-                >
-                    <span class="material-symbols-outlined text-[18px]">person_add</span>
-                    <span>Tambah Akun</span>
-                </button>
+                <div class="flex items-center gap-2">
+                    <button
+                        type="button"
+                        @click="openGenerateUserModal"
+                        class="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-surface-container-high hover:bg-surface-container-highest text-primary font-semibold text-xs sm:text-sm transition-all border border-primary/20 hover:border-primary/40 shadow-2xs cursor-pointer"
+                    >
+                        <span class="material-symbols-outlined text-[18px]">auto_mode</span>
+                        <span>Generate Akun</span>
+                    </button>
+                    <button
+                        type="button"
+                        @click="openUserCreateModal"
+                        class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-container text-on-primary font-semibold text-xs sm:text-sm transition-all shadow-xs hover:shadow-md cursor-pointer"
+                    >
+                        <span class="material-symbols-outlined text-[18px]">person_add</span>
+                        <span>Tambah Akun</span>
+                    </button>
+                </div>
             </div>
 
             <!-- Table -->
@@ -1140,6 +1169,14 @@ function formatDate(dateStr) {
         :dept-roles="deptRoles"
         @close="closeUserModal"
         @success="onUserFormSuccess"
+    />
+
+    <!-- Generate User Modal -->
+    <GenerateUserModal
+        :show="showGenerateUserModal"
+        :employees="employees"
+        @close="closeGenerateUserModal"
+        @success="onGenerateUserSuccess"
     />
 
     <!-- School Level Form Modal -->

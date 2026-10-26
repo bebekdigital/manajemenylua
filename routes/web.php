@@ -178,6 +178,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/portal/academic-years/{id}/active-classes', [AcademicYearClassController::class, 'getActiveClasses'])->name('portal.academic-years.active-classes');
 
     // Portal Management - Users (Superadmin only inside controller)
+    Route::post('/portal/users/generate', [UserController::class, 'generate'])->name('portal.users.generate');
     Route::post('/portal/users', [UserController::class, 'store'])->name('portal.users.store');
     Route::put('/portal/users/{user}', [UserController::class, 'update'])->name('portal.users.update');
     Route::delete('/portal/users/{user}', [UserController::class, 'destroy'])->name('portal.users.destroy');

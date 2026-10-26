@@ -3,8 +3,11 @@
 namespace Tests\Feature;
 
 use App\Models\AcademicYear;
+use App\Models\Employee;
+use App\Models\EmployeePosition;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -38,6 +41,7 @@ class PortalTest extends TestCase
             ->has('availableRoles')
             ->has('schoolRoles')
             ->has('deptRoles')
+            ->has('employees')
         );
     }
 
@@ -60,6 +64,52 @@ class PortalTest extends TestCase
             'username' => 'ahmad123',
             'role' => 'Guru Kelas',
         ]);
+    }
+
+    public function test_superadmin_can_batch_generate_user_accounts_for_employees(): void
+    {
+        $superadmin = User::factory()->create([
+            'role' => 'superadmin',
+        ]);
+
+        $employee = Employee::create([
+            'nama' => 'Muhammad Fatih Alfarizi',
+            'tanggal_lahir' => '1995-08-17',
+            'nipy' => '19950817001',
+            'jk' => 'L',
+        ]);
+
+        EmployeePosition::create([
+            'employee_id' => $employee->id,
+            'unit_kerja' => 'SMP Islam Terpadu',
+            'jabatan' => 'Guru PJOK',
+            'tmt_jabatan' => '2020-01-01',
+        ]);
+
+        $response = $this->actingAs($superadmin)->post(route('portal.users.generate'), [
+            'employee_ids' => [$employee->id],
+        ]);
+
+        $response->assertSessionHas('success');
+
+        $createdUser = User::where('name', 'Muhammad Fatih Alfarizi')->first();
+        $this->assertNotNull($createdUser);
+        $this->assertEquals('Guru PJOK', $createdUser->role);
+        $this->assertMatchesRegularExpression('/^muhammadalfarizi\d{2}$/', $createdUser->username);
+        $this->assertTrue(Hash::check('19950817', $createdUser->password));
+    }
+
+    public function test_non_superadmin_cannot_generate_user_accounts(): void
+    {
+        $regularUser = User::factory()->create([
+            'role' => 'Guru',
+        ]);
+
+        $response = $this->actingAs($regularUser)->post(route('portal.users.generate'), [
+            'employee_ids' => [1],
+        ]);
+
+        $response->assertStatus(403);
     }
 
     public function test_superadmin_can_update_user_role(): void
