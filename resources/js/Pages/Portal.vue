@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { Head, router, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AcademicYearFormModal from '@/Components/Portal/AcademicYearFormModal.vue';
@@ -10,6 +10,7 @@ import SchoolProgramFormModal from '@/Components/Portal/SchoolProgramFormModal.v
 import SchoolClassFormModal from '@/Components/Portal/SchoolClassFormModal.vue';
 import DepartmentFormModal from '@/Components/Portal/DepartmentFormModal.vue';
 import DepartmentPositionFormModal from '@/Components/Portal/DepartmentPositionFormModal.vue';
+import SuccessModal from '@/Components/Shared/SuccessModal.vue';
 
 defineOptions({
     layout: AppLayout,
@@ -255,9 +256,25 @@ const deletingId = ref(null);
 
 
 
-const flashSuccess = computed(() => {
-    return !dismissedFlash.value ? page.props.flash?.success : null;
-});
+const showSuccessModal = ref(false);
+const successMessage = ref('');
+
+watch(
+    () => page.props.flash?.success,
+    (msg) => {
+        if (msg) {
+            successMessage.value = msg;
+            showSuccessModal.value = true;
+            dismissedFlash.value = false;
+        }
+    },
+    { immediate: true }
+);
+
+function closeSuccessModal() {
+    showSuccessModal.value = false;
+    dismissedFlash.value = true;
+}
 
 const flashError = computed(() => {
     return !dismissedFlash.value ? page.props.flash?.error : null;
@@ -359,23 +376,7 @@ function formatDate(dateStr) {
             </div>
         </div>
 
-        <!-- Flash Notification Banners -->
-        <div
-            v-if="flashSuccess"
-            class="mb-5 p-4 bg-primary/10 border border-primary/30 rounded-2xl flex items-start justify-between gap-3 animate-in fade-in duration-200"
-        >
-            <div class="flex items-start gap-3">
-                <span class="material-symbols-outlined text-primary text-2xl shrink-0 mt-0.5">check_circle</span>
-                <p class="text-sm text-on-surface font-medium">{{ flashSuccess }}</p>
-            </div>
-            <button
-                type="button"
-                @click="dismissedFlash = true"
-                class="text-on-surface-variant hover:text-on-surface p-1 rounded-full hover:bg-primary/15 transition-colors cursor-pointer"
-            >
-                <span class="material-symbols-outlined text-lg">close</span>
-            </button>
-        </div>
+        <!-- Flash Error Banner (jika ada error sistem) -->
 
         <div
             v-if="flashError"
@@ -992,6 +993,13 @@ function formatDate(dateStr) {
         :department="selectedDepartmentForPosition"
         @close="closePositionModal"
         @success="onPositionSuccess"
+    />
+
+    <!-- Pop-up Modal Sukses -->
+    <SuccessModal
+        :show="showSuccessModal"
+        :message="successMessage"
+        @close="closeSuccessModal"
     />
 
         </template>
