@@ -25,7 +25,7 @@ class UserController extends Controller
             'username' => ['required', 'string', 'max:255', 'unique:users,username'],
             'email' => ['nullable', 'string', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8'],
-            'role' => ['required', 'string', 'in:superadmin,guru'], // Dapat ditambah nanti
+            'role' => ['required', 'string', 'max:100'],
         ]);
 
         if (empty($validated['email'])) {
@@ -53,7 +53,7 @@ class UserController extends Controller
             'username' => ['required', 'string', 'max:255', Rule::unique('users')->ignore($user->id)],
             'email' => ['nullable', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
             'password' => ['nullable', 'string', 'min:8'],
-            'role' => ['required', 'string', 'in:superadmin,guru'],
+            'role' => ['required', 'string', 'max:100'],
         ]);
 
         if (empty($validated['email'])) {

@@ -43,6 +43,18 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    availableRoles: {
+        type: Array,
+        default: () => ['superadmin'],
+    },
+    schoolRoles: {
+        type: Array,
+        default: () => [],
+    },
+    deptRoles: {
+        type: Array,
+        default: () => [],
+    },
 });
 
 const page = usePage();
@@ -1123,6 +1135,9 @@ function formatDate(dateStr) {
     <UserFormModal
         :show="showUserModal"
         :editing="editingUser"
+        :available-roles="availableRoles"
+        :school-roles="schoolRoles"
+        :dept-roles="deptRoles"
         @close="closeUserModal"
         @success="onUserFormSuccess"
     />

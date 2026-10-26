@@ -56,12 +56,22 @@ class PortalController extends Controller
             ? SchoolPosition::orderBy('name')->get(['id', 'name'])
             : collect([]);
 
+        $schoolRoles = $allSchoolPositions->pluck('name')->unique()->values()->toArray();
+        $deptRoles = $departments->flatMap(fn ($d) => $d->positions->pluck('name'))->unique()->values()->toArray();
+
+        $allJabatan = array_values(array_unique(array_filter(array_merge($schoolRoles, $deptRoles))));
+        sort($allJabatan);
+        $availableRoles = array_merge(['superadmin'], $allJabatan);
+
         return Inertia::render('Portal', [
             'academicYears' => $academicYears,
             'users' => $users,
             'schoolLevels' => $schoolLevels,
             'departments' => $departments,
             'allSchoolPositions' => $allSchoolPositions,
+            'availableRoles' => $availableRoles,
+            'schoolRoles' => $schoolRoles,
+            'deptRoles' => $deptRoles,
         ]);
     }
 }

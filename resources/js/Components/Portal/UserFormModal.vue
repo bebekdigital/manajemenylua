@@ -13,6 +13,18 @@ const props = defineProps({
         type: Object,
         default: null,
     },
+    availableRoles: {
+        type: Array,
+        default: () => ['superadmin'],
+    },
+    schoolRoles: {
+        type: Array,
+        default: () => [],
+    },
+    deptRoles: {
+        type: Array,
+        default: () => [],
+    },
 });
 
 const emit = defineEmits(['close', 'success']);
@@ -22,7 +34,11 @@ const form = useForm({
     username: '',
     email: '',
     password: '',
-    role: 'guru',
+    role: 'superadmin',
+});
+
+const allRoleValues = computed(() => {
+    return ['superadmin', ...(props.schoolRoles || []), ...(props.deptRoles || [])];
 });
 
 // Watch for changes when modal opens/closes or when editing state changes
@@ -40,6 +56,11 @@ watch(
             } else {
                 // Create mode
                 form.reset();
+                if (props.schoolRoles && props.schoolRoles.length > 0) {
+                    form.role = props.schoolRoles[0];
+                } else {
+                    form.role = 'superadmin';
+                }
             }
             form.clearErrors();
             showPassword.value = false;
@@ -159,16 +180,46 @@ function submit() {
                         <!-- Role -->
                         <div>
                             <label for="role" class="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1.5">
-                                Role / Kewenangan
+                                Role / Kewenangan <span class="text-error">*</span>
                             </label>
-                            <select
-                                id="role"
-                                v-model="form.role"
-                                class="w-full px-3.5 py-2.5 bg-white text-sm font-medium rounded-xl border border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-on-surface appearance-none"
-                            >
-                                <option value="guru">Guru</option>
-                                <option value="superadmin">Superadmin</option>
-                            </select>
+                            <div class="relative">
+                                <select
+                                    id="role"
+                                    v-model="form.role"
+                                    required
+                                    class="w-full px-3.5 py-2.5 bg-white text-sm font-medium rounded-xl border border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-on-surface cursor-pointer appearance-none pr-10"
+                                    :class="{ 'border-error': form.errors.role }"
+                                >
+                                    <option value="" disabled>-- Pilih Role / Kewenangan --</option>
+
+                                    <optgroup label="Sistem / Administrator">
+                                        <option value="superadmin">Superadmin</option>
+                                    </optgroup>
+
+                                    <optgroup v-if="schoolRoles && schoolRoles.length > 0" label="Jabatan Unit Sekolah">
+                                        <option v-for="role in schoolRoles" :key="'school_' + role" :value="role">
+                                            {{ role }}
+                                        </option>
+                                    </optgroup>
+
+                                    <optgroup v-if="deptRoles && deptRoles.length > 0" label="Jabatan Bidang">
+                                        <option v-for="role in deptRoles" :key="'dept_' + role" :value="role">
+                                            {{ role }}
+                                        </option>
+                                    </optgroup>
+
+                                    <!-- Fallback jika akun lama memiliki role yang belum ada di daftar di atas -->
+                                    <option
+                                        v-if="form.role && !allRoleValues.includes(form.role)"
+                                        :value="form.role"
+                                    >
+                                        {{ form.role }}
+                                    </option>
+                                </select>
+                                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-on-surface-variant">
+                                    <span class="material-symbols-outlined text-lg">arrow_drop_down</span>
+                                </div>
+                            </div>
                             <div v-if="form.errors.role" class="text-error text-xs mt-1.5 ml-1 font-medium">{{ form.errors.role }}</div>
                         </div>
 
