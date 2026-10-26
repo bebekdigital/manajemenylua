@@ -34,11 +34,19 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    permissions: {
+        type: Object,
+        default: () => ({
+            can_update: true,
+            can_delete: true,
+        }),
+    },
 });
 
 const page = usePage();
 const activeTab = ref('identitas');
 const isEditing = ref(false);
+const canEdit = computed(() => props.permissions?.can_update ?? true);
 const dismissedFlash = ref(false);
 
 const flashSuccess = computed(() => !dismissedFlash.value ? page.props.flash?.success : null);
@@ -569,13 +577,14 @@ function onDesaTinggalChange() {
 onMounted(async () => {
     initFormFromProps();
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('edit') === 'true') {
+    if (urlParams.get('edit') === 'true' && canEdit.value) {
         isEditing.value = true;
     }
     await initWilayahFromForm();
 });
 
 function startEdit() {
+    if (!canEdit.value) return;
     initFormFromProps();
     form.clearErrors();
     isEditing.value = true;
@@ -1267,7 +1276,7 @@ function deleteDocument(doc) {
                 <div class="flex items-center gap-2 self-start sm:self-auto shrink-0">
                     <!-- View Mode: Edit Data Button (Reusable Component dari Database Siswa) -->
                     <EditDataButton
-                        v-if="!isEditing"
+                        v-if="!isEditing && canEdit"
                         @click="startEdit"
                         title="Edit data pegawai ini langsung di tab"
                     />

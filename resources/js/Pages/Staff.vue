@@ -23,6 +23,15 @@ const props = defineProps({
         type: Object,
         default: null,
     },
+    permissions: {
+        type: Object,
+        default: () => ({
+            can_create: true,
+            can_update: true,
+            can_export: true,
+            can_import: true,
+        }),
+    },
     selectedAcademicYear: {
         type: Object,
         default: null,
@@ -123,9 +132,10 @@ function onPageChange(p) {
                 </p>
             </div>
 
-            <!-- Action Buttons (Khusus Non-Guru) -->
+            <!-- Action Buttons (Khusus Non-Guru & memiliki izin) -->
             <div v-if="!isTeacher" class="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
                 <a
+                    v-if="permissions?.can_export"
                     href="/staff/template"
                     download
                     class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2.5 rounded-lg sm:rounded-xl border border-yellow-300 text-yellow-800 bg-yellow-100 hover:bg-yellow-200 active:bg-yellow-300 font-semibold text-[11px] sm:text-sm transition-all shadow-2xs hover:shadow-sm"
@@ -136,6 +146,7 @@ function onPageChange(p) {
                 </a>
 
                 <button
+                    v-if="permissions?.can_import"
                     type="button"
                     @click="showImportModal = true"
                     class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2.5 rounded-lg sm:rounded-xl bg-primary hover:bg-primary-container text-on-primary font-semibold text-[11px] sm:text-sm transition-all shadow-xs hover:shadow-md cursor-pointer"
@@ -234,6 +245,7 @@ function onPageChange(p) {
             :current-page="currentPage"
             :per-page="perPage"
             :total-entries="totalEntries"
+            :can-update="permissions?.can_update ?? true"
             @update:per-page="onPerPageChange"
             @page-change="onPageChange"
         />

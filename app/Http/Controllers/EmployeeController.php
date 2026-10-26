@@ -6,6 +6,7 @@ use App\Models\AcademicYear;
 use App\Models\Department;
 use App\Models\Employee;
 use App\Models\EmployeePosition;
+use App\Models\RolePermission;
 use App\Models\SchoolUnit;
 use App\Services\EmployeeImportService;
 use Illuminate\Http\RedirectResponse;
@@ -30,6 +31,15 @@ class EmployeeController extends Controller
     public function index(Request $request): Response
     {
         $user = auth()->user();
+        if (! RolePermission::canAccess($user, 'employee_directory', 'view')) {
+            abort(403, 'Akses ditolak: Role Anda tidak memiliki izin untuk melihat direktori pegawai.');
+        }
+
+        $canCreate = RolePermission::canAccess($user, 'employee_directory', 'create');
+        $canUpdate = RolePermission::canAccess($user, 'employee_directory', 'update');
+        $canExport = RolePermission::canAccess($user, 'employee_directory', 'export');
+        $canImport = RolePermission::canAccess($user, 'employee_directory', 'import');
+
         $isTeacher = $user?->isTeacher() ?? false;
         $myEmployee = $isTeacher ? $user?->employeeProfile() : null;
 
@@ -62,6 +72,12 @@ class EmployeeController extends Controller
         return Inertia::render('Staff', [
             'employees' => $employees,
             'isTeacher' => $isTeacher,
+            'permissions' => [
+                'can_create' => $canCreate,
+                'can_update' => $canUpdate,
+                'can_export' => $canExport,
+                'can_import' => $canImport,
+            ],
             'teacherEmployee' => $myEmployee ? [
                 'id' => $myEmployee->id,
                 'nama' => $myEmployee->nama_lengkap_gelar ?: $myEmployee->nama,
@@ -80,6 +96,10 @@ class EmployeeController extends Controller
     public function show(string $id, Request $request): Response
     {
         $user = auth()->user();
+        if (! RolePermission::canAccess($user, 'employee_detail_history', 'view')) {
+            abort(403, 'Akses ditolak: Role Anda tidak memiliki izin untuk melihat detail profil pegawai.');
+        }
+
         if ($user?->isTeacher()) {
             $myEmployee = $user->employeeProfile();
             if (! $myEmployee || (string) $myEmployee->id !== (string) $id) {
@@ -265,6 +285,10 @@ class EmployeeController extends Controller
 
         return Inertia::render('StaffDetail', [
             'employee' => $employeeData,
+            'permissions' => [
+                'can_update' => RolePermission::canAccess($user, 'employee_detail_history', 'update'),
+                'can_delete' => RolePermission::canAccess($user, 'employee_detail_history', 'delete'),
+            ],
             'selectedAcademicYear' => $selectedYear ? [
                 'id' => $selectedYear->id,
                 'name' => $selectedYear->name,
@@ -287,6 +311,10 @@ class EmployeeController extends Controller
     public function update(Request $request, string $id): RedirectResponse
     {
         $user = auth()->user();
+        if (! RolePermission::canAccess($user, 'employee_detail_history', 'update')) {
+            abort(403, 'Akses ditolak: Role Anda tidak memiliki izin untuk mengubah data pegawai.');
+        }
+
         if ($user?->isTeacher()) {
             $myEmployee = $user->employeeProfile();
             if (! $myEmployee || (string) $myEmployee->id !== (string) $id) {
@@ -564,8 +592,9 @@ class EmployeeController extends Controller
      */
     public function import(Request $request, EmployeeImportService $importService): RedirectResponse
     {
-        if (auth()->user()?->isTeacher()) {
-            abort(403, 'Akses ditolak: Role Guru tidak memiliki izin untuk mengimpor data pegawai.');
+        $user = auth()->user();
+        if (! RolePermission::canAccess($user, 'employee_directory', 'import') || $user?->isTeacher()) {
+            abort(403, 'Akses ditolak: Role Anda tidak memiliki izin untuk mengimpor data pegawai.');
         }
 
         $request->validate([
@@ -594,8 +623,9 @@ class EmployeeController extends Controller
      */
     public function downloadTemplate(): BinaryFileResponse
     {
-        if (auth()->user()?->isTeacher()) {
-            abort(403, 'Akses ditolak: Role Guru tidak memiliki izin untuk mengunduh template data pegawai.');
+        $user = auth()->user();
+        if (! RolePermission::canAccess($user, 'employee_directory', 'export') || $user?->isTeacher()) {
+            abort(403, 'Akses ditolak: Role Anda tidak memiliki izin untuk mengunduh template data pegawai.');
         }
 
         $spreadsheet = $this->buildTemplate();

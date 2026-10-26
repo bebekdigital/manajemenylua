@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Employee;
 use App\Models\EmployeeDocument;
+use App\Models\RolePermission;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -18,7 +19,7 @@ class EmployeeDocumentController extends Controller
      */
     public function store(Request $request, string $id): RedirectResponse
     {
-        $this->authorizeEmployeeAccess($id);
+        $this->authorizeEmployeeAccess($id, 'create');
 
         $employee = Employee::findOrFail($id);
 
@@ -122,7 +123,7 @@ class EmployeeDocumentController extends Controller
      */
     public function preview(string $id, string $documentId): BinaryFileResponse
     {
-        $this->authorizeEmployeeAccess($id);
+        $this->authorizeEmployeeAccess($id, 'view');
 
         $document = EmployeeDocument::where('employee_id', $id)->findOrFail($documentId);
 
@@ -143,7 +144,7 @@ class EmployeeDocumentController extends Controller
      */
     public function download(string $id, string $documentId): StreamedResponse
     {
-        $this->authorizeEmployeeAccess($id);
+        $this->authorizeEmployeeAccess($id, 'view');
 
         $document = EmployeeDocument::where('employee_id', $id)->findOrFail($documentId);
 
@@ -159,7 +160,7 @@ class EmployeeDocumentController extends Controller
      */
     public function destroy(string $id, string $documentId): RedirectResponse
     {
-        $this->authorizeEmployeeAccess($id);
+        $this->authorizeEmployeeAccess($id, 'delete');
 
         $document = EmployeeDocument::where('employee_id', $id)->findOrFail($documentId);
 
@@ -174,11 +175,15 @@ class EmployeeDocumentController extends Controller
     }
 
     /**
-     * Authorize that a teacher user can only access their own employee documents.
+     * Authorize that a user has permission and a teacher user can only access their own employee documents.
      */
-    private function authorizeEmployeeAccess(string $employeeId): void
+    private function authorizeEmployeeAccess(string $employeeId, string $action = 'view'): void
     {
         $user = auth()->user();
+        if (! RolePermission::canAccess($user, 'employee_documents', $action)) {
+            abort(403, 'Akses ditolak: Role Anda tidak memiliki izin untuk tindakan dokumen pegawai ini.');
+        }
+
         if ($user?->isTeacher()) {
             $myEmployee = $user->employeeProfile();
             if (! $myEmployee || (string) $myEmployee->id !== (string) $employeeId) {

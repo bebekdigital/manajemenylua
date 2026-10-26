@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Employee;
+use App\Models\RolePermission;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -186,5 +187,70 @@ class TeacherEmployeeScopingTest extends TestCase
         ]);
 
         $response->assertStatus(403);
+    }
+
+    public function test_teacher_cannot_update_own_data_when_can_update_permission_is_disabled(): void
+    {
+        $teacherEmp = Employee::create([
+            'nama' => 'Siti Guru',
+            'nipy' => '112233',
+            'nik' => '3301010101010003',
+        ]);
+
+        $teacherUser = User::factory()->create([
+            'name' => 'Siti Guru',
+            'role' => 'Guru',
+            'nipy' => '112233',
+        ]);
+
+        // Nonaktifkan checklist Ubah (can_update) untuk Role Guru
+        RolePermission::updateOrCreate(
+            ['role' => 'Guru', 'feature_group' => 'employee_detail_history'],
+            ['feature_name' => 'Detail Profil & Riwayat Penugasan', 'can_view' => true, 'can_update' => false]
+        );
+
+        $response = $this->actingAs($teacherUser)->put("/staff/{$teacherEmp->id}", [
+            'nama' => 'Siti Guru Edit',
+        ]);
+
+        $response->assertStatus(403);
+
+        // Dan di halaman show(), permissions.can_update harus false
+        $showRes = $this->actingAs($teacherUser)->get("/staff/{$teacherEmp->id}");
+        $showRes->assertOk();
+        $showRes->assertInertia(fn ($page) => $page->component('StaffDetail')->where('permissions.can_update', false));
+    }
+
+    public function test_teacher_can_update_own_data_when_can_update_permission_is_enabled(): void
+    {
+        $teacherEmp = Employee::create([
+            'nama' => 'Siti Guru',
+            'nipy' => '112233',
+            'nik' => '3301010101010003',
+        ]);
+
+        $teacherUser = User::factory()->create([
+            'name' => 'Siti Guru',
+            'role' => 'Guru',
+            'nipy' => '112233',
+        ]);
+
+        // Aktifkan checklist Ubah (can_update) untuk Role Guru
+        RolePermission::updateOrCreate(
+            ['role' => 'Guru', 'feature_group' => 'employee_detail_history'],
+            ['feature_name' => 'Detail Profil & Riwayat Penugasan', 'can_view' => true, 'can_update' => true]
+        );
+
+        $response = $this->actingAs($teacherUser)->put("/staff/{$teacherEmp->id}", [
+            'nama' => 'Siti Guru Berhasil',
+        ]);
+
+        $response->assertRedirect();
+        $this->assertEquals('Siti Guru Berhasil', $teacherEmp->fresh()->nama);
+
+        // Dan di halaman show(), permissions.can_update harus true
+        $showRes = $this->actingAs($teacherUser)->get("/staff/{$teacherEmp->id}");
+        $showRes->assertOk();
+        $showRes->assertInertia(fn ($page) => $page->component('StaffDetail')->where('permissions.can_update', true));
     }
 }

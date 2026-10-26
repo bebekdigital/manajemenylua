@@ -113,6 +113,9 @@ watch(
 loadRoleMatrix(activeRole.value);
 
 function setRole(role) {
+    if (activeRole.value && currentMatrix.value && currentMatrix.value.length > 0) {
+        localMatrices.value[activeRole.value] = JSON.parse(JSON.stringify(currentMatrix.value));
+    }
     activeRole.value = role;
     loadRoleMatrix(role);
 }

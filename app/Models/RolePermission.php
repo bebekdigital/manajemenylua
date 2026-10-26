@@ -260,6 +260,46 @@ class RolePermission extends Model
     }
 
     /**
+     * Periksa apakah user atau role memiliki hak akses pada aksi fitur tertentu.
+     */
+    public static function canAccess(User|string|null $userOrRole, string $group, string $action = 'view'): bool
+    {
+        if (! $userOrRole) {
+            return false;
+        }
+
+        $role = $userOrRole instanceof User ? (string) $userOrRole->role : (string) $userOrRole;
+        $role = trim($role);
+
+        if (in_array(strtolower($role), ['superadmin', 'admin'])) {
+            return true;
+        }
+
+        // Cari konfigurasi hak akses spesifik di database
+        $perm = self::where('role', $role)
+            ->where('feature_group', $group)
+            ->first();
+
+        // Jika tidak ditemukan dan role adalah variasi guru, cek role 'Guru'
+        if (! $perm && (str_contains(strtolower($role), 'guru') || str_contains(strtolower($role), 'wali kelas'))) {
+            $perm = self::where('role', 'Guru')
+                ->where('feature_group', $group)
+                ->first();
+        }
+
+        $column = 'can_'.strtolower($action);
+
+        if ($perm) {
+            return (bool) ($perm->{$column} ?? false);
+        }
+
+        // Fallback ke nilai bawaan jika belum pernah disimpan
+        $defaults = self::getDefaultValuesForRoleAndGroup($role, $group);
+
+        return (bool) ($defaults[$action] ?? false);
+    }
+
+    /**
      * Nilai rekomendasi awal hak akses berdasarkan role dan fitur.
      *
      * @return array<string, bool>
@@ -302,7 +342,7 @@ class RolePermission extends Model
             };
         }
 
-        if (in_array($role, ['Guru', 'Guru Kelas', 'Guru Mata Pelajaran', 'Wali Kelas'])) {
+        if (in_array($role, ['Guru', 'Guru Kelas', 'Guru Mata Pelajaran', 'Wali Kelas']) || str_contains(strtolower($role), 'guru')) {
             return match ($group) {
                 'dashboard_overview' => ['view' => true],
                 'student_directory' => ['view' => true],
@@ -311,8 +351,8 @@ class RolePermission extends Model
                 'student_photos' => ['view' => true],
                 'student_mapping' => ['view' => false],
                 'employee_directory' => ['view' => true],
-                'employee_detail_history' => ['view' => true],
-                'employee_documents' => ['view' => true, 'export' => true],
+                'employee_detail_history' => ['view' => true, 'update' => true],
+                'employee_documents' => ['view' => true, 'create' => true, 'export' => true],
                 'administration_identity_document' => ['view' => true, 'export' => true],
                 'administration_template_editor' => ['view' => false],
                 'statistics_student_analytics' => ['view' => true],

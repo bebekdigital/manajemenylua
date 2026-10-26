@@ -19,6 +19,10 @@ const props = defineProps({
         type: Number,
         default: 0,
     },
+    canUpdate: {
+        type: Boolean,
+        default: true,
+    },
 });
 
 const emit = defineEmits(['page-change', 'update:per-page']);
@@ -119,6 +123,7 @@ function getJenjangColor(jenjang) {
                                     <span class="material-symbols-outlined text-[16px] sm:text-[18px]">visibility</span>
                                 </Link>
                                 <Link
+                                    v-if="canUpdate"
                                     :href="`/staff/${emp.id}?edit=true`"
                                     class="inline-flex items-center justify-center p-1 sm:p-1.5 text-secondary bg-secondary/10 hover:bg-secondary/20 rounded-md transition-colors shrink-0"
                                     title="Edit Data Pegawai"
