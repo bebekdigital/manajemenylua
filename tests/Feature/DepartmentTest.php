@@ -118,4 +118,95 @@ class DepartmentTest extends TestCase
         $deleteDeptResp->assertRedirect();
         $this->assertDatabaseMissing('departments', ['id' => $dept->id]);
     }
+
+    public function test_portal_page_renders_organization_positions_data(): void
+    {
+        $dept = Department::create(['name' => 'Badan Pembina', 'order' => 1]);
+        $parent = DepartmentPosition::create([
+            'name' => 'Ketua Dewan Pembina',
+            'department_id' => $dept->id,
+            'level' => 1,
+        ]);
+        DepartmentPosition::create([
+            'name' => 'Sekretaris Yayasan',
+            'department_id' => $dept->id,
+            'level' => 2,
+            'parent_id' => $parent->id,
+        ]);
+
+        $response = $this->actingAs($this->user)->get('/portal');
+
+        $response->assertStatus(200);
+        $response->assertInertia(fn (Assert $page) => $page
+            ->component('Portal')
+            ->has('organizationPositions', 2)
+            ->where('organizationPositions.0.name', 'Ketua Dewan Pembina')
+            ->where('organizationPositions.0.level', 1)
+            ->where('organizationPositions.1.name', 'Sekretaris Yayasan')
+            ->where('organizationPositions.1.level', 2)
+            ->where('organizationPositions.1.parent_name', 'Ketua Dewan Pembina')
+        );
+    }
+
+    public function test_can_create_position_directly_with_level_and_parent(): void
+    {
+        $dept = Department::create(['name' => 'Bidang Pendidikan', 'order' => 1]);
+        $kabid = DepartmentPosition::create([
+            'name' => 'Kepala Bidang Pendidikan',
+            'department_id' => $dept->id,
+            'level' => 3,
+        ]);
+
+        $response = $this->actingAs($this->user)->post('/portal/department-positions', [
+            'name' => 'Koordinator Kurikulum',
+            'department_id' => $dept->id,
+            'level' => 4,
+            'parent_id' => $kabid->id,
+        ]);
+
+        $response->assertRedirect();
+        $this->assertDatabaseHas('department_positions', [
+            'name' => 'Koordinator Kurikulum',
+            'department_id' => $dept->id,
+            'level' => 4,
+            'parent_id' => $kabid->id,
+        ]);
+    }
+
+    public function test_cannot_create_cyclic_hierarchy_on_update(): void
+    {
+        $pos1 = DepartmentPosition::create(['name' => 'Posisi A', 'level' => 1]);
+        $pos2 = DepartmentPosition::create(['name' => 'Posisi B', 'level' => 2, 'parent_id' => $pos1->id]);
+        $pos3 = DepartmentPosition::create(['name' => 'Posisi C', 'level' => 3, 'parent_id' => $pos2->id]);
+
+        // Attempt to set pos3 as parent of pos1 (circular)
+        $response = $this->actingAs($this->user)->put("/portal/department-positions/{$pos1->id}", [
+            'name' => 'Posisi A',
+            'parent_id' => $pos3->id,
+        ]);
+
+        $response->assertSessionHas('error');
+        $this->assertDatabaseHas('department_positions', [
+            'id' => $pos1->id,
+            'parent_id' => null,
+        ]);
+    }
+
+    public function test_deleting_parent_position_reparents_children(): void
+    {
+        $grandparent = DepartmentPosition::create(['name' => 'Ketua Umum', 'level' => 2]);
+        $parent = DepartmentPosition::create(['name' => 'Kepala Bidang', 'level' => 3, 'parent_id' => $grandparent->id]);
+        $child = DepartmentPosition::create(['name' => 'Staf Pelaksana', 'level' => 5, 'parent_id' => $parent->id]);
+
+        $response = $this->actingAs($this->user)->delete("/portal/department-positions/{$parent->id}");
+
+        $response->assertRedirect();
+        $this->assertDatabaseMissing('department_positions', ['id' => $parent->id]);
+
+        // Child should now be reparented to grandparent
+        $this->assertDatabaseHas('department_positions', [
+            'id' => $child->id,
+            'parent_id' => $grandparent->id,
+        ]);
+    }
 }

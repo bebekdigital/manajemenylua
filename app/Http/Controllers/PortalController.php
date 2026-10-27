@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AcademicYear;
 use App\Models\Department;
+use App\Models\DepartmentPosition;
 use App\Models\Employee;
 use App\Models\RolePermission;
 use App\Models\SchoolLevel;
@@ -52,6 +53,26 @@ class PortalController extends Controller
 
         $departments = Schema::hasTable('departments')
             ? Department::with('positions')->orderBy('order')->orderBy('name')->get()
+            : collect([]);
+
+        $organizationPositions = Schema::hasTable('department_positions')
+            ? DepartmentPosition::with(['department', 'parent'])
+                ->withCount('children')
+                ->orderBy('level')
+                ->orderBy('order')
+                ->orderBy('name')
+                ->get()
+                ->map(fn (DepartmentPosition $p) => [
+                    'id' => $p->id,
+                    'name' => $p->name,
+                    'level' => $p->level ?? 3,
+                    'order' => $p->order ?? 0,
+                    'department_id' => $p->department_id,
+                    'department_name' => $p->department?->name,
+                    'parent_id' => $p->parent_id,
+                    'parent_name' => $p->parent?->name,
+                    'children_count' => $p->children_count,
+                ])
             : collect([]);
 
         $allSchoolPositions = Schema::hasTable('school_positions')
@@ -124,6 +145,7 @@ class PortalController extends Controller
             'schoolLevels' => $schoolLevels,
             'departments' => $departments,
             'allSchoolPositions' => $allSchoolPositions,
+            'organizationPositions' => $organizationPositions,
             'availableRoles' => $availableRoles,
             'schoolRoles' => $schoolRoles,
             'deptRoles' => $deptRoles,

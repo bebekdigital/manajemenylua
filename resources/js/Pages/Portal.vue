@@ -11,6 +11,7 @@ import SchoolClassFormModal from '@/Components/Portal/SchoolClassFormModal.vue';
 import DepartmentFormModal from '@/Components/Portal/DepartmentFormModal.vue';
 import DepartmentPositionFormModal from '@/Components/Portal/DepartmentPositionFormModal.vue';
 import SchoolPositionFormModal from '@/Components/Portal/SchoolPositionFormModal.vue';
+import OrgChartDiagram from '@/Components/Portal/OrgChartDiagram.vue';
 import GenerateUserModal from '@/Components/Portal/GenerateUserModal.vue';
 import RolePermissionPanel from '@/Components/Portal/RolePermissionPanel.vue';
 import SuccessModal from '@/Components/Shared/SuccessModal.vue';
@@ -38,6 +39,10 @@ const props = defineProps({
         default: () => [],
     },
     departments: {
+        type: Array,
+        default: () => [],
+    },
+    organizationPositions: {
         type: Array,
         default: () => [],
     },
@@ -343,20 +348,52 @@ function confirmDepartmentDelete(department) {
     });
 }
 
-// Department Position (Jabatan) Modals
+// Department Position (Jabatan Organisasi) Modals
 const showPositionModal = ref(false);
 const editingPosition = ref(null);
 const selectedDepartmentForPosition = ref(null);
+const presetPositionLevel = ref(3);
+const presetPositionParentId = ref(null);
+const presetPositionDepartmentId = ref(null);
+const positionModalTitle = ref('');
+
+function handleAddPosition({ presetLevel, presetParentId, presetDepartmentId, modeTitle } = {}) {
+    editingPosition.value = null;
+    selectedDepartmentForPosition.value = null;
+    presetPositionLevel.value = presetLevel ? Number(presetLevel) : 3;
+    presetPositionParentId.value = presetParentId || null;
+    presetPositionDepartmentId.value = presetDepartmentId || null;
+    positionModalTitle.value = modeTitle || 'Tambah Jabatan Organisasi';
+    showPositionModal.value = true;
+}
+
+function handleEditPosition(position) {
+    editingPosition.value = { ...position };
+    selectedDepartmentForPosition.value = null;
+    presetPositionLevel.value = position.level ? Number(position.level) : 3;
+    presetPositionParentId.value = position.parent_id || null;
+    presetPositionDepartmentId.value = position.department_id || null;
+    positionModalTitle.value = `Edit Jabatan: ${position.name}`;
+    showPositionModal.value = true;
+}
 
 function openPositionCreateModal(department) {
     editingPosition.value = null;
     selectedDepartmentForPosition.value = department;
+    presetPositionLevel.value = 3;
+    presetPositionParentId.value = null;
+    presetPositionDepartmentId.value = department?.id || null;
+    positionModalTitle.value = department ? `Tambah Jabatan di ${department.name}` : 'Tambah Jabatan Organisasi';
     showPositionModal.value = true;
 }
 
 function openPositionEditModal(position, department) {
     editingPosition.value = { ...position };
     selectedDepartmentForPosition.value = department;
+    presetPositionLevel.value = position.level ? Number(position.level) : 3;
+    presetPositionParentId.value = position.parent_id || null;
+    presetPositionDepartmentId.value = department?.id || position.department_id || null;
+    positionModalTitle.value = `Edit Jabatan: ${position.name}`;
     showPositionModal.value = true;
 }
 
@@ -364,6 +401,8 @@ function closePositionModal() {
     showPositionModal.value = false;
     editingPosition.value = null;
     selectedDepartmentForPosition.value = null;
+    presetPositionParentId.value = null;
+    presetPositionDepartmentId.value = null;
 }
 
 function onPositionSuccess() {
@@ -373,8 +412,8 @@ function onPositionSuccess() {
 
 function confirmPositionDelete(position) {
     openConfirmModal({
-        title: 'Hapus Jabatan',
-        message: 'Yakin ingin menghapus jabatan ini dari struktur bidang?',
+        title: 'Hapus Jabatan Organisasi',
+        message: `Yakin ingin menghapus jabatan "${position.name}" dari susunan organisasi? Jika memiliki bawahan, jabatan bawahan akan otomatis dialihkan ke atasan langsung jabatan ini.`,
         itemName: position.name,
         onConfirm: (done) => {
             router.delete(`/portal/department-positions/${position.id}`, {
@@ -742,129 +781,17 @@ function formatDate(dateStr) {
 
         <!-- Tab Content: Unit & Bidang -->
         <div v-show="activeTab === 'unit_bidang'" class="space-y-8 animate-in fade-in duration-300">
-            <!-- Departments & Positions Section (Tabel Bidang) -->
-            <div class="bg-surface-container-lowest rounded-2xl border border-primary/10 shadow-[0px_4px_20px_rgba(0,40,20,0.06)] overflow-hidden">
-                <!-- Section Header -->
-                <div class="flex items-center justify-between px-5 py-4 border-b border-outline-variant/30">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                            <span class="material-symbols-outlined text-primary text-xl">account_tree</span>
-                        </div>
-                        <div>
-                            <h3 class="text-base font-bold text-on-surface">Bidang & Jabatan</h3>
-                            <p class="text-xs text-on-surface-variant">Kelola struktur bidang kerja yayasan dan daftar jabatan terkait</p>
-                        </div>
-                    </div>
-                    <button
-                        type="button"
-                        @click="openDepartmentCreateModal"
-                        class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-container text-on-primary font-semibold text-sm transition-all shadow-xs hover:shadow-md cursor-pointer"
-                    >
-                        <span class="material-symbols-outlined text-[18px]">add</span>
-                        <span>Tambah Bidang</span>
-                    </button>
-                </div>
-
-                <!-- Table -->
-                <div class="overflow-x-auto">
-                    <table class="w-full text-xs sm:text-sm border-collapse border border-outline-variant/60">
-                        <thead>
-                            <tr class="bg-surface-container-low/70 text-on-surface-variant font-bold text-[10px] sm:text-xs uppercase tracking-wider">
-                                <th class="border border-outline-variant/60 px-5 py-3 text-left w-1/3">Bidang</th>
-                                <th class="border border-outline-variant/60 px-5 py-3 text-left">Jabatan</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr
-                                v-for="dept in departments"
-                                :key="dept.id"
-                                class="hover:bg-surface-container-low/40 transition-colors group/row"
-                            >
-                                <!-- Kolom Bidang -->
-                                <td class="border border-outline-variant/60 px-5 py-4 align-top bg-surface-container-low/20">
-                                    <div class="font-bold text-on-surface text-base mb-2">{{ dept.name }}</div>
-                                    <div class="flex items-center gap-1.5 flex-wrap">
-                                        <button
-                                            type="button"
-                                            @click="openDepartmentEditModal(dept)"
-                                            class="p-1.5 rounded-md bg-surface-container-high text-on-surface-variant hover:text-primary hover:bg-primary/10 transition-colors"
-                                            title="Edit Bidang"
-                                        >
-                                            <span class="material-symbols-outlined text-[16px]">edit</span>
-                                        </button>
-                                        <button
-                                            type="button"
-                                            @click="confirmDepartmentDelete(dept)"
-                                            class="p-1.5 rounded-md bg-surface-container-high text-on-surface-variant hover:text-error hover:bg-error/10 transition-colors"
-                                            title="Hapus Bidang"
-                                        >
-                                            <span class="material-symbols-outlined text-[16px]">delete</span>
-                                        </button>
-                                        <button
-                                            type="button"
-                                            @click="openPositionCreateModal(dept)"
-                                            class="inline-flex items-center gap-1 px-2 py-1.5 rounded-md bg-primary/10 text-primary hover:bg-primary hover:text-on-primary transition-colors text-xs font-semibold"
-                                        >
-                                            <span class="material-symbols-outlined text-[14px]">add</span> Tambah Jabatan
-                                        </button>
-                                    </div>
-                                </td>
-
-                                <!-- Kolom Jabatan -->
-                                <td class="border border-outline-variant/60 px-5 py-4 align-top">
-                                    <div class="flex flex-col gap-2.5">
-                                        <div v-if="dept.positions && dept.positions.length > 0" class="flex flex-wrap gap-2">
-                                            <div
-                                                v-for="pos in dept.positions"
-                                                :key="pos.id"
-                                                class="group/pill inline-flex items-center gap-1.5 bg-surface-container-high border border-outline-variant/60 pl-2.5 pr-1.5 py-1 rounded-lg hover:border-primary/40 transition-colors shadow-2xs"
-                                            >
-                                                <span class="text-xs font-semibold text-on-surface">{{ pos.name }}</span>
-                                                <div class="flex items-center ml-1">
-                                                    <button
-                                                        type="button"
-                                                        @click="openPositionEditModal(pos, dept)"
-                                                        class="text-on-surface-variant hover:text-primary transition-colors p-0.5 rounded"
-                                                        title="Edit Jabatan"
-                                                    >
-                                                        <span class="material-symbols-outlined text-[14px]">edit</span>
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        @click="confirmPositionDelete(pos)"
-                                                        class="text-on-surface-variant hover:text-error transition-colors p-0.5 rounded"
-                                                        title="Hapus Jabatan"
-                                                    >
-                                                        <span class="material-symbols-outlined text-[14px]">close</span>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div v-else class="text-xs text-on-surface-variant italic">Belum ada jabatan ditambahkan pada bidang ini.</div>
-
-                                        <div>
-                                            <button
-                                                type="button"
-                                                @click="openPositionCreateModal(dept)"
-                                                class="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:bg-primary/10 px-2 py-1 rounded-md transition-colors border border-primary/20 hover:border-primary/40"
-                                            >
-                                                <span class="material-symbols-outlined text-[14px]">add</span> Tambah Jabatan
-                                            </button>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-
-                            <tr v-if="departments.length === 0">
-                                <td colspan="2" class="border border-outline-variant/60 px-5 py-12 text-center text-on-surface-variant">
-                                    <span class="material-symbols-outlined text-4xl mb-2 opacity-50">account_tree</span>
-                                    <p class="text-sm">Belum ada bidang kerja.<br/>Silakan tambah bidang pertama Anda.</p>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+            <!-- Diagram Susunan Organisasi (Rombak Tabel Bidang & Jabatan) -->
+            <OrgChartDiagram
+                :positions="organizationPositions"
+                :departments="departments"
+                @add-position="handleAddPosition"
+                @edit-position="handleEditPosition"
+                @delete-position="confirmPositionDelete"
+                @add-department="openDepartmentCreateModal"
+                @edit-department="openDepartmentEditModal"
+                @delete-department="confirmDepartmentDelete"
+            />
 
             <!-- School Levels & Units Section -->
             <div class="bg-surface-container-lowest rounded-2xl border border-primary/10 shadow-[0px_4px_20px_rgba(0,40,20,0.06)] overflow-hidden">
@@ -1258,6 +1185,12 @@ function formatDate(dateStr) {
         :show="showPositionModal"
         :editing="editingPosition"
         :department="selectedDepartmentForPosition"
+        :departments="departments"
+        :all-positions="organizationPositions"
+        :preset-level="presetPositionLevel"
+        :preset-parent-id="presetPositionParentId"
+        :preset-department-id="presetPositionDepartmentId"
+        :mode-title="positionModalTitle"
         @close="closePositionModal"
         @success="onPositionSuccess"
     />

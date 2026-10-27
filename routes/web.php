@@ -215,6 +215,7 @@ Route::middleware('auth')->group(function () {
     Route::put('/portal/departments/{department}', [DepartmentController::class, 'update'])->name('portal.departments.update');
     Route::delete('/portal/departments/{department}', [DepartmentController::class, 'destroy'])->name('portal.departments.destroy');
 
+    Route::post('/portal/department-positions', [DepartmentPositionController::class, 'storeDirect'])->name('portal.department-positions.store-direct');
     Route::post('/portal/departments/{department}/positions', [DepartmentPositionController::class, 'store'])->name('portal.department-positions.store');
     Route::put('/portal/department-positions/{departmentPosition}', [DepartmentPositionController::class, 'update'])->name('portal.department-positions.update');
     Route::delete('/portal/department-positions/{departmentPosition}', [DepartmentPositionController::class, 'destroy'])->name('portal.department-positions.destroy');
