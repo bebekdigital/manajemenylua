@@ -1,5 +1,6 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import OrgChartNode from '@/Components/Portal/OrgChartNode.vue';
 
 const props = defineProps({
     positions: {
@@ -24,7 +25,18 @@ const emit = defineEmits([
 const searchQuery = ref('');
 const selectedLevelFilter = ref('all');
 const selectedDeptFilter = ref('all');
-const activeView = ref('tier'); // 'tier' | 'tree' | 'dept'
+const activeView = ref('diagram'); // 'diagram' (DEFAULT) | 'tier' | 'dept'
+const orientation = ref('vertical'); // 'vertical' | 'horizontal'
+const showApex = ref(true); // Puncak Yayasan (Apex Node)
+const zoom = ref(1);
+const panX = ref(0);
+const panY = ref(0);
+const isDragging = ref(false);
+const dragStartX = ref(0);
+const dragStartY = ref(0);
+const isFullscreen = ref(false);
+const collapsedIds = ref(new Set());
+const canvasContainerRef = ref(null);
 
 const levelDefinitions = [
     {
@@ -32,8 +44,9 @@ const levelDefinitions = [
         title: 'Level 1: Dewan Pembina & Pengawas Yayasan',
         subtitle: 'Pemegang kebijakan tertinggi, arahan strategis, dan pengawasan yayasan',
         badgeClass: 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/30',
-        borderClass: 'border-emerald-500/30 dark:border-emerald-500/20',
+        borderClass: 'border-emerald-500/50 hover:border-emerald-600',
         accentBg: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+        headerGradient: 'bg-gradient-to-r from-emerald-600 to-teal-700',
         cardBorder: 'hover:border-emerald-500/60',
         dotColor: 'bg-emerald-500',
         icon: 'verified_user',
@@ -43,8 +56,9 @@ const levelDefinitions = [
         title: 'Level 2: Pengurus Harian & Direksi Yayasan',
         subtitle: 'Pimpinan harian & direksi: Ketua Umum, Sekretaris, Bendahara, Direktur Eksekutif',
         badgeClass: 'bg-indigo-500/15 text-indigo-800 dark:text-indigo-300 border-indigo-500/30',
-        borderClass: 'border-indigo-500/30 dark:border-indigo-500/20',
+        borderClass: 'border-indigo-500/50 hover:border-indigo-600',
         accentBg: 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300',
+        headerGradient: 'bg-gradient-to-r from-indigo-600 to-blue-700',
         cardBorder: 'hover:border-indigo-500/60',
         dotColor: 'bg-indigo-500',
         icon: 'corporate_fare',
@@ -54,8 +68,9 @@ const levelDefinitions = [
         title: 'Level 3: Kepala Bidang Yayasan',
         subtitle: 'Kepala bidang kerja fungsional: Pendidikan, SDM, Keuangan, Sarpras, Dakwah & Humas',
         badgeClass: 'bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-500/30',
-        borderClass: 'border-amber-500/30 dark:border-amber-500/20',
+        borderClass: 'border-amber-500/50 hover:border-amber-600',
         accentBg: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
+        headerGradient: 'bg-gradient-to-r from-amber-600 to-orange-600',
         cardBorder: 'hover:border-amber-500/60',
         dotColor: 'bg-amber-500',
         icon: 'manage_accounts',
@@ -65,8 +80,9 @@ const levelDefinitions = [
         title: 'Level 4: Koordinator & Kepala Bagian / Unit',
         subtitle: 'Koordinator operasional, penjamin mutu, bendahara bidang, pengawas sekolah',
         badgeClass: 'bg-cyan-500/15 text-cyan-800 dark:text-cyan-300 border-cyan-500/30',
-        borderClass: 'border-cyan-500/30 dark:border-cyan-500/20',
+        borderClass: 'border-cyan-500/50 hover:border-cyan-600',
         accentBg: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-300',
+        headerGradient: 'bg-gradient-to-r from-cyan-600 to-sky-700',
         cardBorder: 'hover:border-cyan-500/60',
         dotColor: 'bg-cyan-500',
         icon: 'hub',
@@ -76,8 +92,9 @@ const levelDefinitions = [
         title: 'Level 5: Staf Pelaksana & Tim Teknis',
         subtitle: 'Staf pelaksana administrasi, logistik, pengadaan, dan teknis operasional harian',
         badgeClass: 'bg-slate-500/15 text-slate-800 dark:text-slate-300 border-slate-500/30',
-        borderClass: 'border-slate-500/30 dark:border-slate-500/20',
+        borderClass: 'border-slate-500/50 hover:border-slate-600',
         accentBg: 'bg-slate-500/10 text-slate-700 dark:text-slate-300',
+        headerGradient: 'bg-gradient-to-r from-slate-600 to-gray-700',
         cardBorder: 'hover:border-slate-500/60',
         dotColor: 'bg-slate-500',
         icon: 'group',
@@ -98,18 +115,49 @@ const enrichedPositions = computed(() => {
         return {
             ...p,
             level: Number(p.level) || 3,
+            order: Number(p.order) || 0,
             parent_name: parent ? parent.name : p.parent_name || null,
             parent_level: parent ? (Number(parent.level) || 3) : null,
         };
     });
 });
 
-// Filtered positions based on search, level filter, and department filter
+// Full tree hierarchy for the diagram
+const treeRoots = computed(() => {
+    const nodes = enrichedPositions.value;
+    const nodeMap = new Map();
+    nodes.forEach(n => nodeMap.set(n.id, { ...n, children: [] }));
+
+    const roots = [];
+    nodes.forEach(n => {
+        const current = nodeMap.get(n.id);
+        if (n.parent_id && nodeMap.has(n.parent_id) && n.parent_id !== n.id) {
+            nodeMap.get(n.parent_id).children.push(current);
+        } else {
+            roots.push(current);
+        }
+    });
+
+    // Sorter function (level asc, order asc, name asc)
+    const sortNodes = (arr) => {
+        arr.sort((a, b) => (a.level - b.level) || (a.order - b.order) || a.name.localeCompare(b.name));
+        arr.forEach(item => {
+            if (item.children && item.children.length > 0) {
+                sortNodes(item.children);
+            }
+        });
+    };
+
+    sortNodes(roots);
+    return roots;
+});
+
+// Filtered positions for Tier view
 const filteredPositions = computed(() => {
     return enrichedPositions.value.filter(p => {
         if (searchQuery.value) {
-            const q = searchQuery.value.toLowerCase();
-            const matchName = p.name.toLowerCase().includes(q);
+            const q = searchQuery.value.toLowerCase().trim();
+            const matchName = p.name ? p.name.toLowerCase().includes(q) : false;
             const matchDept = p.department_name ? p.department_name.toLowerCase().includes(q) : false;
             const matchParent = p.parent_name ? p.parent_name.toLowerCase().includes(q) : false;
             if (!matchName && !matchDept && !matchParent) return false;
@@ -131,7 +179,32 @@ const filteredPositions = computed(() => {
     });
 });
 
-// Grouped by level
+// Search matches count
+const searchMatches = computed(() => {
+    if (!searchQuery.value.trim()) return [];
+    const q = searchQuery.value.toLowerCase().trim();
+    return enrichedPositions.value.filter(p => {
+        const matchName = p.name ? p.name.toLowerCase().includes(q) : false;
+        const matchDept = p.department_name ? p.department_name.toLowerCase().includes(q) : false;
+        return matchName || matchDept;
+    });
+});
+
+// Auto-expand ancestors when searching
+watch(searchQuery, (newVal) => {
+    if (!newVal || !newVal.trim()) return;
+    const uncollapse = new Set(collapsedIds.value);
+    searchMatches.value.forEach(match => {
+        let curr = match;
+        while (curr && curr.parent_id && positionsMap.value.has(curr.parent_id)) {
+            uncollapse.delete(curr.parent_id);
+            curr = positionsMap.value.get(curr.parent_id);
+        }
+    });
+    collapsedIds.value = uncollapse;
+});
+
+// Grouped by level (for Tier view)
 const positionsByLevel = computed(() => {
     const groups = { 1: [], 2: [], 3: [], 4: [], 5: [] };
     filteredPositions.value.forEach(p => {
@@ -152,32 +225,91 @@ const statsByLevel = computed(() => {
     return counts;
 });
 
-// Tree structure generation
-const treeRoots = computed(() => {
-    const nodes = filteredPositions.value;
-    const nodeMap = new Map();
-    nodes.forEach(n => nodeMap.set(n.id, { ...n, children: [] }));
-
-    const roots = [];
-    nodes.forEach(n => {
-        const current = nodeMap.get(n.id);
-        if (n.parent_id && nodeMap.has(n.parent_id)) {
-            nodeMap.get(n.parent_id).children.push(current);
-        } else {
-            roots.push(current);
-        }
-    });
-
-    // Sort roots by level, then name
-    roots.sort((a, b) => (a.level - b.level) || a.name.localeCompare(b.name));
-    return roots;
-});
-
 // Helper for level definition
 function getLevelDef(level) {
     const lvl = Math.min(5, Math.max(1, Number(level) || 3));
     return levelDefinitions.find(d => d.level === lvl) || levelDefinitions[2];
 }
+
+// Tree Collapse Handlers
+function toggleCollapse(id) {
+    const next = new Set(collapsedIds.value);
+    if (next.has(id)) {
+        next.delete(id);
+    } else {
+        next.add(id);
+    }
+    collapsedIds.value = next;
+}
+
+function expandAll() {
+    collapsedIds.value = new Set();
+}
+
+function collapseAll() {
+    const set = new Set();
+    enrichedPositions.value.forEach(p => {
+        if (p.children_count > 0) {
+            set.add(p.id);
+        }
+    });
+    collapsedIds.value = set;
+}
+
+// Canvas Zoom & Pan Handlers
+function zoomIn() {
+    zoom.value = Math.min(1.8, Number((zoom.value + 0.15).toFixed(2)));
+}
+
+function zoomOut() {
+    zoom.value = Math.max(0.4, Number((zoom.value - 0.15).toFixed(2)));
+}
+
+function resetView() {
+    zoom.value = 1;
+    panX.value = 0;
+    panY.value = 0;
+}
+
+function handleMouseDown(e) {
+    if (e.button !== 0) return;
+    const target = e.target;
+    if (target.closest('button') || target.closest('input') || target.closest('select') || target.closest('a')) {
+        return;
+    }
+    isDragging.value = true;
+    dragStartX.value = e.clientX - panX.value;
+    dragStartY.value = e.clientY - panY.value;
+}
+
+function handleMouseMove(e) {
+    if (!isDragging.value) return;
+    panX.value = e.clientX - dragStartX.value;
+    panY.value = e.clientY - dragStartY.value;
+}
+
+function handleMouseUp() {
+    isDragging.value = false;
+}
+
+function toggleFullscreen() {
+    isFullscreen.value = !isFullscreen.value;
+    resetView();
+}
+
+function handleKeyDown(e) {
+    if (e.key === 'Escape' && isFullscreen.value) {
+        isFullscreen.value = false;
+    }
+}
+
+onMounted(() => {
+    window.addEventListener('keydown', handleKeyDown);
+});
+
+onUnmounted(() => {
+    window.removeEventListener('keydown', handleKeyDown);
+});
 
 // Quick action handlers
 function handleAddDirect() {
@@ -229,9 +361,14 @@ function handleDelete(pos) {
 <template>
     <div class="space-y-6">
         <!-- Main Card Container -->
-        <div class="bg-surface-container-lowest rounded-2xl border border-primary/10 shadow-[0px_4px_24px_rgba(0,40,20,0.06)] overflow-hidden">
+        <div
+            class="bg-surface-container-lowest rounded-2xl border border-primary/10 shadow-[0px_4px_24px_rgba(0,40,20,0.06)] overflow-hidden transition-all"
+            :class="{
+                'fixed inset-0 z-50 rounded-none border-none shadow-none flex flex-col bg-background': isFullscreen,
+            }"
+        >
             <!-- Header Section -->
-            <div class="p-5 sm:p-6 border-b border-outline-variant/30 bg-surface-container-low/30">
+            <div class="p-5 sm:p-6 border-b border-outline-variant/30 bg-surface-container-low/30 shrink-0">
                 <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                     <div class="flex items-start sm:items-center gap-3.5">
                         <div class="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-xs shrink-0">
@@ -241,17 +378,33 @@ function handleDelete(pos) {
                             <div class="flex items-center gap-2.5 flex-wrap">
                                 <h3 class="text-lg sm:text-xl font-bold text-on-surface">Diagram Susunan Organisasi</h3>
                                 <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary/10 text-primary border border-primary/20">
-                                    5 Tingkat Jabatan
+                                    {{ positions.length }} Total Jabatan
+                                </span>
+                                <span
+                                    v-if="isFullscreen"
+                                    class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30"
+                                >
+                                    Mode Layar Penuh (ESC)
                                 </span>
                             </div>
                             <p class="text-xs sm:text-sm text-on-surface-variant mt-0.5">
-                                Struktur hierarki organisasi yayasan secara vertikal (atasan-bawahan) dan horizontal (sejajar)
+                                Diagram pohon hierarki vertikal (garis atasan-bawahan) dan horizontal (jabatan sejajar)
                             </p>
                         </div>
                     </div>
 
                     <!-- Top Action Buttons -->
                     <div class="flex items-center gap-2.5 flex-wrap">
+                        <button
+                            v-if="isFullscreen"
+                            type="button"
+                            @click="toggleFullscreen"
+                            class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-error/10 hover:bg-error/20 text-error font-semibold text-xs sm:text-sm transition-all cursor-pointer"
+                        >
+                            <span class="material-symbols-outlined text-[18px]">fullscreen_exit</span>
+                            <span>Keluar Layar Penuh</span>
+                        </button>
+
                         <button
                             type="button"
                             @click="$emit('add-department')"
@@ -302,16 +455,24 @@ function handleDelete(pos) {
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mt-5 pt-4 border-t border-outline-variant/20">
                     <!-- Search & Dropdowns -->
                     <div class="flex items-center gap-2.5 flex-1 flex-wrap">
-                        <div class="relative flex-1 min-w-[200px]">
+                        <div class="relative flex-1 min-w-[220px]">
                             <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px]">
                                 search
                             </span>
                             <input
                                 v-model="searchQuery"
                                 type="text"
-                                placeholder="Cari nama jabatan, bidang, atau atasan..."
-                                class="w-full pl-9 pr-3 py-1.5 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface placeholder:text-outline focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all"
+                                placeholder="Cari jabatan atau bidang di diagram..."
+                                class="w-full pl-9 pr-8 py-1.5 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface placeholder:text-outline focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all"
                             />
+                            <button
+                                v-if="searchQuery"
+                                type="button"
+                                @click="searchQuery = ''"
+                                class="absolute right-2.5 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface"
+                            >
+                                <span class="material-symbols-outlined text-[16px]">close</span>
+                            </button>
                         </div>
 
                         <select
@@ -334,10 +495,32 @@ function handleDelete(pos) {
                                 {{ dept.name }}
                             </option>
                         </select>
+
+                        <!-- Search matches indicator -->
+                        <span
+                            v-if="searchQuery.trim()"
+                            class="text-xs font-semibold px-2.5 py-1 rounded-lg bg-primary/10 text-primary border border-primary/20"
+                        >
+                            {{ searchMatches.length }} ditemukan
+                        </span>
                     </div>
 
                     <!-- View Switcher -->
                     <div class="inline-flex items-center p-1 bg-surface-container-low border border-outline-variant/60 rounded-xl shrink-0 self-start md:self-auto">
+                        <!-- DIAGRAM POHON (DEFAULT) -->
+                        <button
+                            type="button"
+                            @click="activeView = 'diagram'"
+                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer"
+                            :class="activeView === 'diagram'
+                                ? 'bg-primary text-on-primary shadow-xs'
+                                : 'text-on-surface-variant hover:text-on-surface'"
+                        >
+                            <span class="material-symbols-outlined text-[16px]">schema</span>
+                            <span>Bagan Diagram Pohon</span>
+                        </button>
+
+                        <!-- DAFTAR PER TINGKAT -->
                         <button
                             type="button"
                             @click="activeView = 'tier'"
@@ -347,21 +530,10 @@ function handleDelete(pos) {
                                 : 'text-on-surface-variant hover:text-on-surface'"
                         >
                             <span class="material-symbols-outlined text-[16px]">view_column</span>
-                            <span>Tingkat (5 Level)</span>
+                            <span>Daftar Tingkat</span>
                         </button>
 
-                        <button
-                            type="button"
-                            @click="activeView = 'tree'"
-                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer"
-                            :class="activeView === 'tree'
-                                ? 'bg-primary text-on-primary shadow-xs'
-                                : 'text-on-surface-variant hover:text-on-surface'"
-                        >
-                            <span class="material-symbols-outlined text-[16px]">device_hub</span>
-                            <span>Bagan Hierarki</span>
-                        </button>
-
+                        <!-- KELOLA BIDANG -->
                         <button
                             type="button"
                             @click="activeView = 'dept'"
@@ -377,8 +549,376 @@ function handleDelete(pos) {
                 </div>
             </div>
 
-            <!-- VIEW 1: 5-LEVEL TIER VIEW (DEFAULT) -->
-            <div v-if="activeView === 'tier'" class="p-5 sm:p-6 space-y-8">
+            <!-- ======================================================== -->
+            <!-- VIEW 1: DIAGRAM POHON DENGAN KOTAK & GARIS PENGHUBUNG     -->
+            <!-- ======================================================== -->
+            <div
+                v-if="activeView === 'diagram'"
+                class="relative flex flex-col"
+                :class="isFullscreen ? 'flex-1 overflow-hidden' : ''"
+            >
+                <!-- Canvas Floating Control Toolbar -->
+                <div class="p-3 sm:px-6 sm:py-2.5 bg-surface-container-low/60 border-b border-outline-variant/30 flex items-center justify-between gap-3 flex-wrap">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <!-- Orientation Toggle (Vertikal vs Horizontal) -->
+                        <div class="inline-flex items-center p-0.5 bg-surface-container-lowest border border-outline-variant/60 rounded-lg text-xs font-medium">
+                            <button
+                                type="button"
+                                @click="orientation = 'vertical'"
+                                class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md transition-all cursor-pointer"
+                                :class="orientation === 'vertical' ? 'bg-primary text-on-primary font-bold shadow-2xs' : 'text-on-surface-variant hover:text-on-surface'"
+                                title="Susunan Top-Down Vertikal"
+                            >
+                                <span class="material-symbols-outlined text-[15px]">vertical_align_bottom</span>
+                                <span>Vertikal</span>
+                            </button>
+                            <button
+                                type="button"
+                                @click="orientation = 'horizontal'"
+                                class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md transition-all cursor-pointer"
+                                :class="orientation === 'horizontal' ? 'bg-primary text-on-primary font-bold shadow-2xs' : 'text-on-surface-variant hover:text-on-surface'"
+                                title="Susunan Left-to-Right Horizontal"
+                            >
+                                <span class="material-symbols-outlined text-[15px]">align_horizontal_left</span>
+                                <span>Horizontal</span>
+                            </button>
+                        </div>
+
+                        <!-- Toggle Puncak Yayasan (Apex Node) -->
+                        <button
+                            type="button"
+                            @click="showApex = !showApex"
+                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all cursor-pointer"
+                            :class="showApex
+                                ? 'bg-primary/10 border-primary text-primary'
+                                : 'bg-surface-container-lowest border-outline-variant/60 text-on-surface-variant hover:text-on-surface'"
+                            title="Tampilkan / sembunyikan kotak lembaga induk yayasan di puncak diagram"
+                        >
+                            <span class="material-symbols-outlined text-[15px]">
+                                {{ showApex ? 'check_box' : 'check_box_outline_blank' }}
+                            </span>
+                            <span>Puncak Yayasan</span>
+                        </button>
+
+                        <!-- Expand / Collapse All -->
+                        <div class="inline-flex items-center gap-1">
+                            <button
+                                type="button"
+                                @click="expandAll"
+                                class="px-2.5 py-1.5 rounded-lg bg-surface-container-lowest border border-outline-variant/60 hover:bg-surface-container-high text-on-surface text-xs font-semibold transition-all cursor-pointer"
+                                title="Buka seluruh cabang bawahan"
+                            >
+                                Buka Semua
+                            </button>
+                            <button
+                                type="button"
+                                @click="collapseAll"
+                                class="px-2.5 py-1.5 rounded-lg bg-surface-container-lowest border border-outline-variant/60 hover:bg-surface-container-high text-on-surface text-xs font-semibold transition-all cursor-pointer"
+                                title="Tutup cabang bawahan"
+                            >
+                                Tutup Cabang
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <!-- Zoom Controls -->
+                        <div class="inline-flex items-center bg-surface-container-lowest border border-outline-variant/60 rounded-lg p-0.5 shadow-2xs">
+                            <button
+                                type="button"
+                                @click="zoomOut"
+                                class="p-1 rounded text-on-surface-variant hover:text-primary hover:bg-surface-container-high transition-colors cursor-pointer"
+                                title="Perkecil Diagram"
+                            >
+                                <span class="material-symbols-outlined text-[18px]">remove</span>
+                            </button>
+                            <button
+                                type="button"
+                                @click="resetView"
+                                class="px-2 py-0.5 text-xs font-bold text-on-surface hover:text-primary transition-colors cursor-pointer"
+                                title="Reset Zoom (100%)"
+                            >
+                                {{ Math.round(zoom * 100) }}%
+                            </button>
+                            <button
+                                type="button"
+                                @click="zoomIn"
+                                class="p-1 rounded text-on-surface-variant hover:text-primary hover:bg-surface-container-high transition-colors cursor-pointer"
+                                title="Perbesar Diagram"
+                            >
+                                <span class="material-symbols-outlined text-[18px]">add</span>
+                            </button>
+                        </div>
+
+                        <!-- Reset Pan/Position -->
+                        <button
+                            type="button"
+                            @click="resetView"
+                            class="p-1.5 rounded-lg bg-surface-container-lowest border border-outline-variant/60 text-on-surface-variant hover:text-primary transition-colors cursor-pointer"
+                            title="Tengahkan Tampilan"
+                        >
+                            <span class="material-symbols-outlined text-[18px]">filter_center_focus</span>
+                        </button>
+
+                        <!-- Fullscreen Toggle -->
+                        <button
+                            type="button"
+                            @click="toggleFullscreen"
+                            class="p-1.5 rounded-lg bg-surface-container-lowest border border-outline-variant/60 text-on-surface-variant hover:text-primary transition-colors cursor-pointer"
+                            :title="isFullscreen ? 'Keluar Layar Penuh (ESC)' : 'Mode Layar Penuh'"
+                        >
+                            <span class="material-symbols-outlined text-[18px]">
+                                {{ isFullscreen ? 'fullscreen_exit' : 'fullscreen' }}
+                            </span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Interactive Blueprint Canvas Viewport -->
+                <div
+                    ref="canvasContainerRef"
+                    class="relative w-full overflow-hidden select-none bg-surface-container-low/20 transition-all"
+                    :class="[
+                        isFullscreen ? 'flex-1' : 'h-[640px] lg:h-[740px]',
+                        isDragging ? 'cursor-grabbing' : 'cursor-grab',
+                    ]"
+                    @mousedown="handleMouseDown"
+                    @mousemove="handleMouseMove"
+                    @mouseup="handleMouseUp"
+                    @mouseleave="handleMouseUp"
+                >
+                    <!-- Background Grid Blueprint Pattern -->
+                    <div
+                        class="absolute inset-0 pointer-events-none opacity-40 dark:opacity-20"
+                        style="background-image: radial-gradient(rgba(100, 116, 139, 0.4) 1px, transparent 1px); background-size: 24px 24px;"
+                    ></div>
+
+                    <!-- Diagram Content Transform Layer -->
+                    <div
+                        class="inline-block min-w-full p-8 sm:p-12 transition-transform duration-75 origin-top"
+                        :style="{
+                            transform: `translate(${panX}px, ${panY}px) scale(${zoom})`,
+                        }"
+                    >
+                        <!-- STATE: EMPTY (Belum ada jabatan) -->
+                        <div
+                            v-if="treeRoots.length === 0"
+                            class="py-24 text-center max-w-md mx-auto"
+                        >
+                            <div class="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mx-auto mb-3 shadow-xs">
+                                <span class="material-symbols-outlined text-3xl">account_tree</span>
+                            </div>
+                            <h4 class="text-base font-bold text-on-surface">Susunan Organisasi Belum Ada</h4>
+                            <p class="text-xs text-on-surface-variant mt-1 mb-4">
+                                Mulai buat struktur organisasi yayasan dengan menambahkan jabatan pimpinan pertama (Level 1 atau Level 2).
+                            </p>
+                            <button
+                                type="button"
+                                @click="handleAddDirect"
+                                class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-on-primary font-semibold text-xs sm:text-sm cursor-pointer shadow-xs hover:shadow-md transition-all"
+                            >
+                                <span class="material-symbols-outlined text-[18px]">add</span>
+                                <span>Tambah Jabatan Pertama</span>
+                            </button>
+                        </div>
+
+                        <!-- STATE: TREE DIAGRAM -->
+                        <div v-else>
+                            <!-- ORIENTASI: VERTIKAL (TOP-DOWN) -->
+                            <div v-if="orientation === 'vertical'" class="flex flex-col items-center">
+                                <!-- Puncak Yayasan (Apex Block) -->
+                                <div v-if="showApex" class="flex flex-col items-center">
+                                    <div class="relative px-6 py-3.5 rounded-2xl bg-gradient-to-r from-primary to-primary-container text-white shadow-md border-2 border-primary-fixed/40 flex items-center gap-3.5 select-none hover:shadow-lg transition-all">
+                                        <div class="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center shrink-0 shadow-inner">
+                                            <span class="material-symbols-outlined text-2xl text-white">account_balance</span>
+                                        </div>
+                                        <div>
+                                            <div class="flex items-center gap-2">
+                                                <span class="text-[9px] font-extrabold uppercase tracking-widest text-primary-fixed bg-white/15 px-2 py-0.5 rounded">
+                                                    Induk Organisasi
+                                                </span>
+                                                <span class="text-[10px] text-white/80">
+                                                    {{ positions.length }} Total Jabatan
+                                                </span>
+                                            </div>
+                                            <div class="text-sm sm:text-base font-extrabold text-white mt-0.5 tracking-tight">
+                                                Yayasan Lembaga Ummat Amanah (YLUA)
+                                            </div>
+                                            <div class="text-[11px] text-white/80">
+                                                Struktur Hierarki Organisasi Yayasan
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Garis Vertikal Turun dari Puncak ke Palang Cabang Utama -->
+                                    <div class="w-0.5 h-7 bg-slate-300 dark:bg-slate-600 shrink-0"></div>
+
+                                    <!-- Palang Horizontal Penghubung Antar Root Nodes -->
+                                    <div class="flex items-start justify-center">
+                                        <div
+                                            v-for="(rootNode, idx) in treeRoots"
+                                            :key="rootNode.id"
+                                            class="relative flex flex-col items-center px-4"
+                                        >
+                                            <!-- Garis Horizontal Palang Antar Root -->
+                                            <div
+                                                v-if="treeRoots.length > 1 && idx > 0"
+                                                class="absolute top-0 left-0 right-1/2 h-0.5 bg-slate-300 dark:bg-slate-600"
+                                            ></div>
+                                            <div
+                                                v-if="treeRoots.length > 1 && idx < treeRoots.length - 1"
+                                                class="absolute top-0 left-1/2 right-0 h-0.5 bg-slate-300 dark:bg-slate-600"
+                                            ></div>
+
+                                            <!-- Garis Vertikal Turun ke Root Node -->
+                                            <div class="w-0.5 h-7 bg-slate-300 dark:bg-slate-600 shrink-0"></div>
+
+                                            <!-- Kotak Diagram Root Node -->
+                                            <OrgChartNode
+                                                :node="rootNode"
+                                                :orientation="orientation"
+                                                :search-query="searchQuery"
+                                                :active-level-filter="selectedLevelFilter"
+                                                :active-dept-filter="selectedDeptFilter"
+                                                :collapsed-ids="collapsedIds"
+                                                :level-definitions="levelDefinitions"
+                                                @add-subordinate="handleAddSubordinate"
+                                                @add-peer="handleAddPeer"
+                                                @edit-position="handleEdit"
+                                                @delete-position="handleDelete"
+                                                @toggle-collapse="toggleCollapse"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Tanpa Apex Block (Root Nodes Sejajar) -->
+                                <div v-else class="flex items-start justify-center gap-8">
+                                    <div
+                                        v-for="rootNode in treeRoots"
+                                        :key="rootNode.id"
+                                        class="flex flex-col items-center"
+                                    >
+                                        <OrgChartNode
+                                            :node="rootNode"
+                                            :orientation="orientation"
+                                            :search-query="searchQuery"
+                                            :active-level-filter="selectedLevelFilter"
+                                            :active-dept-filter="selectedDeptFilter"
+                                            :collapsed-ids="collapsedIds"
+                                            :level-definitions="levelDefinitions"
+                                            @add-subordinate="handleAddSubordinate"
+                                            @add-peer="handleAddPeer"
+                                            @edit-position="handleEdit"
+                                            @delete-position="handleDelete"
+                                            @toggle-collapse="toggleCollapse"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- ORIENTASI: HORIZONTAL (LEFT-TO-RIGHT) -->
+                            <div v-else class="flex flex-row items-center justify-start">
+                                <!-- Puncak Yayasan (Horizontal) -->
+                                <div v-if="showApex" class="flex flex-row items-center">
+                                    <div class="relative px-5 py-3.5 rounded-2xl bg-gradient-to-r from-primary to-primary-container text-white shadow-md border-2 border-primary-fixed/40 flex items-center gap-3 shrink-0">
+                                        <div class="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
+                                            <span class="material-symbols-outlined text-2xl text-white">account_balance</span>
+                                        </div>
+                                        <div>
+                                            <div class="text-[9px] font-extrabold uppercase tracking-widest text-primary-fixed">Induk Yayasan</div>
+                                            <div class="text-xs sm:text-sm font-extrabold text-white">YLUA</div>
+                                            <div class="text-[10px] text-white/80">{{ positions.length }} Jabatan</div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Garis Horizontal ke Palang Vertikal -->
+                                    <div class="h-0.5 w-8 bg-slate-300 dark:bg-slate-600 shrink-0"></div>
+
+                                    <!-- Palang Vertikal Antar Root -->
+                                    <div class="flex flex-col items-start justify-center">
+                                        <div
+                                            v-for="(rootNode, idx) in treeRoots"
+                                            :key="rootNode.id"
+                                            class="relative flex flex-row items-center py-3"
+                                        >
+                                            <div
+                                                v-if="treeRoots.length > 1 && idx > 0"
+                                                class="absolute left-0 top-0 bottom-1/2 w-0.5 bg-slate-300 dark:bg-slate-600"
+                                            ></div>
+                                            <div
+                                                v-if="treeRoots.length > 1 && idx < treeRoots.length - 1"
+                                                class="absolute left-0 top-1/2 bottom-0 w-0.5 bg-slate-300 dark:bg-slate-600"
+                                            ></div>
+
+                                            <div class="h-0.5 w-8 bg-slate-300 dark:bg-slate-600 shrink-0"></div>
+
+                                            <OrgChartNode
+                                                :node="rootNode"
+                                                :orientation="orientation"
+                                                :search-query="searchQuery"
+                                                :active-level-filter="selectedLevelFilter"
+                                                :active-dept-filter="selectedDeptFilter"
+                                                :collapsed-ids="collapsedIds"
+                                                :level-definitions="levelDefinitions"
+                                                @add-subordinate="handleAddSubordinate"
+                                                @add-peer="handleAddPeer"
+                                                @edit-position="handleEdit"
+                                                @delete-position="handleDelete"
+                                                @toggle-collapse="toggleCollapse"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Tanpa Apex Block (Horizontal) -->
+                                <div v-else class="flex flex-col items-start justify-center gap-6">
+                                    <div
+                                        v-for="rootNode in treeRoots"
+                                        :key="rootNode.id"
+                                        class="flex flex-row items-center"
+                                    >
+                                        <OrgChartNode
+                                            :node="rootNode"
+                                            :orientation="orientation"
+                                            :search-query="searchQuery"
+                                            :active-level-filter="selectedLevelFilter"
+                                            :active-dept-filter="selectedDeptFilter"
+                                            :collapsed-ids="collapsedIds"
+                                            :level-definitions="levelDefinitions"
+                                            @add-subordinate="handleAddSubordinate"
+                                            @add-peer="handleAddPeer"
+                                            @edit-position="handleEdit"
+                                            @delete-position="handleDelete"
+                                            @toggle-collapse="toggleCollapse"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Canvas Quick Navigation / Legend Bar at Bottom -->
+                    <div class="absolute bottom-3 left-3 right-3 sm:left-6 sm:right-6 pointer-events-none">
+                        <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-surface-container-lowest/90 backdrop-blur-md border border-outline-variant/50 shadow-md text-[11px] text-on-surface-variant pointer-events-auto flex-wrap">
+                            <span class="font-bold text-on-surface flex items-center gap-1">
+                                <span class="material-symbols-outlined text-[14px] text-primary">touch_app</span>
+                                <span>Petunjuk:</span>
+                            </span>
+                            <span>Geser/drag kanvas untuk menjelajah</span>
+                            <span class="text-outline-variant">•</span>
+                            <span>Gunakan tombol <strong class="text-on-surface">+</strong> / <strong class="text-on-surface">-</strong> pada kotak untuk melipat bawahan</span>
+                            <span class="text-outline-variant">•</span>
+                            <span>Ctrl + Scroll mouse untuk zoom</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ======================================================== -->
+            <!-- VIEW 2: DAFTAR PER TINGKAT (5 LEVEL GRID)                 -->
+            <!-- ======================================================== -->
+            <div v-else-if="activeView === 'tier'" class="p-5 sm:p-6 space-y-8">
                 <div
                     v-for="def in levelDefinitions"
                     :key="def.level"
@@ -557,203 +1097,9 @@ function handleDelete(pos) {
                 </div>
             </div>
 
-            <!-- VIEW 2: TREE FLOW VIEW -->
-            <div v-else-if="activeView === 'tree'" class="p-5 sm:p-6">
-                <div class="bg-surface-container-low/30 rounded-2xl p-4 sm:p-6 border border-outline-variant/30 overflow-x-auto min-h-[400px]">
-                    <div class="mb-4 flex items-center justify-between">
-                        <div>
-                            <h4 class="text-sm font-bold text-on-surface">Bagan Alur Hierarki Organisasi</h4>
-                            <p class="text-xs text-on-surface-variant">Hierarki vertikal mulai dari Level 1 turun ke tingkat pelaksana</p>
-                        </div>
-                        <span class="text-xs text-on-surface-variant font-medium">
-                            Menampilkan {{ treeRoots.length }} jalur utama
-                        </span>
-                    </div>
-
-                    <!-- Recursive Tree Nodes Container -->
-                    <div class="space-y-6">
-                        <div
-                            v-for="rootNode in treeRoots"
-                            :key="rootNode.id"
-                            class="border border-outline-variant/40 rounded-xl p-4 bg-surface-container-lowest shadow-2xs"
-                        >
-                            <!-- Root Node Card -->
-                            <div class="flex items-start justify-between gap-3 p-3 rounded-lg border bg-surface-container-low/50" :class="getLevelDef(rootNode.level).borderClass">
-                                <div class="flex items-start gap-2.5">
-                                    <div class="w-8 h-8 rounded-lg bg-surface-container-lowest flex items-center justify-center shrink-0 shadow-2xs">
-                                        <span class="material-symbols-outlined text-base text-primary">{{ getLevelDef(rootNode.level).icon }}</span>
-                                    </div>
-                                    <div>
-                                        <div class="flex items-center gap-1.5 flex-wrap">
-                                            <span :class="['text-[10px] font-bold px-1.5 py-0.2 rounded border', getLevelDef(rootNode.level).badgeClass]">
-                                                Level {{ rootNode.level }}
-                                            </span>
-                                            <span v-if="rootNode.department_name" class="text-[10px] px-1.5 py-0.2 rounded bg-surface-container-high text-on-surface-variant">
-                                                {{ rootNode.department_name }}
-                                            </span>
-                                        </div>
-                                        <div class="text-sm font-bold text-on-surface mt-0.5">
-                                            {{ rootNode.name }}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="flex items-center gap-1 shrink-0">
-                                    <button
-                                        v-if="rootNode.level < 5"
-                                        type="button"
-                                        @click="handleAddSubordinate(rootNode)"
-                                        class="px-2 py-1 rounded bg-primary/10 hover:bg-primary hover:text-on-primary text-primary text-[10px] font-bold transition-colors cursor-pointer"
-                                        title="+ Bawahan"
-                                    >
-                                        + Bawahan
-                                    </button>
-                                    <button
-                                        type="button"
-                                        @click="handleAddPeer(rootNode)"
-                                        class="px-2 py-1 rounded bg-surface-container-high text-on-surface text-[10px] font-bold transition-colors cursor-pointer"
-                                        title="+ Sejajar"
-                                    >
-                                        + Sejajar
-                                    </button>
-                                    <button
-                                        type="button"
-                                        @click="handleEdit(rootNode)"
-                                        class="p-1 rounded text-on-surface-variant hover:text-primary cursor-pointer"
-                                        title="Edit"
-                                    >
-                                        <span class="material-symbols-outlined text-[15px]">edit</span>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        @click="handleDelete(rootNode)"
-                                        class="p-1 rounded text-on-surface-variant hover:text-error cursor-pointer"
-                                        title="Hapus"
-                                    >
-                                        <span class="material-symbols-outlined text-[15px]">delete</span>
-                                    </button>
-                                </div>
-                            </div>
-
-                            <!-- Children list -->
-                            <div v-if="rootNode.children && rootNode.children.length > 0" class="pl-6 mt-3 space-y-3 border-l-2 border-primary/20 ml-4">
-                                <div
-                                    v-for="child in rootNode.children"
-                                    :key="child.id"
-                                    class="border border-outline-variant/40 rounded-lg p-3 bg-surface-container-low/20"
-                                >
-                                    <div class="flex items-start justify-between gap-3">
-                                        <div>
-                                            <div class="flex items-center gap-1.5 flex-wrap">
-                                                <span :class="['text-[10px] font-bold px-1.5 py-0.2 rounded border', getLevelDef(child.level).badgeClass]">
-                                                    Level {{ child.level }}
-                                                </span>
-                                                <span v-if="child.department_name" class="text-[10px] px-1.5 py-0.2 rounded bg-surface-container-high text-on-surface-variant">
-                                                    {{ child.department_name }}
-                                                </span>
-                                            </div>
-                                            <div class="text-xs sm:text-sm font-bold text-on-surface mt-0.5">
-                                                {{ child.name }}
-                                            </div>
-                                        </div>
-
-                                        <div class="flex items-center gap-1 shrink-0">
-                                            <button
-                                                v-if="child.level < 5"
-                                                type="button"
-                                                @click="handleAddSubordinate(child)"
-                                                class="px-2 py-0.5 rounded bg-primary/10 hover:bg-primary hover:text-on-primary text-primary text-[10px] font-bold transition-colors cursor-pointer"
-                                            >
-                                                + Bawahan
-                                            </button>
-                                            <button
-                                                type="button"
-                                                @click="handleAddPeer(child)"
-                                                class="px-2 py-0.5 rounded bg-surface-container-high text-on-surface text-[10px] font-bold transition-colors cursor-pointer"
-                                            >
-                                                + Sejajar
-                                            </button>
-                                            <button
-                                                type="button"
-                                                @click="handleEdit(child)"
-                                                class="p-1 rounded text-on-surface-variant hover:text-primary cursor-pointer"
-                                            >
-                                                <span class="material-symbols-outlined text-[14px]">edit</span>
-                                            </button>
-                                            <button
-                                                type="button"
-                                                @click="handleDelete(child)"
-                                                class="p-1 rounded text-on-surface-variant hover:text-error cursor-pointer"
-                                            >
-                                                <span class="material-symbols-outlined text-[14px]">delete</span>
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <!-- Grandchildren list -->
-                                    <div v-if="child.children && child.children.length > 0" class="pl-5 mt-2.5 space-y-2 border-l-2 border-primary/20 ml-3">
-                                        <div
-                                            v-for="grandChild in child.children"
-                                            :key="grandChild.id"
-                                            class="flex items-center justify-between gap-2 p-2 rounded border border-outline-variant/30 bg-surface-container-lowest"
-                                        >
-                                            <div>
-                                                <div class="flex items-center gap-1.5">
-                                                    <span :class="['text-[9px] font-bold px-1.5 py-0.2 rounded border', getLevelDef(grandChild.level).badgeClass]">
-                                                        Level {{ grandChild.level }}
-                                                    </span>
-                                                    <span class="text-xs font-semibold text-on-surface">
-                                                        {{ grandChild.name }}
-                                                    </span>
-                                                </div>
-                                            </div>
-
-                                            <div class="flex items-center gap-1 shrink-0">
-                                                <button
-                                                    v-if="grandChild.level < 5"
-                                                    type="button"
-                                                    @click="handleAddSubordinate(grandChild)"
-                                                    class="px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[10px] font-bold"
-                                                >
-                                                    + Bawahan
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    @click="handleAddPeer(grandChild)"
-                                                    class="px-1.5 py-0.5 rounded bg-surface-container-high text-on-surface text-[10px] font-bold"
-                                                >
-                                                    + Sejajar
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    @click="handleEdit(grandChild)"
-                                                    class="p-0.5 rounded text-on-surface-variant hover:text-primary"
-                                                >
-                                                    <span class="material-symbols-outlined text-[14px]">edit</span>
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    @click="handleDelete(grandChild)"
-                                                    class="p-0.5 rounded text-on-surface-variant hover:text-error"
-                                                >
-                                                    <span class="material-symbols-outlined text-[14px]">delete</span>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div v-if="treeRoots.length === 0" class="py-12 text-center text-on-surface-variant">
-                            <span class="material-symbols-outlined text-4xl mb-2 opacity-50">account_tree</span>
-                            <p class="text-sm">Tidak ada jabatan yang sesuai dengan filter pencarian.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- VIEW 3: DEPARTMENT MANAGEMENT (TABLE BIDANG) -->
+            <!-- ======================================================== -->
+            <!-- VIEW 3: KELOLA BIDANG KERJA (TABEL BIDANG)                -->
+            <!-- ======================================================== -->
             <div v-else-if="activeView === 'dept'" class="p-5 sm:p-6 space-y-4">
                 <div class="flex items-center justify-between">
                     <div>
