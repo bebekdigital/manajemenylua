@@ -22,7 +22,6 @@ use App\Http\Controllers\StudentController;
 use App\Http\Controllers\StudentMappingController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WilayahController;
-use App\Models\DepartmentPosition;
 use App\Models\StudentAcademicRecord;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -72,16 +71,13 @@ Route::get('/run-migration', function () {
         Artisan::call('migrate', ['--force' => true]);
         $migrateOutput = Artisan::output();
 
-        // Kosongkan department_positions sesuai permintaan user
-        DepartmentPosition::query()->delete();
-
         Artisan::call('db:seed', ['--class' => 'DepartmentSeeder', '--force' => true]);
         Artisan::call('db:seed', ['--class' => 'SchoolPositionSeeder', '--force' => true]);
         $seedOutput = Artisan::output();
 
         return response()->json([
             'status' => 'Sukses!',
-            'pesan' => 'Migrasi dijalankan dan daftar jabatan organisasi telah dikosongkan.',
+            'pesan' => 'Migrasi dan seeder berhasil dijalankan tanpa menghapus data jabatan.',
             'migrate_output' => $migrateOutput,
             'seed_output' => $seedOutput,
         ]);

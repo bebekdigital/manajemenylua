@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
+import OrgPositionNode from './OrgPositionNode.vue';
 
 const props = defineProps({
     positions: {
@@ -188,6 +189,85 @@ const positionsByLevel = computed(() => {
     return groups;
 });
 
+// Map of position ID -> array of child position objects in the SAME level
+const intraChildrenMapByLevel = computed(() => {
+    const map = {};
+    const filteredSet = new Set(filteredPositions.value.map(p => p.id));
+
+    filteredPositions.value.forEach(p => {
+        if (p.parent_id && filteredSet.has(p.parent_id)) {
+            const parent = positionsMap.value.get(p.parent_id);
+            if (parent && Number(parent.level) === Number(p.level)) {
+                if (!map[p.parent_id]) {
+                    map[p.parent_id] = [];
+                }
+                map[p.parent_id].push(p);
+            }
+        }
+    });
+
+    // Sort children in each group
+    Object.keys(map).forEach(parentId => {
+        map[parentId].sort((a, b) => {
+            if (a.order !== b.order) return a.order - b.order;
+            return a.name.localeCompare(b.name);
+        });
+    });
+
+    return map;
+});
+
+// For each level (1 to 5), determine root positions (intra-roots) to render at the top tier of that level
+const intraRootsByLevel = computed(() => {
+    const roots = { 1: [], 2: [], 3: [], 4: [], 5: [] };
+    const intraMap = intraChildrenMapByLevel.value;
+
+    for (let lvl = 1; lvl <= 5; lvl++) {
+        const positionsInLevel = positionsByLevel.value[lvl] || [];
+        const inLevelIds = new Set(positionsInLevel.map(p => p.id));
+        const visited = new Set();
+
+        // 1. A position is an intra-root if its parent_id is not in this level (or null)
+        positionsInLevel.forEach(p => {
+            const hasParentInThisLevel = p.parent_id && inLevelIds.has(p.parent_id) &&
+                Number(positionsMap.value.get(p.parent_id)?.level) === lvl;
+
+            if (!hasParentInThisLevel) {
+                roots[lvl].push(p);
+                // Mark p and all its descendants in this level as visited
+                const markVisited = (nodeId) => {
+                    visited.add(nodeId);
+                    const kids = intraMap[nodeId] || [];
+                    kids.forEach(k => {
+                        if (!visited.has(k.id)) markVisited(k.id);
+                    });
+                };
+                markVisited(p.id);
+            }
+        });
+
+        // 2. Safety fallback: if there are any circular references or unvisited nodes in this level,
+        // add them as roots so they are never lost/hidden!
+        positionsInLevel.forEach(p => {
+            if (!visited.has(p.id)) {
+                roots[lvl].push(p);
+                visited.add(p.id);
+            }
+        });
+
+        // Sort roots
+        roots[lvl].sort((a, b) => {
+            const pA = a.parent_id || 0;
+            const pB = b.parent_id || 0;
+            if (pA !== pB) return pA - pB;
+            if (a.order !== b.order) return a.order - b.order;
+            return a.name.localeCompare(b.name);
+        });
+    }
+
+    return roots;
+});
+
 // ========================================================
 // GARIS HIERARKI SVG DINAMIS (ANTAR ATASAN DAN BAWAHAN)
 // ========================================================
@@ -311,15 +391,30 @@ function handleAddPeer(pos) {
     });
 }
 
-// Add subordinate (bawahan) reporting to this position
-function handleAddSubordinate(pos) {
+// Add subordinate at the SAME level (hierarki di level yang sama, tampil di bawah kartu)
+function handleAddSubordinateSameLevel(pos) {
+    emit('add-position', {
+        presetLevel: Number(pos.level) || 1,
+        presetParentId: pos.id,
+        presetDepartmentId: pos.department_id || null,
+        modeTitle: `Tambah Bawahan di Level ${pos.level} untuk: ${pos.name}`,
+    });
+}
+
+// Add subordinate at the NEXT level (baris level di bawahnya)
+function handleAddSubordinateNextLevel(pos) {
     const nextLevel = Math.min(5, (Number(pos.level) || 1) + 1);
     emit('add-position', {
         presetLevel: nextLevel,
         presetParentId: pos.id,
         presetDepartmentId: pos.department_id || null,
-        modeTitle: `Tambah Bawahan untuk: ${pos.name}`,
+        modeTitle: `Tambah Bawahan di Level ${nextLevel} untuk: ${pos.name}`,
     });
+}
+
+// Default subordinate handler
+function handleAddSubordinate(pos) {
+    handleAddSubordinateNextLevel(pos);
 }
 
 function handleEdit(pos) {
@@ -545,154 +640,24 @@ function handleDelete(pos) {
                             <td class="p-4 sm:p-6 align-middle relative min-h-[160px]">
                                 <!-- JIKA SUDAH ADA JABATAN TERDAFTAR DI LEVEL INI -->
                                 <div
-                                    v-if="positionsByLevel[def.level] && positionsByLevel[def.level].length > 0"
-                                    class="flex items-stretch gap-6 flex-wrap py-2"
+                                    v-if="intraRootsByLevel[def.level] && intraRootsByLevel[def.level].length > 0"
+                                    class="flex items-start gap-8 flex-wrap py-2"
                                 >
-                                    <div
-                                        v-for="pos in positionsByLevel[def.level]"
-                                        :key="pos.id"
-                                        :id="`pos-card-${pos.id}`"
-                                        :data-level="pos.level"
-                                        @mouseenter="hoveredPosId = pos.id"
-                                        @mouseleave="hoveredPosId = null"
-                                        class="w-64 sm:w-72 bg-white rounded-xl border border-outline-variant/60 p-4 transition-all duration-200 hover:shadow-lg flex flex-col justify-between group relative select-none"
-                                        :class="[
-                                            def.cardBorder,
-                                            hoveredPosId === pos.id ? 'ring-2 ring-primary border-primary shadow-md' : 'shadow-2xs'
-                                        ]"
-                                    >
-                                        <!-- TITIK ANCHOR KONEKTOR ATAS (TITIK HUBUNG KE ATASAN) -->
-                                        <div
-                                            v-if="pos.parent_id"
-                                            class="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-primary border-2 border-white shadow-xs z-20"
-                                            title="Titik hubung vertikal ke atasan langsung"
-                                        ></div>
-
-                                        <!-- TITIK ANCHOR KONEKTOR BAWAH (TITIK HUBUNG KE BAWAHAN) -->
-                                        <div
-                                            v-if="pos.subordinates && pos.subordinates.length > 0"
-                                            class="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-primary border-2 border-white shadow-xs z-20"
-                                            title="Titik hubung vertikal ke bawahan langsung"
-                                        ></div>
-
-                                        <div>
-                                            <!-- Header Kartu: Badge Level & Bidang Kerja -->
-                                            <div class="flex items-center justify-between gap-1.5 mb-2 flex-wrap">
-                                                <div class="flex items-center gap-1">
-                                                    <span :class="['text-[9px] font-bold px-1.5 py-0.5 rounded border', def.badgeClass]">
-                                                        L{{ pos.level }}
-                                                    </span>
-                                                    <span
-                                                        v-if="pos.department_name"
-                                                        class="text-[10px] font-semibold px-2 py-0.5 rounded bg-surface-container-high text-on-surface-variant border border-outline-variant/40 truncate max-w-[140px]"
-                                                        :title="pos.department_name"
-                                                    >
-                                                        {{ pos.department_name }}
-                                                    </span>
-                                                    <span
-                                                        v-else
-                                                        class="text-[10px] font-semibold px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20"
-                                                    >
-                                                        Yayasan
-                                                    </span>
-                                                </div>
-
-                                                <!-- Subordinate Counter Badge -->
-                                                <span
-                                                    v-if="pos.subordinates && pos.subordinates.length > 0"
-                                                    class="inline-flex items-center gap-0.5 text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full"
-                                                >
-                                                    <span class="material-symbols-outlined text-[12px]">subdirectory_arrow_right</span>
-                                                    {{ pos.subordinates.length }}
-                                                </span>
-                                            </div>
-
-                                            <!-- Nama Jabatan -->
-                                            <h5 class="text-sm font-bold text-on-surface leading-snug group-hover:text-primary transition-colors">
-                                                {{ pos.name }}
-                                            </h5>
-
-                                            <!-- Relasi Hierarki: Atasan & Bawahan -->
-                                            <div class="mt-2.5 pt-2 border-t border-outline-variant/20 space-y-1">
-                                                <!-- Atasan Langsung Indicator -->
-                                                <div class="flex items-center gap-1.5 text-xs text-on-surface-variant">
-                                                    <span class="material-symbols-outlined text-[14px] text-primary shrink-0">
-                                                        arrow_upward
-                                                    </span>
-                                                    <span class="truncate">
-                                                        <span class="text-on-surface-variant/70 text-[11px]">Atasan:</span>
-                                                        <span v-if="pos.parent_name" class="font-bold text-on-surface ml-1">
-                                                            {{ pos.parent_name }}
-                                                        </span>
-                                                        <span v-else class="font-medium text-emerald-700 dark:text-emerald-400 ml-1">
-                                                            Pimpinan Tertinggi
-                                                        </span>
-                                                    </span>
-                                                </div>
-
-                                                <!-- Bawahan Langsung (Jika ada) -->
-                                                <div v-if="pos.subordinates && pos.subordinates.length > 0" class="flex items-start gap-1 text-[11px] text-on-surface-variant">
-                                                    <span class="material-symbols-outlined text-[13px] text-secondary shrink-0 mt-0.5">
-                                                        subdirectory_arrow_right
-                                                    </span>
-                                                    <div class="truncate text-on-surface-variant/80">
-                                                        <span class="text-[10px] text-on-surface-variant/70">Bawahan:</span>
-                                                        <span class="ml-1 font-medium">{{ pos.subordinates.join(', ') }}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <!-- Footer Kartu: Tombol Aksi (+ Bawahan, + Sejajar, Edit, Hapus) -->
-                                        <div class="mt-3.5 pt-2.5 border-t border-outline-variant/30 flex items-center justify-between gap-1 flex-wrap">
-                                            <div class="flex items-center gap-1">
-                                                <!-- + Bawahan (Vertikal ke Level Bawahnya) -->
-                                                <button
-                                                    v-if="pos.level < 5"
-                                                    type="button"
-                                                    @click="handleAddSubordinate(pos)"
-                                                    class="inline-flex items-center gap-0.5 px-2 py-1 rounded-md bg-primary/10 hover:bg-primary hover:text-on-primary text-primary text-[10px] font-bold transition-colors cursor-pointer"
-                                                    title="Tambah bawahan langsung di level bawahnya"
-                                                >
-                                                    <span class="material-symbols-outlined text-[13px]">add</span>
-                                                    <span>+ Bawahan</span>
-                                                </button>
-
-                                                <!-- + Sejajar (Horizontal di Level yang Sama) -->
-                                                <button
-                                                    type="button"
-                                                    @click="handleAddPeer(pos)"
-                                                    class="inline-flex items-center gap-0.5 px-2 py-1 rounded-md bg-surface-container-high hover:bg-surface-container-highest text-on-surface text-[10px] font-bold transition-colors cursor-pointer"
-                                                    title="Tambah rekan jabatan sejajar di level ini"
-                                                >
-                                                    <span class="material-symbols-outlined text-[13px]">add</span>
-                                                    <span>+ Sejajar</span>
-                                                </button>
-                                            </div>
-
-                                            <div class="flex items-center gap-0.5">
-                                                <!-- Edit -->
-                                                <button
-                                                    type="button"
-                                                    @click="handleEdit(pos)"
-                                                    class="p-1 rounded-md text-on-surface-variant hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer"
-                                                    title="Edit Jabatan"
-                                                >
-                                                    <span class="material-symbols-outlined text-[15px]">edit</span>
-                                                </button>
-
-                                                <!-- Hapus -->
-                                                <button
-                                                    type="button"
-                                                    @click="handleDelete(pos)"
-                                                    class="p-1 rounded-md text-on-surface-variant hover:text-error hover:bg-error/10 transition-colors cursor-pointer"
-                                                    title="Hapus Jabatan"
-                                                >
-                                                    <span class="material-symbols-outlined text-[15px]">delete</span>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    <OrgPositionNode
+                                        v-for="rootPos in intraRootsByLevel[def.level]"
+                                        :key="rootPos.id"
+                                        :pos="rootPos"
+                                        :level-def="def"
+                                        :intra-children-map="intraChildrenMapByLevel"
+                                        :hovered-pos-id="hoveredPosId"
+                                        @hover="hoveredPosId = $event"
+                                        @leave="hoveredPosId = null"
+                                        @add-subordinate-same-level="handleAddSubordinateSameLevel"
+                                        @add-subordinate-next-level="handleAddSubordinateNextLevel"
+                                        @add-peer="handleAddPeer"
+                                        @edit="handleEdit"
+                                        @delete="handleDelete"
+                                    />
                                 </div>
 
                                 <!-- EMPTY STATE SAAT BARIS LEVEL BELUM MEMILIKI JABATAN -->
