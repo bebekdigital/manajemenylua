@@ -377,10 +377,25 @@ function updateConnectionLines() {
     const scrollLeft = containerEl.scrollLeft || 0;
     const scrollTop = containerEl.scrollTop || 0;
 
-    svgWidth.value = Math.max(containerEl.scrollWidth, tableRef.value.offsetWidth);
-    svgHeight.value = Math.max(containerEl.scrollHeight, tableRef.value.offsetHeight);
+    // Cari koordinat paling kanan dari seluruh kartu untuk jalur koridor kanan (garis lompat level)
+    let maxCardRight = 0;
+    props.positions.forEach(pos => {
+        const el = document.getElementById(`pos-card-${pos.id}`);
+        if (el) {
+            const r = el.getBoundingClientRect();
+            const rightCoord = (r.right - containerRect.left + scrollLeft);
+            if (rightCoord > maxCardRight) {
+                maxCardRight = rightCoord;
+            }
+        }
+    });
+
+    const tableWidth = tableRef.value ? tableRef.value.offsetWidth : 960;
+    svgWidth.value = Math.max(containerEl.scrollWidth, tableWidth, maxCardRight + 120);
+    svgHeight.value = Math.max(containerEl.scrollHeight, tableRef.value ? tableRef.value.offsetHeight : 800);
 
     const lines = [];
+    let jumpCount = 0;
 
     // Loop through all positions that have a parent
     props.positions.forEach(pos => {
@@ -394,23 +409,67 @@ function updateConnectionLines() {
             const parentRect = parentEl.getBoundingClientRect();
 
             // Coordinate from bottom center of parent card
-            const x1 = (parentRect.left + parentRect.width / 2) - containerRect.left + scrollLeft;
-            const y1 = parentRect.bottom - containerRect.top + scrollTop;
+            const x1 = Math.round((parentRect.left + parentRect.width / 2) - containerRect.left + scrollLeft);
+            const y1 = Math.round(parentRect.bottom - containerRect.top + scrollTop);
 
             // Coordinate to top center of child card
-            const x2 = (childRect.left + childRect.width / 2) - containerRect.left + scrollLeft;
-            const y2 = childRect.top - containerRect.top + scrollTop;
+            const x2 = Math.round((childRect.left + childRect.width / 2) - containerRect.left + scrollLeft);
+            const y2 = Math.round(childRect.top - containerRect.top + scrollTop);
 
-            // Smooth bezier connector path
-            const midY = y1 + (y2 - y1) * 0.5;
-            const path = `M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2}`;
+            const parentLevel = Number(parentEl.dataset.level) || 1;
+            const childLevel = Number(childEl.dataset.level) || 1;
+            const parentLevelDef = levelDefinitions.find(d => d.level === parentLevel) || levelDefinitions[0];
 
-            const parentLevelDef = levelDefinitions.find(d => d.level === (Number(parentEl.dataset.level) || 1)) || levelDefinitions[0];
+            let path = '';
+
+            // 1. KASUS LOMPAT LEVEL (childLevel > parentLevel + 1)
+            // Jalur lewat kanan luar container agar tidak memotong card di level tengah
+            if (childLevel > parentLevel + 1) {
+                const rightCorridorBase = Math.max(maxCardRight + 36, tableWidth - 70);
+                const x_right = Math.round(rightCorridorBase + (jumpCount * 16));
+                jumpCount++;
+
+                const y_exit = y1 + 16;
+                const y_entry = y2 - 16;
+
+                // Garis orthogonal 90 derajat: keluar dari bawah -> belok kanan -> turun di koridor kanan -> belok kiri -> masuk dari atas
+                path = `M ${x1} ${y1} L ${x1} ${y_exit} L ${x_right} ${y_exit} L ${x_right} ${y_entry} L ${x2} ${y_entry} L ${x2} ${y2}`;
+            }
+            // 2. KASUS SATU LEVEL / INTRA-LEVEL (childLevel === parentLevel)
+            else if (childLevel === parentLevel) {
+                if (Math.abs(x1 - x2) < 4) {
+                    path = `M ${x1} ${y1} L ${x2} ${y2}`;
+                } else {
+                    const midY = Math.round(y1 + (y2 - y1) * 0.5);
+                    path = `M ${x1} ${y1} L ${x1} ${midY} L ${x2} ${midY} L ${x2} ${y2}`;
+                }
+            }
+            // 3. KASUS LEVEL DI BAWAHNYA LANGSUNG (childLevel === parentLevel + 1)
+            // Keluar container level dari tengah, masuk container level baru dari tengah (bersudut 90 derajat)
+            else {
+                const parentRowEl = document.getElementById(`level-row-${parentLevel}`);
+                let midY;
+                if (parentRowEl) {
+                    const rowRect = parentRowEl.getBoundingClientRect();
+                    midY = Math.round(rowRect.bottom - containerRect.top + scrollTop);
+                } else {
+                    midY = Math.round(y1 + (y2 - y1) * 0.5);
+                }
+
+                if (Math.abs(x1 - x2) < 4) {
+                    // Lurus vertikal jika posisi tengah sejajar
+                    path = `M ${x1} ${y1} L ${x2} ${y2}`;
+                } else {
+                    // Bersudut 90 derajat di pembatas antar level
+                    path = `M ${x1} ${y1} L ${x1} ${midY} L ${x2} ${midY} L ${x2} ${y2}`;
+                }
+            }
 
             lines.push({
                 id: `line-${pos.parent_id}-${pos.id}`,
                 parentId: pos.parent_id,
                 childId: pos.id,
+                parentLevel: parentLevelDef.level,
                 x1,
                 y1,
                 x2,
@@ -643,9 +702,11 @@ function handleDelete(pos) {
                     }"
                 >
                     <defs>
-                        <!-- Marker Arrowhead untuk Ujung Garis Menuju Bawahan -->
+                        <!-- Marker Arrowhead untuk masing-masing level warna -->
                         <marker
-                            id="arrow-head"
+                            v-for="d in levelDefinitions"
+                            :key="`arrow-${d.level}`"
+                            :id="`arrow-${d.level}`"
                             viewBox="0 0 10 10"
                             refX="7"
                             refY="5"
@@ -653,29 +714,31 @@ function handleDelete(pos) {
                             markerHeight="6"
                             orient="auto-start-reverse"
                         >
-                            <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#059669" />
+                            <path d="M 0 1.5 L 8 5 L 0 8.5 z" :fill="d.strokeColor" />
                         </marker>
                     </defs>
 
-                    <!-- Render Setiap Garis Penghubung (Parent -> Child) -->
+                    <!-- Render Setiap Garis Penghubung (Parent -> Child) bersudut 90 derajat -->
                     <g v-for="line in connectionLines" :key="line.id">
                         <!-- Glow / Shadow Line saat di-hover -->
                         <path
                             :d="line.path"
-                            stroke="rgba(5, 150, 105, 0.25)"
-                            :stroke-width="hoveredPosId === line.parentId || hoveredPosId === line.childId ? 8 : 4"
+                            stroke="rgba(5, 150, 105, 0.2)"
+                            :stroke-width="hoveredPosId === line.parentId || hoveredPosId === line.childId ? 7 : 3.5"
                             fill="none"
-                            class="transition-all duration-200"
+                            stroke-linejoin="miter"
+                            class="transition-all duration-150"
                         />
-                        <!-- Garis Utama Penghubung Atasan & Bawahan -->
+                        <!-- Garis Utama Penghubung Atasan & Bawahan (Bersudut 90 Derajat) -->
                         <path
                             :d="line.path"
                             :stroke="hoveredPosId === line.parentId || hoveredPosId === line.childId ? '#059669' : line.color"
-                            :stroke-width="hoveredPosId === line.parentId || hoveredPosId === line.childId ? 3.5 : 2"
-                            :stroke-opacity="hoveredPosId && hoveredPosId !== line.parentId && hoveredPosId !== line.childId ? 0.25 : 0.85"
+                            :stroke-width="hoveredPosId === line.parentId || hoveredPosId === line.childId ? 3 : 2"
+                            :stroke-opacity="hoveredPosId && hoveredPosId !== line.parentId && hoveredPosId !== line.childId ? 0.25 : 0.9"
                             fill="none"
-                            marker-end="url(#arrow-head)"
-                            class="transition-all duration-200"
+                            stroke-linejoin="miter"
+                            :marker-end="`url(#arrow-${line.parentLevel || 1})`"
+                            class="transition-all duration-150"
                         />
                     </g>
                 </svg>
@@ -686,54 +749,48 @@ function handleDelete(pos) {
                         <tr
                             v-for="(def, idx) in levelDefinitions"
                             :key="def.level"
-                            class="border-b border-outline-variant/40 last:border-b-0 hover:bg-slate-50/15 transition-colors"
+                            :id="`level-row-${def.level}`"
+                            class="border-b border-outline-variant/40 last:border-b-0 hover:bg-slate-50/15 transition-colors relative"
                         >
-                            <!-- CONTAINER LEVEL (FULL WIDTH): POSISI LEVEL BERADA DI POJOK KIRI ATAS -->
-                            <td class="p-4 sm:p-5 align-top relative min-h-[150px]" :class="def.rowHeaderBg">
-                                <!-- HEADER POJOK KIRI ATAS: Level, Nama Level, Tombol Edit dan Tambah Ringkas -->
-                                <div class="flex items-center justify-between gap-3 mb-4 pb-2.5 border-b border-outline-variant/30 flex-wrap">
-                                    <div class="flex items-center gap-2 sm:gap-2.5 flex-wrap min-w-0">
-                                        <span :class="['text-[11px] font-bold px-2 py-0.5 rounded border shadow-2xs', def.badgeClass]">
-                                            Level {{ def.level }}
-                                        </span>
-                                        <h4 class="text-xs sm:text-sm font-bold text-on-surface">
-                                            {{ getLevelName(def.level) }}
-                                        </h4>
-                                        <span v-if="getLevelSubtitle(def.level)" class="hidden lg:inline text-[11px] text-on-surface-variant/70 truncate max-w-md">
-                                            — {{ getLevelSubtitle(def.level) }}
-                                        </span>
-                                        <span class="text-[11px] font-medium text-on-surface-variant/60">
-                                            ({{ positionsByLevel[def.level]?.length || 0 }} Jabatan)
-                                        </span>
-                                        <!-- Tombol Edit Ringkas -->
-                                        <button
-                                            type="button"
-                                            @click="openEditLevelModal(def.level)"
-                                            class="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded transition-colors cursor-pointer"
-                                            :title="`Edit Nama Level ${def.level}`"
-                                        >
-                                            <span class="material-symbols-outlined text-[14px]">edit</span>
-                                            <span>Edit</span>
-                                        </button>
-                                    </div>
-
+                            <!-- CONTAINER LEVEL: POSISI LEVEL DI POJOK KIRI ATAS CONTAINER (BUKAN BARIS BARU) -->
+                            <td class="p-4 pt-10 sm:pt-9 sm:px-6 align-top relative min-h-[140px]" :class="def.rowHeaderBg">
+                                <!-- POJOK KIRI ATAS: Tulisan ringkas & kecil di baris yang sama dengan container -->
+                                <div class="absolute top-2.5 left-3 sm:left-4 z-20 inline-flex items-center gap-1.5 flex-wrap select-none bg-surface-container-lowest/80 backdrop-blur-2xs px-2 py-0.5 rounded-lg border border-outline-variant/30 shadow-2xs">
+                                    <span :class="['text-[10px] font-bold px-1.5 py-0.5 rounded border shadow-2xs', def.badgeClass]">
+                                        Level {{ def.level }}
+                                    </span>
+                                    <span class="text-xs font-bold text-on-surface">
+                                        {{ getLevelName(def.level) }}
+                                    </span>
+                                    <span class="text-[10px] text-on-surface-variant/70 font-medium">
+                                        ({{ positionsByLevel[def.level]?.length || 0 }})
+                                    </span>
+                                    <!-- Tombol Edit Ringkas -->
+                                    <button
+                                        type="button"
+                                        @click="openEditLevelModal(def.level)"
+                                        class="inline-flex items-center p-0.5 text-on-surface-variant hover:text-primary rounded hover:bg-surface-container-high transition-colors cursor-pointer"
+                                        :title="`Edit Nama Level ${def.level}`"
+                                    >
+                                        <span class="material-symbols-outlined text-[13px]">edit</span>
+                                    </button>
                                     <!-- Tombol Tambah Ringkas -->
                                     <button
                                         type="button"
                                         @click="handleAddAtLevel(def.level)"
-                                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all shadow-xs hover:shadow-md cursor-pointer shrink-0"
+                                        class="ml-0.5 inline-flex items-center gap-0.5 px-2 py-0.5 rounded text-[11px] font-semibold text-white transition-all shadow-2xs hover:shadow cursor-pointer"
                                         :class="def.btnClass"
                                         :title="`Tambah Jabatan di Level ${def.level}`"
                                     >
-                                        <span class="material-symbols-outlined text-[15px]">add</span>
+                                        <span class="material-symbols-outlined text-[13px]">add</span>
                                         <span>Tambah</span>
                                     </button>
                                 </div>
 
-                                <!-- AREA KARTU JABATAN PADA BARIS LEVEL INI (FULL WIDTH, BISA MENAMPUNG BANYAK KARTU) -->
+                                <!-- SETIAP CARD JABATAN DIMULAI DARI TENGAH (justify-center) -->
                                 <div
                                     v-if="intraRootsByLevel[def.level] && intraRootsByLevel[def.level].length > 0"
-                                    class="flex items-start gap-8 flex-wrap py-2"
+                                    class="flex items-start justify-center gap-8 flex-wrap py-2 w-full"
                                 >
                                     <OrgPositionNode
                                         v-for="rootPos in intraRootsByLevel[def.level]"
@@ -752,21 +809,21 @@ function handleDelete(pos) {
                                     />
                                 </div>
 
-                                <!-- EMPTY STATE SAAT BARIS LEVEL BELUM MEMILIKI JABATAN -->
+                                <!-- EMPTY STATE SAAT BARIS LEVEL BELUM MEMILIKI JABATAN (TERPUSAT DI TENGAH) -->
                                 <div
                                     v-else
-                                    class="py-4 px-4 border border-dashed border-outline-variant/40 rounded-xl bg-surface-container-lowest/50 flex items-center justify-between gap-3 max-w-md"
+                                    class="py-4 px-4 border border-dashed border-outline-variant/40 rounded-xl bg-surface-container-lowest/50 flex items-center justify-between gap-3 max-w-sm mx-auto"
                                 >
                                     <p class="text-xs font-medium text-on-surface-variant">
-                                        Belum ada jabatan pada Level {{ def.level }}.
+                                        Belum ada jabatan di Level {{ def.level }}.
                                     </p>
                                     <button
                                         type="button"
                                         @click="handleAddAtLevel(def.level)"
-                                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all shadow-xs cursor-pointer shrink-0"
+                                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold transition-all shadow-xs cursor-pointer shrink-0"
                                         :class="def.btnClass"
                                     >
-                                        <span class="material-symbols-outlined text-[14px]">add</span>
+                                        <span class="material-symbols-outlined text-[13px]">add</span>
                                         <span>Tambah</span>
                                     </button>
                                 </div>
