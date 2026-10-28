@@ -288,6 +288,85 @@ const positionsByLevel = computed(() => {
     return groups;
 });
 
+// Map of position ID -> array of child position objects in the SAME level
+const intraChildrenMapByLevel = computed(() => {
+    const map = {};
+    const filteredSet = new Set(filteredPositions.value.map(p => p.id));
+
+    filteredPositions.value.forEach(p => {
+        if (p.parent_id && filteredSet.has(p.parent_id)) {
+            const parent = positionsMap.value.get(p.parent_id);
+            if (parent && Number(parent.level) === Number(p.level)) {
+                if (!map[p.parent_id]) {
+                    map[p.parent_id] = [];
+                }
+                map[p.parent_id].push(p);
+            }
+        }
+    });
+
+    // Sort children in each group
+    Object.keys(map).forEach(parentId => {
+        map[parentId].sort((a, b) => {
+            if (a.order !== b.order) return a.order - b.order;
+            return a.name.localeCompare(b.name);
+        });
+    });
+
+    return map;
+});
+
+// For each level (1 to 5), determine root positions (intra-roots) to render at the top tier of that level
+const intraRootsByLevel = computed(() => {
+    const roots = { 1: [], 2: [], 3: [], 4: [], 5: [] };
+    const intraMap = intraChildrenMapByLevel.value;
+
+    for (let lvl = 1; lvl <= 5; lvl++) {
+        const positionsInLevel = positionsByLevel.value[lvl] || [];
+        const inLevelIds = new Set(positionsInLevel.map(p => p.id));
+        const visited = new Set();
+
+        // 1. A position is an intra-root if its parent_id is not in this level (or null)
+        positionsInLevel.forEach(p => {
+            const hasParentInThisLevel = p.parent_id && inLevelIds.has(p.parent_id) &&
+                Number(positionsMap.value.get(p.parent_id)?.level) === lvl;
+
+            if (!hasParentInThisLevel) {
+                roots[lvl].push(p);
+                // Mark p and all its descendants in this level as visited
+                const markVisited = (nodeId) => {
+                    visited.add(nodeId);
+                    const kids = intraMap[nodeId] || [];
+                    kids.forEach(k => {
+                        if (!visited.has(k.id)) markVisited(k.id);
+                    });
+                };
+                markVisited(p.id);
+            }
+        });
+
+        // 2. Safety fallback: if there are any circular references or unvisited nodes in this level,
+        // add them as roots so they are never lost/hidden!
+        positionsInLevel.forEach(p => {
+            if (!visited.has(p.id)) {
+                roots[lvl].push(p);
+                visited.add(p.id);
+            }
+        });
+
+        // Sort roots
+        roots[lvl].sort((a, b) => {
+            const pA = a.parent_id || 0;
+            const pB = b.parent_id || 0;
+            if (pA !== pB) return pA - pB;
+            if (a.order !== b.order) return a.order - b.order;
+            return a.name.localeCompare(b.name);
+        });
+    }
+
+    return roots;
+});
+
 // ========================================================
 // GARIS HIERARKI SVG DINAMIS (ANTAR ATASAN DAN BAWAHAN / SEJAJAR)
 // ========================================================
@@ -348,33 +427,78 @@ function updateConnectionLines() {
             let path = '';
             let isPeer = false;
 
-            // 1. KASUS SATU LEVEL / JABATAN SEJAJAR (childLevel === parentLevel)
-            // Garis horizontal langsung menghubungkan dua kartu di level yang sama
+            // 1. KASUS SATU LEVEL (childLevel === parentLevel)
             if (childLevel === parentLevel) {
-                isPeer = true;
-                const parentIsLeft = parentRect.left < childRect.left;
-                const x1 = Math.round((parentIsLeft ? parentRect.right : parentRect.left) - containerRect.left + scrollLeft);
-                const y1 = Math.round((parentRect.top + parentRect.height / 2) - containerRect.top + scrollTop);
-                const x2 = Math.round((parentIsLeft ? childRect.left : childRect.right) - containerRect.left + scrollLeft);
-                const y2 = Math.round((childRect.top + childRect.height / 2) - containerRect.top + scrollTop);
+                // Cek apakah posisi ini adalah ATAS-BAWAH di container yang sama (childEl berada di bawah parentEl)
+                if (childRect.top > parentRect.bottom - 10) {
+                    // ATAS-BAWAH DI DALAM 1 CONTAINER LEVEL
+                    const x1 = Math.round((parentRect.left + parentRect.width / 2) - containerRect.left + scrollLeft);
+                    const y1 = Math.round(parentRect.bottom - containerRect.top + scrollTop);
+                    const x2 = Math.round((childRect.left + childRect.width / 2) - containerRect.left + scrollLeft);
+                    const y2 = Math.round(childRect.top - containerRect.top + scrollTop);
 
-                if (Math.abs(y1 - y2) < 6) {
-                    path = `M ${x1} ${y1} L ${x2} ${y2}`;
+                    if (Math.abs(x1 - x2) < 4) {
+                        path = `M ${x1} ${y1} L ${x2} ${y2}`;
+                    } else {
+                        const midY = Math.round(y1 + (y2 - y1) * 0.5);
+                        path = `M ${x1} ${y1} L ${x1} ${midY} L ${x2} ${midY} L ${x2} ${y2}`;
+
+                        // Junction dot jika atasan memiliki beberapa bawahan intra-level
+                        const siblings = (intraChildrenMapByLevel.value[pos.parent_id] || []);
+                        if (siblings.length > 1) {
+                            const dotKey = `${pos.parent_id}-${midY}`;
+                            if (!dotsMap.has(dotKey)) {
+                                dotsMap.set(dotKey, {
+                                    id: `dot-${dotKey}`,
+                                    cx: x1,
+                                    cy: midY,
+                                    color: parentLevelDef.strokeColor,
+                                });
+                            }
+                        }
+                    }
+
+                    lines.push({
+                        id: `line-${pos.parent_id}-${pos.id}`,
+                        parentId: pos.parent_id,
+                        childId: pos.id,
+                        parentLevel: parentLevelDef.level,
+                        x1,
+                        y1,
+                        x2,
+                        y2,
+                        path,
+                        color: parentLevelDef.strokeColor,
+                        isPeer: false,
+                    });
+                    return;
                 } else {
-                    const midX = Math.round(x1 + (x2 - x1) * 0.5);
-                    path = `M ${x1} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${x2} ${y2}`;
-                }
+                    // SEJAJAR HORIZONTAL DI LEVEL YANG SAMA
+                    isPeer = true;
+                    const parentIsLeft = parentRect.left < childRect.left;
+                    const x1 = Math.round((parentIsLeft ? parentRect.right : parentRect.left) - containerRect.left + scrollLeft);
+                    const y1 = Math.round((parentRect.top + parentRect.height / 2) - containerRect.top + scrollTop);
+                    const x2 = Math.round((parentIsLeft ? childRect.left : childRect.right) - containerRect.left + scrollLeft);
+                    const y2 = Math.round((childRect.top + childRect.height / 2) - containerRect.top + scrollTop);
 
-                lines.push({
-                    id: `line-${pos.parent_id}-${pos.id}`,
-                    parentId: pos.parent_id,
-                    childId: pos.id,
-                    parentLevel: parentLevelDef.level,
-                    path,
-                    color: parentLevelDef.strokeColor,
-                    isPeer: true,
-                });
-                return;
+                    if (Math.abs(y1 - y2) < 6) {
+                        path = `M ${x1} ${y1} L ${x2} ${y2}`;
+                    } else {
+                        const midX = Math.round(x1 + (x2 - x1) * 0.5);
+                        path = `M ${x1} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${x2} ${y2}`;
+                    }
+
+                    lines.push({
+                        id: `line-${pos.parent_id}-${pos.id}`,
+                        parentId: pos.parent_id,
+                        childId: pos.id,
+                        parentLevel: parentLevelDef.level,
+                        path,
+                        color: parentLevelDef.strokeColor,
+                        isPeer: true,
+                    });
+                    return;
+                }
             }
 
             // Coordinate from bottom center of parent card
@@ -771,14 +895,15 @@ function handleDelete(pos) {
 
                                 <!-- SETIAP CARD JABATAN DIMULAI DARI TENGAH (justify-center) -->
                                 <div
-                                    v-if="positionsByLevel[def.level] && positionsByLevel[def.level].length > 0"
+                                    v-if="intraRootsByLevel[def.level] && intraRootsByLevel[def.level].length > 0"
                                     class="flex items-start justify-center gap-8 flex-wrap py-2 w-full"
                                 >
                                     <OrgPositionNode
-                                        v-for="pos in positionsByLevel[def.level]"
-                                        :key="pos.id"
-                                        :pos="pos"
+                                        v-for="rootPos in intraRootsByLevel[def.level]"
+                                        :key="rootPos.id"
+                                        :pos="rootPos"
                                         :level-def="def"
+                                        :intra-children-map="intraChildrenMapByLevel"
                                         :hovered-pos-id="hoveredPosId"
                                         @hover="hoveredPosId = $event"
                                         @leave="hoveredPosId = null"
