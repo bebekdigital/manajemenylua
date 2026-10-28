@@ -209,9 +209,11 @@ class EmployeeImportService
                     $tmtKenaikan = $this->parseDate($row[$colKepegawaian['tmtkenaikanjenjang'] ?? ($colKepegawaian['tmt'] ?? 'C')] ?? null);
                     $tstKenaikan = $this->parseDate($row[$colKepegawaian['tstkenaikanjenjang'] ?? ($colKepegawaian['tstjenjang'] ?? ($colKepegawaian['tst'] ?? 'D'))] ?? null);
                     $jenjang = $this->cleanString($row[$colKepegawaian['jenjangkepegawaian'] ?? ($colKepegawaian['jenjang'] ?? 'E')] ?? null);
+                    $noSkKepegawaian = $this->cleanString($row[$colKepegawaian['nosk'] ?? ($colKepegawaian['sk'] ?? null)] ?? null);
 
-                    if ($tmtKenaikan || $tstKenaikan || $jenjang) {
+                    if ($tmtKenaikan || $tstKenaikan || $jenjang || $noSkKepegawaian) {
                         $recordsByNik[$nik][] = [
+                            'no_sk' => $noSkKepegawaian,
                             'tmt_kenaikan_jenjang' => $tmtKenaikan,
                             'tst_kenaikan_jenjang' => $tstKenaikan,
                             'jenjang_kepegawaian' => $jenjang,
@@ -259,9 +261,11 @@ class EmployeeImportService
                     $unitKerja = $this->cleanString($row[$colJabatan['unitkerja'] ?? ($colJabatan['unit'] ?? 'E')] ?? null);
                     $jabatan = $this->cleanString($row[$colJabatan['jabatan'] ?? 'F'] ?? null);
                     $jenisKepegawaian = $this->cleanString($row[$colJabatan['jeniskepegawaian'] ?? 'G'] ?? null);
+                    $noSkJabatan = $this->cleanString($row[$colJabatan['nosk'] ?? ($colJabatan['sk'] ?? null)] ?? null);
 
-                    if ($tmtJabatan || $tstJabatan || $unitKerja || $jabatan || $jenisKepegawaian) {
+                    if ($tmtJabatan || $tstJabatan || $unitKerja || $jabatan || $jenisKepegawaian || $noSkJabatan) {
                         $positionsByNik[$nik][] = [
+                            'no_sk' => $noSkJabatan,
                             'tmt_jabatan' => $tmtJabatan,
                             'tst_jabatan' => $tstJabatan,
                             'unit_kerja' => $unitKerja,

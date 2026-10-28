@@ -199,6 +199,7 @@ function initFormFromProps() {
     form.riwayat_kepegawaian = (props.employee.riwayat_kepegawaian || []).map((r) => ({
         id: r.id || null,
         jenjang_kepegawaian: r.jenjang_kepegawaian || '',
+        no_sk: r.no_sk || '',
         tmt_kenaikan_jenjang: r.tmt_kenaikan_jenjang || '',
         tst_kenaikan_jenjang: r.tst_kenaikan_jenjang || r.tst_jenjang || '',
         document: r.document || null,
@@ -209,6 +210,7 @@ function initFormFromProps() {
         unit_kerja: p.unit_kerja || '',
         jabatan: p.jabatan || '',
         jenis_kepegawaian: p.jenis_kepegawaian || '',
+        no_sk: p.no_sk || '',
         tmt_jabatan: p.tmt_jabatan || '',
         tst_jabatan: p.tst_jabatan || '',
         document: p.document || null,
@@ -658,6 +660,7 @@ function addRiwayatKepegawaianRow() {
     form.riwayat_kepegawaian.push({
         id: null,
         jenjang_kepegawaian: '',
+        no_sk: '',
         tmt_kenaikan_jenjang: '',
         tst_kenaikan_jenjang: '',
         document: null,
@@ -674,6 +677,7 @@ function addRiwayatJabatanRow() {
         unit_kerja: '',
         jabatan: '',
         jenis_kepegawaian: '',
+        no_sk: '',
         tmt_jabatan: '',
         tst_jabatan: '',
         document: null,
@@ -993,11 +997,15 @@ const dokumenKepegawaianList = computed(() => {
             const tmt = rec.formatted_tmt_kenaikan_jenjang || formatTanggalIndo(rec.tmt_kenaikan_jenjang) || '-';
             const tst = rec.formatted_tst_kenaikan_jenjang || rec.formatted_tst_jenjang || formatTanggalIndo(rec.tst_kenaikan_jenjang || rec.tst_jenjang) || 'Sekarang / Tetap';
 
+            const rincianRec = [];
+            if (rec.no_sk) rincianRec.push(`No SK: ${rec.no_sk}`);
+            rincianRec.push(`TMT: ${tmt} • TST: ${tst}`);
+
             list.push({
                 id: `rec_${rec.id}`,
                 no: no++,
                 nama: `SK Jenjang ${jenjang}`,
-                keterangan: `TMT: ${tmt} • TST: ${tst}`,
+                keterangan: rincianRec.join(' • '),
                 document: rec.document,
                 uploadCategory: 'sk_jenjang',
                 recordType: 'record',
@@ -1027,6 +1035,7 @@ const dokumenJabatanList = computed(() => {
             const rincianParts = [];
             if (unit) rincianParts.push(unit);
             if (jenis) rincianParts.push(jenis);
+            if (pos.no_sk) rincianParts.push(`No SK: ${pos.no_sk}`);
             rincianParts.push(`TMT: ${tmt} • TST: ${tst}`);
 
             list.push({
@@ -2549,6 +2558,7 @@ function deleteDocument(doc) {
                                         <tr class="bg-white text-on-surface-variant font-bold text-[10px] sm:text-xs uppercase tracking-wider">
                                             <th class="border border-outline-variant/60 px-4 py-3 text-center w-12">No</th>
                                             <th class="border border-outline-variant/60 px-4 py-3 text-left">Jenjang Kepegawaian</th>
+                                            <th class="border border-outline-variant/60 px-4 py-3 text-left">No SK</th>
                                             <th class="border border-outline-variant/60 px-4 py-3 text-left">TMT Kenaikan Jenjang</th>
                                             <th class="border border-outline-variant/60 px-4 py-3 text-left">TST Kenaikan Jenjang</th>
                                             <th class="border border-outline-variant/60 px-4 py-3 text-left">Status Masa Berlaku</th>
@@ -2566,6 +2576,9 @@ function deleteDocument(doc) {
                                                 <span :class="['inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold', getJenjangColor(record.jenjang_kepegawaian)]">
                                                     {{ record.jenjang_kepegawaian || '-' }}
                                                 </span>
+                                            </td>
+                                            <td class="border border-outline-variant/60 px-4 py-3 text-on-surface font-medium">
+                                                {{ record.no_sk || '-' }}
                                             </td>
                                             <td class="border border-outline-variant/60 px-4 py-3 text-on-surface">
                                                 {{ record.formatted_tmt_kenaikan_jenjang || formatTanggalIndo(record.tmt_kenaikan_jenjang) || '-' }}
@@ -2620,6 +2633,7 @@ function deleteDocument(doc) {
                                     <tr class="bg-primary/5 text-primary font-bold text-[10px] sm:text-xs uppercase tracking-wider">
                                         <th class="border border-outline-variant/60 px-3 py-2.5 text-center w-12">No</th>
                                         <th class="border border-outline-variant/60 px-3 py-2.5 text-left min-w-[190px]">Jenjang Kepegawaian</th>
+                                        <th class="border border-outline-variant/60 px-3 py-2.5 text-left min-w-[150px]">No SK</th>
                                         <th class="border border-outline-variant/60 px-3 py-2.5 text-left min-w-[160px]">TMT Kenaikan Jenjang</th>
                                         <th class="border border-outline-variant/60 px-3 py-2.5 text-left min-w-[160px]">TST Kenaikan Jenjang</th>
                                         <th class="border border-outline-variant/60 px-3 py-2.5 text-center min-w-[120px]">Berkas SK</th>
@@ -2628,7 +2642,7 @@ function deleteDocument(doc) {
                                 </thead>
                                 <tbody>
                                     <tr v-if="!form.riwayat_kepegawaian || form.riwayat_kepegawaian.length === 0">
-                                        <td colspan="6" class="border border-outline-variant/60 p-6 text-center text-xs text-on-surface-variant italic">
+                                        <td colspan="7" class="border border-outline-variant/60 p-6 text-center text-xs text-on-surface-variant italic">
                                             <span class="material-symbols-outlined text-2xl text-outline/60 block mb-1">work_history</span>
                                             Belum ada riwayat jenjang kepegawaian. Klik tombol di bawah untuk menambah riwayat baru.
                                         </td>
@@ -2652,6 +2666,14 @@ function deleteDocument(doc) {
                                                 <option value="PTY">PTY (Pegawai Tetap Yayasan)</option>
                                                 <option value="PTT">PTT (Pegawai Tidak Tetap)</option>
                                             </select>
+                                        </td>
+                                        <td class="border border-outline-variant/60 px-3 py-2.5">
+                                            <input
+                                                v-model="record.no_sk"
+                                                type="text"
+                                                placeholder="Nomor SK"
+                                                class="w-full px-3 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                            />
                                         </td>
                                         <td class="border border-outline-variant/60 px-3 py-2.5">
                                             <input
@@ -2698,7 +2720,7 @@ function deleteDocument(doc) {
 
                                     <!-- BARIS PALING BAWAH: TOMBOL TAMBAH RIWAYAT -->
                                     <tr class="bg-slate-50/70 hover:bg-slate-100/70 transition-colors">
-                                        <td colspan="6" class="border border-outline-variant/60 p-2.5 text-center">
+                                        <td colspan="7" class="border border-outline-variant/60 p-2.5 text-center">
                                             <button
                                                 type="button"
                                                 @click="addRiwayatKepegawaianRow"
@@ -2743,6 +2765,7 @@ function deleteDocument(doc) {
                                             <th class="border border-outline-variant/60 px-4 py-3 text-left">Unit Kerja</th>
                                             <th class="border border-outline-variant/60 px-4 py-3 text-left">Jabatan</th>
                                             <th class="border border-outline-variant/60 px-4 py-3 text-left">Jenis Kepegawaian</th>
+                                            <th class="border border-outline-variant/60 px-4 py-3 text-left">No SK</th>
                                             <th class="border border-outline-variant/60 px-4 py-3 text-left">TMT Jabatan</th>
                                             <th class="border border-outline-variant/60 px-4 py-3 text-left">TST Jabatan</th>
                                             <th class="border border-outline-variant/60 px-4 py-3 text-left">Status</th>
@@ -2763,6 +2786,7 @@ function deleteDocument(doc) {
                                             </td>
                                             <td class="border border-outline-variant/60 px-4 py-3 font-bold text-on-surface">{{ pos.jabatan || '-' }}</td>
                                             <td class="border border-outline-variant/60 px-4 py-3 text-on-surface">{{ pos.jenis_kepegawaian || '-' }}</td>
+                                            <td class="border border-outline-variant/60 px-4 py-3 text-on-surface font-medium">{{ pos.no_sk || '-' }}</td>
                                             <td class="border border-outline-variant/60 px-4 py-3 text-on-surface">
                                                 {{ pos.formatted_tmt_jabatan || formatTanggalIndo(pos.tmt_jabatan) || '-' }}
                                             </td>
@@ -2818,6 +2842,7 @@ function deleteDocument(doc) {
                                         <th class="border border-outline-variant/60 px-3 py-2.5 text-left min-w-[170px]">Unit Kerja</th>
                                         <th class="border border-outline-variant/60 px-3 py-2.5 text-left min-w-[170px]">Jabatan</th>
                                         <th class="border border-outline-variant/60 px-3 py-2.5 text-left min-w-[160px]">Jenis Kepegawaian</th>
+                                        <th class="border border-outline-variant/60 px-3 py-2.5 text-left min-w-[150px]">No SK</th>
                                         <th class="border border-outline-variant/60 px-3 py-2.5 text-left min-w-[150px]">TMT Jabatan</th>
                                         <th class="border border-outline-variant/60 px-3 py-2.5 text-left min-w-[150px]">TST Jabatan</th>
                                         <th class="border border-outline-variant/60 px-3 py-2.5 text-center min-w-[110px]">Berkas SK</th>
@@ -2826,7 +2851,7 @@ function deleteDocument(doc) {
                                 </thead>
                                 <tbody>
                                     <tr v-if="!form.riwayat_jabatan || form.riwayat_jabatan.length === 0">
-                                        <td colspan="8" class="border border-outline-variant/60 p-6 text-center text-xs text-on-surface-variant italic">
+                                        <td colspan="9" class="border border-outline-variant/60 p-6 text-center text-xs text-on-surface-variant italic">
                                             <span class="material-symbols-outlined text-2xl text-outline/60 block mb-1">assignment_late</span>
                                             Belum ada riwayat jabatan. Klik tombol di bawah untuk menambah riwayat jabatan baru.
                                         </td>
@@ -2920,6 +2945,14 @@ function deleteDocument(doc) {
                                         </td>
                                         <td class="border border-outline-variant/60 px-3 py-2.5">
                                             <input
+                                                v-model="pos.no_sk"
+                                                type="text"
+                                                placeholder="Nomor SK"
+                                                class="w-full px-3 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                            />
+                                        </td>
+                                        <td class="border border-outline-variant/60 px-3 py-2.5">
+                                            <input
                                                 v-model="pos.tmt_jabatan"
                                                 type="date"
                                                 class="w-full px-3 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
@@ -2963,7 +2996,7 @@ function deleteDocument(doc) {
 
                                     <!-- BARIS PALING BAWAH: TOMBOL TAMBAH RIWAYAT JABATAN -->
                                     <tr class="bg-slate-50/70 hover:bg-slate-100/70 transition-colors">
-                                        <td colspan="8" class="border border-outline-variant/60 p-2.5 text-center">
+                                        <td colspan="9" class="border border-outline-variant/60 p-2.5 text-center">
                                             <button
                                                 type="button"
                                                 @click="addRiwayatJabatanRow"

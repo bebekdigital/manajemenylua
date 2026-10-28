@@ -13,6 +13,7 @@ class EmployeeRecord extends Model
     protected $fillable = [
         'employee_id',
         'jenjang_kepegawaian',
+        'no_sk',
         'tmt_kenaikan_jenjang',
         'tst_kenaikan_jenjang',
     ];

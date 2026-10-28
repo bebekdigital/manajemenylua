@@ -319,6 +319,7 @@ class EmployeeStructureTest extends TestCase
         $this->assertTrue(Schema::hasColumn('employee_records', 'tmt_kenaikan_jenjang'));
         $this->assertTrue(Schema::hasColumn('employee_records', 'tst_kenaikan_jenjang'));
         $this->assertTrue(Schema::hasColumn('employee_records', 'jenjang_kepegawaian'));
+        $this->assertTrue(Schema::hasColumn('employee_records', 'no_sk'));
 
         // 2. Employee positions (EP) should have position columns
         $this->assertTrue(Schema::hasTable('employee_positions'));
@@ -326,6 +327,7 @@ class EmployeeStructureTest extends TestCase
         $this->assertTrue(Schema::hasColumn('employee_positions', 'unit_kerja'));
         $this->assertTrue(Schema::hasColumn('employee_positions', 'jabatan'));
         $this->assertTrue(Schema::hasColumn('employee_positions', 'jenis_kepegawaian'));
+        $this->assertTrue(Schema::hasColumn('employee_positions', 'no_sk'));
         $this->assertTrue(Schema::hasColumn('employee_positions', 'tmt_jabatan'));
         $this->assertTrue(Schema::hasColumn('employee_positions', 'tst_jabatan'));
 
@@ -421,6 +423,54 @@ class EmployeeStructureTest extends TestCase
             ->has('departments', 1)
             ->where('departments.0.name', 'Bidang Sarpras')
             ->where('departments.0.positions.0', 'Kepala Bidang')
+        );
+    }
+
+    public function test_staff_update_saves_and_returns_no_sk_in_records_and_positions(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $employee = Employee::create(['nama' => 'Zaid bin Haritsah', 'nik' => '3301010101018888']);
+
+        $response = $this->actingAs($admin)->put(route('staff.update', $employee), [
+            'nama' => 'Zaid bin Haritsah',
+            'nik' => '3301010101018888',
+            'riwayat_kepegawaian' => [
+                [
+                    'jenjang_kepegawaian' => 'GTY',
+                    'no_sk' => 'SK-JENJANG-2026/001',
+                    'tmt_kenaikan_jenjang' => '2026-01-01',
+                    'tst_kenaikan_jenjang' => null,
+                ],
+            ],
+            'riwayat_jabatan' => [
+                [
+                    'unit_kerja' => 'SDIT Ulil Albab',
+                    'jabatan' => 'Guru Kelas',
+                    'jenis_kepegawaian' => 'Tenaga Pendidik',
+                    'no_sk' => 'SK-JABATAN-2026/009',
+                    'tmt_jabatan' => '2026-01-01',
+                    'tst_jabatan' => null,
+                ],
+            ],
+        ]);
+
+        $response->assertRedirect();
+
+        $record = EmployeeRecord::where('employee_id', $employee->id)->first();
+        $this->assertNotNull($record);
+        $this->assertEquals('SK-JENJANG-2026/001', $record->no_sk);
+
+        $position = EmployeePosition::where('employee_id', $employee->id)->first();
+        $this->assertNotNull($position);
+        $this->assertEquals('SK-JABATAN-2026/009', $position->no_sk);
+
+        // Verify show page returns no_sk in props
+        $showResponse = $this->actingAs($admin)->get(route('staff.show', $employee));
+        $showResponse->assertOk();
+        $showResponse->assertInertia(fn ($page) => $page
+            ->component('StaffDetail')
+            ->where('employee.riwayat_kepegawaian.0.no_sk', 'SK-JENJANG-2026/001')
+            ->where('employee.riwayat_jabatan.0.no_sk', 'SK-JABATAN-2026/009')
         );
     }
 }

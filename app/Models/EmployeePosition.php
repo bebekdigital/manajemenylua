@@ -15,6 +15,7 @@ class EmployeePosition extends Model
         'unit_kerja',
         'jabatan',
         'jenis_kepegawaian',
+        'no_sk',
         'tmt_jabatan',
         'tst_jabatan',
     ];

@@ -212,6 +212,7 @@ class EmployeeController extends Controller
             'riwayat_kepegawaian' => $employee->records->map(fn ($r) => [
                 'id' => $r->id,
                 'jenjang_kepegawaian' => $r->jenjang_kepegawaian,
+                'no_sk' => $r->no_sk,
                 'tmt_kenaikan_jenjang' => $r->tmt_kenaikan_jenjang?->format('Y-m-d'),
                 'formatted_tmt_kenaikan_jenjang' => $r->tmt_kenaikan_jenjang?->translatedFormat('d F Y'),
                 'tst_kenaikan_jenjang' => $r->tst_kenaikan_jenjang?->format('Y-m-d'),
@@ -227,6 +228,7 @@ class EmployeeController extends Controller
                 'unit_kerja' => $p->unit_kerja,
                 'jabatan' => $p->jabatan,
                 'jenis_kepegawaian' => $p->jenis_kepegawaian,
+                'no_sk' => $p->no_sk,
                 'tmt_jabatan' => $p->tmt_jabatan?->format('Y-m-d'),
                 'formatted_tmt_jabatan' => $p->tmt_jabatan?->translatedFormat('d F Y'),
                 'tst_jabatan' => $p->tst_jabatan?->format('Y-m-d'),
@@ -410,6 +412,7 @@ class EmployeeController extends Controller
             'riwayat_kepegawaian' => ['nullable', 'array'],
             'riwayat_kepegawaian.*.id' => ['nullable'],
             'riwayat_kepegawaian.*.jenjang_kepegawaian' => ['nullable', 'string', 'max:50'],
+            'riwayat_kepegawaian.*.no_sk' => ['nullable', 'string', 'max:100'],
             'riwayat_kepegawaian.*.tmt_kenaikan_jenjang' => ['nullable', 'date'],
             'riwayat_kepegawaian.*.tst_kenaikan_jenjang' => ['nullable', 'date'],
             // Riwayat Jabatan array (opsional jika diedit multi-row)
@@ -418,6 +421,7 @@ class EmployeeController extends Controller
             'riwayat_jabatan.*.unit_kerja' => ['nullable', 'string', 'max:100'],
             'riwayat_jabatan.*.jabatan' => ['nullable', 'string', 'max:100'],
             'riwayat_jabatan.*.jenis_kepegawaian' => ['nullable', 'string', 'max:100'],
+            'riwayat_jabatan.*.no_sk' => ['nullable', 'string', 'max:100'],
             'riwayat_jabatan.*.tmt_jabatan' => ['nullable', 'date'],
             'riwayat_jabatan.*.tst_jabatan' => ['nullable', 'date'],
             // Riwayat Pendidikan array
@@ -453,6 +457,7 @@ class EmployeeController extends Controller
                             'unit_kerja' => $pos['unit_kerja'] ?? null,
                             'jabatan' => $pos['jabatan'] ?? null,
                             'jenis_kepegawaian' => $pos['jenis_kepegawaian'] ?? null,
+                            'no_sk' => $pos['no_sk'] ?? null,
                             'tmt_jabatan' => $pos['tmt_jabatan'] ?? null,
                             'tst_jabatan' => $pos['tst_jabatan'] ?? null,
                         ];
@@ -506,6 +511,7 @@ class EmployeeController extends Controller
                     if (! empty($rec['jenjang_kepegawaian']) || ! empty($rec['tmt_kenaikan_jenjang'])) {
                         $recordData = [
                             'jenjang_kepegawaian' => $rec['jenjang_kepegawaian'] ?? null,
+                            'no_sk' => $rec['no_sk'] ?? null,
                             'tmt_kenaikan_jenjang' => $rec['tmt_kenaikan_jenjang'] ?? null,
                             'tst_kenaikan_jenjang' => $rec['tst_kenaikan_jenjang'] ?? ($rec['tst_jenjang'] ?? null),
                         ];
