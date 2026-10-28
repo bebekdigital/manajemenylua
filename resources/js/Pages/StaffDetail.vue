@@ -792,16 +792,41 @@ function getJenjangColor(jenjang) {
     return map[jenjang] ?? 'bg-outline-variant/10 text-on-surface-variant';
 }
 
-function hitungMasaKerja(tmtDate) {
-    if (!tmtDate) return '-';
-    const start = new Date(tmtDate);
-    if (isNaN(start.getTime())) return '-';
-    const now = new Date();
-    if (start > now) return '0 Tahun';
+function parseDateOnly(dateVal) {
+    if (!dateVal) return null;
+    if (dateVal instanceof Date) return dateVal;
+    if (typeof dateVal === 'string') {
+        const str = dateVal.split('T')[0].trim();
+        const parts = str.split('-');
+        if (parts.length === 3) {
+            const y = parseInt(parts[0], 10);
+            const m = parseInt(parts[1], 10) - 1;
+            const d = parseInt(parts[2], 10);
+            if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
+                return new Date(y, m, d);
+            }
+        }
+    }
+    const d = new Date(dateVal);
+    return isNaN(d.getTime()) ? null : d;
+}
 
-    let years = now.getFullYear() - start.getFullYear();
-    let months = now.getMonth() - start.getMonth();
-    let days = now.getDate() - start.getDate();
+function hitungMasaKerja(tmtDate, tstDate = null) {
+    if (!tmtDate) return '-';
+    const start = parseDateOnly(tmtDate);
+    if (!start) return '-';
+
+    let end = tstDate ? parseDateOnly(tstDate) : null;
+    if (!end) {
+        const now = new Date();
+        end = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    }
+
+    if (start > end) return '0 Tahun';
+
+    let years = end.getFullYear() - start.getFullYear();
+    let months = end.getMonth() - start.getMonth();
+    let days = end.getDate() - start.getDate();
 
     if (days < 0) {
         months--;
@@ -2365,9 +2390,11 @@ function deleteDocument(doc) {
                                 <div>
                                     <label class="text-[10px] sm:text-xs font-semibold text-on-surface-variant uppercase tracking-wider block">Masa Kerja</label>
                                     <p class="text-sm sm:text-base font-bold text-primary mt-0.5">
-                                        {{ hitungMasaKerja(employee.tmt_pengangkatan) || employee.masa_kerja || '-' }}
+                                        {{ hitungMasaKerja(employee.tmt_pengangkatan, employee.tst_pengangkatan) || employee.masa_kerja || '-' }}
                                     </p>
-                                    <span class="text-[11px] text-outline mt-0.5 block">Dihitung otomatis sejak TMT Pengangkatan</span>
+                                    <span class="text-[11px] text-outline mt-0.5 block">
+                                        {{ employee.tst_pengangkatan ? 'Dihitung berdasarkan TST - TMT Pengangkatan' : 'Dihitung otomatis sejak TMT Pengangkatan hingga hari ini' }}
+                                    </span>
                                 </div>
                             </div>
 
@@ -2441,8 +2468,11 @@ function deleteDocument(doc) {
                                 <div>
                                     <label class="text-[10px] sm:text-xs font-semibold text-on-surface-variant uppercase tracking-wider block">Masa Kerja Otomatis</label>
                                     <p class="text-xs sm:text-sm font-bold text-primary mt-0.5">
-                                        {{ hitungMasaKerja(form.tmt_pengangkatan) }}
+                                        {{ hitungMasaKerja(form.tmt_pengangkatan, form.tst_pengangkatan) }}
                                     </p>
+                                    <span class="text-[10px] text-outline mt-0.5 block">
+                                        {{ form.tst_pengangkatan ? 'Dihitung: TST - TMT' : 'Dihitung: Hari ini - TMT' }}
+                                    </span>
                                 </div>
                                 <span class="material-symbols-outlined text-primary text-2xl opacity-40">update</span>
                             </div>

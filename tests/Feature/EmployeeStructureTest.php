@@ -32,17 +32,24 @@ class EmployeeStructureTest extends TestCase
             'gelar_belakang' => 'M.Pd.',
             'nik' => '3301010101010001',
             'tmt_pengangkatan' => Carbon::now()->subYears(5)->subMonths(3)->format('Y-m-d'),
-            'tst_pengangkatan' => Carbon::now()->addYears(5)->format('Y-m-d'),
+            'tst_pengangkatan' => null,
             'keaktifan_dapodik' => 'Aktif',
             'unit_keaktifan_dapodik' => 'SDIT Ulil Albab',
             'status_keaktifan' => 'Aktif',
         ]);
 
         $this->assertNotNull($employee->tmt_pengangkatan);
+        // TST null: calculated from now() - tmt_pengangkatan
         $this->assertEquals('5 Tahun 3 Bulan', $employee->masa_kerja);
         $this->assertEquals('Dr. Budi Santoso, M.Pd.', $employee->nama_lengkap_gelar);
         $this->assertEquals('Aktif', $employee->keaktifan_dapodik);
         $this->assertEquals('SDIT Ulil Albab', $employee->unit_keaktifan_dapodik);
+
+        // When TST is set: calculated from TST - TMT
+        $employee->update([
+            'tst_pengangkatan' => Carbon::parse($employee->tmt_pengangkatan)->addYears(2)->addMonths(4)->format('Y-m-d'),
+        ]);
+        $this->assertEquals('2 Tahun 4 Bulan', $employee->fresh()->masa_kerja);
 
         $record = EmployeeRecord::create([
             'employee_id' => $employee->id,

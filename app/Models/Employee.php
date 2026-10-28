@@ -73,7 +73,7 @@ class Employee extends Model
     }
 
     /**
-     * Get dynamic Masa Kerja calculated from tmt_pengangkatan.
+     * Get dynamic Masa Kerja calculated from tst_pengangkatan (or today) - tmt_pengangkatan.
      */
     public function getMasaKerjaAttribute(): ?string
     {
@@ -81,7 +81,14 @@ class Employee extends Model
             return null;
         }
 
-        $diff = Carbon::parse($this->tmt_pengangkatan)->diff(now());
+        $endDate = $this->tst_pengangkatan ? Carbon::parse($this->tst_pengangkatan) : now();
+        $startDate = Carbon::parse($this->tmt_pengangkatan);
+
+        if ($startDate->gt($endDate)) {
+            return '0 Tahun';
+        }
+
+        $diff = $startDate->diff($endDate);
         $parts = [];
         if ($diff->y > 0) {
             $parts[] = "{$diff->y} Tahun";
