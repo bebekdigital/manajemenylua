@@ -46,6 +46,10 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    organizationLevels: {
+        type: Array,
+        default: () => [],
+    },
     allSchoolPositions: {
         type: Array,
         default: () => [],
@@ -785,6 +789,7 @@ function formatDate(dateStr) {
             <OrgChartDiagram
                 :positions="organizationPositions"
                 :departments="departments"
+                :organization-levels="organizationLevels"
                 @add-position="handleAddPosition"
                 @edit-position="handleEditPosition"
                 @delete-position="confirmPositionDelete"

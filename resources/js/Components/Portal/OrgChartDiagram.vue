@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
+import { router } from '@inertiajs/vue3';
 import OrgPositionNode from './OrgPositionNode.vue';
 
 const props = defineProps({
@@ -8,6 +9,10 @@ const props = defineProps({
         default: () => [],
     },
     departments: {
+        type: Array,
+        default: () => [],
+    },
+    organizationLevels: {
         type: Array,
         default: () => [],
     },
@@ -36,7 +41,7 @@ const svgHeight = ref(800);
 const levelDefinitions = [
     {
         level: 1,
-        title: 'Level 1: Dewan Pembina & Pengawas Yayasan',
+        defaultName: 'Dewan Pembina & Pengawas Yayasan',
         subtitle: 'Pemegang otoritas tertinggi, arahan strategis, dan pengawasan yayasan',
         badgeClass: 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/30',
         rowHeaderBg: 'bg-emerald-500/[0.04]',
@@ -50,7 +55,7 @@ const levelDefinitions = [
     },
     {
         level: 2,
-        title: 'Level 2: Pengurus Harian & Direksi Yayasan',
+        defaultName: 'Pengurus Harian & Direksi Yayasan',
         subtitle: 'Pimpinan harian & direksi: Ketua Umum, Sekretaris, Bendahara, Direktur Eksekutif',
         badgeClass: 'bg-indigo-500/15 text-indigo-800 dark:text-indigo-300 border-indigo-500/30',
         rowHeaderBg: 'bg-indigo-500/[0.04]',
@@ -64,7 +69,7 @@ const levelDefinitions = [
     },
     {
         level: 3,
-        title: 'Level 3: Kepala Bidang Yayasan',
+        defaultName: 'Kepala Bidang Yayasan',
         subtitle: 'Pimpinan bidang fungsional: Pendidikan, SDM, Keuangan, Sarpras, Dakwah & Humas',
         badgeClass: 'bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-500/30',
         rowHeaderBg: 'bg-amber-500/[0.04]',
@@ -78,7 +83,7 @@ const levelDefinitions = [
     },
     {
         level: 4,
-        title: 'Level 4: Koordinator & Kepala Bagian / Unit',
+        defaultName: 'Koordinator & Kepala Bagian / Unit',
         subtitle: 'Koordinator operasional program kerja, pengawas sekolah, dan penjamin teknis',
         badgeClass: 'bg-cyan-500/15 text-cyan-800 dark:text-cyan-300 border-cyan-500/30',
         rowHeaderBg: 'bg-cyan-500/[0.04]',
@@ -92,7 +97,7 @@ const levelDefinitions = [
     },
     {
         level: 5,
-        title: 'Level 5: Staf Pelaksana & Tim Teknis',
+        defaultName: 'Staf Pelaksana & Tim Teknis',
         subtitle: 'Staf pelaksana administrasi, logistik, pengadaan, dan teknis operasional harian',
         badgeClass: 'bg-slate-500/15 text-slate-800 dark:text-slate-300 border-slate-500/30',
         rowHeaderBg: 'bg-slate-500/[0.04]',
@@ -105,6 +110,86 @@ const levelDefinitions = [
         icon: 'group',
     },
 ];
+
+// Custom Level Names & Subtitles
+const customLevels = ref({});
+const showLevelEditModal = ref(false);
+const editingLevel = ref(null);
+const levelForm = ref({ name: '', subtitle: '', processing: false });
+
+function initCustomLevels() {
+    const map = {};
+    levelDefinitions.forEach(d => {
+        map[d.level] = {
+            name: d.defaultName,
+            subtitle: d.subtitle,
+        };
+    });
+
+    if (props.organizationLevels && props.organizationLevels.length > 0) {
+        props.organizationLevels.forEach(ol => {
+            if (ol.level) {
+                map[ol.level] = {
+                    name: ol.name || map[ol.level]?.name || '',
+                    subtitle: ol.subtitle !== undefined && ol.subtitle !== null ? ol.subtitle : (map[ol.level]?.subtitle || ''),
+                };
+            }
+        });
+    }
+
+    customLevels.value = map;
+}
+
+watch(() => props.organizationLevels, initCustomLevels, { immediate: true, deep: true });
+
+function getLevelName(level) {
+    return customLevels.value[level]?.name || levelDefinitions.find(d => d.level === level)?.defaultName || `Level ${level}`;
+}
+
+function getLevelSubtitle(level) {
+    return customLevels.value[level]?.subtitle !== undefined
+        ? customLevels.value[level].subtitle
+        : (levelDefinitions.find(d => d.level === level)?.subtitle || '');
+}
+
+function openEditLevelModal(level) {
+    editingLevel.value = level;
+    levelForm.value = {
+        name: getLevelName(level),
+        subtitle: getLevelSubtitle(level),
+        processing: false,
+    };
+    showLevelEditModal.value = true;
+}
+
+function saveLevelEdit() {
+    if (!levelForm.value.name.trim()) return;
+    levelForm.value.processing = true;
+
+    const level = editingLevel.value;
+    const newName = levelForm.value.name.trim();
+    const newSubtitle = levelForm.value.subtitle ? levelForm.value.subtitle.trim() : '';
+
+    // Optimistic update
+    customLevels.value[level] = {
+        name: newName,
+        subtitle: newSubtitle,
+    };
+
+    router.put(`/portal/organization-levels/${level}`, {
+        name: newName,
+        subtitle: newSubtitle,
+    }, {
+        preserveScroll: true,
+        onSuccess: () => {
+            showLevelEditModal.value = false;
+            levelForm.value.processing = false;
+        },
+        onError: () => {
+            levelForm.value.processing = false;
+        },
+    });
+}
 
 // Map lookup by ID
 const positionsMap = computed(() => {
@@ -438,14 +523,9 @@ function handleDelete(pos) {
                             <span class="material-symbols-outlined text-2xl">account_tree</span>
                         </div>
                         <div>
-                            <div class="flex items-center gap-2.5 flex-wrap">
-                                <h3 class="text-lg sm:text-xl font-bold text-on-surface">Diagram Susunan Organisasi</h3>
-                                <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary/10 text-primary border border-primary/20">
-                                    5 Baris Level Menyatu
-                                </span>
-                            </div>
+                            <h3 class="text-lg sm:text-xl font-bold text-on-surface">Diagram Susunan Organisasi</h3>
                             <p class="text-xs sm:text-sm text-on-surface-variant mt-0.5">
-                                Struktur hierarki organisasi 5 level dengan garis penghubung langsung antara atasan dan bawahan
+                                Struktur hierarki organisasi dengan garis penghubung langsung antara atasan dan bawahan
                             </p>
                         </div>
                     </div>
@@ -605,19 +685,30 @@ function handleDelete(pos) {
                                         <span class="material-symbols-outlined text-xl">{{ def.icon }}</span>
                                     </div>
                                     <div class="min-w-0 flex-1">
-                                        <div class="flex items-center gap-1.5 flex-wrap">
-                                            <span :class="['text-[10px] font-bold px-2 py-0.5 rounded-full border shadow-2xs', def.badgeClass]">
-                                                Level {{ def.level }}
-                                            </span>
-                                            <span class="text-[11px] font-semibold text-on-surface-variant">
-                                                {{ positionsByLevel[def.level]?.length || 0 }} Jabatan
-                                            </span>
+                                        <div class="flex items-center justify-between gap-1">
+                                            <div class="flex items-center gap-1.5 flex-wrap">
+                                                <span :class="['text-[10px] font-bold px-2 py-0.5 rounded-full border shadow-2xs', def.badgeClass]">
+                                                    Level {{ def.level }}
+                                                </span>
+                                                <span class="text-[11px] font-semibold text-on-surface-variant">
+                                                    {{ positionsByLevel[def.level]?.length || 0 }} Jabatan
+                                                </span>
+                                            </div>
+                                            <!-- Tombol Edit Nama Level -->
+                                            <button
+                                                type="button"
+                                                @click="openEditLevelModal(def.level)"
+                                                class="p-1 rounded-md text-on-surface-variant hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer shrink-0"
+                                                :title="`Edit Nama Level ${def.level}`"
+                                            >
+                                                <span class="material-symbols-outlined text-[15px]">edit</span>
+                                            </button>
                                         </div>
-                                        <h4 class="text-xs sm:text-sm font-bold text-on-surface mt-1 leading-snug">
-                                            {{ def.title.replace(`Level ${def.level}: `, '') }}
+                                        <h4 class="text-xs sm:text-sm font-bold text-on-surface mt-1.5 leading-snug">
+                                            {{ getLevelName(def.level) }}
                                         </h4>
-                                        <p class="text-[11px] text-on-surface-variant/80 mt-1 leading-relaxed">
-                                            {{ def.subtitle }}
+                                        <p v-if="getLevelSubtitle(def.level)" class="text-[11px] text-on-surface-variant/80 mt-1 leading-relaxed">
+                                            {{ getLevelSubtitle(def.level) }}
                                         </p>
 
                                         <!-- Tombol Tambah di Level Ini -->
@@ -775,5 +866,83 @@ function handleDelete(pos) {
                 </div>
             </div>
         </div>
+
+        <!-- Pop-up Modal Edit Nama Level -->
+        <Teleport to="body">
+            <div
+                v-if="showLevelEditModal"
+                class="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4"
+                @click.self="showLevelEditModal = false"
+            >
+                <div class="bg-surface-container-lowest rounded-2xl shadow-2xl w-full max-w-md border border-outline-variant/30 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+                    <!-- Header -->
+                    <div class="flex items-center justify-between px-6 py-4.5 border-b border-outline-variant/30 bg-surface-container-low/40">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-xs">
+                                <span class="material-symbols-outlined text-xl">edit_note</span>
+                            </div>
+                            <div>
+                                <h3 class="text-base font-bold text-on-surface">Edit Nama Level {{ editingLevel }}</h3>
+                                <p class="text-xs text-on-surface-variant">Ubah judul tingkatan pada kolom 1 tabel</p>
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            @click="showLevelEditModal = false"
+                            class="p-2 rounded-full text-on-surface-variant hover:bg-surface-variant transition-colors cursor-pointer"
+                        >
+                            <span class="material-symbols-outlined text-xl">close</span>
+                        </button>
+                    </div>
+
+                    <!-- Form -->
+                    <form @submit.prevent="saveLevelEdit" class="p-6 space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
+                                Nama / Judul Tingkat Level <span class="text-error">*</span>
+                            </label>
+                            <input
+                                v-model="levelForm.name"
+                                type="text"
+                                required
+                                class="w-full px-4 py-2.5 bg-surface-container-low border border-outline-variant/60 rounded-xl text-sm text-on-surface font-semibold focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                                placeholder="Contoh: Dewan Pembina & Pengawas Yayasan"
+                            />
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
+                                Keterangan / Subtitle (Opsional)
+                            </label>
+                            <textarea
+                                v-model="levelForm.subtitle"
+                                rows="2"
+                                class="w-full px-4 py-2 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all resize-none"
+                                placeholder="Deskripsi singkat wewenang atau tanggung jawab tingkatan ini"
+                            ></textarea>
+                        </div>
+
+                        <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-outline-variant/30">
+                            <button
+                                type="button"
+                                @click="showLevelEditModal = false"
+                                class="px-4 py-2 rounded-xl text-xs font-semibold text-on-surface-variant hover:bg-surface-container-high border border-outline-variant/50 transition-colors cursor-pointer"
+                            >
+                                Batal
+                            </button>
+                            <button
+                                type="submit"
+                                :disabled="levelForm.processing"
+                                class="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl bg-primary hover:bg-primary-container text-on-primary font-bold text-xs transition-all shadow-xs cursor-pointer disabled:opacity-60"
+                            >
+                                <span v-if="levelForm.processing" class="material-symbols-outlined text-[15px] animate-spin">sync</span>
+                                <span v-else class="material-symbols-outlined text-[15px]">check</span>
+                                <span>{{ levelForm.processing ? 'Menyimpan...' : 'Simpan Nama' }}</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </Teleport>
     </div>
 </template>

@@ -6,6 +6,7 @@ use App\Models\AcademicYear;
 use App\Models\Department;
 use App\Models\DepartmentPosition;
 use App\Models\Employee;
+use App\Models\OrganizationLevel;
 use App\Models\RolePermission;
 use App\Models\SchoolLevel;
 use App\Models\SchoolPosition;
@@ -73,6 +74,10 @@ class PortalController extends Controller
                     'parent_name' => $p->parent?->name,
                     'children_count' => $p->children_count,
                 ])
+            : collect([]);
+
+        $organizationLevels = Schema::hasTable('organization_levels')
+            ? OrganizationLevel::orderBy('level')->get()
             : collect([]);
 
         $allSchoolPositions = Schema::hasTable('school_positions')
@@ -146,6 +151,7 @@ class PortalController extends Controller
             'departments' => $departments,
             'allSchoolPositions' => $allSchoolPositions,
             'organizationPositions' => $organizationPositions,
+            'organizationLevels' => $organizationLevels,
             'availableRoles' => $availableRoles,
             'schoolRoles' => $schoolRoles,
             'deptRoles' => $deptRoles,

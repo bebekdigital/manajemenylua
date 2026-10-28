@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Department;
+use App\Models\OrganizationLevel;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 
 class DepartmentController extends Controller
 {
@@ -56,5 +58,28 @@ class DepartmentController extends Controller
         $department->delete();
 
         return back()->with('success', 'Bidang berhasil dihapus.');
+    }
+
+    /**
+     * Update custom organization level name and subtitle.
+     */
+    public function updateOrganizationLevel(Request $request, int $level): RedirectResponse
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'subtitle' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        if (Schema::hasTable('organization_levels')) {
+            OrganizationLevel::updateOrCreate(
+                ['level' => $level],
+                [
+                    'name' => $validated['name'],
+                    'subtitle' => $validated['subtitle'] ?? null,
+                ]
+            );
+        }
+
+        return back()->with('success', "Nama Level {$level} berhasil diperbarui.");
     }
 }

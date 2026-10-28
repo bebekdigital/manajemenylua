@@ -219,4 +219,5 @@ Route::middleware('auth')->group(function () {
     Route::post('/portal/departments/{department}/positions', [DepartmentPositionController::class, 'store'])->name('portal.department-positions.store');
     Route::put('/portal/department-positions/{departmentPosition}', [DepartmentPositionController::class, 'update'])->name('portal.department-positions.update');
     Route::delete('/portal/department-positions/{departmentPosition}', [DepartmentPositionController::class, 'destroy'])->name('portal.department-positions.destroy');
+    Route::put('/portal/organization-levels/{level}', [DepartmentController::class, 'updateOrganizationLevel'])->name('portal.organization-levels.update');
 });

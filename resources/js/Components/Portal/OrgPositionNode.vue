@@ -62,46 +62,31 @@ const hasSubordinates = computed(() => {
             <div
                 v-if="pos.parent_id"
                 class="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-primary border-2 border-white shadow-xs z-20"
-                title="Titik hubung vertikal ke atasan langsung"
+                title="Titik hubung ke atasan langsung"
             ></div>
 
             <!-- TITIK ANCHOR KONEKTOR BAWAH (TITIK HUBUNG KE BAWAHAN) -->
             <div
                 v-if="hasSubordinates"
                 class="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-primary border-2 border-white shadow-xs z-20"
-                title="Titik hubung vertikal ke bawahan langsung"
+                title="Titik hubung ke bawahan langsung"
             ></div>
 
             <div>
-                <!-- Header Kartu: Badge Level & Bidang Kerja -->
-                <div class="flex items-center justify-between gap-1.5 mb-2 flex-wrap">
-                    <div class="flex items-center gap-1">
-                        <span :class="['text-[9px] font-bold px-1.5 py-0.5 rounded border', levelDef.badgeClass]">
-                            L{{ pos.level }}
-                        </span>
-                        <span
-                            v-if="pos.department_name"
-                            class="text-[10px] font-semibold px-2 py-0.5 rounded bg-surface-container-high text-on-surface-variant border border-outline-variant/40 truncate max-w-[140px]"
-                            :title="pos.department_name"
-                        >
-                            {{ pos.department_name }}
-                        </span>
-                        <span
-                            v-else
-                            class="text-[10px] font-semibold px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20"
-                        >
-                            Yayasan
-                        </span>
-                    </div>
-
-                    <!-- Subordinate Counter Badge -->
+                <!-- Header Kartu: Hanya Bidang Kerja Yayasan -->
+                <div class="flex items-center justify-between gap-1.5 mb-2.5">
                     <span
-                        v-if="hasSubordinates"
-                        class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 flex items-center gap-1 shrink-0"
-                        title="Memiliki bawahan langsung"
+                        v-if="pos.department_name"
+                        class="text-[10px] font-semibold px-2 py-0.5 rounded bg-surface-container-high text-on-surface-variant border border-outline-variant/40 truncate max-w-[200px]"
+                        :title="pos.department_name"
                     >
-                        <span class="material-symbols-outlined text-[12px]">account_tree</span>
-                        <span>{{ pos.subordinates?.length || intraChildren.length }}</span>
+                        {{ pos.department_name }}
+                    </span>
+                    <span
+                        v-else
+                        class="text-[10px] font-semibold px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20"
+                    >
+                        Yayasan
                     </span>
                 </div>
 
@@ -109,57 +94,10 @@ const hasSubordinates = computed(() => {
                 <h5 class="text-sm font-bold text-on-surface group-hover:text-primary transition-colors leading-snug">
                     {{ pos.name }}
                 </h5>
-
-                <!-- Atasan Langsung Info -->
-                <div
-                    v-if="pos.parent_name"
-                    class="mt-2 flex items-center gap-1.5 text-[11px] text-on-surface-variant bg-surface-container-low px-2 py-1 rounded-lg border border-outline-variant/30"
-                >
-                    <span class="material-symbols-outlined text-[13px] text-primary shrink-0">arrow_upward</span>
-                    <span class="truncate">
-                        <span class="font-medium text-outline">Atasan:</span> 
-                        <span class="font-bold text-on-surface ml-1">{{ pos.parent_name }}</span>
-                    </span>
-                    <span
-                        v-if="pos.parent_level === pos.level"
-                        class="ml-auto text-[9px] font-bold px-1.5 py-0.2 rounded bg-primary/15 text-primary border border-primary/20 shrink-0"
-                    >
-                        Level Sama
-                    </span>
-                    <span
-                        v-else-if="pos.parent_level"
-                        class="ml-auto text-[9px] font-semibold text-outline shrink-0"
-                    >
-                        L{{ pos.parent_level }}
-                    </span>
-                </div>
-
-                <!-- Bawahan Langsung Info (Chips) -->
-                <div v-if="pos.subordinates && pos.subordinates.length > 0" class="mt-2.5">
-                    <p class="text-[10px] font-semibold text-outline uppercase tracking-wider mb-1 flex items-center gap-1">
-                        <span class="material-symbols-outlined text-[12px]">subdirectory_arrow_right</span>
-                        Bawahan Langsung:
-                    </p>
-                    <div class="flex flex-wrap gap-1">
-                        <span
-                            v-for="(subName, sIdx) in pos.subordinates.slice(0, 3)"
-                            :key="sIdx"
-                            class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-surface-container-low text-on-surface-variant border border-outline-variant/30 truncate max-w-[180px]"
-                        >
-                            {{ subName }}
-                        </span>
-                        <span
-                            v-if="pos.subordinates.length > 3"
-                            class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-surface-container-high text-outline"
-                        >
-                            +{{ pos.subordinates.length - 3 }} lainnya
-                        </span>
-                    </div>
-                </div>
             </div>
 
             <!-- Footer Action Buttons -->
-            <div class="mt-3.5 pt-3 border-t border-outline-variant/40 flex items-center justify-between gap-1 flex-wrap">
+            <div class="mt-4 pt-3 border-t border-outline-variant/40 flex items-center justify-between gap-1 flex-wrap">
                 <div class="flex items-center gap-1 flex-wrap">
                     <!-- + Bawahan di Level yang Sama (Tampil di Bawah Kartu Ini) -->
                     <button
@@ -221,17 +159,7 @@ const hasSubordinates = computed(() => {
         </div>
 
         <!-- BAWAHAN DI LEVEL YANG SAMA (TAMPIL DI BAWAH KARTU ATASANNYA) -->
-        <div v-if="intraChildren.length > 0" class="flex flex-col items-center mt-5 w-full">
-            <!-- Indikator Jalur Penurunan Hierarki Internal Level -->
-            <div class="flex flex-col items-center mb-2">
-                <div class="h-3 w-0.5 bg-primary/40"></div>
-                <div class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-surface-container text-on-surface-variant text-[9px] font-bold border border-outline-variant/40 shadow-2xs">
-                    <span class="material-symbols-outlined text-[11px] text-primary">south</span>
-                    <span>Bawahan Langsung Level {{ pos.level }}</span>
-                </div>
-                <div class="h-2 w-0.5 bg-primary/40"></div>
-            </div>
-
+        <div v-if="intraChildren.length > 0" class="flex flex-col items-center mt-7 w-full">
             <!-- Baris Kartu Bawahan di Level yang Sama -->
             <div class="flex items-start gap-6 justify-center flex-wrap">
                 <OrgPositionNode

@@ -209,4 +209,19 @@ class DepartmentTest extends TestCase
             'parent_id' => $grandparent->id,
         ]);
     }
+
+    public function test_can_update_organization_level_name_and_subtitle(): void
+    {
+        $response = $this->actingAs($this->user)->put('/portal/organization-levels/1', [
+            'name' => 'Majelis Pembina Yayasan',
+            'subtitle' => 'Pemegang mandat tertinggi dan pengawas yayasan',
+        ]);
+
+        $response->assertRedirect();
+        $this->assertDatabaseHas('organization_levels', [
+            'level' => 1,
+            'name' => 'Majelis Pembina Yayasan',
+            'subtitle' => 'Pemegang mandat tertinggi dan pengawas yayasan',
+        ]);
+    }
 }
