@@ -10,7 +10,6 @@ use App\Models\SchoolProgram;
 use App\Models\SchoolUnit;
 use App\Models\Student;
 use App\Models\StudentAcademicRecord;
-use App\Models\StudentFamily;
 use App\Services\StudentImportService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
@@ -70,7 +69,6 @@ class StudentController extends Controller
     public function index(Request $request): Response
     {
         $students = Student::with([
-            'family',
             'siblings',
             'currentRecord.classroom',
         ])
@@ -78,7 +76,6 @@ class StudentController extends Controller
             ->orderBy('nama')
             ->get()
             ->map(function (Student $student) {
-                $family = $student->family;
                 $record = $student->currentRecord;
 
                 return [
@@ -111,39 +108,39 @@ class StudentController extends Controller
                     'kabupaten' => $student->kabupaten,
                     'provinsi' => $student->provinsi,
                     'ayah' => [
-                        'nama' => $family?->ayah_nama ?? $student->attributes['ayah_nama'] ?? null,
-                        'tahun_lahir' => $family?->ayah_tahun_lahir ?? $student->attributes['ayah_tahun_lahir'] ?? null,
-                        'pekerjaan' => $family?->ayah_pekerjaan ?? $student->attributes['ayah_pekerjaan'] ?? null,
-                        'penghasilan' => $family?->ayah_penghasilan ?? $student->attributes['ayah_penghasilan'] ?? null,
-                        'status' => $family?->ayah_status ?? $student->attributes['ayah_status'] ?? 'Hidup',
+                        'nama' => $student->ayah_nama,
+                        'tahun_lahir' => $student->ayah_tahun_lahir,
+                        'pekerjaan' => $student->ayah_pekerjaan,
+                        'penghasilan' => $student->ayah_penghasilan,
+                        'status' => $student->ayah_status ?? 'Hidup',
                     ],
                     'ibu' => [
-                        'nama' => $family?->ibu_nama ?? $student->attributes['ibu_nama'] ?? null,
-                        'tahun_lahir' => $family?->ibu_tahun_lahir ?? $student->attributes['ibu_tahun_lahir'] ?? null,
-                        'pekerjaan' => $family?->ibu_pekerjaan ?? $student->attributes['ibu_pekerjaan'] ?? null,
-                        'penghasilan' => $family?->ibu_penghasilan ?? $student->attributes['ibu_penghasilan'] ?? null,
-                        'status' => $family?->ibu_status ?? $student->attributes['ibu_status'] ?? 'Hidup',
+                        'nama' => $student->ibu_nama,
+                        'tahun_lahir' => $student->ibu_tahun_lahir,
+                        'pekerjaan' => $student->ibu_pekerjaan,
+                        'penghasilan' => $student->ibu_penghasilan,
+                        'status' => $student->ibu_status ?? 'Hidup',
                     ],
                     'bisnis' => [
-                        'has_bisnis' => $family?->has_bisnis ?? $student->attributes['has_bisnis'] ?? false,
-                        'jenis_bisnis' => $family?->jenis_bisnis ?? $student->attributes['jenis_bisnis'] ?? null,
+                        'has_bisnis' => $student->has_bisnis ?? false,
+                        'jenis_bisnis' => $student->jenis_bisnis,
                     ],
                     'wali' => [
-                        'nama' => $family?->wali_nama ?? $student->attributes['wali_nama'] ?? null,
-                        'hubungan' => $family?->wali_hubungan ?? $student->attributes['wali_hubungan'] ?? null,
-                        'pekerjaan' => $family?->wali_pekerjaan ?? $student->attributes['wali_pekerjaan'] ?? null,
-                        'penghasilan' => $family?->wali_penghasilan ?? $student->attributes['wali_penghasilan'] ?? null,
+                        'nama' => $student->wali_nama,
+                        'hubungan' => $student->wali_hubungan,
+                        'pekerjaan' => $student->wali_pekerjaan,
+                        'penghasilan' => $student->wali_penghasilan,
                     ],
                     'saudara' => $student->siblings->map(fn ($s) => [
                         'nama' => $s->nama,
                         'tanggal_lahir' => $s->tanggal_lahir?->format('Y-m-d'),
                     ])->toArray(),
                     'bantuan' => [
-                        'desil' => $record?->desil ?? $student->attributes['desil'] ?? null,
-                        'pip' => (bool) ($record?->status_pip ?? $student->attributes['status_pip'] ?? false),
-                        'pip_keterangan' => $record?->pip_keterangan ?? $student->attributes['pip_keterangan'] ?? null,
-                        'kip' => (bool) ($record?->status_kip ?? $student->attributes['status_kip'] ?? false),
-                        'no_kip' => $record?->no_kip ?? $student->attributes['no_kip'] ?? null,
+                        'desil' => $student->desil ?? $record?->desil,
+                        'pip' => (bool) ($student->status_pip ?? $record?->status_pip ?? false),
+                        'pip_keterangan' => $student->pip_keterangan ?? $record?->pip_keterangan,
+                        'kip' => (bool) ($student->status_kip ?? $record?->status_kip ?? false),
+                        'no_kip' => $student->no_kip ?? $record?->no_kip,
                     ],
                 ];
             });
@@ -161,11 +158,9 @@ class StudentController extends Controller
         $studentModel = Student::with([
             'academicRecords.classroom',
             'academicRecords.academicYear',
-            'family',
             'siblings',
         ])->where('nisn', $nisn)->firstOrFail();
 
-        $family = $studentModel->family;
         $activeYear = AcademicYear::current();
         $currentRecord = $studentModel->academicRecords->firstWhere('academic_year_id', $activeYear?->id)
             ?? $studentModel->academicRecords->sortByDesc('academic_year_id')->first();
@@ -182,7 +177,7 @@ class StudentController extends Controller
             'unit' => $studentModel->unit,
             'program' => $studentModel->program ?? $currentRecord?->program,
             'photo_url' => $studentModel->photo_url,
-            'jenjang' => $currentRecord?->classroom?->jenjang ?? $studentModel->diterima_di_jenjang,
+            'jenjang' => $currentRecord?->classroom?->jenjang ?? $studentModel->jenjang ?? $studentModel->diterima_di_jenjang,
             'tingkat' => $currentRecord?->tingkat,
             'kelas' => $currentRecord?->classroom?->name,
             'student_status' => $currentRecord?->student_status ?? 'aktif',
@@ -211,31 +206,31 @@ class StudentController extends Controller
             'jarak_rumah' => $studentModel->jarak_rumah,
             'kebutuhan_khusus' => $studentModel->kebutuhan_khusus,
             'ayah' => [
-                'nama' => $family?->ayah_nama ?? $studentModel->attributes['ayah_nama'] ?? null,
-                'tahun_lahir' => $family?->ayah_tahun_lahir ?? $studentModel->attributes['ayah_tahun_lahir'] ?? null,
-                'pekerjaan' => $family?->ayah_pekerjaan ?? $studentModel->attributes['ayah_pekerjaan'] ?? null,
-                'penghasilan' => $family?->ayah_penghasilan ?? $studentModel->attributes['ayah_penghasilan'] ?? null,
-                'nik' => $family?->ayah_nik ?? $studentModel->attributes['ayah_nik'] ?? null,
-                'status' => $family?->ayah_status ?? $studentModel->attributes['ayah_status'] ?? 'Hidup',
+                'nama' => $studentModel->ayah_nama,
+                'tahun_lahir' => $studentModel->ayah_tahun_lahir,
+                'pekerjaan' => $studentModel->ayah_pekerjaan,
+                'penghasilan' => $studentModel->ayah_penghasilan,
+                'nik' => $studentModel->ayah_nik,
+                'status' => $studentModel->ayah_status ?? 'Hidup',
             ],
             'ibu' => [
-                'nama' => $family?->ibu_nama ?? $studentModel->attributes['ibu_nama'] ?? null,
-                'tahun_lahir' => $family?->ibu_tahun_lahir ?? $studentModel->attributes['ibu_tahun_lahir'] ?? null,
-                'pekerjaan' => $family?->ibu_pekerjaan ?? $studentModel->attributes['ibu_pekerjaan'] ?? null,
-                'penghasilan' => $family?->ibu_penghasilan ?? $studentModel->attributes['ibu_penghasilan'] ?? null,
-                'nik' => $family?->ibu_nik ?? $studentModel->attributes['ibu_nik'] ?? null,
-                'status' => $family?->ibu_status ?? $studentModel->attributes['ibu_status'] ?? 'Hidup',
+                'nama' => $studentModel->ibu_nama,
+                'tahun_lahir' => $studentModel->ibu_tahun_lahir,
+                'pekerjaan' => $studentModel->ibu_pekerjaan,
+                'penghasilan' => $studentModel->ibu_penghasilan,
+                'nik' => $studentModel->ibu_nik,
+                'status' => $studentModel->ibu_status ?? 'Hidup',
             ],
             'bisnis' => [
-                'has_bisnis' => $family?->has_bisnis ?? $studentModel->attributes['has_bisnis'] ?? false,
-                'jenis_bisnis' => $family?->jenis_bisnis ?? $studentModel->attributes['jenis_bisnis'] ?? null,
+                'has_bisnis' => $studentModel->has_bisnis ?? false,
+                'jenis_bisnis' => $studentModel->jenis_bisnis,
             ],
             'wali' => [
-                'nama' => $family?->wali_nama ?? $studentModel->attributes['wali_nama'] ?? null,
-                'hubungan' => $family?->wali_hubungan ?? $studentModel->attributes['wali_hubungan'] ?? null,
-                'pekerjaan' => $family?->wali_pekerjaan ?? $studentModel->attributes['wali_pekerjaan'] ?? null,
-                'penghasilan' => $family?->wali_penghasilan ?? $studentModel->attributes['wali_penghasilan'] ?? null,
-                'nik' => $family?->wali_nik ?? $studentModel->attributes['wali_nik'] ?? null,
+                'nama' => $studentModel->wali_nama,
+                'hubungan' => $studentModel->wali_hubungan,
+                'pekerjaan' => $studentModel->wali_pekerjaan,
+                'penghasilan' => $studentModel->wali_penghasilan,
+                'nik' => $studentModel->wali_nik,
             ],
             'saudara' => $studentModel->siblings->map(fn ($s) => [
                 'nama' => $s->nama,
@@ -257,12 +252,12 @@ class StudentController extends Controller
             'info_psb' => $studentModel->info_psb,
             'status_registrasi' => $studentModel->status_registrasi,
             'bantuan' => [
-                'desil' => $currentRecord?->desil ?? $studentModel->attributes['desil'] ?? null,
-                'pip' => (bool) ($currentRecord?->status_pip ?? $studentModel->attributes['status_pip'] ?? false),
-                'pip_keterangan' => $currentRecord?->pip_keterangan ?? $studentModel->attributes['pip_keterangan'] ?? null,
-                'kip' => (bool) ($currentRecord?->status_kip ?? $studentModel->attributes['status_kip'] ?? false),
-                'no_kip' => $currentRecord?->no_kip ?? $studentModel->attributes['no_kip'] ?? null,
-                'nama_di_kip' => $studentModel->attributes['nama_di_kip'] ?? null,
+                'desil' => $studentModel->desil ?? $currentRecord?->desil,
+                'pip' => (bool) ($studentModel->status_pip ?? $currentRecord?->status_pip ?? false),
+                'pip_keterangan' => $studentModel->pip_keterangan ?? $currentRecord?->pip_keterangan,
+                'kip' => (bool) ($studentModel->status_kip ?? $currentRecord?->status_kip ?? false),
+                'no_kip' => $studentModel->no_kip ?? $currentRecord?->no_kip,
+                'nama_di_kip' => $studentModel->nama_di_kip,
             ],
         ];
 
@@ -279,7 +274,6 @@ class StudentController extends Controller
         $selectedYearId = session('selected_academic_year_id') ?? AcademicYear::current()?->id;
 
         $students = Student::with([
-            'family',
             'siblings',
             'academicRecords' => function ($query) use ($selectedYearId) {
                 if ($selectedYearId) {
@@ -292,7 +286,6 @@ class StudentController extends Controller
             ->orderBy('nama')
             ->get()
             ->map(function (Student $student) {
-                $family = $student->family;
                 $record = $student->academicRecords->first();
 
                 return [
@@ -330,30 +323,30 @@ class StudentController extends Controller
                     'kabupaten' => $student->kabupaten,
                     'provinsi' => $student->provinsi,
                     // Keluarga - Ayah
-                    'ayah_nama' => $family?->ayah_nama ?? $student->attributes['ayah_nama'] ?? null,
-                    'ayah_tahun_lahir' => $family?->ayah_tahun_lahir ?? $student->attributes['ayah_tahun_lahir'] ?? null,
-                    'ayah_pendidikan' => $family?->ayah_pendidikan ?? $student->attributes['ayah_pendidikan'] ?? null,
-                    'ayah_pekerjaan' => $family?->ayah_pekerjaan ?? $student->attributes['ayah_pekerjaan'] ?? null,
-                    'ayah_penghasilan' => $family?->ayah_penghasilan ?? $student->attributes['ayah_penghasilan'] ?? null,
-                    'ayah_status' => $family?->ayah_status ?? $student->attributes['ayah_status'] ?? 'Hidup',
+                    'ayah_nama' => $student->ayah_nama,
+                    'ayah_tahun_lahir' => $student->ayah_tahun_lahir,
+                    'ayah_pendidikan' => $student->ayah_pendidikan,
+                    'ayah_pekerjaan' => $student->ayah_pekerjaan,
+                    'ayah_penghasilan' => $student->ayah_penghasilan,
+                    'ayah_status' => $student->ayah_status ?? 'Hidup',
                     // Keluarga - Ibu
-                    'ibu_nama' => $family?->ibu_nama ?? $student->attributes['ibu_nama'] ?? null,
-                    'ibu_tahun_lahir' => $family?->ibu_tahun_lahir ?? $student->attributes['ibu_tahun_lahir'] ?? null,
-                    'ibu_pendidikan' => $family?->ibu_pendidikan ?? $student->attributes['ibu_pendidikan'] ?? null,
-                    'ibu_pekerjaan' => $family?->ibu_pekerjaan ?? $student->attributes['ibu_pekerjaan'] ?? null,
-                    'ibu_penghasilan' => $family?->ibu_penghasilan ?? $student->attributes['ibu_penghasilan'] ?? null,
-                    'ibu_status' => $family?->ibu_status ?? $student->attributes['ibu_status'] ?? 'Hidup',
+                    'ibu_nama' => $student->ibu_nama,
+                    'ibu_tahun_lahir' => $student->ibu_tahun_lahir,
+                    'ibu_pendidikan' => $student->ibu_pendidikan,
+                    'ibu_pekerjaan' => $student->ibu_pekerjaan,
+                    'ibu_penghasilan' => $student->ibu_penghasilan,
+                    'ibu_status' => $student->ibu_status ?? 'Hidup',
                     // Keluarga - Wali
-                    'wali_nama' => $family?->wali_nama ?? $student->attributes['wali_nama'] ?? null,
-                    'wali_hubungan' => $family?->wali_hubungan ?? $student->attributes['wali_hubungan'] ?? null,
-                    'wali_pekerjaan' => $family?->wali_pekerjaan ?? $student->attributes['wali_pekerjaan'] ?? null,
-                    'wali_penghasilan' => $family?->wali_penghasilan ?? $student->attributes['wali_penghasilan'] ?? null,
+                    'wali_nama' => $student->wali_nama,
+                    'wali_hubungan' => $student->wali_hubungan,
+                    'wali_pekerjaan' => $student->wali_pekerjaan,
+                    'wali_penghasilan' => $student->wali_penghasilan,
                     // Bantuan
-                    'desil' => $record?->desil ?? $student->attributes['desil'] ?? null,
-                    'status_pip' => (bool) ($record?->status_pip ?? $student->attributes['status_pip'] ?? false),
-                    'pip_keterangan' => $record?->pip_keterangan ?? $student->attributes['pip_keterangan'] ?? null,
-                    'status_kip' => (bool) ($record?->status_kip ?? $student->attributes['status_kip'] ?? false),
-                    'no_kip' => $record?->no_kip ?? $student->attributes['no_kip'] ?? null,
+                    'desil' => $student->desil ?? $record?->desil,
+                    'status_pip' => (bool) ($student->status_pip ?? $record?->status_pip ?? false),
+                    'pip_keterangan' => $student->pip_keterangan ?? $record?->pip_keterangan,
+                    'status_kip' => (bool) ($student->status_kip ?? $record?->status_kip ?? false),
+                    'no_kip' => $student->no_kip ?? $record?->no_kip,
                 ];
             });
 
@@ -431,7 +424,7 @@ class StudentController extends Controller
                     continue;
                 }
 
-                // 1. Update Student model (attributes on students table only)
+                // 1. Update Student model (all columns on unified students table)
                 $student->update([
                     'nama' => $d['nama'],
                     'nipd' => $d['nipd'] ?? $student->nipd,
@@ -444,11 +437,11 @@ class StudentController extends Controller
                     'no_wa' => $d['no_wa'] ?? $student->no_wa,
                     'sekolah_asal' => $d['sekolah_asal'] ?? $student->sekolah_asal,
                     'unit' => $d['unit'] ?? $student->unit,
-                    'program' => $d['program'] ?? $student->program,
                     'status_keluarga' => $d['status_keluarga'] ?? $student->status_keluarga,
                     'anak_ke' => $d['anak_ke'] ?? $student->anak_ke,
                     'diterima_di_jenjang' => $d['diterima_di_jenjang'] ?? $student->diterima_di_jenjang,
                     'tanggal_diterima' => $d['tanggal_diterima'] ?? $student->tanggal_diterima,
+                    'info_psb' => $d['info_psb'] ?? $student->info_psb,
                     'jalan' => $d['jalan'] ?? $student->jalan,
                     'rt_rw' => $d['rt_rw'] ?? $student->rt_rw,
                     'dusun' => $d['dusun'] ?? $student->dusun,
@@ -456,32 +449,30 @@ class StudentController extends Controller
                     'kecamatan' => $d['kecamatan'] ?? $student->kecamatan,
                     'kabupaten' => $d['kabupaten'] ?? $student->kabupaten,
                     'provinsi' => $d['provinsi'] ?? $student->provinsi,
+                    'ayah_nama' => $d['ayah_nama'] ?? $student->ayah_nama,
+                    'ayah_tahun_lahir' => $d['ayah_tahun_lahir'] ?? $student->ayah_tahun_lahir,
+                    'ayah_pendidikan' => $d['ayah_pendidikan'] ?? $student->ayah_pendidikan,
+                    'ayah_pekerjaan' => $d['ayah_pekerjaan'] ?? $student->ayah_pekerjaan,
+                    'ayah_penghasilan' => $d['ayah_penghasilan'] ?? $student->ayah_penghasilan,
+                    'ayah_status' => $d['ayah_status'] ?? $student->ayah_status,
+                    'ibu_nama' => $d['ibu_nama'] ?? $student->ibu_nama,
+                    'ibu_tahun_lahir' => $d['ibu_tahun_lahir'] ?? $student->ibu_tahun_lahir,
+                    'ibu_pendidikan' => $d['ibu_pendidikan'] ?? $student->ibu_pendidikan,
+                    'ibu_pekerjaan' => $d['ibu_pekerjaan'] ?? $student->ibu_pekerjaan,
+                    'ibu_penghasilan' => $d['ibu_penghasilan'] ?? $student->ibu_penghasilan,
+                    'ibu_status' => $d['ibu_status'] ?? $student->ibu_status,
+                    'wali_nama' => $d['wali_nama'] ?? $student->wali_nama,
+                    'wali_hubungan' => $d['wali_hubungan'] ?? $student->wali_hubungan,
+                    'wali_pekerjaan' => $d['wali_pekerjaan'] ?? $student->wali_pekerjaan,
+                    'wali_penghasilan' => $d['wali_penghasilan'] ?? $student->wali_penghasilan,
+                    'desil' => $d['desil'] ?? $student->desil,
+                    'status_pip' => $d['status_pip'] ?? $student->status_pip,
+                    'pip_keterangan' => $d['pip_keterangan'] ?? $student->pip_keterangan,
+                    'status_kip' => $d['status_kip'] ?? $student->status_kip,
+                    'no_kip' => $d['no_kip'] ?? $student->no_kip,
                 ]);
 
-                // 2. Update StudentFamily model
-                $familyData = [
-                    'ayah_nama' => $d['ayah_nama'] ?? null,
-                    'ayah_tahun_lahir' => $d['ayah_tahun_lahir'] ?? null,
-                    'ayah_pendidikan' => $d['ayah_pendidikan'] ?? null,
-                    'ayah_pekerjaan' => $d['ayah_pekerjaan'] ?? null,
-                    'ayah_penghasilan' => $d['ayah_penghasilan'] ?? null,
-                    'ibu_nama' => $d['ibu_nama'] ?? null,
-                    'ibu_tahun_lahir' => $d['ibu_tahun_lahir'] ?? null,
-                    'ibu_pendidikan' => $d['ibu_pendidikan'] ?? null,
-                    'ibu_pekerjaan' => $d['ibu_pekerjaan'] ?? null,
-                    'ibu_penghasilan' => $d['ibu_penghasilan'] ?? null,
-                    'wali_nama' => $d['wali_nama'] ?? null,
-                    'wali_hubungan' => $d['wali_hubungan'] ?? null,
-                    'wali_pekerjaan' => $d['wali_pekerjaan'] ?? null,
-                    'wali_penghasilan' => $d['wali_penghasilan'] ?? null,
-                ];
-
-                StudentFamily::updateOrCreate(
-                    ['student_id' => $student->id],
-                    $familyData
-                );
-
-                // 3. Update academic record
+                // 2. Update academic record
                 if ($selectedYearId) {
                     $record = StudentAcademicRecord::where('student_id', $student->id)
                         ->where('academic_year_id', $selectedYearId)

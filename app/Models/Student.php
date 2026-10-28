@@ -17,25 +17,66 @@ class Student extends Model
         'nipd',
         'nik',
         'no_kk',
+        'jenjang',
         'unit',
-        'program',
+        'angkatan',
         'jk',
         'tempat_lahir',
         'tanggal_lahir',
         'agama',
+        'no_wa',
+        'no_wa_2',
+        'email',
+        'sekolah_asal',
         'status_keluarga',
         'anak_ke',
-        'no_wa',
-        'sekolah_asal',
+        'diterima_di_jenjang',
+        'tanggal_diterima',
+        'info_psb',
+        'status_registrasi',
         'jalan',
         'rt_rw',
+        'rt',
+        'rw',
         'dusun',
         'desa',
         'kecamatan',
         'kabupaten',
         'provinsi',
-        'diterima_di_jenjang',
-        'tanggal_diterima',
+        'jenis_tinggal',
+        'alat_transportasi',
+        'status_kip',
+        'no_kip',
+        'nama_di_kip',
+        'status_pip',
+        'pip_keterangan',
+        'desil',
+        'kebutuhan_khusus',
+        'jarak_rumah',
+        'foto',
+        'ayah_nama',
+        'ayah_tahun_lahir',
+        'ayah_pendidikan',
+        'ayah_pekerjaan',
+        'ayah_penghasilan',
+        'ayah_nik',
+        'ayah_status',
+        'ibu_nama',
+        'ibu_tahun_lahir',
+        'ibu_pendidikan',
+        'ibu_pekerjaan',
+        'ibu_penghasilan',
+        'ibu_nik',
+        'ibu_status',
+        'wali_nama',
+        'wali_tahun_lahir',
+        'wali_pendidikan',
+        'wali_pekerjaan',
+        'wali_penghasilan',
+        'wali_nik',
+        'wali_hubungan',
+        'has_bisnis',
+        'jenis_bisnis',
     ];
 
     /**
@@ -59,6 +100,9 @@ class Student extends Model
             'tanggal_lahir' => 'date',
             'tanggal_diterima' => 'date',
             'anak_ke' => 'integer',
+            'desil' => 'integer',
+            'status_pip' => 'boolean',
+            'status_kip' => 'boolean',
         ];
     }
 
@@ -76,11 +120,6 @@ class Student extends Model
             : '';
 
         return trim("{$this->tempat_lahir}, {$tanggal}", ', ');
-    }
-
-    public function family(): HasOne
-    {
-        return $this->hasOne(StudentFamily::class);
     }
 
     public function siblings(): HasMany

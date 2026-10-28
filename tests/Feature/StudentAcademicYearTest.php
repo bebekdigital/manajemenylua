@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\AcademicYear;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
@@ -15,6 +16,8 @@ class StudentAcademicYearTest extends TestCase
     {
         parent::setUp();
         $this->seed();
+        $user = User::first() ?? User::factory()->create();
+        $this->actingAs($user);
     }
 
     public function test_students_page_shows_active_academic_year_by_default(): void

@@ -9,8 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('students', function (Blueprint $table) {
-            // Sesuai dengan Template Dokumen Excel (A-BI)
-            $table->string('nisn', 20)->primary();
+            $table->id();
+            $table->string('nisn', 20)->unique();
             $table->string('nama');
             $table->string('nipd', 20)->nullable();
             $table->string('jenjang', 10)->nullable();

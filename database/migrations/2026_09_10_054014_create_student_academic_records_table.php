@@ -10,8 +10,7 @@ return new class extends Migration
     {
         Schema::create('student_academic_records', function (Blueprint $table) {
             $table->id();
-            $table->string('student_nisn', 20);
-            $table->foreign('student_nisn')->references('nisn')->on('students')->cascadeOnDelete();
+            $table->foreignId('student_id')->constrained()->cascadeOnDelete();
             $table->foreignId('academic_year_id')->constrained()->cascadeOnDelete();
             $table->foreignId('classroom_id')->nullable()->constrained()->nullOnDelete();
 
@@ -27,12 +26,16 @@ return new class extends Migration
                 'dropout',
             ])->default('aktif');
 
-            // Kesejahteraan (Sudah dipindah ke tabel students)
-            // (Removed desil, status_pip, pip_keterangan, status_kip, no_kip)
+            // Kesejahteraan
+            $table->unsignedTinyInteger('desil')->nullable();
+            $table->boolean('status_pip')->default(false);
+            $table->string('pip_keterangan')->nullable();
+            $table->boolean('status_kip')->default(false);
+            $table->string('no_kip')->nullable();
 
             $table->timestamps();
 
-            $table->unique(['student_nisn', 'academic_year_id']);
+            $table->unique(['student_id', 'academic_year_id']);
         });
     }
 

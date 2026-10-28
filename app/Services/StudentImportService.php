@@ -195,7 +195,6 @@ class StudentImportService
                 ], fn ($v) => ! is_null($v));
 
                 if (! empty($familyData)) {
-                    $student->family()->updateOrCreate(['student_id' => $student->id], $familyData);
                     $familyCount++;
                 }
             }

@@ -445,7 +445,8 @@ class StudentSeeder extends Seeder
             $familyData = $data['_family'] ?? [];
             $siblingsData = $data['_siblings'] ?? [];
 
-            unset($data['_academic'], $data['_family'], $data['_siblings']);
+            $academicData['program'] = $data['program'] ?? null;
+            unset($data['_academic'], $data['_family'], $data['_siblings'], $data['program']);
 
             // Move welfare and class info to student
             $data['desil'] = $academicData['desil'] ?? null;
@@ -461,7 +462,8 @@ class StudentSeeder extends Seeder
                 $academicData['status_pip'],
                 $academicData['pip_keterangan'],
                 $academicData['status_kip'],
-                $academicData['no_kip']
+                $academicData['no_kip'],
+                $academicData['jenjang']
             );
 
             $data = array_merge($data, $familyData);
@@ -495,7 +497,6 @@ class StudentSeeder extends Seeder
                     $student->academicRecords()->create([
                         'academic_year_id' => $previousYear->id,
                         'classroom_id' => $prevClassroom?->id,
-                        'jenjang' => $academicData['jenjang'],
                         'tingkat' => $prevGrade,
                         'student_status' => 'aktif',
                     ]);

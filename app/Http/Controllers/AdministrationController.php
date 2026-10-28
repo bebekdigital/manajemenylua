@@ -104,7 +104,6 @@ class AdministrationController extends Controller
                 }
                 $query->with('classroom');
             },
-            'family',
             'siblings',
         ])
             ->when($selectedYear, function ($query) use ($selectedYear) {
@@ -116,7 +115,6 @@ class AdministrationController extends Controller
             ->orderBy('nama')
             ->get()
             ->map(function (Student $student) use ($selectedYear) {
-                $family = $student->family;
                 $record = $student->academicRecords->first();
                 $classroom = $record?->classroom;
 
@@ -171,16 +169,16 @@ class AdministrationController extends Controller
                     'no_wa' => $student->no_wa ?? '-',
                     'sekolah_asal' => $student->sekolah_asal ?? '-',
                     'alamat' => $alamatLengkap,
-                    'ayah_nama' => $family?->ayah_nama ?? '-',
-                    'ayah_pekerjaan' => $family?->ayah_pekerjaan ?? '-',
-                    'ayah_penghasilan' => $family?->ayah_penghasilan ?? '-',
-                    'ibu_nama' => $family?->ibu_nama ?? '-',
-                    'ibu_pekerjaan' => $family?->ibu_pekerjaan ?? '-',
-                    'ibu_penghasilan' => $family?->ibu_penghasilan ?? '-',
-                    'wali_nama' => $family?->wali_nama ?? '-',
-                    'wali_alamat' => $family?->wali_nama ? $alamatLengkap : '-',
-                    'wali_hp' => $family?->wali_nama ? ($student->no_wa ?? '-') : '-',
-                    'wali_pekerjaan' => $family?->wali_pekerjaan ?? '-',
+                    'ayah_nama' => $student->ayah_nama ?? '-',
+                    'ayah_pekerjaan' => $student->ayah_pekerjaan ?? '-',
+                    'ayah_penghasilan' => $student->ayah_penghasilan ?? '-',
+                    'ibu_nama' => $student->ibu_nama ?? '-',
+                    'ibu_pekerjaan' => $student->ibu_pekerjaan ?? '-',
+                    'ibu_penghasilan' => $student->ibu_penghasilan ?? '-',
+                    'wali_nama' => $student->wali_nama ?? '-',
+                    'wali_alamat' => $student->wali_nama ? $alamatLengkap : '-',
+                    'wali_hp' => $student->wali_nama ? ($student->no_wa ?? '-') : '-',
+                    'wali_pekerjaan' => $student->wali_pekerjaan ?? '-',
                 ];
             });
 
