@@ -249,27 +249,27 @@ function submit() {
                                 <div v-if="form.errors.level" class="text-error text-xs mt-1">{{ form.errors.level }}</div>
                             </div>
 
-                            <!-- Atasan Langsung (Parent / Hierarki Vertikal) -->
+                            <!-- Atasan Langsung / Rekan Sejajar -->
                             <div>
                                 <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
-                                    Atasan Langsung (Hierarki Vertikal)
+                                    Atasan Langsung / Rekan Sejajar
                                 </label>
                                 <select
                                     v-model="form.parent_id"
                                     class="w-full px-4 py-2.5 bg-surface-container-low border border-outline-variant/60 rounded-xl text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
                                     :class="{ 'border-error': form.errors.parent_id }"
                                 >
-                                    <option value="">-- Tidak Ada Atasan (Tingkat Mandiri / Pembina Tertinggi) --</option>
+                                    <option value="">-- Tidak Ada Atasan (Berdiri Sendiri / Pembina Tertinggi) --</option>
                                     <option
                                         v-for="parent in availableParents"
                                         :key="parent.id"
                                         :value="parent.id"
                                     >
-                                        [Level {{ parent.level || 3 }}] {{ parent.name }} {{ parent.department_name ? `(${parent.department_name})` : '' }}
+                                        [Level {{ parent.level || 3 }}] {{ parent.name }} {{ parent.department_name ? `(${parent.department_name})` : '' }} {{ Number(parent.level) === Number(form.level) ? '— Rekan Sejajar' : '' }}
                                     </option>
                                 </select>
                                 <p class="text-[11px] text-on-surface-variant mt-1">
-                                    Pilih jabatan atasan langsung untuk membentuk cabang pohon vertikal.
+                                    Pilih jabatan atasan langsung (hierarki vertikal) atau rekan sejajar (di level yang sama).
                                 </p>
                                 <div v-if="form.errors.parent_id" class="text-error text-xs mt-1">{{ form.errors.parent_id }}</div>
                             </div>

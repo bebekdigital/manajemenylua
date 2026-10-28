@@ -35,6 +35,7 @@ const hoveredPosId = ref(null);
 const diagramContainerRef = ref(null);
 const tableRef = ref(null);
 const connectionLines = ref([]);
+const junctionDots = ref([]);
 const svgWidth = ref(1200);
 const svgHeight = ref(800);
 
@@ -287,87 +288,8 @@ const positionsByLevel = computed(() => {
     return groups;
 });
 
-// Map of position ID -> array of child position objects in the SAME level
-const intraChildrenMapByLevel = computed(() => {
-    const map = {};
-    const filteredSet = new Set(filteredPositions.value.map(p => p.id));
-
-    filteredPositions.value.forEach(p => {
-        if (p.parent_id && filteredSet.has(p.parent_id)) {
-            const parent = positionsMap.value.get(p.parent_id);
-            if (parent && Number(parent.level) === Number(p.level)) {
-                if (!map[p.parent_id]) {
-                    map[p.parent_id] = [];
-                }
-                map[p.parent_id].push(p);
-            }
-        }
-    });
-
-    // Sort children in each group
-    Object.keys(map).forEach(parentId => {
-        map[parentId].sort((a, b) => {
-            if (a.order !== b.order) return a.order - b.order;
-            return a.name.localeCompare(b.name);
-        });
-    });
-
-    return map;
-});
-
-// For each level (1 to 5), determine root positions (intra-roots) to render at the top tier of that level
-const intraRootsByLevel = computed(() => {
-    const roots = { 1: [], 2: [], 3: [], 4: [], 5: [] };
-    const intraMap = intraChildrenMapByLevel.value;
-
-    for (let lvl = 1; lvl <= 5; lvl++) {
-        const positionsInLevel = positionsByLevel.value[lvl] || [];
-        const inLevelIds = new Set(positionsInLevel.map(p => p.id));
-        const visited = new Set();
-
-        // 1. A position is an intra-root if its parent_id is not in this level (or null)
-        positionsInLevel.forEach(p => {
-            const hasParentInThisLevel = p.parent_id && inLevelIds.has(p.parent_id) &&
-                Number(positionsMap.value.get(p.parent_id)?.level) === lvl;
-
-            if (!hasParentInThisLevel) {
-                roots[lvl].push(p);
-                // Mark p and all its descendants in this level as visited
-                const markVisited = (nodeId) => {
-                    visited.add(nodeId);
-                    const kids = intraMap[nodeId] || [];
-                    kids.forEach(k => {
-                        if (!visited.has(k.id)) markVisited(k.id);
-                    });
-                };
-                markVisited(p.id);
-            }
-        });
-
-        // 2. Safety fallback: if there are any circular references or unvisited nodes in this level,
-        // add them as roots so they are never lost/hidden!
-        positionsInLevel.forEach(p => {
-            if (!visited.has(p.id)) {
-                roots[lvl].push(p);
-                visited.add(p.id);
-            }
-        });
-
-        // Sort roots
-        roots[lvl].sort((a, b) => {
-            const pA = a.parent_id || 0;
-            const pB = b.parent_id || 0;
-            if (pA !== pB) return pA - pB;
-            if (a.order !== b.order) return a.order - b.order;
-            return a.name.localeCompare(b.name);
-        });
-    }
-
-    return roots;
-});
-
 // ========================================================
-// GARIS HIERARKI SVG DINAMIS (ANTAR ATASAN DAN BAWAHAN)
+// GARIS HIERARKI SVG DINAMIS (ANTAR ATASAN DAN BAWAHAN / SEJAJAR)
 // ========================================================
 function updateConnectionLines() {
     if (!diagramContainerRef.value || !tableRef.value) return;
@@ -395,7 +317,18 @@ function updateConnectionLines() {
     svgHeight.value = Math.max(containerEl.scrollHeight, tableRef.value ? tableRef.value.offsetHeight : 800);
 
     const lines = [];
+    const dotsMap = new Map();
     let jumpCount = 0;
+
+    // Hitung bawahan langsung di level bawahnya untuk percabangan T-junction
+    const directChildrenByParent = new Map();
+    props.positions.forEach(pos => {
+        if (!pos.parent_id) return;
+        const parent = positionsMap.value.get(pos.parent_id);
+        if (parent && Number(pos.level) === Number(parent.level) + 1) {
+            directChildrenByParent.set(pos.parent_id, (directChildrenByParent.get(pos.parent_id) || 0) + 1);
+        }
+    });
 
     // Loop through all positions that have a parent
     props.positions.forEach(pos => {
@@ -408,6 +341,42 @@ function updateConnectionLines() {
             const childRect = childEl.getBoundingClientRect();
             const parentRect = parentEl.getBoundingClientRect();
 
+            const parentLevel = Number(parentEl.dataset.level) || 1;
+            const childLevel = Number(childEl.dataset.level) || 1;
+            const parentLevelDef = levelDefinitions.find(d => d.level === parentLevel) || levelDefinitions[0];
+
+            let path = '';
+            let isPeer = false;
+
+            // 1. KASUS SATU LEVEL / JABATAN SEJAJAR (childLevel === parentLevel)
+            // Garis horizontal langsung menghubungkan dua kartu di level yang sama
+            if (childLevel === parentLevel) {
+                isPeer = true;
+                const parentIsLeft = parentRect.left < childRect.left;
+                const x1 = Math.round((parentIsLeft ? parentRect.right : parentRect.left) - containerRect.left + scrollLeft);
+                const y1 = Math.round((parentRect.top + parentRect.height / 2) - containerRect.top + scrollTop);
+                const x2 = Math.round((parentIsLeft ? childRect.left : childRect.right) - containerRect.left + scrollLeft);
+                const y2 = Math.round((childRect.top + childRect.height / 2) - containerRect.top + scrollTop);
+
+                if (Math.abs(y1 - y2) < 6) {
+                    path = `M ${x1} ${y1} L ${x2} ${y2}`;
+                } else {
+                    const midX = Math.round(x1 + (x2 - x1) * 0.5);
+                    path = `M ${x1} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${x2} ${y2}`;
+                }
+
+                lines.push({
+                    id: `line-${pos.parent_id}-${pos.id}`,
+                    parentId: pos.parent_id,
+                    childId: pos.id,
+                    parentLevel: parentLevelDef.level,
+                    path,
+                    color: parentLevelDef.strokeColor,
+                    isPeer: true,
+                });
+                return;
+            }
+
             // Coordinate from bottom center of parent card
             const x1 = Math.round((parentRect.left + parentRect.width / 2) - containerRect.left + scrollLeft);
             const y1 = Math.round(parentRect.bottom - containerRect.top + scrollTop);
@@ -416,13 +385,7 @@ function updateConnectionLines() {
             const x2 = Math.round((childRect.left + childRect.width / 2) - containerRect.left + scrollLeft);
             const y2 = Math.round(childRect.top - containerRect.top + scrollTop);
 
-            const parentLevel = Number(parentEl.dataset.level) || 1;
-            const childLevel = Number(childEl.dataset.level) || 1;
-            const parentLevelDef = levelDefinitions.find(d => d.level === parentLevel) || levelDefinitions[0];
-
-            let path = '';
-
-            // 1. KASUS LOMPAT LEVEL (childLevel > parentLevel + 1)
+            // 2. KASUS LOMPAT LEVEL (childLevel > parentLevel + 1)
             // Jalur lewat kanan luar container agar tidak memotong card di level tengah
             if (childLevel > parentLevel + 1) {
                 const rightCorridorBase = Math.max(maxCardRight + 36, tableWidth - 70);
@@ -434,15 +397,6 @@ function updateConnectionLines() {
 
                 // Garis orthogonal 90 derajat: keluar dari bawah -> belok kanan -> turun di koridor kanan -> belok kiri -> masuk dari atas
                 path = `M ${x1} ${y1} L ${x1} ${y_exit} L ${x_right} ${y_exit} L ${x_right} ${y_entry} L ${x2} ${y_entry} L ${x2} ${y2}`;
-            }
-            // 2. KASUS SATU LEVEL / INTRA-LEVEL (childLevel === parentLevel)
-            else if (childLevel === parentLevel) {
-                if (Math.abs(x1 - x2) < 4) {
-                    path = `M ${x1} ${y1} L ${x2} ${y2}`;
-                } else {
-                    const midY = Math.round(y1 + (y2 - y1) * 0.5);
-                    path = `M ${x1} ${y1} L ${x1} ${midY} L ${x2} ${midY} L ${x2} ${y2}`;
-                }
             }
             // 3. KASUS LEVEL DI BAWAHNYA LANGSUNG (childLevel === parentLevel + 1)
             // Keluar container level dari tengah, masuk container level baru dari tengah (bersudut 90 derajat)
@@ -463,6 +417,19 @@ function updateConnectionLines() {
                     // Bersudut 90 derajat di pembatas antar level
                     path = `M ${x1} ${y1} L ${x1} ${midY} L ${x2} ${midY} L ${x2} ${y2}`;
                 }
+
+                // Jika atasan memiliki lebih dari 1 bawahan di level ini, pasang junction dot di titik percabangan horizontal
+                if ((directChildrenByParent.get(pos.parent_id) || 0) > 1) {
+                    const dotKey = `${pos.parent_id}-${midY}`;
+                    if (!dotsMap.has(dotKey)) {
+                        dotsMap.set(dotKey, {
+                            id: `dot-${dotKey}`,
+                            cx: x1,
+                            cy: midY,
+                            color: parentLevelDef.strokeColor,
+                        });
+                    }
+                }
             }
 
             lines.push({
@@ -476,11 +443,13 @@ function updateConnectionLines() {
                 y2,
                 path,
                 color: parentLevelDef.strokeColor,
+                isPeer: false,
             });
         }
     });
 
     connectionLines.value = lines;
+    junctionDots.value = Array.from(dotsMap.values());
 }
 
 // Watch positions and re-render lines
@@ -541,8 +510,8 @@ function handleAddAtLevel(level) {
 // Add peer (sejajar) at the same level
 function handleAddPeer(pos) {
     emit('add-position', {
-        presetLevel: pos.level,
-        presetParentId: pos.parent_id || null,
+        presetLevel: Number(pos.level) || 1,
+        presetParentId: pos.parent_id || pos.id,
         presetDepartmentId: pos.department_id || null,
         modeTitle: `Tambah Jabatan Sejajar di Level ${pos.level}`,
     });
@@ -718,7 +687,7 @@ function handleDelete(pos) {
                         </marker>
                     </defs>
 
-                    <!-- Render Setiap Garis Penghubung (Parent -> Child) bersudut 90 derajat -->
+                    <!-- Render Setiap Garis Penghubung (Parent -> Child / Peer) bersudut 90 derajat -->
                     <g v-for="line in connectionLines" :key="line.id">
                         <!-- Glow / Shadow Line saat di-hover -->
                         <path
@@ -729,7 +698,7 @@ function handleDelete(pos) {
                             stroke-linejoin="miter"
                             class="transition-all duration-150"
                         />
-                        <!-- Garis Utama Penghubung Atasan & Bawahan (Bersudut 90 Derajat) -->
+                        <!-- Garis Utama Penghubung (Bersudut 90 Derajat / Sejajar Horizontal) -->
                         <path
                             :d="line.path"
                             :stroke="hoveredPosId === line.parentId || hoveredPosId === line.childId ? '#059669' : line.color"
@@ -737,10 +706,23 @@ function handleDelete(pos) {
                             :stroke-opacity="hoveredPosId && hoveredPosId !== line.parentId && hoveredPosId !== line.childId ? 0.25 : 0.9"
                             fill="none"
                             stroke-linejoin="miter"
-                            :marker-end="`url(#arrow-${line.parentLevel || 1})`"
+                            :marker-end="line.isPeer ? '' : `url(#arrow-${line.parentLevel || 1})`"
                             class="transition-all duration-150"
                         />
                     </g>
+
+                    <!-- Junction Dots pada percabangan garis horizontal hierarki bawahan (seperti media_1793169568066.png) -->
+                    <circle
+                        v-for="dot in junctionDots"
+                        :key="dot.id"
+                        :cx="dot.cx"
+                        :cy="dot.cy"
+                        r="4.5"
+                        :fill="dot.color"
+                        stroke="#ffffff"
+                        stroke-width="2"
+                        class="transition-all duration-150 shadow-xs"
+                    />
                 </svg>
 
                 <!-- TABEL / CONTAINER 5 BARIS LEVEL YANG MENYATU SECARA VERTIKAL -->
@@ -789,15 +771,14 @@ function handleDelete(pos) {
 
                                 <!-- SETIAP CARD JABATAN DIMULAI DARI TENGAH (justify-center) -->
                                 <div
-                                    v-if="intraRootsByLevel[def.level] && intraRootsByLevel[def.level].length > 0"
+                                    v-if="positionsByLevel[def.level] && positionsByLevel[def.level].length > 0"
                                     class="flex items-start justify-center gap-8 flex-wrap py-2 w-full"
                                 >
                                     <OrgPositionNode
-                                        v-for="rootPos in intraRootsByLevel[def.level]"
-                                        :key="rootPos.id"
-                                        :pos="rootPos"
+                                        v-for="pos in positionsByLevel[def.level]"
+                                        :key="pos.id"
+                                        :pos="pos"
                                         :level-def="def"
-                                        :intra-children-map="intraChildrenMapByLevel"
                                         :hovered-pos-id="hoveredPosId"
                                         @hover="hoveredPosId = $event"
                                         @leave="hoveredPosId = null"
