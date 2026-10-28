@@ -680,69 +680,57 @@ function handleDelete(pos) {
                     </g>
                 </svg>
 
-                <!-- TABEL 5 BARIS LEVEL YANG MENYATU SECARA VERTIKAL -->
+                <!-- TABEL / CONTAINER 5 BARIS LEVEL YANG MENYATU SECARA VERTIKAL -->
                 <table ref="tableRef" class="w-full border-collapse min-w-[960px] text-left">
                     <tbody>
                         <tr
                             v-for="(def, idx) in levelDefinitions"
                             :key="def.level"
-                            class="border-b border-outline-variant/40 last:border-b-0 hover:bg-slate-50/20 transition-colors"
+                            class="border-b border-outline-variant/40 last:border-b-0 hover:bg-slate-50/15 transition-colors"
                         >
-                            <!-- KOLOM KIRI (HEADER BARIS LEVEL) -->
-                            <td
-                                class="w-64 sm:w-72 p-4 sm:p-5 align-top border-r border-outline-variant/40 select-none shrink-0"
-                                :class="def.rowHeaderBg"
-                            >
-                                <div class="flex items-start gap-3">
-                                    <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-2xs mt-0.5" :class="def.iconBg">
-                                        <span class="material-symbols-outlined text-xl">{{ def.icon }}</span>
-                                    </div>
-                                    <div class="min-w-0 flex-1">
-                                        <div class="flex items-center justify-between gap-1">
-                                            <div class="flex items-center gap-1.5 flex-wrap">
-                                                <span :class="['text-[10px] font-bold px-2 py-0.5 rounded-full border shadow-2xs', def.badgeClass]">
-                                                    Level {{ def.level }}
-                                                </span>
-                                                <span class="text-[11px] font-semibold text-on-surface-variant">
-                                                    {{ positionsByLevel[def.level]?.length || 0 }} Jabatan
-                                                </span>
-                                            </div>
-                                            <!-- Tombol Edit Nama Level -->
-                                            <button
-                                                type="button"
-                                                @click="openEditLevelModal(def.level)"
-                                                class="p-1 rounded-md text-on-surface-variant hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer shrink-0"
-                                                :title="`Edit Nama Level ${def.level}`"
-                                            >
-                                                <span class="material-symbols-outlined text-[15px]">edit</span>
-                                            </button>
-                                        </div>
-                                        <h4 class="text-xs sm:text-sm font-bold text-on-surface mt-1.5 leading-snug">
+                            <!-- CONTAINER LEVEL (FULL WIDTH): POSISI LEVEL BERADA DI POJOK KIRI ATAS -->
+                            <td class="p-4 sm:p-5 align-top relative min-h-[150px]" :class="def.rowHeaderBg">
+                                <!-- HEADER POJOK KIRI ATAS: Level, Nama Level, Tombol Edit dan Tambah Ringkas -->
+                                <div class="flex items-center justify-between gap-3 mb-4 pb-2.5 border-b border-outline-variant/30 flex-wrap">
+                                    <div class="flex items-center gap-2 sm:gap-2.5 flex-wrap min-w-0">
+                                        <span :class="['text-[11px] font-bold px-2 py-0.5 rounded border shadow-2xs', def.badgeClass]">
+                                            Level {{ def.level }}
+                                        </span>
+                                        <h4 class="text-xs sm:text-sm font-bold text-on-surface">
                                             {{ getLevelName(def.level) }}
                                         </h4>
-                                        <p v-if="getLevelSubtitle(def.level)" class="text-[11px] text-on-surface-variant/80 mt-1 leading-relaxed">
-                                            {{ getLevelSubtitle(def.level) }}
-                                        </p>
-
-                                        <!-- Tombol Tambah di Level Ini -->
-                                        <div class="mt-3">
-                                            <button
-                                                type="button"
-                                                @click="handleAddAtLevel(def.level)"
-                                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-xs hover:shadow-md cursor-pointer"
-                                                :class="def.btnClass"
-                                            >
-                                                <span class="material-symbols-outlined text-[15px]">add</span>
-                                                <span>+ Tambah di Level {{ def.level }}</span>
-                                            </button>
-                                        </div>
+                                        <span v-if="getLevelSubtitle(def.level)" class="hidden lg:inline text-[11px] text-on-surface-variant/70 truncate max-w-md">
+                                            — {{ getLevelSubtitle(def.level) }}
+                                        </span>
+                                        <span class="text-[11px] font-medium text-on-surface-variant/60">
+                                            ({{ positionsByLevel[def.level]?.length || 0 }} Jabatan)
+                                        </span>
+                                        <!-- Tombol Edit Ringkas -->
+                                        <button
+                                            type="button"
+                                            @click="openEditLevelModal(def.level)"
+                                            class="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded transition-colors cursor-pointer"
+                                            :title="`Edit Nama Level ${def.level}`"
+                                        >
+                                            <span class="material-symbols-outlined text-[14px]">edit</span>
+                                            <span>Edit</span>
+                                        </button>
                                     </div>
-                                </div>
-                            </td>
 
-                            <!-- KOLOM KANAN (AREA KARTU JABATAN PADA BARIS LEVEL INI) -->
-                            <td class="p-4 sm:p-6 align-middle relative min-h-[160px]">
-                                <!-- JIKA SUDAH ADA JABATAN TERDAFTAR DI LEVEL INI -->
+                                    <!-- Tombol Tambah Ringkas -->
+                                    <button
+                                        type="button"
+                                        @click="handleAddAtLevel(def.level)"
+                                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all shadow-xs hover:shadow-md cursor-pointer shrink-0"
+                                        :class="def.btnClass"
+                                        :title="`Tambah Jabatan di Level ${def.level}`"
+                                    >
+                                        <span class="material-symbols-outlined text-[15px]">add</span>
+                                        <span>Tambah</span>
+                                    </button>
+                                </div>
+
+                                <!-- AREA KARTU JABATAN PADA BARIS LEVEL INI (FULL WIDTH, BISA MENAMPUNG BANYAK KARTU) -->
                                 <div
                                     v-if="intraRootsByLevel[def.level] && intraRootsByLevel[def.level].length > 0"
                                     class="flex items-start gap-8 flex-wrap py-2"
@@ -767,22 +755,19 @@ function handleDelete(pos) {
                                 <!-- EMPTY STATE SAAT BARIS LEVEL BELUM MEMILIKI JABATAN -->
                                 <div
                                     v-else
-                                    class="py-6 px-4 border-2 border-dashed border-outline-variant/40 rounded-xl bg-surface-container-lowest/50 text-center max-w-lg"
+                                    class="py-4 px-4 border border-dashed border-outline-variant/40 rounded-xl bg-surface-container-lowest/50 flex items-center justify-between gap-3 max-w-md"
                                 >
-                                    <span class="material-symbols-outlined text-2xl text-outline/50 mb-1">
-                                        {{ def.icon }}
-                                    </span>
-                                    <p class="text-xs font-semibold text-on-surface-variant mb-2">
-                                        Belum ada jabatan pada baris {{ getLevelName(def.level) }}.
+                                    <p class="text-xs font-medium text-on-surface-variant">
+                                        Belum ada jabatan pada Level {{ def.level }}.
                                     </p>
                                     <button
                                         type="button"
                                         @click="handleAddAtLevel(def.level)"
-                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer"
+                                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all shadow-xs cursor-pointer shrink-0"
                                         :class="def.btnClass"
                                     >
-                                        <span class="material-symbols-outlined text-[15px]">add_circle</span>
-                                        <span>+ Tambah Jabatan Pertama di Level {{ def.level }}</span>
+                                        <span class="material-symbols-outlined text-[14px]">add</span>
+                                        <span>Tambah</span>
                                     </button>
                                 </div>
                             </td>
@@ -896,7 +881,7 @@ function handleDelete(pos) {
                             </div>
                             <div>
                                 <h3 class="text-base font-bold text-on-surface">Edit Nama Level {{ editingLevel }}</h3>
-                                <p class="text-xs text-on-surface-variant">Ubah judul tingkatan pada kolom 1 tabel</p>
+                                <p class="text-xs text-on-surface-variant">Ubah nama tingkatan pada container level</p>
                             </div>
                         </div>
                         <button
