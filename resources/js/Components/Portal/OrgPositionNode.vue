@@ -1,9 +1,6 @@
 <script setup>
 import { computed } from 'vue';
-
-defineOptions({
-    name: 'OrgPositionNode',
-});
+import OrgPositionNode from './OrgPositionNode.vue';
 
 const props = defineProps({
     pos: {

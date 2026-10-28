@@ -41,6 +41,7 @@ const svgHeight = ref(800);
 const levelDefinitions = [
     {
         level: 1,
+        title: 'Level 1: Dewan Pembina & Pengawas Yayasan',
         defaultName: 'Dewan Pembina & Pengawas Yayasan',
         subtitle: 'Pemegang otoritas tertinggi, arahan strategis, dan pengawasan yayasan',
         badgeClass: 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/30',
@@ -55,6 +56,7 @@ const levelDefinitions = [
     },
     {
         level: 2,
+        title: 'Level 2: Pengurus Harian & Direksi Yayasan',
         defaultName: 'Pengurus Harian & Direksi Yayasan',
         subtitle: 'Pimpinan harian & direksi: Ketua Umum, Sekretaris, Bendahara, Direktur Eksekutif',
         badgeClass: 'bg-indigo-500/15 text-indigo-800 dark:text-indigo-300 border-indigo-500/30',
@@ -69,6 +71,7 @@ const levelDefinitions = [
     },
     {
         level: 3,
+        title: 'Level 3: Kepala Bidang Yayasan',
         defaultName: 'Kepala Bidang Yayasan',
         subtitle: 'Pimpinan bidang fungsional: Pendidikan, SDM, Keuangan, Sarpras, Dakwah & Humas',
         badgeClass: 'bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-500/30',
@@ -83,6 +86,7 @@ const levelDefinitions = [
     },
     {
         level: 4,
+        title: 'Level 4: Koordinator & Kepala Bagian / Unit',
         defaultName: 'Koordinator & Kepala Bagian / Unit',
         subtitle: 'Koordinator operasional program kerja, pengawas sekolah, dan penjamin teknis',
         badgeClass: 'bg-cyan-500/15 text-cyan-800 dark:text-cyan-300 border-cyan-500/30',
@@ -97,6 +101,7 @@ const levelDefinitions = [
     },
     {
         level: 5,
+        title: 'Level 5: Staf Pelaksana & Tim Teknis',
         defaultName: 'Staf Pelaksana & Tim Teknis',
         subtitle: 'Staf pelaksana administrasi, logistik, pengadaan, dan teknis operasional harian',
         badgeClass: 'bg-slate-500/15 text-slate-800 dark:text-slate-300 border-slate-500/30',
@@ -760,7 +765,7 @@ function handleDelete(pos) {
                                         {{ def.icon }}
                                     </span>
                                     <p class="text-xs font-semibold text-on-surface-variant mb-2">
-                                        Belum ada jabatan pada baris {{ def.title.split(':')[0] }}.
+                                        Belum ada jabatan pada baris {{ getLevelName(def.level) }}.
                                     </p>
                                     <button
                                         type="button"
