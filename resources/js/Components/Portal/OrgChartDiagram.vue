@@ -127,16 +127,19 @@ function initCustomLevels() {
     levelDefinitions.forEach(d => {
         map[d.level] = {
             name: d.defaultName,
-            subtitle: d.subtitle,
+            subtitle: d.subtitle || '',
+            isSaved: false,
         };
     });
 
-    if (props.organizationLevels && props.organizationLevels.length > 0) {
+    if (props.organizationLevels && Array.isArray(props.organizationLevels) && props.organizationLevels.length > 0) {
         props.organizationLevels.forEach(ol => {
-            if (ol.level) {
+            if (ol && ol.level) {
                 map[ol.level] = {
                     name: ol.name || map[ol.level]?.name || '',
-                    subtitle: ol.subtitle !== undefined && ol.subtitle !== null ? ol.subtitle : (map[ol.level]?.subtitle || ''),
+                    // Once a record is saved in DB, its subtitle is strictly ol.subtitle (empty string if null/undefined)
+                    subtitle: ol.subtitle ? String(ol.subtitle).trim() : '',
+                    isSaved: true,
                 };
             }
         });
@@ -152,9 +155,13 @@ function getLevelName(level) {
 }
 
 function getLevelSubtitle(level) {
-    return customLevels.value[level]?.subtitle !== undefined
-        ? customLevels.value[level].subtitle
-        : (levelDefinitions.find(d => d.level === level)?.subtitle || '');
+    if (customLevels.value[level]) {
+        if (customLevels.value[level].isSaved) {
+            return customLevels.value[level].subtitle || '';
+        }
+        return customLevels.value[level].subtitle || '';
+    }
+    return levelDefinitions.find(d => d.level === level)?.subtitle || '';
 }
 
 function openEditLevelModal(level) {
@@ -179,6 +186,7 @@ function saveLevelEdit() {
     customLevels.value[level] = {
         name: newName,
         subtitle: newSubtitle,
+        isSaved: true,
     };
 
     router.put(`/portal/organization-levels/${level}`, {
@@ -916,14 +924,24 @@ function handleDelete(pos) {
                         </div>
 
                         <div>
-                            <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
-                                Keterangan / Subtitle (Opsional)
-                            </label>
+                            <div class="flex items-center justify-between mb-1.5">
+                                <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider">
+                                    Keterangan / Subtitle (Opsional)
+                                </label>
+                                <button
+                                    v-if="levelForm.subtitle"
+                                    type="button"
+                                    @click="levelForm.subtitle = ''"
+                                    class="text-[11px] font-semibold text-error hover:underline cursor-pointer"
+                                >
+                                    Hapus Keterangan
+                                </button>
+                            </div>
                             <textarea
                                 v-model="levelForm.subtitle"
                                 rows="2"
                                 class="w-full px-4 py-2 bg-surface-container-low border border-outline-variant/60 rounded-xl text-xs text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all resize-none"
-                                placeholder="Deskripsi singkat wewenang atau tanggung jawab tingkatan ini"
+                                placeholder="Kosongkan jika tidak membutuhkan keterangan pada baris ini"
                             ></textarea>
                         </div>
 
