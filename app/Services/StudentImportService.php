@@ -170,6 +170,34 @@ class StudentImportService
 
                 $studentMap[$nisn] = $student;
                 $studentMap[$nisn]->jenjang_from_excel = $studentData['jenjang'] ?? 'SD';
+
+                // Handle Family Data
+                $familyData = array_filter([
+                    'ayah_nama' => $this->cleanString($row['Y'] ?? null),
+                    'ayah_tahun_lahir' => $this->cleanInteger($row['Z'] ?? null),
+                    'ayah_pendidikan' => $this->cleanString($row['AA'] ?? null),
+                    'ayah_pekerjaan' => $this->cleanString($row['AB'] ?? null),
+                    'ayah_penghasilan' => $this->cleanString($row['AC'] ?? null),
+                    'ayah_nik' => $this->cleanString($row['AD'] ?? null),
+                    'ibu_nama' => $this->cleanString($row['AF'] ?? null),
+                    'ibu_tahun_lahir' => $this->cleanInteger($row['AG'] ?? null),
+                    'ibu_pendidikan' => $this->cleanString($row['AH'] ?? null),
+                    'ibu_pekerjaan' => $this->cleanString($row['AI'] ?? null),
+                    'ibu_penghasilan' => $this->cleanString($row['AJ'] ?? null),
+                    'ibu_nik' => $this->cleanString($row['AK'] ?? null),
+                    'wali_nama' => $this->cleanString($row['AM'] ?? null),
+                    'wali_tahun_lahir' => $this->cleanInteger($row['AN'] ?? null),
+                    'wali_pendidikan' => $this->cleanString($row['AO'] ?? null),
+                    'wali_pekerjaan' => $this->cleanString($row['AP'] ?? null),
+                    'wali_penghasilan' => $this->cleanString($row['AQ'] ?? null),
+                    'wali_nik' => $this->cleanString($row['AR'] ?? null),
+                    'wali_hubungan' => $this->cleanString($row['AS'] ?? null),
+                ], fn ($v) => ! is_null($v));
+
+                if (! empty($familyData)) {
+                    $student->family()->updateOrCreate(['student_id' => $student->id], $familyData);
+                    $familyCount++;
+                }
             }
 
             // 2. Process Sheet 2: Saudara Kandung

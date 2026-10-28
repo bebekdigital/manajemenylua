@@ -17,66 +17,25 @@ class Student extends Model
         'nipd',
         'nik',
         'no_kk',
-        'jenjang',
         'unit',
-        'angkatan',
+        'program',
         'jk',
         'tempat_lahir',
         'tanggal_lahir',
         'agama',
-        'no_wa',
-        'no_wa_2',
-        'sekolah_asal',
         'status_keluarga',
         'anak_ke',
-        'diterima_di_jenjang',
-        'tanggal_diterima',
-        'info_psb',
-        'status_registrasi',
+        'no_wa',
+        'sekolah_asal',
         'jalan',
         'rt_rw',
-        'rt',
-        'rw',
         'dusun',
         'desa',
         'kecamatan',
         'kabupaten',
         'provinsi',
-        'jenis_tinggal',
-        'alat_transportasi',
-        'email',
-        'status_kip',
-        'no_kip',
-        'nama_di_kip',
-        'status_pip',
-        'pip_keterangan',
-        'desil',
-        'kebutuhan_khusus',
-        'jarak_rumah',
-        'foto',
-        'ayah_nama',
-        'ayah_tahun_lahir',
-        'ayah_pendidikan',
-        'ayah_pekerjaan',
-        'ayah_penghasilan',
-        'ayah_nik',
-        'ayah_status',
-        'ibu_nama',
-        'ibu_tahun_lahir',
-        'ibu_pendidikan',
-        'ibu_pekerjaan',
-        'ibu_penghasilan',
-        'ibu_nik',
-        'ibu_status',
-        'wali_nama',
-        'wali_tahun_lahir',
-        'wali_pendidikan',
-        'wali_pekerjaan',
-        'wali_penghasilan',
-        'wali_nik',
-        'wali_hubungan',
-        'has_bisnis',
-        'jenis_bisnis',
+        'diterima_di_jenjang',
+        'tanggal_diterima',
     ];
 
     /**
@@ -84,12 +43,12 @@ class Student extends Model
      */
     public function getPhotoUrlAttribute(): ?string
     {
-        if (! $this->foto) {
+        if (! isset($this->attributes['foto']) || ! $this->attributes['foto']) {
             return null;
         }
 
         // Ekstrak nama file dari path (karena $this->foto berisi 'student-photos/filename.ext')
-        $filename = basename($this->foto);
+        $filename = basename($this->attributes['foto']);
 
         return route('students.photo', ['filename' => $filename]);
     }
@@ -117,6 +76,11 @@ class Student extends Model
             : '';
 
         return trim("{$this->tempat_lahir}, {$tanggal}", ', ');
+    }
+
+    public function family(): HasOne
+    {
+        return $this->hasOne(StudentFamily::class);
     }
 
     public function siblings(): HasMany
