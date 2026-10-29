@@ -641,30 +641,15 @@ function handleAddPeer(pos) {
     });
 }
 
-// Add subordinate at the SAME level (hierarki di level yang sama, tampil di bawah kartu)
-function handleAddSubordinateSameLevel(pos) {
-    emit('add-position', {
-        presetLevel: Number(pos.level) || 1,
-        presetParentId: pos.id,
-        presetDepartmentId: pos.department_id || null,
-        modeTitle: `Tambah Bawahan di Level ${pos.level} untuk: ${pos.name}`,
-    });
-}
-
-// Add subordinate at the NEXT level (baris level di bawahnya)
-function handleAddSubordinateNextLevel(pos) {
-    const nextLevel = Math.min(5, (Number(pos.level) || 1) + 1);
-    emit('add-position', {
-        presetLevel: nextLevel,
-        presetParentId: pos.id,
-        presetDepartmentId: pos.department_id || null,
-        modeTitle: `Tambah Bawahan di Level ${nextLevel} untuk: ${pos.name}`,
-    });
-}
-
-// Default subordinate handler
+// Add subordinate (langsung buka modal, level bisa dipilih langsung di modal termasuk loncat level)
 function handleAddSubordinate(pos) {
-    handleAddSubordinateNextLevel(pos);
+    const defaultLevel = Math.min(5, (Number(pos.level) || 1) + 1);
+    emit('add-position', {
+        presetLevel: defaultLevel,
+        presetParentId: pos.id,
+        presetDepartmentId: pos.department_id || null,
+        modeTitle: `Tambah Bawahan untuk: ${pos.name}`,
+    });
 }
 
 function handleEdit(pos) {
@@ -898,8 +883,7 @@ function handleDelete(pos) {
                                         :hovered-pos-id="hoveredPosId"
                                         @hover="hoveredPosId = $event"
                                         @leave="hoveredPosId = null"
-                                        @add-subordinate-same-level="handleAddSubordinateSameLevel"
-                                        @add-subordinate-next-level="handleAddSubordinateNextLevel"
+                                        @add-subordinate="handleAddSubordinate"
                                         @add-peer="handleAddPeer"
                                         @edit="handleEdit"
                                         @delete="handleDelete"

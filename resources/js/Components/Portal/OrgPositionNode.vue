@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { computed } from 'vue';
 import OrgPositionNode from './OrgPositionNode.vue';
 
 const props = defineProps({
@@ -24,15 +24,11 @@ const props = defineProps({
 const emit = defineEmits([
     'hover',
     'leave',
-    'add-subordinate-same-level',
-    'add-subordinate-next-level',
+    'add-subordinate',
     'add-peer',
     'edit',
     'delete',
 ]);
-
-const showSubmenu = ref(false);
-const bottomNodeRef = ref(null);
 
 // Children of this position that belong to the SAME level
 const intraChildren = computed(() => {
@@ -41,38 +37,6 @@ const intraChildren = computed(() => {
 
 const hasSubordinates = computed(() => {
     return (props.pos.subordinates && props.pos.subordinates.length > 0) || intraChildren.value.length > 0;
-});
-
-function toggleSubmenu() {
-    if (Number(props.pos.level) >= 5) {
-        emit('add-subordinate-same-level', props.pos);
-        return;
-    }
-    showSubmenu.value = !showSubmenu.value;
-}
-
-function handleAddSubSameLevel() {
-    showSubmenu.value = false;
-    emit('add-subordinate-same-level', props.pos);
-}
-
-function handleAddSubNextLevel() {
-    showSubmenu.value = false;
-    emit('add-subordinate-next-level', props.pos);
-}
-
-function closeSubmenu(e) {
-    if (bottomNodeRef.value && !bottomNodeRef.value.contains(e.target)) {
-        showSubmenu.value = false;
-    }
-}
-
-onMounted(() => {
-    window.addEventListener('click', closeSubmenu);
-});
-
-onUnmounted(() => {
-    window.removeEventListener('click', closeSubmenu);
 });
 </script>
 
@@ -98,42 +62,16 @@ onUnmounted(() => {
                 title="Titik hubung hierarki dari atasan"
             ></div>
 
-            <!-- NODE + DI BAWAH KARTU (TAMBAH HIERARKI BAWAHAN) -->
-            <div ref="bottomNodeRef" class="absolute -bottom-2.5 left-1/2 -translate-x-1/2 z-30">
-                <button
-                    type="button"
-                    @click.stop="toggleSubmenu"
-                    class="w-5 h-5 rounded-full border-2 border-white shadow-sm flex items-center justify-center transition-all duration-150 hover:scale-125 cursor-pointer"
-                    :class="levelDef.btnClass"
-                    :title="Number(pos.level) < 5 ? `Tambah bawahan (di Level ${pos.level} atau Level ${Number(pos.level) + 1})` : `Tambah bawahan di Level ${pos.level}`"
-                >
-                    <span class="material-symbols-outlined text-[12px] font-bold leading-none select-none">add</span>
-                </button>
-
-                <!-- POPOVER PILIHAN BAWAHAN (LEVEL INI ATAS-BAWAH vs LEVEL BAWAH) -->
-                <div
-                    v-if="showSubmenu"
-                    class="absolute top-full mt-1.5 left-1/2 -translate-x-1/2 bg-surface-container-lowest rounded-xl shadow-2xl border border-outline-variant/50 p-1.5 z-50 flex flex-col gap-1 min-w-[210px] whitespace-nowrap text-left"
-                >
-                    <button
-                        type="button"
-                        @click.stop="handleAddSubSameLevel"
-                        class="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-on-surface hover:bg-primary/10 hover:text-primary transition-colors cursor-pointer text-left"
-                    >
-                        <span class="material-symbols-outlined text-[15px] text-primary">south</span>
-                        <span>Bawahan di Level Ini (L{{ pos.level }})</span>
-                    </button>
-                    <button
-                        v-if="Number(pos.level) < 5"
-                        type="button"
-                        @click.stop="handleAddSubNextLevel"
-                        class="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-on-surface hover:bg-secondary-container/40 hover:text-on-secondary-container transition-colors cursor-pointer text-left"
-                    >
-                        <span class="material-symbols-outlined text-[15px] text-secondary">arrow_downward</span>
-                        <span>Bawahan di Level Bawah (L{{ Number(pos.level) + 1 }})</span>
-                    </button>
-                </div>
-            </div>
+            <!-- NODE + DI BAWAH KARTU (TAMBAH HIERARKI BAWAHAN: LANGSUNG KE MODAL) -->
+            <button
+                type="button"
+                @click.stop="$emit('add-subordinate', pos)"
+                class="absolute -bottom-2.5 left-1/2 -translate-x-1/2 w-5 h-5 rounded-full border-2 border-white shadow-sm flex items-center justify-center transition-all duration-150 hover:scale-125 z-30 cursor-pointer"
+                :class="levelDef.btnClass"
+                title="Tambah bawahan untuk jabatan ini"
+            >
+                <span class="material-symbols-outlined text-[12px] font-bold leading-none select-none">add</span>
+            </button>
 
             <!-- NODE + DI SAMPING KANAN KARTU (TAMBAH HIERARKI SEJAJAR) -->
             <button
@@ -202,8 +140,7 @@ onUnmounted(() => {
                     :hovered-pos-id="hoveredPosId"
                     @hover="$emit('hover', $event)"
                     @leave="$emit('leave')"
-                    @add-subordinate-same-level="$emit('add-subordinate-same-level', $event)"
-                    @add-subordinate-next-level="$emit('add-subordinate-next-level', $event)"
+                    @add-subordinate="$emit('add-subordinate', $event)"
                     @add-peer="$emit('add-peer', $event)"
                     @edit="$emit('edit', $event)"
                     @delete="$emit('delete', $event)"
