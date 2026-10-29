@@ -493,6 +493,27 @@ function updateConnectionLines() {
                                     color: parentLevelDef.strokeColor,
                                 });
                             }
+
+                            // Jika ada sibling lain yang lebih jauh di sisi yang sama, pasang branch dot di titik percabangan kartu ini
+                            const hasFurtherSibling = siblings.some(s => {
+                                if (s.id === pos.id) return false;
+                                const sEl = document.getElementById(`pos-card-${s.id}`);
+                                if (!sEl) return false;
+                                const sRect = sEl.getBoundingClientRect();
+                                const sX = Math.round((sRect.left + sRect.width / 2) - containerRect.left + scrollLeft);
+                                return (x2 > x1 && sX > x2 + 10) || (x2 < x1 && sX < x2 - 10);
+                            });
+                            if (hasFurtherSibling) {
+                                const branchDotKey = `branch-${pos.id}-${midY}`;
+                                if (!dotsMap.has(branchDotKey)) {
+                                    dotsMap.set(branchDotKey, {
+                                        id: `dot-${branchDotKey}`,
+                                        cx: x2,
+                                        cy: midY,
+                                        color: parentLevelDef.strokeColor,
+                                    });
+                                }
+                            }
                         }
                     }
 
@@ -572,11 +593,11 @@ function updateConnectionLines() {
                     midY = Math.round(y1 + (y2 - y1) * 0.5);
                 }
 
-                // Cek apakah jalur vertikal awal dari parent (x1) ke midY menabrak kartu lain di level ini
-                const obstacle = findObstacleCard(x1, y1, midY, [pos.parent_id, pos.id]);
+                // Cek apakah jalur vertikal awal dari parent (x1) ke midY / y2 menabrak kartu lain di level ini
+                const obstacle = findObstacleCard(x1, y1, y2, [pos.parent_id, pos.id]);
 
                 if (obstacle) {
-                    // DETOUR PINTAR: Hindari menabrak kartu (misal: Bidang Pendidikan tepat di bawah Ketua Badan Pelaksana)
+                    // DETOUR PINTAR: Hindari menabrak kartu (misal: jika ada kartu tepat di bawah garis tengah)
                     // Cari celah koridor terdekat di kanan atau kiri kartu penghalang
                     const rightNeighbor = allCardRects.find(o =>
                         o.id !== obstacle.id &&
@@ -609,9 +630,9 @@ function updateConnectionLines() {
 
                     // Jalur memutar 90 derajat yang elegan melewati sela kartu tanpa menabrak
                     path = `M ${x1} ${y1} L ${x1} ${y_above} L ${x_detour} ${y_above} L ${x_detour} ${y_below} L ${x2} ${y_below} L ${x2} ${y2}`;
-                } else if (Math.abs(x1 - x2) < 4) {
-                    // Lurus vertikal jika posisi tengah sejajar dan tanpa rintangan
-                    path = `M ${x1} ${y1} L ${x2} ${y2}`;
+                } else if (Math.abs(x1 - x2) <= 8) {
+                    // Lurus vertikal langsung dari tengah jika posisi tengah sejajar dan tanpa rintangan
+                    path = `M ${x1} ${y1} L ${x1} ${y2}`;
                 } else {
                     // Bersudut 90 derajat di pembatas antar level
                     path = `M ${x1} ${y1} L ${x1} ${midY} L ${x2} ${midY} L ${x2} ${y2}`;

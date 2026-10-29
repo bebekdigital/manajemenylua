@@ -151,9 +151,9 @@ const hasSubordinates = computed(() => {
         <!-- BAWAHAN DI LEVEL YANG SAMA (TAMPIL DI BAWAH KARTU ATASANNYA DI CONTAINER INI) -->
         <div v-if="intraChildren.length > 0" class="flex flex-col items-center mt-6 w-full">
             <!-- Jika memiliki garis komando lurus ke level bawah, bagi ke sayap kiri dan sayap kanan dengan koridor tengah terbuka dan tanpa wrapping agar card selalu sejajar berdampingan secara horizontal -->
-            <div v-if="hasCenterTrunkLine" class="flex items-start justify-center w-full min-w-max">
-                <!-- SAYAP KIRI (50% lebar, align ke kanan mendekati koridor tengah, sejajar horizontal tanpa wrap) -->
-                <div class="flex-1 flex items-start gap-4 sm:gap-5 justify-end flex-nowrap shrink-0 pr-5 sm:pr-7 min-w-[200px]">
+            <div v-if="hasCenterTrunkLine" class="grid grid-cols-2 w-max mx-auto">
+                <!-- SAYAP KIRI (50% lebar simetris, align ke kanan mendekati koridor tengah, sejajar horizontal tanpa wrap) -->
+                <div class="flex items-start gap-4 sm:gap-5 justify-end flex-nowrap shrink-0 pr-6 sm:pr-8">
                     <OrgPositionNode
                         v-for="child in intraLeftChildren"
                         :key="child.id"
@@ -171,8 +171,8 @@ const hasSubordinates = computed(() => {
                     />
                 </div>
 
-                <!-- SAYAP KANAN (50% lebar, align ke kiri mendekati koridor tengah, sejajar horizontal tanpa wrap) -->
-                <div class="flex-1 flex items-start gap-4 sm:gap-5 justify-start flex-nowrap shrink-0 pl-5 sm:pl-7 min-w-[200px]">
+                <!-- SAYAP KANAN (50% lebar simetris, align ke kiri mendekati koridor tengah, sejajar horizontal tanpa wrap) -->
+                <div class="flex items-start gap-4 sm:gap-5 justify-start flex-nowrap shrink-0 pl-6 sm:pl-8">
                     <OrgPositionNode
                         v-for="child in intraRightChildren"
                         :key="child.id"
