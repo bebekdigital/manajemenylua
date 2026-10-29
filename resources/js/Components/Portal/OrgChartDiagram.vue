@@ -764,13 +764,13 @@ function handleDelete(pos) {
             <!-- Header Section Toolbar -->
             <div class="p-5 sm:p-6 border-b border-outline-variant/40 bg-surface-container-low/30">
                 <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                    <div class="flex items-start sm:items-center gap-3.5">
-                        <div class="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-xs shrink-0">
-                            <span class="material-symbols-outlined text-2xl">account_tree</span>
+                    <div class="flex items-start sm:items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-xs shrink-0">
+                            <span class="material-symbols-outlined text-xl">account_tree</span>
                         </div>
                         <div>
-                            <h3 class="text-lg sm:text-xl font-bold text-on-surface">Diagram Susunan Organisasi</h3>
-                            <p class="text-xs sm:text-sm text-on-surface-variant mt-0.5">
+                            <h3 class="text-base font-bold text-on-surface">Diagram Susunan Organisasi</h3>
+                            <p class="text-xs text-on-surface-variant">
                                 Struktur hierarki organisasi dengan garis penghubung langsung antara atasan dan bawahan
                             </p>
                         </div>
