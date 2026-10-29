@@ -71,8 +71,13 @@ class User extends Authenticatable
             }
         }
 
-        return Employee::where('nama', $this->name)
-            ->orWhere('nama_lengkap_gelar', $this->name)
-            ->first();
+        $emp = Employee::where('nama', $this->name)->first();
+        if ($emp) {
+            return $emp;
+        }
+
+        return Employee::all()->first(function (Employee $e) {
+            return $e->nama_lengkap_gelar === $this->name || $e->nama === $this->name;
+        });
     }
 }

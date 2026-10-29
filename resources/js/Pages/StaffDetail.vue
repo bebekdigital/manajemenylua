@@ -1346,7 +1346,7 @@ function deleteDocument(doc) {
                         </span>
                     </div>
                     <div class="space-y-2">
-                        <h3 class="text-lg sm:text-xl font-bold text-on-surface leading-snug">{{ employee.nama_lengkap_gelar || employee.nama }}</h3>
+                        <h3 class="text-lg sm:text-xl font-bold text-on-surface leading-snug">{{ employee.nama }}</h3>
                         <p class="text-xs sm:text-sm text-on-surface-variant font-medium">NIPY: {{ employee.nipy || '-' }}</p>
                         <div class="flex flex-wrap items-center gap-2 pt-0.5">
                             <span

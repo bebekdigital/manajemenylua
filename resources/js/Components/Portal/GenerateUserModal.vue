@@ -254,7 +254,7 @@ function submit() {
                                         </td>
                                         <td class="p-3">
                                             <div class="font-bold text-on-surface text-xs sm:text-sm">
-                                                {{ emp.nama_lengkap_gelar || emp.nama }}
+                                                {{ emp.nama }}
                                             </div>
                                             <div v-if="emp.nipy" class="text-[11px] text-on-surface-variant font-mono">
                                                 NIPY: {{ emp.nipy }}

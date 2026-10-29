@@ -96,7 +96,7 @@ class PortalController extends Controller
                     return [
                         'id' => $emp->id,
                         'nama' => $emp->nama,
-                        'nama_lengkap_gelar' => $emp->nama_lengkap_gelar,
+                        'nama_lengkap_gelar' => $emp->nama,
                         'nipy' => $emp->nipy,
                         'tanggal_lahir' => $emp->tanggal_lahir?->format('Y-m-d'),
                         'tanggal_lahir_formatted' => $emp->tanggal_lahir?->translatedFormat('d F Y') ?? '-',

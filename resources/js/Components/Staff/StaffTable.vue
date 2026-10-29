@@ -130,7 +130,7 @@ function getJenjangColor(jenjang) {
                                 >
                                     <span class="material-symbols-outlined text-[16px] sm:text-[18px]">edit</span>
                                 </Link>
-                                <span class="text-[12px] sm:text-sm font-semibold text-on-surface whitespace-nowrap">{{ emp.nama_lengkap_gelar || emp.nama }}</span>
+                                <span class="text-[12px] sm:text-sm font-semibold text-on-surface whitespace-nowrap">{{ emp.nama }}</span>
                             </div>
                         </td>
                         <!-- NIPY -->

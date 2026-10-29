@@ -81,7 +81,7 @@ class EmployeeController extends Controller
             ],
             'teacherEmployee' => $myEmployee ? [
                 'id' => $myEmployee->id,
-                'nama' => $myEmployee->nama_lengkap_gelar ?: $myEmployee->nama,
+                'nama' => $myEmployee->nama,
             ] : null,
             'selectedAcademicYear' => $selectedYear ? [
                 'id' => $selectedYear->id,
@@ -132,7 +132,7 @@ class EmployeeController extends Controller
             'nama' => $employee->nama,
             'gelar_depan' => $employee->gelar_depan,
             'gelar_belakang' => $employee->gelar_belakang,
-            'nama_lengkap_gelar' => $employee->nama_lengkap_gelar,
+            'nama_lengkap_gelar' => $employee->nama,
             'jk' => $employee->jk,
             'ttl' => $employee->ttl,
             'tempat_lahir' => $employee->tempat_lahir,
@@ -718,7 +718,7 @@ class EmployeeController extends Controller
             'nama' => $employee->nama,
             'gelar_depan' => $employee->gelar_depan,
             'gelar_belakang' => $employee->gelar_belakang,
-            'nama_lengkap_gelar' => $employee->nama_lengkap_gelar,
+            'nama_lengkap_gelar' => $employee->nama,
             'jk' => $employee->jk,
             'ttl' => $employee->ttl,
             'nik' => $employee->nik,

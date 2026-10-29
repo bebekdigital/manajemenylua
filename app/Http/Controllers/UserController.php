@@ -73,7 +73,7 @@ class UserController extends Controller
                 }
 
                 $user = User::create([
-                    'name' => $employee->nama_lengkap_gelar ?: $employee->nama,
+                    'name' => $employee->nama,
                     'username' => $username,
                     'email' => $email,
                     'password' => Hash::make($rawPassword),

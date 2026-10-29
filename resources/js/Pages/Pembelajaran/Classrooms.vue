@@ -390,7 +390,7 @@ function removeSelected() {
                         <h3 class="font-bold text-on-surface text-base">Daftar Siswa — {{ selectedClassName }}</h3>
                         <div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-xs text-on-surface-variant">
                             <span><strong class="font-medium text-on-surface">Jumlah Siswa:</strong> {{ classStudents.length }}</span>
-                            <span><strong class="font-medium text-on-surface">Wali Kelas:</strong> Ustadz Fulan, S.Pd</span>
+                            <span><strong class="font-medium text-on-surface">Wali Kelas:</strong> Ustadz Fulan</span>
                             <span><strong class="font-medium text-on-surface">Ruangan:</strong> Gedung B - Lt. 2</span>
                         </div>
                     </div>
