@@ -292,6 +292,22 @@ const positionsByLevel = computed(() => {
     return groups;
 });
 
+// Highest level that currently has at least 1 position
+const maxActiveLevel = computed(() => {
+    let maxL = 1;
+    for (let l = 1; l <= 5; l++) {
+        if (positionsByLevel.value[l] && positionsByLevel.value[l].length > 0) {
+            maxL = l;
+        }
+    }
+    return maxL;
+});
+
+// Only render active levels with positions (so empty levels at bottom don't inflate scroll height)
+const visibleLevelDefinitions = computed(() => {
+    return levelDefinitions.filter(def => def.level <= maxActiveLevel.value);
+});
+
 // Map of position ID -> array of child position objects in the SAME level
 const intraChildrenMapByLevel = computed(() => {
     const map = {};
@@ -396,8 +412,8 @@ function updateConnectionLines() {
     });
 
     const tableWidth = tableRef.value ? tableRef.value.offsetWidth : 960;
-    svgWidth.value = Math.max(containerEl.scrollWidth, tableWidth, maxCardRight + 120);
-    svgHeight.value = Math.max(containerEl.scrollHeight, tableRef.value ? tableRef.value.offsetHeight : 800);
+    svgWidth.value = Math.max(containerEl.clientWidth, tableWidth, maxCardRight + 80);
+    svgHeight.value = tableRef.value ? tableRef.value.offsetHeight : 0;
 
     const lines = [];
     const dotsMap = new Map();
@@ -762,8 +778,8 @@ function handleDelete(pos) {
         <!-- Main Table Container: Seluruh Baris Level Menyatu Seperti Baris Tabel -->
         <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/60 shadow-sm overflow-hidden">
             <!-- Header Section Toolbar -->
-            <div class="p-5 sm:p-6 border-b border-outline-variant/40 bg-surface-container-low/30">
-                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div class="px-5 py-3.5 sm:px-6 sm:py-4 border-b border-outline-variant/40 bg-surface-container-low/30">
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4">
                     <div class="flex items-start sm:items-center gap-3">
                         <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-xs shrink-0">
                             <span class="material-symbols-outlined text-xl">account_tree</span>
@@ -781,17 +797,17 @@ function handleDelete(pos) {
                         <button
                             type="button"
                             @click="$emit('add-department')"
-                            class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-outline-variant/60 hover:bg-surface-container-high text-on-surface font-semibold text-xs sm:text-sm transition-all cursor-pointer"
+                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-outline-variant/60 hover:bg-surface-container-high text-on-surface font-semibold text-xs transition-all cursor-pointer"
                             title="Tambah bidang kerja yayasan"
                         >
-                            <span class="material-symbols-outlined text-[18px]">add_business</span>
+                            <span class="material-symbols-outlined text-[16px]">add_business</span>
                             <span>Tambah Bidang</span>
                         </button>
                     </div>
                 </div>
 
                 <!-- Filters & View Switcher Bar -->
-                <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mt-5 pt-4 border-t border-outline-variant/20">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mt-3 pt-3 border-t border-outline-variant/20">
                     <!-- Search & Filter -->
                     <div class="flex items-center gap-2.5 flex-1 flex-wrap">
                         <div class="relative flex-1 min-w-[220px]">
@@ -853,7 +869,7 @@ function handleDelete(pos) {
             <div
                 v-if="activeTab === 'diagram'"
                 ref="diagramContainerRef"
-                class="relative overflow-x-auto min-w-full"
+                class="relative overflow-x-auto overflow-y-hidden min-w-full"
                 @scroll="updateConnectionLines"
             >
                 <!-- KANVAS SVG GARIS HIERARKI PENGHUBUNG ANTARA ATASAN DAN BAWAHAN -->
@@ -921,19 +937,19 @@ function handleDelete(pos) {
                     />
                 </svg>
 
-                <!-- TABEL / CONTAINER 5 BARIS LEVEL YANG MENYATU SECARA VERTIKAL -->
+                <!-- TABEL / CONTAINER BARIS LEVEL YANG MENYATU SECARA VERTIKAL -->
                 <table ref="tableRef" class="w-full border-collapse min-w-[960px] text-left">
                     <tbody>
                         <tr
-                            v-for="(def, idx) in levelDefinitions"
+                            v-for="(def, idx) in visibleLevelDefinitions"
                             :key="def.level"
                             :id="`level-row-${def.level}`"
                             class="border-b border-outline-variant/40 last:border-b-0 hover:bg-slate-50/15 transition-colors relative"
                         >
                             <!-- CONTAINER LEVEL: POSISI LEVEL DI POJOK KIRI ATAS CONTAINER (BUKAN BARIS BARU) -->
-                            <td class="p-3.5 pt-9 sm:pt-9 sm:px-5 align-top relative min-h-[100px]" :class="def.rowHeaderBg">
+                            <td class="px-3.5 pt-7 pb-3 sm:px-5 sm:pt-7 sm:pb-3.5 align-top relative" :class="def.rowHeaderBg">
                                 <!-- POJOK KIRI ATAS: Tulisan ringkas & kecil di baris yang sama dengan container -->
-                                <div class="absolute top-2.5 left-3 sm:left-4 z-20 inline-flex items-center gap-1.5 flex-wrap select-none bg-surface-container-lowest/80 backdrop-blur-2xs px-2 py-0.5 rounded-lg border border-outline-variant/30 shadow-2xs">
+                                <div class="absolute top-2 left-3 sm:left-4 z-20 inline-flex items-center gap-1.5 flex-wrap select-none bg-surface-container-lowest/80 backdrop-blur-2xs px-2 py-0.5 rounded-lg border border-outline-variant/30 shadow-2xs">
                                     <span :class="['text-[10px] font-bold px-1.5 py-0.5 rounded border shadow-2xs', def.badgeClass]">
                                         Level {{ def.level }}
                                     </span>
@@ -989,7 +1005,7 @@ function handleDelete(pos) {
                                 <!-- EMPTY STATE SAAT BARIS LEVEL BELUM MEMILIKI JABATAN (TERPUSAT DI TENGAH) -->
                                 <div
                                     v-else
-                                    class="py-4 px-4 border border-dashed border-outline-variant/40 rounded-xl bg-surface-container-lowest/50 flex items-center justify-between gap-3 max-w-sm mx-auto"
+                                    class="py-3 px-4 border border-dashed border-outline-variant/40 rounded-xl bg-surface-container-lowest/50 flex items-center justify-between gap-3 max-w-sm mx-auto"
                                 >
                                     <p class="text-xs font-medium text-on-surface-variant">
                                         Belum ada jabatan di Level {{ def.level }}.
@@ -1008,6 +1024,24 @@ function handleDelete(pos) {
                         </tr>
                     </tbody>
                 </table>
+
+                <!-- Baris Tambah Level Selanjutnya (Jika belum sampai Level 5) -->
+                <div
+                    v-if="maxActiveLevel < 5"
+                    class="px-5 py-2.5 bg-surface-container-low/20 border-t border-outline-variant/30 flex items-center justify-between text-xs"
+                >
+                    <span class="text-on-surface-variant font-medium">
+                        Tingkat organisasi aktif: Level 1 s/d Level {{ maxActiveLevel }}
+                    </span>
+                    <button
+                        type="button"
+                        @click="handleAddAtLevel(maxActiveLevel + 1)"
+                        class="inline-flex items-center gap-1 text-primary font-semibold hover:underline cursor-pointer"
+                    >
+                        <span class="material-symbols-outlined text-[15px]">add_circle</span>
+                        <span>Tambah Jabatan di Level {{ maxActiveLevel + 1 }}</span>
+                    </button>
+                </div>
             </div>
 
             <!-- ======================================================== -->

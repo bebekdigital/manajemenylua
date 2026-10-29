@@ -149,7 +149,7 @@ const hasSubordinates = computed(() => {
         </div>
 
         <!-- BAWAHAN DI LEVEL YANG SAMA (TAMPIL DI BAWAH KARTU ATASANNYA DI CONTAINER INI) -->
-        <div v-if="intraChildren.length > 0" class="flex flex-col items-center mt-6 w-full">
+        <div v-if="intraChildren.length > 0" class="flex flex-col items-center mt-4 sm:mt-5 w-full">
             <!-- Jika memiliki garis komando lurus ke level bawah, bagi ke sayap kiri dan sayap kanan dengan koridor tengah terbuka dan tanpa wrapping agar card selalu sejajar berdampingan secara horizontal -->
             <div v-if="hasCenterTrunkLine" class="grid grid-cols-2 w-max mx-auto">
                 <!-- SAYAP KIRI (50% lebar simetris, align ke kanan mendekati koridor tengah, sejajar horizontal tanpa wrap) -->
