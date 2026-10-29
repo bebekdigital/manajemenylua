@@ -859,7 +859,7 @@ function handleDelete(pos) {
                             class="border-b border-outline-variant/40 last:border-b-0 hover:bg-slate-50/15 transition-colors relative"
                         >
                             <!-- CONTAINER LEVEL: POSISI LEVEL DI POJOK KIRI ATAS CONTAINER (BUKAN BARIS BARU) -->
-                            <td class="p-4 pt-10 sm:pt-9 sm:px-6 align-top relative min-h-[140px]" :class="def.rowHeaderBg">
+                            <td class="p-3.5 pt-9 sm:pt-9 sm:px-5 align-top relative min-h-[100px]" :class="def.rowHeaderBg">
                                 <!-- POJOK KIRI ATAS: Tulisan ringkas & kecil di baris yang sama dengan container -->
                                 <div class="absolute top-2.5 left-3 sm:left-4 z-20 inline-flex items-center gap-1.5 flex-wrap select-none bg-surface-container-lowest/80 backdrop-blur-2xs px-2 py-0.5 rounded-lg border border-outline-variant/30 shadow-2xs">
                                     <span :class="['text-[10px] font-bold px-1.5 py-0.5 rounded border shadow-2xs', def.badgeClass]">
@@ -896,7 +896,7 @@ function handleDelete(pos) {
                                 <!-- SETIAP CARD JABATAN DIMULAI DARI TENGAH (justify-center) -->
                                 <div
                                     v-if="intraRootsByLevel[def.level] && intraRootsByLevel[def.level].length > 0"
-                                    class="flex items-start justify-center gap-8 flex-wrap py-2 w-full"
+                                    class="flex items-start justify-center gap-6 sm:gap-7 flex-wrap py-1.5 w-full"
                                 >
                                     <OrgPositionNode
                                         v-for="rootPos in intraRootsByLevel[def.level]"
