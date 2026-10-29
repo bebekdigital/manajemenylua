@@ -10,7 +10,6 @@ import SchoolProgramFormModal from '@/Components/Portal/SchoolProgramFormModal.v
 import SchoolClassFormModal from '@/Components/Portal/SchoolClassFormModal.vue';
 import DepartmentFormModal from '@/Components/Portal/DepartmentFormModal.vue';
 import DepartmentPositionFormModal from '@/Components/Portal/DepartmentPositionFormModal.vue';
-import SchoolPositionFormModal from '@/Components/Portal/SchoolPositionFormModal.vue';
 import OrgChartDiagram from '@/Components/Portal/OrgChartDiagram.vue';
 import GenerateUserModal from '@/Components/Portal/GenerateUserModal.vue';
 import RolePermissionPanel from '@/Components/Portal/RolePermissionPanel.vue';
@@ -47,10 +46,6 @@ const props = defineProps({
         default: () => [],
     },
     organizationLevels: {
-        type: Array,
-        default: () => [],
-    },
-    allSchoolPositions: {
         type: Array,
         default: () => [],
     },
@@ -255,48 +250,6 @@ function confirmClassDelete(cls) {
         itemName: cls.name,
         onConfirm: (done) => {
             router.delete(`/portal/school-classes/${cls.id}`, {
-                preserveScroll: true,
-                onFinish: done,
-            });
-        },
-    });
-}
-
-// School Unit Position (Jabatan Unit) Modals
-const showUnitPositionModal = ref(false);
-const editingUnitPosition = ref(null);
-const selectedUnitForPosition = ref(null);
-
-function openPositionCreateModalForUnit(unit) {
-    editingUnitPosition.value = null;
-    selectedUnitForPosition.value = unit;
-    showUnitPositionModal.value = true;
-}
-
-function openPositionEditModalForUnit(pos, unit) {
-    editingUnitPosition.value = { ...pos };
-    selectedUnitForPosition.value = unit;
-    showUnitPositionModal.value = true;
-}
-
-function closeUnitPositionModal() {
-    showUnitPositionModal.value = false;
-    editingUnitPosition.value = null;
-    selectedUnitForPosition.value = null;
-}
-
-function onUnitPositionSuccess() {
-    closeUnitPositionModal();
-    dismissedFlash.value = false;
-}
-
-function confirmUnitPositionDelete(pos, unit) {
-    openConfirmModal({
-        title: 'Hapus Jabatan Unit',
-        message: `Yakin ingin menghapus jabatan dari unit ${unit?.name || 'ini'}?`,
-        itemName: pos.name,
-        onConfirm: (done) => {
-            router.delete(`/portal/school-units/${unit.id}/positions/${pos.id}`, {
                 preserveScroll: true,
                 onFinish: done,
             });
@@ -1170,16 +1123,6 @@ function formatDate(dateStr) {
         :mode-title="positionModalTitle"
         @close="closePositionModal"
         @success="onPositionSuccess"
-    />
-
-    <!-- School Position Form Modal -->
-    <SchoolPositionFormModal
-        :show="showUnitPositionModal"
-        :editing="editingUnitPosition"
-        :school-unit="selectedUnitForPosition"
-        :all-positions="allSchoolPositions"
-        @close="closeUnitPositionModal"
-        @success="onUnitPositionSuccess"
     />
 
     <!-- Pop-up Modal Sukses -->

@@ -267,22 +267,7 @@ class EmployeeController extends Controller
             'all_documents' => $employee->documents->values()->toArray(),
         ];
 
-        $schoolUnitRelations = [];
-        if (Schema::hasTable('school_positions') && Schema::hasTable('school_unit_positions')) {
-            $schoolUnitRelations[] = 'positions';
-        }
-
-        $schoolUnits = Schema::hasTable('school_units')
-            ? SchoolUnit::with($schoolUnitRelations)->orderBy('name')->get()->map(fn ($unit) => [
-                'id' => $unit->id,
-                'name' => $unit->name,
-                'positions' => $unit->relationLoaded('positions')
-                    ? $unit->positions->pluck('name')->values()->toArray()
-                    : [],
-            ])->toArray()
-            : [];
-
-        $departments = Schema::hasTable('departments')
+        $departments = Schema::hasTable('departments') && Schema::hasTable('department_positions')
             ? Department::with('positions')->orderBy('order')->orderBy('name')->get()->map(fn ($dept) => [
                 'id' => $dept->id,
                 'name' => $dept->name,
@@ -290,6 +275,20 @@ class EmployeeController extends Controller
                     ? $dept->positions->pluck('name')->values()->toArray()
                     : [],
             ])->toArray()
+            : [];
+
+        $deptKeyed = collect($departments)->keyBy('name');
+
+        $schoolUnits = Schema::hasTable('school_units')
+            ? SchoolUnit::orderBy('name')->get()->map(function ($unit) use ($deptKeyed) {
+                $dept = $deptKeyed->get($unit->name);
+
+                return [
+                    'id' => $unit->id,
+                    'name' => $unit->name,
+                    'positions' => $dept ? $dept['positions'] : [],
+                ];
+            })->toArray()
             : [];
 
         $units = array_column($schoolUnits, 'name');

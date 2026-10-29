@@ -23,12 +23,20 @@ class SchoolUnit extends Model
         return $this->hasMany(SchoolClass::class);
     }
 
+    public function department()
+    {
+        return $this->hasOne(Department::class, 'name', 'name');
+    }
+
     public function positions()
     {
-        return $this->belongsToMany(SchoolPosition::class, 'school_unit_positions')
-            ->withPivot('id', 'order')
-            ->withTimestamps()
-            ->orderByPivot('order')
-            ->orderBy('name');
+        return $this->hasManyThrough(
+            DepartmentPosition::class,
+            Department::class,
+            'name',
+            'department_id',
+            'name',
+            'id'
+        )->orderBy('level')->orderBy('order')->orderBy('name');
     }
 }

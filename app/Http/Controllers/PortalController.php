@@ -9,7 +9,6 @@ use App\Models\Employee;
 use App\Models\OrganizationLevel;
 use App\Models\RolePermission;
 use App\Models\SchoolLevel;
-use App\Models\SchoolPosition;
 use App\Models\User;
 use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
@@ -45,12 +44,7 @@ class PortalController extends Controller
             'created_at' => $user->created_at?->format('Y-m-d H:i'),
         ]);
 
-        $unitRelations = ['units.programs', 'units.classes'];
-        if (Schema::hasTable('school_positions') && Schema::hasTable('school_unit_positions')) {
-            $unitRelations[] = 'units.positions';
-        }
-
-        $schoolLevels = SchoolLevel::with($unitRelations)->orderBy('order')->get();
+        $schoolLevels = SchoolLevel::with(['units.programs', 'units.classes'])->orderBy('order')->get();
 
         $departments = Schema::hasTable('departments')
             ? Department::with('positions')->orderBy('order')->orderBy('name')->get()
@@ -80,14 +74,9 @@ class PortalController extends Controller
             ? OrganizationLevel::orderBy('level')->get()
             : collect([]);
 
-        $allSchoolPositions = Schema::hasTable('school_positions')
-            ? SchoolPosition::orderBy('name')->get(['id', 'name'])
-            : collect([]);
-
-        $schoolRoles = $allSchoolPositions->pluck('name')->unique()->values()->toArray();
-        $deptRoles = $departments->flatMap(fn ($d) => $d->positions->pluck('name'))->unique()->values()->toArray();
-
-        $allJabatan = array_values(array_unique(array_filter(array_merge($schoolRoles, $deptRoles))));
+        $allJabatan = Schema::hasTable('department_positions')
+            ? DepartmentPosition::distinct()->pluck('name')->filter()->values()->toArray()
+            : [];
         sort($allJabatan);
         $availableRoles = array_merge(['superadmin'], $allJabatan);
 
@@ -149,12 +138,12 @@ class PortalController extends Controller
             'users' => $users,
             'schoolLevels' => $schoolLevels,
             'departments' => $departments,
-            'allSchoolPositions' => $allSchoolPositions,
+            'allSchoolPositions' => [],
             'organizationPositions' => $organizationPositions,
             'organizationLevels' => $organizationLevels,
             'availableRoles' => $availableRoles,
-            'schoolRoles' => $schoolRoles,
-            'deptRoles' => $deptRoles,
+            'schoolRoles' => [],
+            'deptRoles' => $allJabatan,
             'employees' => $employees,
             'permissionsData' => $permissionsData,
             'defaultFeatures' => $defaultFeatures,

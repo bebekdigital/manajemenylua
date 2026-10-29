@@ -719,14 +719,16 @@ const allMasterUnitNames = computed(() => {
 function getJabatanOptionsForUnit(unitName) {
     if (!unitName) return [];
 
+    const cleanUnit = unitName.trim().toLowerCase();
+
     // Cari di Unit Sekolah
-    const foundSchool = (props.schoolUnits || []).find((u) => u.name === unitName);
+    const foundSchool = (props.schoolUnits || []).find((u) => u.name && u.name.trim().toLowerCase() === cleanUnit);
     if (foundSchool && Array.isArray(foundSchool.positions) && foundSchool.positions.length > 0) {
         return foundSchool.positions;
     }
 
     // Cari di Bidang (Departments)
-    const foundDept = (props.departments || []).find((d) => d.name === unitName);
+    const foundDept = (props.departments || []).find((d) => d.name && d.name.trim().toLowerCase() === cleanUnit);
     if (foundDept && Array.isArray(foundDept.positions) && foundDept.positions.length > 0) {
         return foundDept.positions;
     }

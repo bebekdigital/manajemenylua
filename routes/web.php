@@ -14,7 +14,6 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RolePermissionController;
 use App\Http\Controllers\SchoolClassController;
 use App\Http\Controllers\SchoolLevelController;
-use App\Http\Controllers\SchoolPositionController;
 use App\Http\Controllers\SchoolProgramController;
 use App\Http\Controllers\SchoolUnitController;
 use App\Http\Controllers\StatisticsController;
@@ -204,11 +203,6 @@ Route::middleware('auth')->group(function () {
     Route::post('/portal/school-units/{schoolUnit}/classes', [SchoolClassController::class, 'store'])->name('portal.school-classes.store');
     Route::put('/portal/school-classes/{schoolClass}', [SchoolClassController::class, 'update'])->name('portal.school-classes.update');
     Route::delete('/portal/school-classes/{schoolClass}', [SchoolClassController::class, 'destroy'])->name('portal.school-classes.destroy');
-
-    Route::post('/portal/school-units/{schoolUnit}/positions', [SchoolPositionController::class, 'store'])->name('portal.school-positions.store');
-    Route::put('/portal/school-positions/{schoolPosition}', [SchoolPositionController::class, 'update'])->name('portal.school-positions.update');
-    Route::delete('/portal/school-units/{schoolUnit}/positions/{schoolPosition}', [SchoolPositionController::class, 'detach'])->name('portal.school-positions.detach');
-    Route::delete('/portal/school-positions/{schoolPosition}', [SchoolPositionController::class, 'destroy'])->name('portal.school-positions.destroy');
 
     // Portal Management - Departments and Positions (Bidang & Jabatan)
     Route::post('/portal/departments', [DepartmentController::class, 'store'])->name('portal.departments.store');

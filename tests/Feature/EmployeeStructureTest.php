@@ -7,7 +7,6 @@ use App\Models\Employee;
 use App\Models\EmployeePosition;
 use App\Models\EmployeeRecord;
 use App\Models\SchoolLevel;
-use App\Models\SchoolPosition;
 use App\Models\SchoolUnit;
 use App\Models\User;
 use App\Services\EmployeeImportService;
@@ -406,8 +405,8 @@ class EmployeeStructureTest extends TestCase
 
         $level = SchoolLevel::create(['name' => 'SD', 'order' => 1]);
         $unit = SchoolUnit::create(['school_level_id' => $level->id, 'name' => 'SDIT Ulil Albab']);
-        $pos = SchoolPosition::create(['name' => 'Guru Kelas']);
-        $unit->positions()->attach($pos->id);
+        $deptSD = Department::create(['name' => 'SDIT Ulil Albab']);
+        $deptSD->positions()->create(['name' => 'Guru Kelas']);
 
         $dept = Department::create(['name' => 'Bidang Sarpras']);
         $dept->positions()->create(['name' => 'Kepala Bidang']);
@@ -420,7 +419,7 @@ class EmployeeStructureTest extends TestCase
             ->has('schoolUnits', 1)
             ->where('schoolUnits.0.name', 'SDIT Ulil Albab')
             ->where('schoolUnits.0.positions.0', 'Guru Kelas')
-            ->has('departments', 1)
+            ->has('departments', 2)
             ->where('departments.0.name', 'Bidang Sarpras')
             ->where('departments.0.positions.0', 'Kepala Bidang')
         );

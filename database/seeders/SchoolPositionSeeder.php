@@ -2,9 +2,11 @@
 
 namespace Database\Seeders;
 
-use App\Models\SchoolPosition;
+use App\Models\Department;
+use App\Models\DepartmentPosition;
 use App\Models\SchoolUnit;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Schema;
 
 class SchoolPositionSeeder extends Seeder
 {
@@ -13,32 +15,60 @@ class SchoolPositionSeeder extends Seeder
      */
     public function run(): void
     {
+        if (! Schema::hasTable('departments') || ! Schema::hasTable('department_positions')) {
+            return;
+        }
+
         $defaultPositions = [
             'Kepala Sekolah',
             'Wakil Kepala Sekolah',
-            'Wali Kelas',
-            'Guru Mata Pelajaran',
             'Guru Kelas',
+            'Guru Mata Pelajaran',
+            'Guru',
+            'Wali Kelas',
             'Tenaga Administrasi (TU)',
             'Bendahara Unit',
         ];
 
         $units = SchoolUnit::all();
 
-        // 1. Buat master positions (hanya 1 id per nama posisi)
-        $positionMap = [];
-        foreach ($defaultPositions as $posName) {
-            $pos = SchoolPosition::firstOrCreate(['name' => $posName]);
-            $positionMap[$posName] = $pos->id;
-        }
+        // Cari parent Ketua Badan Pelaksana jika ada
+        $leader = DepartmentPosition::where('name', 'like', '%Ketua Badan Pelaksana%')->first();
+        $leaderId = $leader?->id;
 
-        // 2. Hubungkan ke unit sekolah
         foreach ($units as $unit) {
+            $dept = Department::firstOrCreate(
+                ['name' => $unit->name],
+                ['order' => 10]
+            );
+
+            $kepala = DepartmentPosition::where('department_id', $dept->id)
+                ->where('name', 'Kepala Sekolah')
+                ->first();
+            $kepalaId = $kepala?->id;
+
             foreach ($defaultPositions as $order => $posName) {
-                $posId = $positionMap[$posName];
-                $unit->positions()->syncWithoutDetaching([
-                    $posId => ['order' => $order],
-                ]);
+                $isKepala = strcasecmp($posName, 'Kepala Sekolah') === 0;
+                $isWakil = stripos($posName, 'Wakil Kepala') !== false;
+
+                $level = $isKepala ? 3 : ($isWakil ? 3 : 4);
+                $parentId = $isKepala ? $leaderId : $kepalaId;
+
+                $pos = DepartmentPosition::firstOrCreate(
+                    [
+                        'department_id' => $dept->id,
+                        'name' => $posName,
+                    ],
+                    [
+                        'level' => $level,
+                        'parent_id' => $parentId,
+                        'order' => $order,
+                    ]
+                );
+
+                if ($isKepala && ! $kepalaId) {
+                    $kepalaId = $pos->id;
+                }
             }
         }
     }
