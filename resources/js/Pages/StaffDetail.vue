@@ -700,19 +700,14 @@ function removeRiwayatJabatanRow(index) {
     form.riwayat_jabatan.splice(index, 1);
 }
 
-// Daftar nama Unit Sekolah dari Tab Jenjang & Unit Sekolah
-const unitSekolahList = computed(() => {
-    return (props.schoolUnits || []).map((u) => u.name);
-});
-
-// Daftar nama Bidang dari Tab Bidang & Jabatan
+// Daftar nama Unit Kerja / Bidang dari Diagram Susunan Organisasi (Departments)
 const bidangList = computed(() => {
     return (props.departments || []).map((d) => d.name);
 });
 
 // Semua nama unit kerja terdaftar di master
 const allMasterUnitNames = computed(() => {
-    return [...unitSekolahList.value, ...bidangList.value];
+    return bidangList.value;
 });
 
 // Mengambil daftar nama jabatan yang cocok dengan unit kerja yang dipilih
@@ -721,16 +716,16 @@ function getJabatanOptionsForUnit(unitName) {
 
     const cleanUnit = unitName.trim().toLowerCase();
 
-    // Cari di Unit Sekolah
-    const foundSchool = (props.schoolUnits || []).find((u) => u.name && u.name.trim().toLowerCase() === cleanUnit);
-    if (foundSchool && Array.isArray(foundSchool.positions) && foundSchool.positions.length > 0) {
-        return foundSchool.positions;
-    }
-
-    // Cari di Bidang (Departments)
+    // Cari di Bidang / Unit Organisasi (Departments dari Diagram)
     const foundDept = (props.departments || []).find((d) => d.name && d.name.trim().toLowerCase() === cleanUnit);
     if (foundDept && Array.isArray(foundDept.positions) && foundDept.positions.length > 0) {
         return foundDept.positions;
+    }
+
+    // Fallback cari di schoolUnits jika ada
+    const foundSchool = (props.schoolUnits || []).find((u) => u.name && u.name.trim().toLowerCase() === cleanUnit);
+    if (foundSchool && Array.isArray(foundSchool.positions) && foundSchool.positions.length > 0) {
+        return foundSchool.positions;
     }
 
     return [];
@@ -2945,16 +2940,9 @@ function deleteDocument(doc) {
                                                 class="w-full px-3 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
                                             >
                                                 <option value="" disabled>-- Pilih Unit Kerja --</option>
-                                                <optgroup v-if="unitSekolahList.length > 0" label="Unit Sekolah (Jenjang & Unit Sekolah)">
-                                                    <option v-for="unit in unitSekolahList" :key="'school_' + unit" :value="unit">
-                                                        {{ unit }}
-                                                    </option>
-                                                </optgroup>
-                                                <optgroup v-if="bidangList.length > 0" label="Bidang (Bidang & Jabatan)">
-                                                    <option v-for="dept in bidangList" :key="'dept_' + dept" :value="dept">
-                                                        {{ dept }}
-                                                    </option>
-                                                </optgroup>
+                                                <option v-for="dept in bidangList" :key="'dept_' + dept" :value="dept">
+                                                    {{ dept }}
+                                                </option>
                                                 <option
                                                     v-if="pos.unit_kerja && !allMasterUnitNames.includes(pos.unit_kerja)"
                                                     :value="pos.unit_kerja"
