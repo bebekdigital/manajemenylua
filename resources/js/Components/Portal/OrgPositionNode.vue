@@ -35,6 +35,26 @@ const intraChildren = computed(() => {
     return props.intraChildrenMap[props.pos.id] || [];
 });
 
+const hasCenterTrunkLine = computed(() => {
+    return !!props.pos.has_lower_children;
+});
+
+const intraLeftChildren = computed(() => {
+    const list = intraChildren.value;
+    if (list.length === 0) return [];
+    if (list.length === 1) return [];
+    const splitIndex = Math.floor(list.length / 2);
+    return list.slice(0, splitIndex);
+});
+
+const intraRightChildren = computed(() => {
+    const list = intraChildren.value;
+    if (list.length === 0) return [];
+    if (list.length === 1) return list;
+    const splitIndex = Math.floor(list.length / 2);
+    return list.slice(splitIndex);
+});
+
 const hasSubordinates = computed(() => {
     return (props.pos.subordinates && props.pos.subordinates.length > 0) || intraChildren.value.length > 0;
 });
@@ -130,7 +150,47 @@ const hasSubordinates = computed(() => {
 
         <!-- BAWAHAN DI LEVEL YANG SAMA (TAMPIL DI BAWAH KARTU ATASANNYA DI CONTAINER INI) -->
         <div v-if="intraChildren.length > 0" class="flex flex-col items-center mt-6 w-full">
-            <div class="flex items-start gap-4 sm:gap-5 justify-center flex-wrap">
+            <!-- Jika memiliki garis komando lurus ke level bawah, bagi ke sayap kiri dan sayap kanan dengan koridor tengah terbuka agar garis lurus tidak menabrak card -->
+            <div v-if="hasCenterTrunkLine" class="flex items-start w-full">
+                <!-- SAYAP KIRI (50% lebar, align ke kanan mendekati koridor tengah) -->
+                <div class="flex-1 flex items-start gap-4 sm:gap-5 justify-end flex-wrap pr-5 sm:pr-7">
+                    <OrgPositionNode
+                        v-for="child in intraLeftChildren"
+                        :key="child.id"
+                        :pos="child"
+                        :level-def="levelDef"
+                        :intra-children-map="intraChildrenMap"
+                        :hovered-pos-id="hoveredPosId"
+                        @hover="$emit('hover', $event)"
+                        @leave="$emit('leave')"
+                        @add-subordinate="$emit('add-subordinate', $event)"
+                        @add-peer="$emit('add-peer', $event)"
+                        @edit="$emit('edit', $event)"
+                        @delete="$emit('delete', $event)"
+                    />
+                </div>
+
+                <!-- SAYAP KANAN (50% lebar, align ke kiri mendekati koridor tengah) -->
+                <div class="flex-1 flex items-start gap-4 sm:gap-5 justify-start flex-wrap pl-5 sm:pl-7">
+                    <OrgPositionNode
+                        v-for="child in intraRightChildren"
+                        :key="child.id"
+                        :pos="child"
+                        :level-def="levelDef"
+                        :intra-children-map="intraChildrenMap"
+                        :hovered-pos-id="hoveredPosId"
+                        @hover="$emit('hover', $event)"
+                        @leave="$emit('leave')"
+                        @add-subordinate="$emit('add-subordinate', $event)"
+                        @add-peer="$emit('add-peer', $event)"
+                        @edit="$emit('edit', $event)"
+                        @delete="$emit('delete', $event)"
+                    />
+                </div>
+            </div>
+
+            <!-- Jika tidak ada garis komando ke level bawah, tampilkan terpusat normal -->
+            <div v-else class="flex items-start gap-4 sm:gap-5 justify-center flex-wrap">
                 <OrgPositionNode
                     v-for="child in intraChildren"
                     :key="child.id"

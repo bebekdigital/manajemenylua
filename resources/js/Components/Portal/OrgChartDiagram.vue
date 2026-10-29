@@ -231,6 +231,9 @@ const enrichedPositions = computed(() => {
     return props.positions.map(p => {
         const parent = p.parent_id ? positionsMap.value.get(p.parent_id) : null;
         const children = childrenByParent.value.get(p.id) || [];
+        const hasLower = props.positions.some(child =>
+            child.parent_id === p.id && Number(child.level) > Number(p.level)
+        );
         return {
             ...p,
             level: Number(p.level) || 3,
@@ -238,6 +241,7 @@ const enrichedPositions = computed(() => {
             parent_name: parent ? parent.name : p.parent_name || null,
             parent_level: parent ? (Number(parent.level) || null) : null,
             subordinates: children,
+            has_lower_children: hasLower,
         };
     });
 });
