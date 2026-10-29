@@ -25,7 +25,7 @@ class RolePermissionController extends Controller
     }
 
     /**
-     * Simpan pembaruan matriks hak akses untuk role tertentu.
+     * Simpan pembaruan matriks hak akses untuk satu role atau banyak role sekaligus.
      */
     public function update(Request $request): RedirectResponse
     {
@@ -34,7 +34,9 @@ class RolePermissionController extends Controller
         }
 
         $validated = $request->validate([
-            'role' => ['required', 'string', 'max:100'],
+            'role' => ['nullable', 'string', 'max:100'],
+            'roles' => ['nullable', 'array'],
+            'roles.*' => ['string', 'max:100'],
             'permissions' => ['required', 'array'],
             'permissions.*.group' => ['required', 'string'],
             'permissions.*.name' => ['nullable', 'string'],
@@ -46,28 +48,41 @@ class RolePermissionController extends Controller
             'permissions.*.can_import' => ['nullable', 'boolean'],
         ]);
 
-        $role = $validated['role'];
+        $targetRoles = ! empty($validated['roles'])
+            ? array_values(array_unique(array_filter($validated['roles'])))
+            : (! empty($validated['role']) ? [$validated['role']] : []);
 
-        DB::transaction(function () use ($role, $validated) {
-            foreach ($validated['permissions'] as $item) {
-                RolePermission::updateOrCreate(
-                    [
-                        'role' => $role,
-                        'feature_group' => $item['group'],
-                    ],
-                    [
-                        'feature_name' => $item['name'] ?? $item['group'],
-                        'can_view' => ! empty($item['can_view']),
-                        'can_create' => ! empty($item['can_create']),
-                        'can_update' => ! empty($item['can_update']),
-                        'can_delete' => ! empty($item['can_delete']),
-                        'can_export' => ! empty($item['can_export']),
-                        'can_import' => ! empty($item['can_import']),
-                    ]
-                );
+        if (empty($targetRoles)) {
+            return back()->withErrors(['role' => 'Jabatan tujuan harus dipilih.']);
+        }
+
+        DB::transaction(function () use ($targetRoles, $validated) {
+            foreach ($targetRoles as $role) {
+                foreach ($validated['permissions'] as $item) {
+                    RolePermission::updateOrCreate(
+                        [
+                            'role' => $role,
+                            'feature_group' => $item['group'],
+                        ],
+                        [
+                            'feature_name' => $item['name'] ?? $item['group'],
+                            'can_view' => ! empty($item['can_view']),
+                            'can_create' => ! empty($item['can_create']),
+                            'can_update' => ! empty($item['can_update']),
+                            'can_delete' => ! empty($item['can_delete']),
+                            'can_export' => ! empty($item['can_export']),
+                            'can_import' => ! empty($item['can_import']),
+                        ]
+                    );
+                }
             }
         });
 
-        return back()->with('success', "Hak akses untuk role \"{$role}\" berhasil disimpan.");
+        $count = count($targetRoles);
+        $message = $count > 1
+            ? "Hak akses untuk {$count} jabatan berhasil disimpan sekaligus."
+            : "Hak akses untuk role \"{$targetRoles[0]}\" berhasil disimpan.";
+
+        return back()->with('success', $message);
     }
 }

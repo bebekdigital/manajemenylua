@@ -31,7 +31,8 @@ const props = defineProps({
 
 const emit = defineEmits(['saved']);
 
-const activeRole = ref('superadmin');
+const selectedBidang = ref('superadmin');
+const selectedJabatan = ref('superadmin');
 const isSaving = ref(false);
 const isLoading = ref(false);
 const searchQuery = ref('');
@@ -43,17 +44,38 @@ const localMatrices = ref({ ...props.permissionsData });
 // Current matrix being edited
 const currentMatrix = ref([]);
 
-function loadRoleMatrix(role) {
-    if (localMatrices.value[role] && localMatrices.value[role].length > 0) {
-        currentMatrix.value = JSON.parse(JSON.stringify(localMatrices.value[role]));
-        return;
-    }
+const isSuperadminActive = computed(() => {
+    return selectedBidang.value === 'superadmin' || selectedJabatan.value === 'superadmin';
+});
 
-    if (props.permissionsData && props.permissionsData[role] && props.permissionsData[role].length > 0) {
-        localMatrices.value[role] = props.permissionsData[role];
-        currentMatrix.value = JSON.parse(JSON.stringify(props.permissionsData[role]));
-        return;
+const isAllInDeptActive = computed(() => {
+    return !isSuperadminActive.value && selectedJabatan.value === 'ALL_IN_DEPT';
+});
+
+const currentDept = computed(() => {
+    if (selectedBidang.value === 'superadmin') return null;
+    return (props.departments || []).find((d) => String(d.id) === String(selectedBidang.value)) || null;
+});
+
+const currentDeptPositions = computed(() => {
+    return currentDept.value?.positions || [];
+});
+
+const selectedBidangName = computed(() => {
+    if (selectedBidang.value === 'superadmin') return 'Sistem Administrator';
+    return currentDept.value ? currentDept.value.name : '';
+});
+
+function saveCurrentToCache() {
+    if (!currentMatrix.value || currentMatrix.value.length === 0) return;
+
+    if (selectedJabatan.value && selectedJabatan.value !== 'ALL_IN_DEPT') {
+        localMatrices.value[selectedJabatan.value] = JSON.parse(JSON.stringify(currentMatrix.value));
     }
+}
+
+function loadRoleMatrix(role) {
+    if (!role) return;
 
     if (role === 'superadmin' && props.defaultFeatures && props.defaultFeatures.length > 0) {
         const fullAccess = props.defaultFeatures.map((feat) => ({
@@ -74,6 +96,17 @@ function loadRoleMatrix(role) {
         return;
     }
 
+    if (localMatrices.value[role] && localMatrices.value[role].length > 0) {
+        currentMatrix.value = JSON.parse(JSON.stringify(localMatrices.value[role]));
+        return;
+    }
+
+    if (props.permissionsData && props.permissionsData[role] && props.permissionsData[role].length > 0) {
+        localMatrices.value[role] = props.permissionsData[role];
+        currentMatrix.value = JSON.parse(JSON.stringify(props.permissionsData[role]));
+        return;
+    }
+
     isLoading.value = true;
     fetch(`/portal/permissions/matrix?role=${encodeURIComponent(role)}`, {
         headers: {
@@ -88,7 +121,10 @@ function loadRoleMatrix(role) {
         .then((data) => {
             if (data && data.matrix && data.matrix.length > 0) {
                 localMatrices.value[role] = data.matrix;
-                if (activeRole.value === role) {
+                if (
+                    selectedJabatan.value === role ||
+                    (selectedJabatan.value === 'ALL_IN_DEPT' && currentDeptPositions.value.some((p) => p.name === role))
+                ) {
                     currentMatrix.value = JSON.parse(JSON.stringify(data.matrix));
                 }
             }
@@ -101,16 +137,72 @@ function loadRoleMatrix(role) {
         });
 }
 
+function onBidangChange(e) {
+    const val = e.target.value;
+    saveCurrentToCache();
+    selectedBidang.value = val;
+
+    if (val === 'superadmin') {
+        selectedJabatan.value = 'superadmin';
+        loadRoleMatrix('superadmin');
+        return;
+    }
+
+    const dept = (props.departments || []).find((d) => String(d.id) === String(val));
+    const positions = dept?.positions || [];
+
+    if (positions.length > 0) {
+        selectedJabatan.value = 'ALL_IN_DEPT';
+        loadRoleMatrix(positions[0].name);
+    } else {
+        selectedJabatan.value = '';
+        currentMatrix.value = (props.defaultFeatures || []).map((feat) => ({
+            group: feat.group,
+            name: feat.name,
+            category: feat.category,
+            description: feat.description,
+            supported_actions: feat.supported_actions,
+            can_view: false,
+            can_create: false,
+            can_update: false,
+            can_delete: false,
+            can_export: false,
+            can_import: false,
+        }));
+    }
+}
+
+function onJabatanChange(e) {
+    const val = e.target.value;
+    if (!val) return;
+
+    saveCurrentToCache();
+    selectedJabatan.value = val;
+
+    if (val === 'ALL_IN_DEPT') {
+        const positions = currentDeptPositions.value;
+        if (positions.length > 0) {
+            loadRoleMatrix(positions[0].name);
+        }
+    } else {
+        loadRoleMatrix(val);
+    }
+}
+
 // Watch props in case server updates permissionsData
 watch(
     () => props.permissionsData,
     (newVal) => {
         if (newVal) {
             localMatrices.value = { ...localMatrices.value, ...newVal };
-            if (newVal[activeRole.value] && newVal[activeRole.value].length > 0) {
-                currentMatrix.value = JSON.parse(JSON.stringify(newVal[activeRole.value]));
-            } else {
-                loadRoleMatrix(activeRole.value);
+            const currentTarget = selectedJabatan.value === 'ALL_IN_DEPT'
+                ? currentDeptPositions.value[0]?.name
+                : selectedJabatan.value;
+
+            if (currentTarget && newVal[currentTarget] && newVal[currentTarget].length > 0) {
+                currentMatrix.value = JSON.parse(JSON.stringify(newVal[currentTarget]));
+            } else if (currentTarget) {
+                loadRoleMatrix(currentTarget);
             }
         }
     },
@@ -118,75 +210,7 @@ watch(
 );
 
 // Initial load
-loadRoleMatrix(activeRole.value);
-
-function setRole(role) {
-    if (activeRole.value && currentMatrix.value && currentMatrix.value.length > 0) {
-        localMatrices.value[activeRole.value] = JSON.parse(JSON.stringify(currentMatrix.value));
-    }
-    activeRole.value = role;
-    loadRoleMatrix(role);
-}
-
-const isSuperadminActive = computed(() => activeRole.value === 'superadmin');
-
-const selectedBidangFilter = ref('all');
-
-// Daftar bidang yang memiliki jabatan di diagram
-const bidangOptions = computed(() => {
-    return (props.departments || []).map((d) => ({
-        id: d.id,
-        name: d.name,
-        positions: d.positions || [],
-    }));
-});
-
-// Jabatan yang ditampilkan sesuai bidang yang dipilih
-const displayedPositions = computed(() => {
-    if (selectedBidangFilter.value === 'all') {
-        const posMap = new Map();
-        (props.departments || []).forEach((d) => {
-            (d.positions || []).forEach((p) => {
-                if (!posMap.has(p.name)) {
-                    posMap.set(p.name, {
-                        ...p,
-                        deptName: d.name,
-                    });
-                }
-            });
-        });
-        (props.organizationPositions || []).forEach((p) => {
-            if (!posMap.has(p.name)) {
-                posMap.set(p.name, {
-                    ...p,
-                    deptName: p.department_name || '',
-                });
-            }
-        });
-        return Array.from(posMap.values());
-    }
-
-    const dept = (props.departments || []).find((d) => String(d.id) === String(selectedBidangFilter.value));
-    if (!dept) return [];
-
-    return (dept.positions || []).map((p) => ({
-        ...p,
-        deptName: dept.name,
-    }));
-});
-
-// Bidang dari role yang sedang aktif
-const activeRoleDept = computed(() => {
-    if (activeRole.value === 'superadmin') return 'Sistem Administrator';
-    for (const dept of props.departments || []) {
-        if (dept.positions && dept.positions.some((p) => p.name === activeRole.value)) {
-            return dept.name;
-        }
-    }
-    const foundOrg = (props.organizationPositions || []).find((p) => p.name === activeRole.value);
-    if (foundOrg && foundOrg.department_name) return foundOrg.department_name;
-    return '';
-});
+loadRoleMatrix(selectedJabatan.value);
 
 // Categories list
 const categories = computed(() => {
@@ -279,24 +303,61 @@ function toggleAll(value) {
 
 // Save changes
 function savePermissions() {
+    if (isSuperadminActive.value) return;
+
     isSaving.value = true;
-    router.post(
-        '/portal/permissions',
-        {
-            role: activeRole.value,
-            permissions: currentMatrix.value,
-        },
-        {
-            preserveScroll: true,
-            onSuccess: () => {
-                localMatrices.value[activeRole.value] = JSON.parse(JSON.stringify(currentMatrix.value));
-                emit('saved', `Hak akses untuk role "${activeRole.value}" berhasil disimpan.`);
-            },
-            onFinish: () => {
-                isSaving.value = false;
-            },
+
+    if (isAllInDeptActive.value) {
+        const roles = currentDeptPositions.value.map((p) => p.name);
+        if (roles.length === 0) {
+            isSaving.value = false;
+            return;
         }
-    );
+
+        router.post(
+            '/portal/permissions',
+            {
+                roles: roles,
+                permissions: currentMatrix.value,
+            },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    roles.forEach((r) => {
+                        localMatrices.value[r] = JSON.parse(JSON.stringify(currentMatrix.value));
+                    });
+                    emit('saved', `Hak akses untuk seluruh (${roles.length}) jabatan di bidang "${selectedBidangName.value}" berhasil disimpan.`);
+                },
+                onFinish: () => {
+                    isSaving.value = false;
+                },
+            }
+        );
+    } else {
+        const targetRole = selectedJabatan.value;
+        if (!targetRole) {
+            isSaving.value = false;
+            return;
+        }
+
+        router.post(
+            '/portal/permissions',
+            {
+                role: targetRole,
+                permissions: currentMatrix.value,
+            },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    localMatrices.value[targetRole] = JSON.parse(JSON.stringify(currentMatrix.value));
+                    emit('saved', `Hak akses untuk role "${targetRole}" berhasil disimpan.`);
+                },
+                onFinish: () => {
+                    isSaving.value = false;
+                },
+            }
+        );
+    }
 }
 </script>
 
@@ -312,7 +373,7 @@ function savePermissions() {
                     <div>
                         <h3 class="text-base sm:text-lg font-bold text-on-surface">Matriks Pengaturan Hak Akses (Role Permissions)</h3>
                         <p class="text-xs text-on-surface-variant">
-                            Atur izin fitur modul Database Pegawai (Lihat, Tambah, Ubah, Hapus, Ekspor, Impor) untuk setiap role.
+                            Atur izin fitur modul Database Pegawai (Lihat, Tambah, Ubah, Hapus, Ekspor, Impor) untuk setiap bidang dan jabatan.
                         </p>
                     </div>
                 </div>
@@ -321,104 +382,104 @@ function savePermissions() {
                     <button
                         type="button"
                         @click="savePermissions"
-                        :disabled="isSaving || isLoading || isSuperadminActive"
+                        :disabled="isSaving || isLoading || isSuperadminActive || (isAllInDeptActive && currentDeptPositions.length === 0)"
                         class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-container text-on-primary font-semibold text-xs sm:text-sm transition-all shadow-xs hover:shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         <span v-if="isSaving" class="material-symbols-outlined text-[18px] animate-spin">sync</span>
                         <span v-else class="material-symbols-outlined text-[18px]">save</span>
-                        <span>{{ isSaving ? 'Menyimpan...' : 'Simpan Hak Akses' }}</span>
+                        <span>{{ isSaving ? 'Menyimpan...' : (isAllInDeptActive ? `Simpan untuk Semua Jabatan (${currentDeptPositions.length})` : 'Simpan Hak Akses') }}</span>
                     </button>
                 </div>
             </div>
 
-            <!-- Role Selector: Sesuai Bidang dan Jabatan di Diagram Susunan Organisasi -->
-            <div class="mt-6 space-y-4">
-                <!-- Baris 1: Filter Tab Bidang & Dropdown Cari Cepat -->
-                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-3 border-b border-outline-variant/30">
-                    <div class="flex flex-wrap items-center gap-1.5">
-                        <span class="text-xs font-bold text-on-surface-variant uppercase tracking-wider mr-1">Filter Bidang:</span>
-
-                        <button
-                            type="button"
-                            @click="selectedBidangFilter = 'all'"
-                            class="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer border"
-                            :class="selectedBidangFilter === 'all'
-                                ? 'bg-secondary-container text-on-secondary-container border-secondary/40 shadow-xs'
-                                : 'bg-surface-container-low text-on-surface-variant hover:text-on-surface border-outline-variant/40'"
+            <!-- Role Selector Controls: Dua Dropdown (Bidang & Jabatan) -->
+            <div class="mt-6 p-4 sm:p-5 rounded-2xl bg-surface-container-low border border-outline-variant/40">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Dropdown 1: Pilih Bidang -->
+                    <div>
+                        <label for="select-bidang" class="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-[16px] text-primary">account_tree</span>
+                            <span>1. Pilih Bidang / Unit:</span>
+                        </label>
+                        <select
+                            id="select-bidang"
+                            :value="selectedBidang"
+                            @change="onBidangChange"
+                            class="w-full px-3.5 py-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary font-medium cursor-pointer shadow-xs"
                         >
-                            Semua Bidang
-                        </button>
-
-                        <button
-                            v-for="dept in bidangOptions"
-                            :key="dept.id"
-                            type="button"
-                            @click="selectedBidangFilter = dept.id"
-                            class="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer border flex items-center gap-1.5"
-                            :class="selectedBidangFilter === dept.id
-                                ? 'bg-secondary-container text-on-secondary-container border-secondary/40 shadow-xs'
-                                : 'bg-surface-container-low text-on-surface-variant hover:text-on-surface border-outline-variant/40'"
-                        >
-                            <span>{{ dept.name }}</span>
-                            <span class="text-[10px] px-1.5 py-0.2 rounded-full bg-black/5 dark:bg-white/10 font-bold">
-                                {{ dept.positions.length }}
-                            </span>
-                        </button>
+                            <option value="superadmin">👑 Sistem (Superadmin)</option>
+                            <option disabled>────────── DAFTAR BIDANG / UNIT ──────────</option>
+                            <option v-for="dept in departments" :key="'dept_' + dept.id" :value="dept.id">
+                                {{ dept.name }} ({{ (dept.positions || []).length }} Jabatan)
+                            </option>
+                        </select>
                     </div>
 
-                    <!-- Dropdown Pencarian Cepat Per Bidang -->
-                    <div class="flex items-center gap-2 shrink-0">
-                        <label for="quick-role-select" class="text-xs text-on-surface-variant font-medium">Pilih Cepat Role:</label>
+                    <!-- Dropdown 2: Pilih Jabatan -->
+                    <div>
+                        <label for="select-jabatan" class="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-[16px] text-primary">badge</span>
+                            <span>2. Pilih Jabatan:</span>
+                        </label>
                         <select
-                            id="quick-role-select"
-                            :value="activeRole"
-                            @change="(e) => e.target.value && setRole(e.target.value)"
-                            class="px-3 py-1.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest text-xs text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary font-medium"
+                            id="select-jabatan"
+                            :value="selectedJabatan"
+                            @change="onJabatanChange"
+                            :disabled="selectedBidang === 'superadmin' || currentDeptPositions.length === 0"
+                            class="w-full px-3.5 py-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary font-medium cursor-pointer shadow-xs disabled:opacity-60 disabled:cursor-not-allowed"
                         >
-                            <option value="superadmin">Superadmin (Akses Penuh)</option>
-                            <optgroup v-for="dept in bidangOptions" :key="'opt_' + dept.id" :label="dept.name">
-                                <option v-for="pos in dept.positions" :key="'opt_pos_' + pos.id" :value="pos.name">
-                                    {{ pos.name }} ({{ dept.name }})
+                            <!-- Superadmin Case -->
+                            <option v-if="selectedBidang === 'superadmin'" value="superadmin">
+                                Superadmin (Akses Penuh Seluruh Sistem)
+                            </option>
+
+                            <!-- Empty Positions Case -->
+                            <option v-else-if="currentDeptPositions.length === 0" value="" disabled>
+                                (Belum ada jabatan pada bidang ini)
+                            </option>
+
+                            <!-- Department Positions Case -->
+                            <template v-else>
+                                <option value="ALL_IN_DEPT" class="font-bold text-primary">
+                                    ★ Semua Jabatan di Bidang Ini (Total {{ currentDeptPositions.length }} Jabatan)
                                 </option>
-                            </optgroup>
+                                <option disabled>────────── JABATAN SPESIFIK ──────────</option>
+                                <option v-for="pos in currentDeptPositions" :key="'pos_' + pos.id" :value="pos.name">
+                                    {{ pos.name }}
+                                </option>
+                            </template>
                         </select>
                     </div>
                 </div>
 
-                <!-- Baris 2: Tombol Pilihan Jabatan dari Diagram -->
-                <div>
-                    <div class="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
-                        <span class="material-symbols-outlined text-[16px] text-primary">badge</span>
-                        <span>Pilih Jabatan untuk Diatur Hak Aksesnya:</span>
+                <!-- Status Banner / Info Jabatan Terpilih -->
+                <div class="mt-4 pt-3 border-t border-outline-variant/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                    <div v-if="isSuperadminActive" class="flex items-center gap-2 text-on-surface-variant">
+                        <span class="material-symbols-outlined text-[18px] text-amber-500">verified_user</span>
+                        <span>Role <strong>Superadmin</strong> memiliki hak akses penuh secara default ke seluruh modul sistem.</span>
                     </div>
-
-                    <div class="flex flex-wrap items-center gap-2">
-                        <!-- Role Utama: Superadmin -->
-                        <button
-                            type="button"
-                            @click="setRole('superadmin')"
-                            class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer border"
-                            :class="activeRole === 'superadmin' ? 'bg-primary text-on-primary border-primary shadow-xs' : 'bg-surface-container-low text-on-surface-variant hover:text-on-surface border-outline-variant/50'"
-                        >
-                            <span class="material-symbols-outlined text-[16px]">admin_panel_settings</span>
-                            <span>Superadmin</span>
-                            <span class="text-[10px] px-1.5 py-0.5 rounded-full" :class="activeRole === 'superadmin' ? 'bg-white/20 text-white' : 'bg-outline-variant/40 text-on-surface-variant'">Akses Penuh</span>
-                        </button>
-
-                        <!-- Tombol Jabatan dari Diagram -->
-                        <button
-                            v-for="pos in displayedPositions"
-                            :key="pos.id + '_' + pos.name"
-                            type="button"
-                            @click="setRole(pos.name)"
-                            class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer border"
-                            :class="activeRole === pos.name ? 'bg-primary text-on-primary border-primary shadow-xs' : 'bg-surface-container-low text-on-surface hover:border-primary/40 border-outline-variant/50'"
-                        >
-                            <span>{{ pos.name }}</span>
-                            <span v-if="pos.deptName" class="text-[10px] px-1.5 py-0.2 rounded-full font-normal opacity-80" :class="activeRole === pos.name ? 'bg-white/20 text-white' : 'bg-outline-variant/30 text-on-surface-variant'">
-                                {{ pos.deptName }}
+                    <div v-else-if="isAllInDeptActive" class="flex flex-col gap-1.5 text-on-surface">
+                        <div class="flex items-center gap-2">
+                            <span class="material-symbols-outlined text-[18px] text-primary">tune</span>
+                            <span>Mode: Mengatur <strong>Semua Jabatan</strong> sekaligus di bidang <strong>{{ selectedBidangName }}</strong>.</span>
+                            <span class="px-2 py-0.5 rounded-full bg-primary/10 text-primary font-bold text-[10px]">
+                                {{ currentDeptPositions.length }} Jabatan
                             </span>
-                        </button>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-1.5 text-[11px] text-on-surface-variant">
+                            <span>Jabatan terdampak:</span>
+                            <span
+                                v-for="pos in currentDeptPositions"
+                                :key="'tag_' + pos.id"
+                                class="px-2 py-0.5 rounded-md bg-surface-container-high text-on-surface text-[10px] font-medium"
+                            >
+                                {{ pos.name }}
+                            </span>
+                        </div>
+                    </div>
+                    <div v-else class="flex items-center gap-2 text-on-surface">
+                        <span class="material-symbols-outlined text-[18px] text-primary">assignment_ind</span>
+                        <span>Sedang mengatur hak akses untuk jabatan tunggal: <strong class="text-primary">{{ selectedJabatan }}</strong> (Bidang: {{ selectedBidangName }}).</span>
                     </div>
                 </div>
             </div>
@@ -431,10 +492,13 @@ function savePermissions() {
                 <span v-if="isSuperadminActive" class="text-on-surface font-medium">
                     Role <strong>Superadmin</strong> memiliki hak akses penuh ke seluruh fitur dan tidak dibatasi oleh matriks perizinan.
                 </span>
+                <span v-else-if="isAllInDeptActive" class="text-on-surface">
+                    Matriks izin ini akan diterapkan ke <strong class="text-primary font-bold">{{ currentDeptPositions.length }} jabatan</strong> di bidang <strong>{{ selectedBidangName }}</strong>.
+                </span>
                 <span v-else class="text-on-surface">
-                    Sedang mengatur hak akses jabatan: <strong class="text-primary text-sm font-bold ml-1">{{ activeRole }}</strong>
-                    <span v-if="activeRoleDept" class="ml-2 text-xs text-on-surface-variant px-2 py-0.5 rounded-md bg-surface-container-high font-medium">
-                        Bidang: {{ activeRoleDept }}
+                    Sedang mengatur hak akses jabatan: <strong class="text-primary font-bold ml-1">{{ selectedJabatan }}</strong>
+                    <span v-if="selectedBidangName" class="ml-2 text-xs text-on-surface-variant px-2 py-0.5 rounded-md bg-surface-container-high font-medium">
+                        Bidang: {{ selectedBidangName }}
                     </span>
                 </span>
             </div>
@@ -659,12 +723,12 @@ function savePermissions() {
             <button
                 type="button"
                 @click="savePermissions"
-                :disabled="isSaving || isLoading || isSuperadminActive"
+                :disabled="isSaving || isLoading || isSuperadminActive || (isAllInDeptActive && currentDeptPositions.length === 0)"
                 class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-on-primary font-semibold text-xs transition-all shadow-xs hover:shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
                 <span v-if="isSaving" class="material-symbols-outlined text-[16px] animate-spin">sync</span>
                 <span v-else class="material-symbols-outlined text-[16px]">save</span>
-                <span>Simpan Perubahan Role Ini</span>
+                <span>{{ isSaving ? 'Menyimpan...' : (isAllInDeptActive ? `Simpan untuk Semua Jabatan (${currentDeptPositions.length})` : 'Simpan Hak Akses') }}</span>
             </button>
         </div>
     </div>
