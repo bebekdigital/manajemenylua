@@ -19,6 +19,14 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    departments: {
+        type: Array,
+        default: () => [],
+    },
+    organizationPositions: {
+        type: Array,
+        default: () => [],
+    },
 });
 
 const emit = defineEmits(['saved']);
@@ -121,6 +129,64 @@ function setRole(role) {
 }
 
 const isSuperadminActive = computed(() => activeRole.value === 'superadmin');
+
+const selectedBidangFilter = ref('all');
+
+// Daftar bidang yang memiliki jabatan di diagram
+const bidangOptions = computed(() => {
+    return (props.departments || []).map((d) => ({
+        id: d.id,
+        name: d.name,
+        positions: d.positions || [],
+    }));
+});
+
+// Jabatan yang ditampilkan sesuai bidang yang dipilih
+const displayedPositions = computed(() => {
+    if (selectedBidangFilter.value === 'all') {
+        const posMap = new Map();
+        (props.departments || []).forEach((d) => {
+            (d.positions || []).forEach((p) => {
+                if (!posMap.has(p.name)) {
+                    posMap.set(p.name, {
+                        ...p,
+                        deptName: d.name,
+                    });
+                }
+            });
+        });
+        (props.organizationPositions || []).forEach((p) => {
+            if (!posMap.has(p.name)) {
+                posMap.set(p.name, {
+                    ...p,
+                    deptName: p.department_name || '',
+                });
+            }
+        });
+        return Array.from(posMap.values());
+    }
+
+    const dept = (props.departments || []).find((d) => String(d.id) === String(selectedBidangFilter.value));
+    if (!dept) return [];
+
+    return (dept.positions || []).map((p) => ({
+        ...p,
+        deptName: dept.name,
+    }));
+});
+
+// Bidang dari role yang sedang aktif
+const activeRoleDept = computed(() => {
+    if (activeRole.value === 'superadmin') return 'Sistem Administrator';
+    for (const dept of props.departments || []) {
+        if (dept.positions && dept.positions.some((p) => p.name === activeRole.value)) {
+            return dept.name;
+        }
+    }
+    const foundOrg = (props.organizationPositions || []).find((p) => p.name === activeRole.value);
+    if (foundOrg && foundOrg.department_name) return foundOrg.department_name;
+    return '';
+});
 
 // Categories list
 const categories = computed(() => {
@@ -265,64 +331,95 @@ function savePermissions() {
                 </div>
             </div>
 
-            <!-- Role Selector Tabs -->
-            <div class="mt-6 flex flex-wrap items-center gap-2">
-                <span class="text-xs font-bold text-on-surface-variant uppercase tracking-wider mr-1">Pilih Role:</span>
+            <!-- Role Selector: Sesuai Bidang dan Jabatan di Diagram Susunan Organisasi -->
+            <div class="mt-6 space-y-4">
+                <!-- Baris 1: Filter Tab Bidang & Dropdown Cari Cepat -->
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-3 border-b border-outline-variant/30">
+                    <div class="flex flex-wrap items-center gap-1.5">
+                        <span class="text-xs font-bold text-on-surface-variant uppercase tracking-wider mr-1">Filter Bidang:</span>
 
-                <!-- Featured Role 1: Superadmin -->
-                <button
-                    type="button"
-                    @click="setRole('superadmin')"
-                    class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer border"
-                    :class="activeRole === 'superadmin' ? 'bg-primary text-on-primary border-primary shadow-xs' : 'bg-surface-container-low text-on-surface-variant hover:text-on-surface border-outline-variant/50'"
-                >
-                    <span class="material-symbols-outlined text-[16px]">admin_panel_settings</span>
-                    <span>Superadmin</span>
-                    <span class="text-[10px] px-1.5 py-0.5 rounded-full" :class="activeRole === 'superadmin' ? 'bg-white/20 text-white' : 'bg-outline-variant/40 text-on-surface-variant'">Akses Penuh</span>
-                </button>
-
-                <!-- Featured Role 2: Kepala Bidang SDM -->
-                <button
-                    type="button"
-                    @click="setRole('Kepala Bidang SDM')"
-                    class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer border"
-                    :class="activeRole === 'Kepala Bidang SDM' ? 'bg-primary text-on-primary border-primary shadow-xs' : 'bg-surface-container-low text-on-surface-variant hover:text-on-surface border-outline-variant/50'"
-                >
-                    <span class="material-symbols-outlined text-[16px]">badge</span>
-                    <span>Kepala Bidang SDM</span>
-                    <span class="text-[10px] px-1.5 py-0.5 rounded-full" :class="activeRole === 'Kepala Bidang SDM' ? 'bg-white/20 text-white' : 'bg-outline-variant/40 text-on-surface-variant'">Pimpinan Yayasan</span>
-                </button>
-
-                <!-- Featured Role 3: Guru -->
-                <button
-                    type="button"
-                    @click="setRole('Guru')"
-                    class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer border"
-                    :class="activeRole === 'Guru' ? 'bg-primary text-on-primary border-primary shadow-xs' : 'bg-surface-container-low text-on-surface-variant hover:text-on-surface border-outline-variant/50'"
-                >
-                    <span class="material-symbols-outlined text-[16px]">school</span>
-                    <span>Guru / Pendidik</span>
-                    <span class="text-[10px] px-1.5 py-0.5 rounded-full" :class="activeRole === 'Guru' ? 'bg-white/20 text-white' : 'bg-outline-variant/40 text-on-surface-variant'">Pendidik</span>
-                </button>
-
-                <!-- Dropdown for Other Roles (jika ada role kustom selain role utama) -->
-                <div v-if="availableRoles.some(role => !primaryRoles.includes(role))" class="relative ml-auto flex items-center gap-2">
-                    <label for="other-roles-select" class="text-xs text-on-surface-variant font-medium hidden sm:inline">Role Lainnya:</label>
-                    <select
-                        id="other-roles-select"
-                        :value="primaryRoles.includes(activeRole) ? '' : activeRole"
-                        @change="(e) => e.target.value && setRole(e.target.value)"
-                        class="px-3 py-1.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest text-xs text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary font-medium"
-                    >
-                        <option value="" disabled>-- Pilih Role Lainnya --</option>
-                        <option
-                            v-for="r in availableRoles.filter(role => !primaryRoles.includes(role))"
-                            :key="r"
-                            :value="r"
+                        <button
+                            type="button"
+                            @click="selectedBidangFilter = 'all'"
+                            class="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer border"
+                            :class="selectedBidangFilter === 'all'
+                                ? 'bg-secondary-container text-on-secondary-container border-secondary/40 shadow-xs'
+                                : 'bg-surface-container-low text-on-surface-variant hover:text-on-surface border-outline-variant/40'"
                         >
-                            {{ r }}
-                        </option>
-                    </select>
+                            Semua Bidang
+                        </button>
+
+                        <button
+                            v-for="dept in bidangOptions"
+                            :key="dept.id"
+                            type="button"
+                            @click="selectedBidangFilter = dept.id"
+                            class="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer border flex items-center gap-1.5"
+                            :class="selectedBidangFilter === dept.id
+                                ? 'bg-secondary-container text-on-secondary-container border-secondary/40 shadow-xs'
+                                : 'bg-surface-container-low text-on-surface-variant hover:text-on-surface border-outline-variant/40'"
+                        >
+                            <span>{{ dept.name }}</span>
+                            <span class="text-[10px] px-1.5 py-0.2 rounded-full bg-black/5 dark:bg-white/10 font-bold">
+                                {{ dept.positions.length }}
+                            </span>
+                        </button>
+                    </div>
+
+                    <!-- Dropdown Pencarian Cepat Per Bidang -->
+                    <div class="flex items-center gap-2 shrink-0">
+                        <label for="quick-role-select" class="text-xs text-on-surface-variant font-medium">Pilih Cepat Role:</label>
+                        <select
+                            id="quick-role-select"
+                            :value="activeRole"
+                            @change="(e) => e.target.value && setRole(e.target.value)"
+                            class="px-3 py-1.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest text-xs text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary font-medium"
+                        >
+                            <option value="superadmin">Superadmin (Akses Penuh)</option>
+                            <optgroup v-for="dept in bidangOptions" :key="'opt_' + dept.id" :label="dept.name">
+                                <option v-for="pos in dept.positions" :key="'opt_pos_' + pos.id" :value="pos.name">
+                                    {{ pos.name }} ({{ dept.name }})
+                                </option>
+                            </optgroup>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Baris 2: Tombol Pilihan Jabatan dari Diagram -->
+                <div>
+                    <div class="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-[16px] text-primary">badge</span>
+                        <span>Pilih Jabatan untuk Diatur Hak Aksesnya:</span>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2">
+                        <!-- Role Utama: Superadmin -->
+                        <button
+                            type="button"
+                            @click="setRole('superadmin')"
+                            class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer border"
+                            :class="activeRole === 'superadmin' ? 'bg-primary text-on-primary border-primary shadow-xs' : 'bg-surface-container-low text-on-surface-variant hover:text-on-surface border-outline-variant/50'"
+                        >
+                            <span class="material-symbols-outlined text-[16px]">admin_panel_settings</span>
+                            <span>Superadmin</span>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded-full" :class="activeRole === 'superadmin' ? 'bg-white/20 text-white' : 'bg-outline-variant/40 text-on-surface-variant'">Akses Penuh</span>
+                        </button>
+
+                        <!-- Tombol Jabatan dari Diagram -->
+                        <button
+                            v-for="pos in displayedPositions"
+                            :key="pos.id + '_' + pos.name"
+                            type="button"
+                            @click="setRole(pos.name)"
+                            class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer border"
+                            :class="activeRole === pos.name ? 'bg-primary text-on-primary border-primary shadow-xs' : 'bg-surface-container-low text-on-surface hover:border-primary/40 border-outline-variant/50'"
+                        >
+                            <span>{{ pos.name }}</span>
+                            <span v-if="pos.deptName" class="text-[10px] px-1.5 py-0.2 rounded-full font-normal opacity-80" :class="activeRole === pos.name ? 'bg-white/20 text-white' : 'bg-outline-variant/30 text-on-surface-variant'">
+                                {{ pos.deptName }}
+                            </span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -335,7 +432,10 @@ function savePermissions() {
                     Role <strong>Superadmin</strong> memiliki hak akses penuh ke seluruh fitur dan tidak dibatasi oleh matriks perizinan.
                 </span>
                 <span v-else class="text-on-surface">
-                    Sedang mengatur hak akses role: <strong class="text-primary text-sm font-bold ml-1">{{ activeRole }}</strong>
+                    Sedang mengatur hak akses jabatan: <strong class="text-primary text-sm font-bold ml-1">{{ activeRole }}</strong>
+                    <span v-if="activeRoleDept" class="ml-2 text-xs text-on-surface-variant px-2 py-0.5 rounded-md bg-surface-container-high font-medium">
+                        Bidang: {{ activeRoleDept }}
+                    </span>
                 </span>
             </div>
 

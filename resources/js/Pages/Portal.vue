@@ -1035,6 +1035,8 @@ function formatDate(dateStr) {
                 :default-features="defaultFeatures"
                 :primary-roles="primaryRoles"
                 :available-roles="availableRoles"
+                :departments="departments"
+                :organization-positions="organizationPositions"
                 @saved="onRolePermissionSaved"
             />
         </div>

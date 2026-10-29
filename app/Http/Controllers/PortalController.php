@@ -74,8 +74,12 @@ class PortalController extends Controller
             ? OrganizationLevel::orderBy('level')->get()
             : collect([]);
 
+        $distinctPositions = Schema::hasTable('department_positions')
+            ? DepartmentPosition::distinct()->pluck('name')->filter()->values()->toArray()
+            : [];
+        sort($distinctPositions);
+        $availableRoles = array_values(array_unique(array_merge(['superadmin'], $distinctPositions)));
         $primaryRoles = ['superadmin', 'Kepala Bidang SDM', 'Guru'];
-        $availableRoles = $primaryRoles;
 
         $employees = Schema::hasTable('employees')
             ? Employee::with(['currentPosition', 'positions'])
@@ -107,7 +111,7 @@ class PortalController extends Controller
         $defaultFeatures = RolePermission::defaultFeatures();
         $permissionsData = [];
 
-        foreach ($primaryRoles as $r) {
+        foreach ($availableRoles as $r) {
             $permissionsData[$r] = Schema::hasTable('role_permissions')
                 ? RolePermission::getPermissionsMatrix($r)
                 : array_map(function ($feat) use ($r) {

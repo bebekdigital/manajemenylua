@@ -187,14 +187,14 @@ class RolePermission extends Model
             ];
         }
 
-        if ($role === 'Kepala Bidang SDM') {
+        if (in_array($role, ['Kepala Sekolah', 'Ketua Badan Pelaksana', 'Kepala Bidang SDM']) || str_contains(strtolower($role), 'kepala')) {
             return [
                 'view' => true,
                 'create' => true,
                 'update' => true,
-                'delete' => true,
+                'delete' => false,
                 'export' => true,
-                'import' => true,
+                'import' => false,
             ];
         }
 
@@ -210,7 +210,7 @@ class RolePermission extends Model
         }
 
         return [
-            'view' => false,
+            'view' => true,
             'create' => false,
             'update' => false,
             'delete' => false,
