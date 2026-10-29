@@ -706,15 +706,6 @@ function handleDelete(pos) {
                             <span class="material-symbols-outlined text-[18px]">add_business</span>
                             <span>Tambah Bidang</span>
                         </button>
-
-                        <button
-                            type="button"
-                            @click="handleAddDirect"
-                            class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary hover:bg-primary-container text-on-primary font-semibold text-xs sm:text-sm transition-all shadow-xs hover:shadow-md cursor-pointer"
-                        >
-                            <span class="material-symbols-outlined text-[18px]">add_circle</span>
-                            <span>Tambah Jabatan Baru</span>
-                        </button>
                     </div>
                 </div>
 

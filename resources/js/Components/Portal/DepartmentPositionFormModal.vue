@@ -43,38 +43,7 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'success']);
 
-const levelOptions = [
-    {
-        level: 1,
-        title: 'Level 1: Dewan Pembina & Pengawas',
-        desc: 'Pemegang kebijakan tertinggi & dewan pengawas yayasan',
-        badgeClass: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30',
-    },
-    {
-        level: 2,
-        title: 'Level 2: Pengurus Harian & Direksi',
-        desc: 'Ketua Umum, Sekretaris, Bendahara, & Direktur Eksekutif',
-        badgeClass: 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/30',
-    },
-    {
-        level: 3,
-        title: 'Level 3: Kepala Bidang Yayasan',
-        desc: 'Pimpinan bidang (Pendidikan, SDM, Keuangan, Sarpras, Dakwah)',
-        badgeClass: 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30',
-    },
-    {
-        level: 4,
-        title: 'Level 4: Koordinator & Kepala Bagian',
-        desc: 'Koordinator program, unit teknis, dan kepala sub-bagian',
-        badgeClass: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border-cyan-500/30',
-    },
-    {
-        level: 5,
-        title: 'Level 5: Staf Pelaksana & Tim Teknis',
-        desc: 'Staf administrasi, akuntansi, logistik, dan pelaksana teknis',
-        badgeClass: 'bg-slate-500/10 text-slate-700 dark:text-slate-300 border-slate-500/30',
-    },
-];
+const levels = [1, 2, 3, 4, 5];
 
 const form = useForm({
     name: '',
@@ -172,7 +141,7 @@ function submit() {
                         class="bg-surface-container-lowest rounded-2xl shadow-2xl w-full max-w-xl border border-outline-variant/30 overflow-hidden my-8"
                     >
                         <!-- Modal Header -->
-                        <div class="flex items-center justify-between px-6 py-4.5 border-b border-outline-variant/30 bg-surface-container-low/40">
+                        <div class="flex items-center justify-between px-6 pt-6 pb-5 sm:pt-7 sm:pb-6 border-b border-outline-variant/30 bg-surface-container-low/40">
                             <div class="flex items-center gap-3">
                                 <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-xs">
                                     <span class="material-symbols-outlined text-xl">
@@ -181,9 +150,6 @@ function submit() {
                                 </div>
                                 <div>
                                     <h3 class="text-lg font-bold text-on-surface">{{ modalTitle }}</h3>
-                                    <p class="text-xs text-on-surface-variant">
-                                        Susunan organisasi 5 level vertikal & horizontal yayasan
-                                    </p>
                                 </div>
                             </div>
                             <button
@@ -215,63 +181,28 @@ function submit() {
 
                             <!-- Level Jabatan (1 - 5) -->
                             <div>
-                                <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
+                                <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">
                                     Tingkat / Level Jabatan <span class="text-error">*</span>
                                 </label>
-                                <div class="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                                <div class="grid grid-cols-5 gap-2 sm:gap-2.5">
                                     <label
-                                        v-for="opt in levelOptions"
-                                        :key="opt.level"
-                                        class="flex items-start gap-3 p-2.5 rounded-xl border transition-all cursor-pointer"
-                                        :class="form.level === opt.level
-                                            ? 'bg-primary/5 border-primary shadow-2xs'
-                                            : 'bg-surface-container-low/50 border-outline-variant/50 hover:bg-surface-container-low'"
+                                        v-for="lvl in levels"
+                                        :key="lvl"
+                                        class="flex items-center justify-center py-2.5 px-2 rounded-xl border text-xs sm:text-sm font-bold transition-all cursor-pointer text-center select-none"
+                                        :class="Number(form.level) === lvl
+                                            ? 'bg-primary text-on-primary border-primary shadow-xs'
+                                            : 'bg-surface-container-low/70 text-on-surface border-outline-variant/60 hover:bg-surface-container-high'"
                                     >
                                         <input
                                             type="radio"
                                             v-model="form.level"
-                                            :value="opt.level"
-                                            class="mt-1 text-primary focus:ring-primary"
+                                            :value="lvl"
+                                            class="sr-only"
                                         />
-                                        <div class="flex-1 min-w-0">
-                                            <div class="flex items-center gap-2">
-                                                <span class="text-xs font-bold text-on-surface">{{ opt.title }}</span>
-                                                <span :class="['text-[10px] font-bold px-1.5 py-0.5 rounded border', opt.badgeClass]">
-                                                    L{{ opt.level }}
-                                                </span>
-                                            </div>
-                                            <p class="text-[11px] text-on-surface-variant leading-tight mt-0.5">
-                                                {{ opt.desc }}
-                                            </p>
-                                        </div>
+                                        <span>Level {{ lvl }}</span>
                                     </label>
                                 </div>
                                 <div v-if="form.errors.level" class="text-error text-xs mt-1">{{ form.errors.level }}</div>
-                            </div>
-
-                            <!-- Atasan Langsung / Rekan Sejajar -->
-                            <div>
-                                <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
-                                    Atasan Langsung / Rekan Sejajar
-                                </label>
-                                <select
-                                    v-model="form.parent_id"
-                                    class="w-full px-4 py-2.5 bg-surface-container-low border border-outline-variant/60 rounded-xl text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
-                                    :class="{ 'border-error': form.errors.parent_id }"
-                                >
-                                    <option value="">-- Tidak Ada Atasan (Berdiri Sendiri / Pembina Tertinggi) --</option>
-                                    <option
-                                        v-for="parent in availableParents"
-                                        :key="parent.id"
-                                        :value="parent.id"
-                                    >
-                                        [Level {{ parent.level || 3 }}] {{ parent.name }} {{ parent.department_name ? `(${parent.department_name})` : '' }} {{ Number(parent.level) === Number(form.level) ? '— Rekan Sejajar' : '' }}
-                                    </option>
-                                </select>
-                                <p class="text-[11px] text-on-surface-variant mt-1">
-                                    Pilih jabatan atasan langsung (hierarki vertikal) atau rekan sejajar (di level yang sama).
-                                </p>
-                                <div v-if="form.errors.parent_id" class="text-error text-xs mt-1">{{ form.errors.parent_id }}</div>
                             </div>
 
                             <!-- Bidang Kerja / Departemen -->
@@ -293,9 +224,6 @@ function submit() {
                                         {{ dept.name }}
                                     </option>
                                 </select>
-                                <p class="text-[11px] text-on-surface-variant mt-1">
-                                    Kelompokkan jabatan ke dalam bidang kerja atau pilih Lintas Bidang untuk eksekutif/pembina yayasan.
-                                </p>
                                 <div v-if="form.errors.department_id" class="text-error text-xs mt-1">{{ form.errors.department_id }}</div>
                             </div>
 
