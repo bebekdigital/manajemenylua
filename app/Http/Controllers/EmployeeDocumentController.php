@@ -58,6 +58,7 @@ class EmployeeDocumentController extends Controller
             'ijazah' => 'Ijazah Kuliah',
             'sk_jenjang' => 'SK Kenaikan Jenjang',
             'sk_penugasan' => 'SK Penugasan / Jabatan',
+            'sertifikat_pelatihan', 'sertifikat' => 'Sertifikat Pelatihan',
             default => $file->getClientOriginalName(),
         };
 

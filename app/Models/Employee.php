@@ -132,6 +132,11 @@ class Employee extends Model
         return $this->hasMany(EmployeeEducationHistory::class);
     }
 
+    public function trainingHistories(): HasMany
+    {
+        return $this->hasMany(EmployeeTrainingHistory::class);
+    }
+
     public function records(): HasMany
     {
         return $this->hasMany(EmployeeRecord::class);

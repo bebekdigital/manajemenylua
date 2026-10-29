@@ -131,8 +131,9 @@ const form = useForm({
     riwayat_kepegawaian: [],
     riwayat_jabatan: [],
 
-    // Riwayat Pendidikan
+    // Riwayat Pendidikan Formal & Pelatihan Nonformal
     riwayat_pendidikan: [],
+    riwayat_pelatihan: [],
 });
 
 function initFormFromProps() {
@@ -225,6 +226,16 @@ function initFormFromProps() {
         tahun_lulus: p.tahun_lulus || '',
         pembiayaan: p.pembiayaan || '',
         document: p.document || null,
+    }));
+
+    form.riwayat_pelatihan = (props.employee.riwayat_pelatihan || []).map((t) => ({
+        id: t.id || null,
+        bidang: t.bidang || '',
+        keahlian: t.keahlian || '',
+        instansi_penyelenggara: t.instansi_penyelenggara || '',
+        tahun: t.tahun || '',
+        pembiayaan: t.pembiayaan || '',
+        document: t.document || null,
     }));
 }
 
@@ -766,6 +777,22 @@ function removeEducationRow(index) {
     form.riwayat_pendidikan.splice(index, 1);
 }
 
+function addTrainingRow() {
+    form.riwayat_pelatihan.push({
+        id: null,
+        bidang: '',
+        keahlian: '',
+        instansi_penyelenggara: '',
+        tahun: '',
+        pembiayaan: '',
+        document: null,
+    });
+}
+
+function removeTrainingRow(index) {
+    form.riwayat_pelatihan.splice(index, 1);
+}
+
 function getAlamatDomisili(e) {
     return [e.jalan_domisili, e.rt_rw_domisili, e.dusun_domisili, e.desa_domisili, e.kecamatan_domisili, e.kab_domisili, e.provinsi_domisili]
         .filter(Boolean).join(', ') || '-';
@@ -1105,6 +1132,42 @@ const dokumenPendidikanList = computed(() => {
                 recordId: null,
                 uploadTitle: doc.title,
                 isAdditional: true,
+            });
+        });
+    }
+
+    return list;
+});
+
+const dokumenPelatihanList = computed(() => {
+    const list = [];
+    let no = 1;
+
+    // Sertifikat Pelatihan dan Pendidikan Nonformal (Terkoneksi Tab Pendidikan & Pelatihan)
+    if (props.employee.riwayat_pelatihan && props.employee.riwayat_pelatihan.length > 0) {
+        props.employee.riwayat_pelatihan.forEach((tr) => {
+            const judul = tr.keahlian || tr.bidang || 'Pelatihan';
+            const bidang = tr.bidang ? `Bidang: ${tr.bidang}` : '';
+            const instansi = tr.instansi_penyelenggara || '-';
+            const tahun = tr.tahun ? `Tahun ${tr.tahun}` : '';
+            const biaya = tr.pembiayaan ? `Pembiayaan: ${tr.pembiayaan}` : '';
+
+            const rincianParts = [instansi];
+            if (bidang) rincianParts.push(bidang);
+            if (tahun) rincianParts.push(tahun);
+            if (biaya) rincianParts.push(biaya);
+
+            list.push({
+                id: `tr_${tr.id}`,
+                no: no++,
+                nama: `Sertifikat ${judul}`,
+                keterangan: rincianParts.join(' • '),
+                document: tr.document,
+                uploadCategory: 'sertifikat_pelatihan',
+                recordType: 'training',
+                recordId: tr.id,
+                uploadTitle: `Sertifikat ${judul}`,
+                isAdditional: false,
             });
         });
     }
@@ -3021,17 +3084,18 @@ function deleteDocument(doc) {
                     </div>
                 </div>
 
-                <!-- TAB 6: PENDIDIKAN -->
-                <div v-if="activeTab === 'pendidikan'" class="space-y-6">
+                <!-- TAB 6: PENDIDIKAN FORMAL & NONFORMAL -->
+                <div v-if="activeTab === 'pendidikan'" class="space-y-8">
+                    <!-- 1. TABEL RIWAYAT PENDIDIKAN FORMAL -->
                     <div>
                         <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
                             <div>
                                 <h4 class="text-xs sm:text-sm font-bold text-primary flex items-center gap-2">
                                     <span class="material-symbols-outlined text-[18px]">school</span>
-                                    Riwayat Pendidikan
+                                    Riwayat Pendidikan Formal
                                 </h4>
                                 <p v-if="isEditing" class="text-xs text-on-surface-variant mt-0.5">
-                                    Edit data langsung di baris tabel atau klik tombol di baris paling bawah untuk menambah riwayat pendidikan baru
+                                    Edit data langsung di baris tabel atau klik tombol di baris paling bawah untuk menambah riwayat pendidikan formal baru
                                 </p>
                             </div>
                             <span class="text-xs text-outline font-medium">
@@ -3089,9 +3153,9 @@ function deleteDocument(doc) {
                                 </table>
                             </div>
 
-                            <div v-else class="py-12 text-center border-2 border-dashed border-outline-variant/30 rounded-2xl">
+                            <div v-else class="py-10 text-center border-2 border-dashed border-outline-variant/30 rounded-2xl">
                                 <span class="material-symbols-outlined text-4xl text-outline/60 block mb-2">school</span>
-                                <p class="text-sm text-on-surface-variant">Belum ada riwayat pendidikan</p>
+                                <p class="text-sm text-on-surface-variant">Belum ada riwayat pendidikan formal</p>
                             </div>
                         </div>
 
@@ -3114,7 +3178,7 @@ function deleteDocument(doc) {
                                     <tr v-if="!form.riwayat_pendidikan || form.riwayat_pendidikan.length === 0">
                                         <td colspan="8" class="border border-outline-variant/60 p-6 text-center text-xs text-on-surface-variant italic">
                                             <span class="material-symbols-outlined text-2xl text-outline/60 block mb-1">school</span>
-                                            Belum ada riwayat pendidikan. Klik tombol di bawah untuk menambah riwayat pendidikan baru.
+                                            Belum ada riwayat pendidikan formal. Klik tombol di bawah untuk menambah riwayat baru.
                                         </td>
                                     </tr>
                                     <tr
@@ -3210,7 +3274,194 @@ function deleteDocument(doc) {
                                                 class="w-full py-2.5 px-4 rounded-xl border border-dashed border-primary/50 hover:border-primary bg-primary/5 hover:bg-primary/10 text-primary font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-[0.99]"
                                             >
                                                 <span class="material-symbols-outlined text-[18px]">add_circle</span>
-                                                <span>Tambah Riwayat Pendidikan</span>
+                                                <span>Tambah Riwayat Pendidikan Formal</span>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- 2. TABEL RIWAYAT PELATIHAN DAN PENDIDIKAN NONFORMAL -->
+                    <div>
+                        <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+                            <div>
+                                <h4 class="text-xs sm:text-sm font-bold text-primary flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-[18px]">workspace_premium</span>
+                                    Riwayat Pelatihan dan Pendidikan Nonformal
+                                </h4>
+                                <p v-if="isEditing" class="text-xs text-on-surface-variant mt-0.5">
+                                    Edit data langsung di baris tabel atau klik tombol di baris paling bawah untuk menambah riwayat pelatihan baru
+                                </p>
+                            </div>
+                            <span class="text-xs text-outline font-medium">
+                                {{ (isEditing ? form.riwayat_pelatihan?.length : employee.riwayat_pelatihan?.length) || 0 }} Catatan
+                            </span>
+                        </div>
+
+                        <!-- VIEW MODE (Ketika tidak sedang edit) -->
+                        <div v-if="!isEditing">
+                            <div v-if="employee.riwayat_pelatihan && employee.riwayat_pelatihan.length > 0" class="overflow-x-auto rounded-xl border border-outline-variant/60 bg-white shadow-2xs">
+                                <table class="w-full text-xs sm:text-sm border-collapse border border-outline-variant/60">
+                                    <thead>
+                                        <tr class="bg-white text-on-surface-variant font-bold text-[10px] sm:text-xs uppercase tracking-wider">
+                                            <th class="border border-outline-variant/60 px-4 py-3 text-center w-12">No</th>
+                                            <th class="border border-outline-variant/60 px-4 py-3 text-left">Bidang</th>
+                                            <th class="border border-outline-variant/60 px-4 py-3 text-left">Keahlian</th>
+                                            <th class="border border-outline-variant/60 px-4 py-3 text-left">Instansi Penyelenggara</th>
+                                            <th class="border border-outline-variant/60 px-4 py-3 text-center">Tahun</th>
+                                            <th class="border border-outline-variant/60 px-4 py-3 text-left">Pembiayaan</th>
+                                            <th class="border border-outline-variant/60 px-4 py-3 text-center">Berkas Sertifikat</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr
+                                            v-for="(tr, idx) in employee.riwayat_pelatihan"
+                                            :key="tr.id || idx"
+                                            class="hover:bg-slate-50 transition-colors"
+                                        >
+                                            <td class="border border-outline-variant/60 px-4 py-3 text-center text-on-surface-variant font-mono">{{ idx + 1 }}</td>
+                                            <td class="border border-outline-variant/60 px-4 py-3 font-semibold text-on-surface">
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-semibold bg-primary/10 text-primary">
+                                                    {{ tr.bidang || '-' }}
+                                                </span>
+                                            </td>
+                                            <td class="border border-outline-variant/60 px-4 py-3 text-on-surface font-medium">{{ tr.keahlian || '-' }}</td>
+                                            <td class="border border-outline-variant/60 px-4 py-3 text-on-surface">{{ tr.instansi_penyelenggara || '-' }}</td>
+                                            <td class="border border-outline-variant/60 px-4 py-3 text-center font-semibold text-on-surface">{{ tr.tahun || '-' }}</td>
+                                            <td class="border border-outline-variant/60 px-4 py-3 text-on-surface">{{ tr.pembiayaan || '-' }}</td>
+                                            <td class="border border-outline-variant/60 px-4 py-3 text-center">
+                                                <div v-if="tr.document" class="inline-flex items-center justify-center">
+                                                    <button
+                                                        type="button"
+                                                        @click="openPreview(tr.document)"
+                                                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors border border-emerald-200 cursor-pointer"
+                                                        title="Lihat Berkas Sertifikat"
+                                                    >
+                                                        <span class="material-symbols-outlined text-[15px]">visibility</span>
+                                                        <span>Lihat Sertifikat</span>
+                                                    </button>
+                                                </div>
+                                                <span v-else class="text-outline text-xs">-</span>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div v-else class="py-10 text-center border-2 border-dashed border-outline-variant/30 rounded-2xl">
+                                <span class="material-symbols-outlined text-4xl text-outline/60 block mb-2">workspace_premium</span>
+                                <p class="text-sm text-on-surface-variant">Belum ada riwayat pelatihan dan pendidikan nonformal</p>
+                            </div>
+                        </div>
+
+                        <!-- EDIT MODE (Edit langsung di tabel dan tombol tambah di baris paling bawah) -->
+                        <div v-else class="overflow-x-auto rounded-xl border border-primary/30 bg-white shadow-2xs">
+                            <table class="w-full text-xs sm:text-sm border-collapse border border-outline-variant/60 min-w-[850px]">
+                                <thead>
+                                    <tr class="bg-primary/5 text-primary font-bold text-[10px] sm:text-xs uppercase tracking-wider">
+                                        <th class="border border-outline-variant/60 px-3 py-2.5 text-center w-12">No</th>
+                                        <th class="border border-outline-variant/60 px-3 py-2.5 text-left min-w-[150px]">Bidang</th>
+                                        <th class="border border-outline-variant/60 px-3 py-2.5 text-left min-w-[170px]">Keahlian</th>
+                                        <th class="border border-outline-variant/60 px-3 py-2.5 text-left min-w-[190px]">Instansi Penyelenggara</th>
+                                        <th class="border border-outline-variant/60 px-3 py-2.5 text-center w-28">Tahun</th>
+                                        <th class="border border-outline-variant/60 px-3 py-2.5 text-left min-w-[140px]">Pembiayaan</th>
+                                        <th class="border border-outline-variant/60 px-3 py-2.5 text-center min-w-[110px]">Berkas Sertifikat</th>
+                                        <th class="border border-outline-variant/60 px-3 py-2.5 text-center w-16">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-if="!form.riwayat_pelatihan || form.riwayat_pelatihan.length === 0">
+                                        <td colspan="8" class="border border-outline-variant/60 p-6 text-center text-xs text-on-surface-variant italic">
+                                            <span class="material-symbols-outlined text-2xl text-outline/60 block mb-1">workspace_premium</span>
+                                            Belum ada riwayat pelatihan dan pendidikan nonformal. Klik tombol di bawah untuk menambah riwayat baru.
+                                        </td>
+                                    </tr>
+                                    <tr
+                                        v-for="(tr, idx) in form.riwayat_pelatihan"
+                                        :key="tr.id || idx"
+                                        class="hover:bg-slate-50/70 transition-colors"
+                                    >
+                                        <td class="border border-outline-variant/60 px-3 py-2.5 text-center text-on-surface-variant font-mono font-bold">
+                                            {{ idx + 1 }}
+                                        </td>
+                                        <td class="border border-outline-variant/60 px-3 py-2.5">
+                                            <input
+                                                v-model="tr.bidang"
+                                                type="text"
+                                                placeholder="Contoh: IT / Pedagogik / Bahasa"
+                                                class="w-full px-3 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                            />
+                                        </td>
+                                        <td class="border border-outline-variant/60 px-3 py-2.5">
+                                            <input
+                                                v-model="tr.keahlian"
+                                                type="text"
+                                                placeholder="Contoh: Desain Kurikulum / Robotik"
+                                                class="w-full px-3 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                            />
+                                        </td>
+                                        <td class="border border-outline-variant/60 px-3 py-2.5">
+                                            <input
+                                                v-model="tr.instansi_penyelenggara"
+                                                type="text"
+                                                placeholder="Contoh: Balai Diklat / Kemdikbud"
+                                                class="w-full px-3 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                            />
+                                        </td>
+                                        <td class="border border-outline-variant/60 px-3 py-2.5">
+                                            <input
+                                                v-model="tr.tahun"
+                                                type="text"
+                                                placeholder="2024"
+                                                class="w-full px-2.5 py-2 text-center bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                            />
+                                        </td>
+                                        <td class="border border-outline-variant/60 px-3 py-2.5">
+                                            <input
+                                                v-model="tr.pembiayaan"
+                                                type="text"
+                                                placeholder="Mandiri / Beasiswa / Yayasan"
+                                                class="w-full px-3 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                            />
+                                        </td>
+                                        <td class="border border-outline-variant/60 px-3 py-2.5 text-center">
+                                            <div v-if="tr.document" class="inline-flex items-center justify-center">
+                                                <button
+                                                    type="button"
+                                                    @click="openPreview(tr.document)"
+                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors border border-emerald-200 cursor-pointer"
+                                                    title="Lihat Berkas Sertifikat"
+                                                >
+                                                    <span class="material-symbols-outlined text-[15px]">visibility</span>
+                                                    <span>Lihat Sertifikat</span>
+                                                </button>
+                                            </div>
+                                            <span v-else class="text-[11px] text-outline italic">Tab Dokumen</span>
+                                        </td>
+                                        <td class="border border-outline-variant/60 px-3 py-2.5 text-center">
+                                            <button
+                                                type="button"
+                                                @click="removeTrainingRow(idx)"
+                                                class="w-8 h-8 rounded-lg text-error hover:bg-error/10 flex items-center justify-center mx-auto transition-colors cursor-pointer"
+                                                title="Hapus baris riwayat pelatihan ini"
+                                            >
+                                                <span class="material-symbols-outlined text-[18px]">delete</span>
+                                            </button>
+                                        </td>
+                                    </tr>
+
+                                    <!-- BARIS PALING BAWAH: TOMBOL TAMBAH RIWAYAT PELATIHAN -->
+                                    <tr class="bg-slate-50/70 hover:bg-slate-100/70 transition-colors">
+                                        <td colspan="8" class="border border-outline-variant/60 p-2.5 text-center">
+                                            <button
+                                                type="button"
+                                                @click="addTrainingRow"
+                                                class="w-full py-2.5 px-4 rounded-xl border border-dashed border-primary/50 hover:border-primary bg-primary/5 hover:bg-primary/10 text-primary font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-[0.99]"
+                                            >
+                                                <span class="material-symbols-outlined text-[18px]">add_circle</span>
+                                                <span>Tambah Riwayat Pelatihan dan Nonformal</span>
                                             </button>
                                         </td>
                                     </tr>
@@ -3596,12 +3847,12 @@ function deleteDocument(doc) {
                         </div>
                     </div>
 
-                    <!-- 4. TABEL DOKUMEN RIWAYAT PENDIDIKAN -->
+                    <!-- 4. TABEL DOKUMEN RIWAYAT PENDIDIKAN FORMAL -->
                     <div class="space-y-3">
                         <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
                             <h4 class="text-xs sm:text-sm font-bold text-primary flex items-center gap-2">
                                 <span class="material-symbols-outlined text-[18px]">school</span>
-                                Dokumen Riwayat Pendidikan
+                                Dokumen Riwayat Pendidikan Formal
                             </h4>
                         </div>
 
@@ -3717,7 +3968,135 @@ function deleteDocument(doc) {
                                     </tr>
                                     <tr v-if="dokumenPendidikanList.length === 0">
                                         <td colspan="5" class="border border-outline-variant/60 px-4 py-8 text-center text-xs text-on-surface-variant">
-                                            Belum ada dokumen riwayat pendidikan.
+                                            Belum ada dokumen riwayat pendidikan formal.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- 5. TABEL DOKUMEN RIWAYAT PELATIHAN DAN PENDIDIKAN NONFORMAL -->
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+                            <h4 class="text-xs sm:text-sm font-bold text-primary flex items-center gap-2">
+                                <span class="material-symbols-outlined text-[18px]">workspace_premium</span>
+                                Dokumen Riwayat Pelatihan dan Sertifikat
+                            </h4>
+                        </div>
+
+                        <div class="overflow-x-auto rounded-xl border border-outline-variant/60 bg-white shadow-2xs">
+                            <table class="w-full text-xs sm:text-sm border-collapse border border-outline-variant/60">
+                                <thead>
+                                    <tr class="bg-white text-on-surface-variant font-bold text-[10px] sm:text-xs uppercase tracking-wider">
+                                        <th class="border border-outline-variant/60 px-4 py-3 text-center w-12">No</th>
+                                        <th class="border border-outline-variant/60 px-4 py-3 text-left">Nama Dokumen</th>
+                                        <th class="border border-outline-variant/60 px-4 py-3 text-left">Keterangan / Rincian</th>
+                                        <th class="border border-outline-variant/60 px-4 py-3 text-center">Status Unggah</th>
+                                        <th class="border border-outline-variant/60 px-4 py-3 text-center">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr
+                                        v-for="item in dokumenPelatihanList"
+                                        :key="item.id"
+                                        class="hover:bg-slate-50 transition-colors"
+                                    >
+                                        <td class="border border-outline-variant/60 px-4 py-3 text-center text-on-surface-variant font-mono">{{ item.no }}</td>
+                                        <td class="border border-outline-variant/60 px-4 py-3 font-semibold text-on-surface">
+                                            {{ item.nama }}
+                                        </td>
+                                        <td class="border border-outline-variant/60 px-4 py-3 text-on-surface-variant">
+                                            {{ item.keterangan || '-' }}
+                                        </td>
+                                        <td class="border border-outline-variant/60 px-4 py-3 text-center">
+                                            <span
+                                                v-if="item.document"
+                                                class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800"
+                                            >
+                                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                                                Sudah Diunggah
+                                            </span>
+                                            <span
+                                                v-else
+                                                class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800"
+                                            >
+                                                <span class="w-1.5 h-1.5 rounded-full bg-amber-600"></span>
+                                                Belum Diunggah
+                                            </span>
+                                        </td>
+                                        <td class="border border-outline-variant/60 px-4 py-3 text-center">
+                                            <div v-if="item.document" class="inline-flex items-center gap-1.5 justify-center flex-wrap">
+                                                <button
+                                                    type="button"
+                                                    @click="openPreview(item.document)"
+                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors border border-emerald-200 cursor-pointer"
+                                                    title="Lihat Pratinjau Dokumen"
+                                                >
+                                                    <span class="material-symbols-outlined text-[15px]">visibility</span>
+                                                    <span>Lihat</span>
+                                                </button>
+                                                <a
+                                                    :href="item.document.download_url"
+                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-outline-variant/60 hover:bg-slate-100 text-on-surface transition-colors cursor-pointer"
+                                                    title="Unduh Berkas"
+                                                >
+                                                    <span class="material-symbols-outlined text-[15px]">download</span>
+                                                    <span>Unduh</span>
+                                                </a>
+                                                <button
+                                                    type="button"
+                                                    @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
+                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-outline-variant/60 hover:bg-slate-100 text-slate-700 transition-colors cursor-pointer"
+                                                    title="Ganti Berkas Dokumen"
+                                                >
+                                                    <span class="material-symbols-outlined text-[15px]">sync</span>
+                                                    <span>Unggah</span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    @click="deleteDocument(item.document)"
+                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                                                    title="Hapus Berkas Dokumen"
+                                                >
+                                                    <span class="material-symbols-outlined text-[15px]">delete</span>
+                                                    <span>Hapus</span>
+                                                </button>
+                                            </div>
+                                            <div v-else class="inline-flex items-center gap-1.5 justify-center flex-wrap">
+                                                <button
+                                                    type="button"
+                                                    @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
+                                                    class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"
+                                                    title="Upload Dokumen"
+                                                >
+                                                    <span class="material-symbols-outlined text-[15px]">upload_file</span>
+                                                    <span>Unggah</span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    disabled
+                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60"
+                                                    title="Belum ada berkas untuk dilihat"
+                                                >
+                                                    <span class="material-symbols-outlined text-[15px]">visibility_off</span>
+                                                    <span>Lihat</span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    disabled
+                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60"
+                                                    title="Belum ada berkas untuk dihapus"
+                                                >
+                                                    <span class="material-symbols-outlined text-[15px]">delete</span>
+                                                    <span>Hapus</span>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr v-if="dokumenPelatihanList.length === 0">
+                                        <td colspan="5" class="border border-outline-variant/60 px-4 py-8 text-center text-xs text-on-surface-variant">
+                                            Belum ada dokumen riwayat pelatihan.
                                         </td>
                                     </tr>
                                 </tbody>

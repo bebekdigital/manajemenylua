@@ -52,6 +52,7 @@ class EmployeeController extends Controller
             'records',
             'positions',
             'educationHistories',
+            'trainingHistories',
         ])->orderBy('nama');
 
         // Batasi akses: Role Guru hanya bisa melihat data pegawai atas nama dia sendiri
@@ -114,6 +115,7 @@ class EmployeeController extends Controller
 
         $employee = Employee::with([
             'educationHistories',
+            'trainingHistories',
             'records',
             'positions',
             'documents',
@@ -245,6 +247,17 @@ class EmployeeController extends Controller
                 'tahun_lulus' => $e->tahun_lulus,
                 'pembiayaan' => $e->pembiayaan,
                 'document' => $employee->documents->first(fn ($d) => $d->record_type === 'education' && $d->record_id == $e->id),
+            ])->toArray(),
+
+            // Riwayat Pelatihan dan Pendidikan Nonformal dengan dokumen Sertifikat terkait
+            'riwayat_pelatihan' => $employee->trainingHistories->map(fn ($t) => [
+                'id' => $t->id,
+                'bidang' => $t->bidang,
+                'keahlian' => $t->keahlian,
+                'instansi_penyelenggara' => $t->instansi_penyelenggara,
+                'tahun' => $t->tahun,
+                'pembiayaan' => $t->pembiayaan,
+                'document' => $employee->documents->first(fn ($d) => $d->record_type === 'training' && $d->record_id == $t->id),
             ])->toArray(),
 
             // Dokumen Ijazah tambahan / bebas (misal S2 atau sertifikat lain tanpa record_id khusus)
@@ -432,6 +445,14 @@ class EmployeeController extends Controller
             'riwayat_pendidikan.*.instansi_pendidikan' => ['nullable', 'string', 'max:150'],
             'riwayat_pendidikan.*.tahun_lulus' => ['nullable', 'string', 'max:20'],
             'riwayat_pendidikan.*.pembiayaan' => ['nullable', 'string', 'max:50'],
+            // Riwayat Pelatihan dan Nonformal array
+            'riwayat_pelatihan' => ['nullable', 'array'],
+            'riwayat_pelatihan.*.id' => ['nullable'],
+            'riwayat_pelatihan.*.bidang' => ['nullable', 'string', 'max:150'],
+            'riwayat_pelatihan.*.keahlian' => ['nullable', 'string', 'max:150'],
+            'riwayat_pelatihan.*.instansi_penyelenggara' => ['nullable', 'string', 'max:150'],
+            'riwayat_pelatihan.*.tahun' => ['nullable', 'string', 'max:20'],
+            'riwayat_pelatihan.*.pembiayaan' => ['nullable', 'string', 'max:100'],
         ], [
             'nama.required' => 'Nama lengkap wajib diisi.',
             'nik.unique' => 'NIK sudah digunakan oleh pegawai lain.',
@@ -586,6 +607,41 @@ class EmployeeController extends Controller
                 foreach ($educationToDelete as $delEdu) {
                     $employee->documents()->where('record_type', 'education')->where('record_id', $delEdu->id)->delete();
                     $delEdu->delete();
+                }
+            }
+
+            // Handle Pelatihan dan Pendidikan Nonformal
+            if (isset($validated['riwayat_pelatihan']) && is_array($validated['riwayat_pelatihan'])) {
+                $keptTrainingIds = [];
+                foreach ($validated['riwayat_pelatihan'] as $training) {
+                    if (! empty($training['bidang']) || ! empty($training['keahlian']) || ! empty($training['instansi_penyelenggara']) || ! empty($training['tahun'])) {
+                        $trainingData = [
+                            'bidang' => $training['bidang'] ?? null,
+                            'keahlian' => $training['keahlian'] ?? null,
+                            'instansi_penyelenggara' => $training['instansi_penyelenggara'] ?? null,
+                            'tahun' => $training['tahun'] ?? null,
+                            'pembiayaan' => $training['pembiayaan'] ?? null,
+                        ];
+
+                        if (! empty($training['id'])) {
+                            $existingTraining = $employee->trainingHistories()->find($training['id']);
+                            if ($existingTraining) {
+                                $existingTraining->update($trainingData);
+                                $keptTrainingIds[] = $existingTraining->id;
+
+                                continue;
+                            }
+                        }
+
+                        $newTraining = $employee->trainingHistories()->create($trainingData);
+                        $keptTrainingIds[] = $newTraining->id;
+                    }
+                }
+
+                $trainingsToDelete = $employee->trainingHistories()->whereNotIn('id', $keptTrainingIds)->get();
+                foreach ($trainingsToDelete as $delTraining) {
+                    $employee->documents()->where('record_type', 'training')->where('record_id', $delTraining->id)->delete();
+                    $delTraining->delete();
                 }
             }
         });

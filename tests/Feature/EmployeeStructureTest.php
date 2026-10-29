@@ -473,4 +473,48 @@ class EmployeeStructureTest extends TestCase
             ->where('employee.riwayat_jabatan.0.no_sk', 'SK-JABATAN-2026/009')
         );
     }
+
+    public function test_staff_update_saves_and_returns_riwayat_pelatihan(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $employee = Employee::create(['nama' => 'Salman Al Farisi', 'nik' => '3301010101017777']);
+
+        $response = $this->actingAs($admin)->put(route('staff.update', $employee), [
+            'nama' => 'Salman Al Farisi',
+            'nik' => '3301010101017777',
+            'riwayat_pelatihan' => [
+                [
+                    'bidang' => 'Teknologi Informasi',
+                    'keahlian' => 'Web Development Laravel',
+                    'instansi_penyelenggara' => 'Balai Diklat Keagamaan',
+                    'tahun' => '2024',
+                    'pembiayaan' => 'Beasiswa Yayasan',
+                ],
+            ],
+        ]);
+
+        $response->assertRedirect();
+
+        $this->assertDatabaseHas('employee_training_histories', [
+            'employee_id' => $employee->id,
+            'bidang' => 'Teknologi Informasi',
+            'keahlian' => 'Web Development Laravel',
+            'instansi_penyelenggara' => 'Balai Diklat Keagamaan',
+            'tahun' => '2024',
+            'pembiayaan' => 'Beasiswa Yayasan',
+        ]);
+
+        // Verify show page returns riwayat_pelatihan in props
+        $showResponse = $this->actingAs($admin)->get(route('staff.show', $employee));
+        $showResponse->assertOk();
+        $showResponse->assertInertia(fn ($page) => $page
+            ->component('StaffDetail')
+            ->has('employee.riwayat_pelatihan', 1)
+            ->where('employee.riwayat_pelatihan.0.bidang', 'Teknologi Informasi')
+            ->where('employee.riwayat_pelatihan.0.keahlian', 'Web Development Laravel')
+            ->where('employee.riwayat_pelatihan.0.instansi_penyelenggara', 'Balai Diklat Keagamaan')
+            ->where('employee.riwayat_pelatihan.0.tahun', '2024')
+            ->where('employee.riwayat_pelatihan.0.pembiayaan', 'Beasiswa Yayasan')
+        );
+    }
 }
