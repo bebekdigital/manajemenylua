@@ -1108,7 +1108,7 @@ function handleDelete(pos) {
             >
                 <div class="bg-surface-container-lowest rounded-2xl shadow-2xl w-full max-w-md border border-outline-variant/30 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
                     <!-- Header -->
-                    <div class="flex items-center justify-between px-6 py-4.5 border-b border-outline-variant/30 bg-surface-container-low/40">
+                    <div class="flex items-center justify-between px-6 pt-7 pb-5 sm:pt-8 sm:pb-6 border-b border-outline-variant/30 bg-surface-container-low/40">
                         <div class="flex items-center gap-3">
                             <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-xs">
                                 <span class="material-symbols-outlined text-xl">edit_note</span>
