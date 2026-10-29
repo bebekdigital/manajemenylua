@@ -788,9 +788,12 @@ function getStatusColor(status) {
 
 function getJenjangColor(jenjang) {
     const map = {
+        'PJT': 'bg-amber-100 text-amber-800',
+        'PTTY': 'bg-blue-100 text-blue-700',
+        'PTY': 'bg-emerald-100 text-emerald-700',
+        // Fallback untuk legacy data
         'GTY': 'bg-primary/10 text-primary',
         'GTT': 'bg-secondary/10 text-secondary',
-        'PTY': 'bg-tertiary/10 text-tertiary',
         'PTT': 'bg-orange-100 text-orange-700',
     };
     return map[jenjang] ?? 'bg-outline-variant/10 text-on-surface-variant';
@@ -2661,10 +2664,15 @@ function deleteDocument(doc) {
                                                 class="w-full px-3 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface font-semibold focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
                                             >
                                                 <option value="">-- Pilih Jenjang --</option>
-                                                <option value="GTY">GTY (Guru Tetap Yayasan)</option>
-                                                <option value="GTT">GTT (Guru Tidak Tetap)</option>
-                                                <option value="PTY">PTY (Pegawai Tetap Yayasan)</option>
-                                                <option value="PTT">PTT (Pegawai Tidak Tetap)</option>
+                                                <option value="PJT">PJT</option>
+                                                <option value="PTTY">PTTY</option>
+                                                <option value="PTY">PTY</option>
+                                                <option
+                                                    v-if="record.jenjang_kepegawaian && !['PJT', 'PTTY', 'PTY'].includes(record.jenjang_kepegawaian)"
+                                                    :value="record.jenjang_kepegawaian"
+                                                >
+                                                    {{ record.jenjang_kepegawaian }} (Lainnya)
+                                                </option>
                                             </select>
                                         </td>
                                         <td class="border border-outline-variant/60 px-3 py-2.5">
