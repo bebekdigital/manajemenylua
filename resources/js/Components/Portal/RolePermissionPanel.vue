@@ -246,7 +246,7 @@ function savePermissions() {
                     <div>
                         <h3 class="text-base sm:text-lg font-bold text-on-surface">Matriks Pengaturan Hak Akses (Role Permissions)</h3>
                         <p class="text-xs text-on-surface-variant">
-                            Atur izin fitur modul web (Lihat, Tambah, Ubah, Hapus, Ekspor, Impor) untuk setiap jabatan/role.
+                            Atur izin fitur modul Database Pegawai (Lihat, Tambah, Ubah, Hapus, Ekspor, Impor) untuk setiap role.
                         </p>
                     </div>
                 </div>
@@ -305,8 +305,8 @@ function savePermissions() {
                     <span class="text-[10px] px-1.5 py-0.5 rounded-full" :class="activeRole === 'Guru' ? 'bg-white/20 text-white' : 'bg-outline-variant/40 text-on-surface-variant'">Pendidik</span>
                 </button>
 
-                <!-- Dropdown for Other Roles -->
-                <div class="relative ml-auto flex items-center gap-2">
+                <!-- Dropdown for Other Roles (jika ada role kustom selain role utama) -->
+                <div v-if="availableRoles.some(role => !primaryRoles.includes(role))" class="relative ml-auto flex items-center gap-2">
                     <label for="other-roles-select" class="text-xs text-on-surface-variant font-medium hidden sm:inline">Role Lainnya:</label>
                     <select
                         id="other-roles-select"

@@ -38,7 +38,7 @@ const form = useForm({
 });
 
 const allRoleValues = computed(() => {
-    return ['superadmin', ...(props.schoolRoles || []), ...(props.deptRoles || [])];
+    return Array.from(new Set(['superadmin', ...(props.availableRoles || [])]));
 });
 
 // Watch for changes when modal opens/closes or when editing state changes
@@ -192,22 +192,9 @@ function submit() {
                                     :class="{ 'border-error': form.errors.role }"
                                 >
                                     <option value="" disabled>-- Pilih Role / Kewenangan --</option>
-
-                                    <optgroup label="Sistem / Administrator">
-                                        <option value="superadmin">Superadmin</option>
-                                    </optgroup>
-
-                                    <optgroup v-if="schoolRoles && schoolRoles.length > 0" label="Jabatan Unit Sekolah">
-                                        <option v-for="role in schoolRoles" :key="'school_' + role" :value="role">
-                                            {{ role }}
-                                        </option>
-                                    </optgroup>
-
-                                    <optgroup v-if="deptRoles && deptRoles.length > 0" label="Jabatan Bidang">
-                                        <option v-for="role in deptRoles" :key="'dept_' + role" :value="role">
-                                            {{ role }}
-                                        </option>
-                                    </optgroup>
+                                    <option v-for="role in allRoleValues" :key="'role_' + role" :value="role">
+                                        {{ role === 'superadmin' ? 'Superadmin' : role }}
+                                    </option>
 
                                     <!-- Fallback jika akun lama memiliki role yang belum ada di daftar di atas -->
                                     <option
