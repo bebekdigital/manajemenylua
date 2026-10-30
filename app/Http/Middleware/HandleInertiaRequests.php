@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\RolePermission;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -35,15 +36,22 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $user = $request->user();
+        $canViewEmployee = $user ? RolePermission::canAccess($user, 'employee_detail_history', 'view') : false;
+
         return [
             ...parent::share($request),
             'auth' => [
-                'user' => $request->user() ? [
-                    'id' => $request->user()->id,
-                    'name' => $request->user()->employeeProfile()?->nama ?: $request->user()->name,
-                    'username' => $request->user()->username,
-                    'role' => $request->user()->role,
+                'user' => $user ? [
+                    'id' => $user->id,
+                    'name' => $user->employeeProfile()?->nama ?: $user->name,
+                    'username' => $user->username,
+                    'role' => $user->role,
+                    'can_view_employee' => $canViewEmployee,
                 ] : null,
+                'permissions' => [
+                    'can_view_employee' => $canViewEmployee,
+                ],
             ],
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),

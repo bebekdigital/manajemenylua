@@ -1,6 +1,6 @@
 <script setup>
-import { Link } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { Link, usePage } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
 import SidebarMenuItem from './SidebarMenuItem.vue';
 
 const props = defineProps({
@@ -8,6 +8,15 @@ const props = defineProps({
         type: String,
         default: 'overview',
     },
+});
+
+const page = usePage();
+
+const canViewEmployee = computed(() => {
+    const user = page.props.auth?.user;
+    if (!user) return false;
+    if (user.role === 'superadmin') return true;
+    return Boolean(page.props.auth?.permissions?.can_view_employee ?? user.can_view_employee ?? false);
 });
 
 const isDataMenuOpen = ref(false);
@@ -88,7 +97,7 @@ function closeMobileSubMenu() {
                                 <span>Data Siswa</span>
                             </Link>
                         </li>
-                        <li>
+                        <li v-if="canViewEmployee">
                             <Link href="/staff" :class="['flex items-center space-x-2.5 px-3 py-2 rounded-lg transition-all cursor-pointer active:scale-95 duration-200 text-[13px]', currentRoute === 'staff' ? 'bg-emerald-800 text-yellow-200 font-semibold shadow-sm' : 'text-emerald-100/60 hover:bg-emerald-800 hover:text-yellow-200 font-medium']">
                                 <span class="material-symbols-outlined text-[17px] transition-all duration-200" :class="{ 'filled-icon': currentRoute === 'staff' }">badge</span>
                                 <span>Data Pegawai</span>
@@ -206,7 +215,12 @@ function closeMobileSubMenu() {
                         <span class="material-symbols-outlined text-[20px] filled-icon">groups</span>
                         <span class="text-[10px] font-semibold mt-1 leading-tight">Data Siswa</span>
                     </Link>
-                    <Link href="/staff" @click="closeMobileSubMenu" :class="['flex flex-col items-center justify-center px-3 py-2 rounded-xl flex-1 transition-all', currentRoute === 'staff' ? 'text-emerald-900 bg-emerald-50' : 'text-on-surface-variant active:text-emerald-900']">
+                    <Link
+                        v-if="canViewEmployee"
+                        href="/staff"
+                        @click="closeMobileSubMenu"
+                        :class="['flex flex-col items-center justify-center px-3 py-2 rounded-xl flex-1 transition-all', currentRoute === 'staff' ? 'text-emerald-900 bg-emerald-50' : 'text-on-surface-variant active:text-emerald-900']"
+                    >
                         <span class="material-symbols-outlined text-[20px] filled-icon">badge</span>
                         <span class="text-[10px] font-semibold mt-1 leading-tight">Data Pegawai</span>
                     </Link>

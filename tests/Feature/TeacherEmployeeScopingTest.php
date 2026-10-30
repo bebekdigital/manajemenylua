@@ -253,4 +253,55 @@ class TeacherEmployeeScopingTest extends TestCase
         $showRes->assertOk();
         $showRes->assertInertia(fn ($page) => $page->component('StaffDetail')->where('permissions.can_update', true));
     }
+
+    public function test_role_with_view_unchecked_cannot_access_employee_and_has_can_view_employee_false(): void
+    {
+        $user = User::factory()->create([
+            'name' => 'Staf Tata Usaha',
+            'role' => 'Tata Usaha',
+        ]);
+
+        // Uncheck view permission for 'Tata Usaha'
+        RolePermission::updateOrCreate(
+            ['role' => 'Tata Usaha', 'feature_group' => 'employee_detail_history'],
+            [
+                'feature_name' => 'Detail Data Pegawai',
+                'can_view' => false,
+            ]
+        );
+
+        $response = $this->actingAs($user)->get('/beranda');
+        $response->assertOk();
+        $response->assertInertia(function ($page) {
+            $page->where('auth.permissions.can_view_employee', false)
+                ->where('auth.user.can_view_employee', false);
+        });
+
+        // Visiting /staff should be rejected with 403 Forbidden
+        $staffResponse = $this->actingAs($user)->get('/staff');
+        $staffResponse->assertStatus(403);
+    }
+
+    public function test_role_with_view_checked_has_can_view_employee_true(): void
+    {
+        $user = User::factory()->create([
+            'name' => 'Kepala TU',
+            'role' => 'Kepala Tata Usaha',
+        ]);
+
+        RolePermission::updateOrCreate(
+            ['role' => 'Kepala Tata Usaha', 'feature_group' => 'employee_detail_history'],
+            [
+                'feature_name' => 'Detail Data Pegawai',
+                'can_view' => true,
+            ]
+        );
+
+        $response = $this->actingAs($user)->get('/beranda');
+        $response->assertOk();
+        $response->assertInertia(function ($page) {
+            $page->where('auth.permissions.can_view_employee', true)
+                ->where('auth.user.can_view_employee', true);
+        });
+    }
 }
