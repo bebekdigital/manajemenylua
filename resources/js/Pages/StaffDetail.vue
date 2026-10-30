@@ -2558,7 +2558,6 @@ function deleteDocument(doc) {
                                     <option value="Aktif">Aktif</option>
                                     <option value="Non-Aktif">Non-Aktif</option>
                                     <option value="Pensiun">Pensiun</option>
-                                    <option value="Cuti">Cuti</option>
                                 </select>
                             </div>
 
@@ -2567,7 +2566,7 @@ function deleteDocument(doc) {
                                 <input
                                     v-model="form.keterangan_tidak_aktif"
                                     type="text"
-                                    placeholder="Keterangan jika cuti / non-aktif / pensiun"
+                                    placeholder="Keterangan jika non-aktif / pensiun"
                                     class="w-full px-3.5 py-2.5 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                                 />
                             </div>
