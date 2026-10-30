@@ -367,11 +367,11 @@ function savePermissions() {
         <div class="p-6 border-b border-outline-variant/30 bg-surface-container-low/20">
             <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 <div class="flex items-center gap-3">
-                    <div class="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                        <span class="material-symbols-outlined text-2xl">shield_person</span>
+                    <div class="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                        <span class="material-symbols-outlined text-primary text-xl">shield_person</span>
                     </div>
                     <div>
-                        <h3 class="text-base sm:text-lg font-bold text-on-surface">Matriks Pengaturan Hak Akses (Role Permissions)</h3>
+                        <h3 class="text-base font-bold text-on-surface">Matriks Pengaturan Hak Akses (Role Permissions)</h3>
                         <p class="text-xs text-on-surface-variant">
                             Atur izin fitur modul Database Pegawai (Lihat, Tambah, Ubah, Hapus, Ekspor, Impor) untuk setiap bidang dan jabatan.
                         </p>
@@ -397,9 +397,8 @@ function savePermissions() {
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <!-- Dropdown 1: Pilih Bidang -->
                     <div>
-                        <label for="select-bidang" class="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                            <span class="material-symbols-outlined text-[16px] text-primary">account_tree</span>
-                            <span>1. Pilih Bidang / Unit:</span>
+                        <label for="select-bidang" class="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2 block">
+                            1. Pilih Bidang / Unit:
                         </label>
                         <select
                             id="select-bidang"
@@ -407,7 +406,7 @@ function savePermissions() {
                             @change="onBidangChange"
                             class="w-full px-3.5 py-2.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary font-medium cursor-pointer shadow-xs"
                         >
-                            <option value="superadmin">👑 Sistem (Superadmin)</option>
+                            <option value="superadmin">Sistem (Superadmin)</option>
                             <option disabled>────────── DAFTAR BIDANG / UNIT ──────────</option>
                             <option v-for="dept in departments" :key="'dept_' + dept.id" :value="dept.id">
                                 {{ dept.name }} ({{ (dept.positions || []).length }} Jabatan)
@@ -417,9 +416,8 @@ function savePermissions() {
 
                     <!-- Dropdown 2: Pilih Jabatan -->
                     <div>
-                        <label for="select-jabatan" class="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                            <span class="material-symbols-outlined text-[16px] text-primary">badge</span>
-                            <span>2. Pilih Jabatan:</span>
+                        <label for="select-jabatan" class="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2 block">
+                            2. Pilih Jabatan:
                         </label>
                         <select
                             id="select-jabatan"
@@ -441,7 +439,7 @@ function savePermissions() {
                             <!-- Department Positions Case -->
                             <template v-else>
                                 <option value="ALL_IN_DEPT" class="font-bold text-primary">
-                                    ★ Semua Jabatan di Bidang Ini (Total {{ currentDeptPositions.length }} Jabatan)
+                                    Semua Jabatan di Bidang Ini (Total {{ currentDeptPositions.length }} Jabatan)
                                 </option>
                                 <option disabled>────────── JABATAN SPESIFIK ──────────</option>
                                 <option v-for="pos in currentDeptPositions" :key="'pos_' + pos.id" :value="pos.name">
@@ -451,49 +449,17 @@ function savePermissions() {
                         </select>
                     </div>
                 </div>
-
-                <!-- Status Banner / Info Jabatan Terpilih -->
-                <div class="mt-4 pt-3 border-t border-outline-variant/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-                    <div v-if="isSuperadminActive" class="flex items-center gap-2 text-on-surface-variant">
-                        <span class="material-symbols-outlined text-[18px] text-amber-500">verified_user</span>
-                        <span>Role <strong>Superadmin</strong> memiliki hak akses penuh secara default ke seluruh modul sistem.</span>
-                    </div>
-                    <div v-else-if="isAllInDeptActive" class="flex flex-col gap-1.5 text-on-surface">
-                        <div class="flex items-center gap-2">
-                            <span class="material-symbols-outlined text-[18px] text-primary">tune</span>
-                            <span>Mode: Mengatur <strong>Semua Jabatan</strong> sekaligus di bidang <strong>{{ selectedBidangName }}</strong>.</span>
-                            <span class="px-2 py-0.5 rounded-full bg-primary/10 text-primary font-bold text-[10px]">
-                                {{ currentDeptPositions.length }} Jabatan
-                            </span>
-                        </div>
-                        <div class="flex flex-wrap items-center gap-1.5 text-[11px] text-on-surface-variant">
-                            <span>Jabatan terdampak:</span>
-                            <span
-                                v-for="pos in currentDeptPositions"
-                                :key="'tag_' + pos.id"
-                                class="px-2 py-0.5 rounded-md bg-surface-container-high text-on-surface text-[10px] font-medium"
-                            >
-                                {{ pos.name }}
-                            </span>
-                        </div>
-                    </div>
-                    <div v-else class="flex items-center gap-2 text-on-surface">
-                        <span class="material-symbols-outlined text-[18px] text-primary">assignment_ind</span>
-                        <span>Sedang mengatur hak akses untuk jabatan tunggal: <strong class="text-primary">{{ selectedJabatan }}</strong> (Bidang: {{ selectedBidangName }}).</span>
-                    </div>
-                </div>
             </div>
         </div>
 
         <!-- Filter & Search Toolbar -->
         <div class="px-6 py-3 bg-surface-container-low/40 border-b border-outline-variant/30 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
             <div class="flex items-center gap-2">
-                <span class="material-symbols-outlined text-[18px] text-primary">info</span>
                 <span v-if="isSuperadminActive" class="text-on-surface font-medium">
                     Role <strong>Superadmin</strong> memiliki hak akses penuh ke seluruh fitur dan tidak dibatasi oleh matriks perizinan.
                 </span>
                 <span v-else-if="isAllInDeptActive" class="text-on-surface">
-                    Matriks izin ini akan diterapkan ke <strong class="text-primary font-bold">{{ currentDeptPositions.length }} jabatan</strong> di bidang <strong>{{ selectedBidangName }}</strong>.
+                    Sedang mengatur hak akses untuk <strong>Semua Jabatan</strong> ({{ currentDeptPositions.length }} jabatan) di bidang: <strong class="text-primary font-bold">{{ selectedBidangName }}</strong>
                 </span>
                 <span v-else class="text-on-surface">
                     Sedang mengatur hak akses jabatan: <strong class="text-primary font-bold ml-1">{{ selectedJabatan }}</strong>
