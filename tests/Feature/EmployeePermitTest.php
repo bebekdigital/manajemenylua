@@ -378,4 +378,32 @@ class EmployeePermitTest extends TestCase
         $this->assertEquals('ditolak', $permit->status);
         $this->assertEquals('Ditolak Superadmin karena berkas belum lengkap', $permit->catatan);
     }
+
+    public function test_user_can_fetch_realtime_permits_data(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $employee = Employee::create([
+            'nama' => 'Pegawai Test',
+            'nik' => '3301010101010077',
+        ]);
+
+        EmployeePermit::create([
+            'employee_id' => $employee->id,
+            'tanggal' => '2026-10-31',
+            'jenis' => 'Sakit',
+            'detail' => 'Flu',
+            'status' => 'diajukan',
+        ]);
+
+        $response = $this->actingAs($admin)->getJson("/staff/{$employee->id}/permits/realtime");
+
+        $response->assertOk();
+        $response->assertJsonStructure([
+            'permits' => [
+                '*' => ['id', 'tanggal', 'jenis', 'detail', 'status'],
+            ],
+        ]);
+        $response->assertJsonPath('permits.0.jenis', 'Sakit');
+        $response->assertJsonPath('permits.0.status', 'diajukan');
+    }
 }

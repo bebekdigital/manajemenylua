@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { Head, Link, usePage, useForm, router } from '@inertiajs/vue3';
+import axios from 'axios';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import EditDataButton from '@/Components/Shared/EditDataButton.vue';
 import { useWilayah } from '@/Composables/useWilayah';
@@ -1006,28 +1007,52 @@ function submitPermitNote() {
     });
 }
 
-// REALTIME PERMIT POLLING (Ringan & Aman untuk Shared Hosting)
+// REALTIME PERMIT POLLING DENGAN REACTIVE DATA (Ringan & Cepat untuk Shared Hosting)
+const perizinanList = ref([...(props.employee?.perizinan || [])]);
+
+watch(() => props.employee?.perizinan, (newVal) => {
+    if (newVal) {
+        perizinanList.value = [...newVal];
+    }
+}, { deep: true, immediate: true });
+
 let permitPollInterval = null;
 
-function fetchPermitsRealtime() {
-    // Hindari reload jika sedang mode edit form profil utama atau browser sedang di latar belakang
-    if (isEditing.value || document.hidden) return;
+async function fetchPermitsRealtime() {
+    // Hindari reload jika sedang mode edit form profil utama
+    if (isEditing.value) return;
 
-    router.reload({
-        only: ['employee'],
-        preserveScroll: true,
-        preserveState: true,
-    });
+    try {
+        const response = await axios.get(`/staff/${props.employee.id}/permits/realtime`);
+        if (response.data && Array.isArray(response.data.permits)) {
+            perizinanList.value = response.data.permits;
+
+            // Auto-sinkronisasi data di modal jika modal catatan sedang terbuka saat update approval masuk
+            if (showPermitNoteModal.value && permitNoteForm.id) {
+                const item = response.data.permits.find(p => p.id === permitNoteForm.id);
+                if (item) {
+                    permitNoteForm.status = item.status || 'diajukan';
+                    permitNoteForm.catatan = item.catatan || '';
+                    permitNoteForm.updater_name = item.updater_name || '';
+                    permitNoteForm.updater_role = item.updater_role || '';
+                }
+            }
+        }
+    } catch {
+        // Abaikan error jaringan sesaat
+    }
 }
 
 function startPermitPolling() {
     stopPermitPolling();
-    // Interval 10 detik HANYA saat tab perizinan aktif
+    // Tarik data segera tanpa menunggu interval
+    fetchPermitsRealtime();
+    // Interval 3 detik HANYA saat tab perizinan aktif
     permitPollInterval = setInterval(() => {
         if (activeTab.value === 'perizinan' && !isEditing.value) {
             fetchPermitsRealtime();
         }
-    }, 10000);
+    }, 3000);
 }
 
 function stopPermitPolling() {
@@ -1051,19 +1076,6 @@ watch(activeTab, (newTab) => {
         stopPermitPolling();
     }
 }, { immediate: true });
-
-// Auto-sinkronisasi data di modal jika modal catatan sedang terbuka saat update approval masuk
-watch(() => props.employee?.perizinan, (newPermits) => {
-    if (showPermitNoteModal.value && permitNoteForm.id && newPermits) {
-        const item = newPermits.find(p => p.id === permitNoteForm.id);
-        if (item) {
-            permitNoteForm.status = item.status || 'diajukan';
-            permitNoteForm.catatan = item.catatan || '';
-            permitNoteForm.updater_name = item.updater_name || '';
-            permitNoteForm.updater_role = item.updater_role || '';
-        }
-    }
-}, { deep: true });
 
 function getAlamatDomisili(e) {
     return [e.jalan_domisili, e.rt_rw_domisili, e.dusun_domisili, e.desa_domisili, e.kecamatan_domisili, e.kab_domisili, e.provinsi_domisili]
@@ -3862,13 +3874,13 @@ function deleteDocument(doc) {
                                 </p>
                             </div>
                             <span class="text-xs text-outline font-medium">
-                                {{ (isEditing ? form.riwayat_perizinan?.length : employee.perizinan?.length) || 0 }} Perizinan
+                                {{ (isEditing ? form.riwayat_perizinan?.length : perizinanList?.length) || 0 }} Perizinan
                             </span>
                         </div>
 
                         <!-- VIEW MODE (Ketika tidak sedang edit) -->
                         <div v-if="!isEditing">
-                            <div v-if="employee.perizinan && employee.perizinan.length > 0" class="overflow-x-auto rounded-xl border border-outline-variant/60 bg-white shadow-2xs">
+                            <div v-if="perizinanList && perizinanList.length > 0" class="overflow-x-auto rounded-xl border border-outline-variant/60 bg-white shadow-2xs">
                                 <table class="w-full text-xs sm:text-sm border-collapse border border-outline-variant/60">
                                     <thead>
                                         <tr class="bg-white text-on-surface-variant font-bold text-[10px] sm:text-xs uppercase tracking-wider">
@@ -3884,7 +3896,7 @@ function deleteDocument(doc) {
                                     </thead>
                                     <tbody>
                                         <tr
-                                            v-for="(item, idx) in employee.perizinan"
+                                            v-for="(item, idx) in perizinanList"
                                             :key="item.id || idx"
                                             class="hover:bg-slate-50 transition-colors"
                                         >

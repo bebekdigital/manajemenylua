@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Employee;
 use App\Models\EmployeePermit;
 use App\Models\RolePermission;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -205,6 +206,40 @@ class EmployeePermitController extends Controller
         $permit->delete();
 
         return back()->with('success', 'Data perizinan berhasil dihapus.');
+    }
+
+    /**
+     * Get realtime permits data (lightweight JSON for live polling).
+     */
+    public function getRealtimeData(string $id): JsonResponse
+    {
+        $this->authorizeEmployeeAccess($id, 'view');
+
+        $employee = Employee::with(['permits.updater'])->findOrFail($id);
+
+        $permits = $employee->permits->sortByDesc('tanggal')->values()->map(fn ($p) => [
+            'id' => $p->id,
+            'tanggal' => $p->tanggal?->format('Y-m-d'),
+            'tanggal_selesai' => $p->tanggal_selesai?->format('Y-m-d'),
+            'formatted_tanggal' => $p->formatted_tanggal,
+            'jenis' => $p->jenis,
+            'detail' => $p->detail,
+            'keterangan' => $p->keterangan,
+            'lampiran_path' => $p->lampiran_path,
+            'lampiran_nama' => $p->lampiran_nama,
+            'preview_url' => $p->preview_url,
+            'download_url' => $p->download_url,
+            'status' => $p->status,
+            'catatan' => $p->catatan,
+            'updater_name' => $p->updater?->name,
+            'updater_role' => $p->updater?->role,
+            'created_at' => $p->created_at?->format('Y-m-d H:i:s'),
+            'formatted_created_at' => $p->created_at?->translatedFormat('d M Y H:i'),
+        ]);
+
+        return response()->json([
+            'permits' => $permits,
+        ]);
     }
 
     /**
