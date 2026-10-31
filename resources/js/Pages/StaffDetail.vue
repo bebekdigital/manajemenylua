@@ -694,10 +694,13 @@ onMounted(async () => {
     }
     await initWilayahFromForm();
     window.addEventListener('click', handleOutsideClick);
+    window.addEventListener('focus', onWindowFocus);
 });
 
 onUnmounted(() => {
     window.removeEventListener('click', handleOutsideClick);
+    window.removeEventListener('focus', onWindowFocus);
+    stopPermitPolling();
 });
 
 function startEdit() {
@@ -1002,6 +1005,65 @@ function submitPermitNote() {
         },
     });
 }
+
+// REALTIME PERMIT POLLING (Ringan & Aman untuk Shared Hosting)
+let permitPollInterval = null;
+
+function fetchPermitsRealtime() {
+    // Hindari reload jika sedang mode edit form profil utama atau browser sedang di latar belakang
+    if (isEditing.value || document.hidden) return;
+
+    router.reload({
+        only: ['employee'],
+        preserveScroll: true,
+        preserveState: true,
+    });
+}
+
+function startPermitPolling() {
+    stopPermitPolling();
+    // Interval 10 detik HANYA saat tab perizinan aktif
+    permitPollInterval = setInterval(() => {
+        if (activeTab.value === 'perizinan' && !isEditing.value) {
+            fetchPermitsRealtime();
+        }
+    }, 10000);
+}
+
+function stopPermitPolling() {
+    if (permitPollInterval) {
+        clearInterval(permitPollInterval);
+        permitPollInterval = null;
+    }
+}
+
+function onWindowFocus() {
+    if (activeTab.value === 'perizinan' && !isEditing.value) {
+        fetchPermitsRealtime();
+    }
+}
+
+// Pantau perubahan tab aktif
+watch(activeTab, (newTab) => {
+    if (newTab === 'perizinan') {
+        startPermitPolling();
+    } else {
+        stopPermitPolling();
+    }
+}, { immediate: true });
+
+// Auto-sinkronisasi data di modal jika modal catatan sedang terbuka saat update approval masuk
+watch(() => props.employee?.perizinan, (newPermits) => {
+    if (showPermitNoteModal.value && permitNoteForm.id && newPermits) {
+        const item = newPermits.find(p => p.id === permitNoteForm.id);
+        if (item) {
+            permitNoteForm.status = item.status || 'diajukan';
+            permitNoteForm.catatan = item.catatan || '';
+            permitNoteForm.updater_name = item.updater_name || '';
+            permitNoteForm.updater_role = item.updater_role || '';
+        }
+    }
+}, { deep: true });
 
 function getAlamatDomisili(e) {
     return [e.jalan_domisili, e.rt_rw_domisili, e.dusun_domisili, e.desa_domisili, e.kecamatan_domisili, e.kab_domisili, e.provinsi_domisili]
@@ -4920,18 +4982,44 @@ function deleteDocument(doc) {
                     </div>
 
                     <form @submit.prevent="submitPermitNote" class="p-6 space-y-4">
-                        <div class="bg-slate-50 p-3.5 rounded-xl border border-outline-variant/40 space-y-1">
-                            <div class="text-xs text-on-surface-variant">
-                                <span class="font-bold text-on-surface">Jenis:</span> {{ permitNoteForm.jenis || '-' }}
+                        <div class="bg-slate-50 p-3.5 rounded-xl border border-outline-variant/40 space-y-2">
+                            <div class="flex items-center justify-between gap-2 flex-wrap">
+                                <div class="text-xs text-on-surface-variant">
+                                    <span class="font-bold text-on-surface">Jenis:</span> {{ permitNoteForm.jenis || '-' }}
+                                </div>
+                                <div class="inline-flex items-center gap-1.5">
+                                    <span class="text-[11px] text-outline font-semibold">Status:</span>
+                                    <span
+                                        :class="[
+                                            'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold border',
+                                            permitNoteForm.status === 'disetujui' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                                            permitNoteForm.status === 'ditolak' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                                            'bg-amber-50 text-amber-700 border-amber-200'
+                                        ]"
+                                    >
+                                        <span
+                                            :class="[
+                                                'w-1.5 h-1.5 rounded-full',
+                                                permitNoteForm.status === 'disetujui' ? 'bg-emerald-500' :
+                                                permitNoteForm.status === 'ditolak' ? 'bg-rose-500' :
+                                                'bg-amber-500'
+                                            ]"
+                                        ></span>
+                                        {{ permitNoteForm.status === 'disetujui' ? 'Disetujui' : permitNoteForm.status === 'ditolak' ? 'Ditolak' : 'Diajukan' }}
+                                    </span>
+                                </div>
                             </div>
                             <div v-if="permitNoteForm.detail" class="text-xs text-on-surface-variant">
                                 <span class="font-bold text-on-surface">Detail:</span> {{ permitNoteForm.detail }}
+                            </div>
+                            <div v-if="permitNoteForm.formatted_tanggal" class="text-xs text-on-surface-variant">
+                                <span class="font-bold text-on-surface">Tanggal:</span> {{ permitNoteForm.formatted_tanggal }}
                             </div>
                         </div>
 
                         <!-- Update Status jika berwenang approval (Atasan Langsung atau Superadmin) -->
                         <div v-if="canApprovePermit" class="space-y-1.5">
-                            <label class="block text-xs font-bold text-on-surface">Status Pengajuan</label>
+                            <label class="block text-xs font-bold text-on-surface">Ubah Status Pengajuan</label>
                             <select
                                 v-model="permitNoteForm.status"
                                 class="w-full px-3 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm font-bold text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
