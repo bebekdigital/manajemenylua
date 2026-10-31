@@ -3800,8 +3800,7 @@ function deleteDocument(doc) {
                                     <thead>
                                         <tr class="bg-white text-on-surface-variant font-bold text-[10px] sm:text-xs uppercase tracking-wider">
                                             <th class="border border-outline-variant/60 px-4 py-3 text-center w-12">No</th>
-                                            <th class="border border-outline-variant/60 px-4 py-3 text-left min-w-[130px]">Tanggal Mulai</th>
-                                            <th class="border border-outline-variant/60 px-4 py-3 text-left min-w-[130px]">Tanggal Akhir</th>
+                                            <th class="border border-outline-variant/60 px-4 py-3 text-left min-w-[140px]">Tgl</th>
                                             <th class="border border-outline-variant/60 px-4 py-3 text-left min-w-[120px]">Jenis</th>
                                             <th class="border border-outline-variant/60 px-4 py-3 text-left min-w-[150px]">Detail</th>
                                             <th class="border border-outline-variant/60 px-4 py-3 text-left min-w-[180px]">Keterangan</th>
@@ -3819,9 +3818,6 @@ function deleteDocument(doc) {
                                             <td class="border border-outline-variant/60 px-4 py-3 text-center text-on-surface-variant font-mono">{{ idx + 1 }}</td>
                                             <td class="border border-outline-variant/60 px-4 py-3 text-on-surface font-medium whitespace-nowrap">
                                                 {{ item.formatted_tanggal || formatTanggalIndo(item.tanggal) || '-' }}
-                                            </td>
-                                            <td class="border border-outline-variant/60 px-4 py-3 text-on-surface font-medium whitespace-nowrap">
-                                                {{ item.tanggal_selesai ? formatTanggalIndo(item.tanggal_selesai) : '-' }}
                                             </td>
                                             <td class="border border-outline-variant/60 px-4 py-3 font-bold text-on-surface">
                                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-semibold bg-primary/10 text-primary">
@@ -3904,8 +3900,7 @@ function deleteDocument(doc) {
                                 <thead>
                                     <tr class="bg-primary/5 text-primary font-bold text-[10px] sm:text-xs uppercase tracking-wider">
                                         <th class="border border-outline-variant/60 px-3 py-2.5 text-center w-12">No</th>
-                                        <th class="border border-outline-variant/60 px-3 py-2.5 text-left min-w-[145px]">Tanggal Mulai</th>
-                                        <th class="border border-outline-variant/60 px-3 py-2.5 text-left min-w-[145px]">Tanggal Akhir</th>
+                                        <th class="border border-outline-variant/60 px-3 py-2.5 text-left min-w-[260px]">Tgl</th>
                                         <th class="border border-outline-variant/60 px-3 py-2.5 text-left min-w-[140px]">Jenis</th>
                                         <th class="border border-outline-variant/60 px-3 py-2.5 text-left min-w-[160px]">Detail</th>
                                         <th class="border border-outline-variant/60 px-3 py-2.5 text-left min-w-[180px]">Keterangan</th>
@@ -3916,7 +3911,7 @@ function deleteDocument(doc) {
                                 </thead>
                                 <tbody>
                                     <tr v-if="!form.riwayat_perizinan || form.riwayat_perizinan.length === 0">
-                                        <td colspan="9" class="border border-outline-variant/60 p-6 text-center text-xs text-on-surface-variant italic">
+                                        <td colspan="8" class="border border-outline-variant/60 p-6 text-center text-xs text-on-surface-variant italic">
                                             <span class="material-symbols-outlined text-2xl text-outline/60 block mb-1">assignment_late</span>
                                             Belum ada riwayat perizinan. Klik tombol di bawah untuk menambah riwayat perizinan baru.
                                         </td>
@@ -3929,24 +3924,24 @@ function deleteDocument(doc) {
                                         <td class="border border-outline-variant/60 px-3 py-2.5 text-center text-on-surface-variant font-mono font-bold">
                                             {{ idx + 1 }}
                                         </td>
-                                        <!-- TANGGAL MULAI -->
+                                        <!-- TGL (MULAI & AKHIR) -->
                                         <td class="border border-outline-variant/60 px-3 py-2.5">
-                                            <input
-                                                v-model="row.tanggal"
-                                                type="date"
-                                                class="w-full px-3 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
-                                            />
-                                        </td>
-                                        <!-- TANGGAL AKHIR -->
-                                        <td class="border border-outline-variant/60 px-3 py-2.5">
-                                            <div>
+                                            <div class="flex items-center gap-1.5">
+                                                <input
+                                                    v-model="row.tanggal"
+                                                    type="date"
+                                                    class="w-full px-2.5 py-1.5 bg-white border border-outline-variant/60 rounded-xl text-xs text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                                                    title="Tgl Mulai"
+                                                />
+                                                <span class="text-outline text-xs font-semibold shrink-0">s/d</span>
                                                 <input
                                                     v-model="row.tanggal_selesai"
                                                     type="date"
-                                                    class="w-full px-3 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                                                    class="w-full px-2.5 py-1.5 bg-white border border-outline-variant/60 rounded-xl text-xs text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                                                    title="Tgl Akhir (Kosongkan jika 1 hari)"
                                                 />
-                                                <span class="text-[10px] text-outline mt-0.5 block">Kosongkan jika 1 hari</span>
                                             </div>
+                                            <span class="text-[10px] text-outline mt-0.5 block">Tgl Akhir kosong = 1 hari</span>
                                         </td>
                                         <!-- JENIS -->
                                         <td class="border border-outline-variant/60 px-3 py-2.5">
@@ -4052,7 +4047,7 @@ function deleteDocument(doc) {
 
                                     <!-- BARIS PALING BAWAH: TOMBOL TAMBAH RIWAYAT PERIZINAN -->
                                     <tr class="bg-slate-50/70 hover:bg-slate-100/70 transition-colors">
-                                        <td colspan="9" class="border border-outline-variant/60 p-2.5 text-center">
+                                        <td colspan="8" class="border border-outline-variant/60 p-2.5 text-center">
                                             <button
                                                 type="button"
                                                 @click="addRiwayatPerizinanRow"
