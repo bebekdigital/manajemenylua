@@ -78,7 +78,7 @@ function handleLogout() {
                         <div class="p-3.5 rounded-2xl bg-amber-50/90 border border-amber-200/80 text-xs text-amber-950 flex items-start gap-3">
                             <span class="material-symbols-outlined text-amber-600 text-xl shrink-0 mt-0.5">info</span>
                             <div class="leading-relaxed">
-                                Kata sandi akun Anda baru saja <strong>di-reset oleh SuperAdmin</strong>. Demi keamanan dan privasi data, Anda wajib membuat kata sandi baru sebelum dapat menggunakan sistem.
+                                Ini adalah login pertama Anda atau kata sandi Anda baru saja di-reset oleh SuperAdmin. Demi keamanan dan privasi data akun, Anda diwajibkan membuat kata sandi baru untuk melanjutkan penggunaan sistem.
                             </div>
                         </div>
 
@@ -182,3 +182,4 @@ function handleLogout() {
         </Transition>
     </Teleport>
 </template>
+

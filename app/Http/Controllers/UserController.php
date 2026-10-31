@@ -73,7 +73,7 @@ class UserController extends Controller
                     'password' => Hash::make($rawPassword),
                     'role' => $role,
                     'is_active' => true,
-                    'must_change_password' => false,
+                    'must_change_password' => true,
                     'nipy' => $employee->nipy,
                     'status_kepegawaian' => $employee->status_keaktifan ?? 'Aktif',
                     'jk' => $employee->jk,
@@ -126,7 +126,7 @@ class UserController extends Controller
             $validated['is_active'] = true;
         }
         if (! isset($validated['must_change_password'])) {
-            $validated['must_change_password'] = false;
+            $validated['must_change_password'] = true;
         }
 
         User::create($validated);
