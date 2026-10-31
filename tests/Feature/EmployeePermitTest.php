@@ -221,4 +221,64 @@ class EmployeePermitTest extends TestCase
         $this->assertEquals(1, $employee->permits()->count());
         $this->assertNull(EmployeePermit::find($existingPermit->id));
     }
+
+    public function test_teacher_can_edit_and_delete_only_when_status_is_diajukan(): void
+    {
+        $teacherUser = User::factory()->create([
+            'role' => 'guru',
+            'name' => 'Guru Pengajar',
+        ]);
+        $employee = Employee::create([
+            'nama' => 'Guru Pengajar',
+            'nik' => '3301010101010007',
+        ]);
+
+        $permitDiajukan = EmployeePermit::create([
+            'employee_id' => $employee->id,
+            'tanggal' => '2026-10-31',
+            'jenis' => 'Izin',
+            'detail' => 'Acara',
+            'status' => 'diajukan',
+        ]);
+
+        $permitDisetujui = EmployeePermit::create([
+            'employee_id' => $employee->id,
+            'tanggal' => '2026-10-20',
+            'jenis' => 'Sakit',
+            'detail' => 'Demam',
+            'status' => 'disetujui',
+        ]);
+
+        // 1. Guru mengedit permit berstatus 'diajukan' -> Berhasil
+        $res1 = $this->actingAs($teacherUser)->put("/staff/{$employee->id}/permits/{$permitDiajukan->id}", [
+            'tanggal' => '2026-10-31',
+            'jenis' => 'Izin Diperbarui',
+            'detail' => 'Acara Penting',
+        ]);
+        $res1->assertRedirect();
+        $this->assertEquals('Izin Diperbarui', $permitDiajukan->fresh()->jenis);
+
+        // 2. Guru mencoba mengedit permit berstatus 'disetujui' -> Ditolak 403
+        $res2 = $this->actingAs($teacherUser)->put("/staff/{$employee->id}/permits/{$permitDisetujui->id}", [
+            'tanggal' => '2026-10-20',
+            'jenis' => 'Sakit Edit',
+        ]);
+        $res2->assertStatus(403);
+
+        // 3. Guru mencoba menghapus permit berstatus 'disetujui' -> Ditolak 403
+        $res3 = $this->actingAs($teacherUser)->delete("/staff/{$employee->id}/permits/{$permitDisetujui->id}");
+        $res3->assertStatus(403);
+        $this->assertNotNull(EmployeePermit::find($permitDisetujui->id));
+
+        // 4. Guru menghapus permit berstatus 'diajukan' -> Berhasil
+        $res4 = $this->actingAs($teacherUser)->delete("/staff/{$employee->id}/permits/{$permitDiajukan->id}");
+        $res4->assertRedirect();
+        $this->assertNull(EmployeePermit::find($permitDiajukan->id));
+
+        // 5. Guru mencoba mengubah catatan -> Ditolak 403
+        $res5 = $this->actingAs($teacherUser)->patch("/staff/{$employee->id}/permits/{$permitDisetujui->id}/note", [
+            'catatan' => 'Catatan dari guru',
+        ]);
+        $res5->assertStatus(403);
+    }
 }

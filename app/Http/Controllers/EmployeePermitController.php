@@ -87,6 +87,10 @@ class EmployeePermitController extends Controller
         $permit = $employee->permits()->findOrFail($permitId);
         $user = auth()->user();
 
+        if ($user?->isTeacher() && $permit->status !== 'diajukan') {
+            abort(403, 'Akses ditolak: Perizinan yang sudah diproses tidak dapat diubah.');
+        }
+
         $validated = $request->validate([
             'tanggal' => ['nullable', 'date'],
             'tanggal_selesai' => ['nullable', 'date', 'after_or_equal:tanggal'],
@@ -156,6 +160,10 @@ class EmployeePermitController extends Controller
         $permit = $employee->permits()->findOrFail($permitId);
         $user = auth()->user();
 
+        if ($user?->isTeacher()) {
+            abort(403, 'Akses ditolak: Guru tidak diizinkan mengubah catatan perizinan.');
+        }
+
         $validated = $request->validate([
             'catatan' => ['nullable', 'string'],
             'status' => ['nullable', 'string', 'in:diajukan,disetujui,ditolak'],
@@ -184,6 +192,11 @@ class EmployeePermitController extends Controller
 
         $employee = Employee::findOrFail($id);
         $permit = $employee->permits()->findOrFail($permitId);
+        $user = auth()->user();
+
+        if ($user?->isTeacher() && $permit->status !== 'diajukan') {
+            abort(403, 'Akses ditolak: Perizinan yang sudah diproses tidak dapat dihapus.');
+        }
 
         if ($permit->lampiran_path && Storage::disk('local')->exists($permit->lampiran_path)) {
             Storage::disk('local')->delete($permit->lampiran_path);

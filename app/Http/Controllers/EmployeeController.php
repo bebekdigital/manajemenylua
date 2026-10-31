@@ -120,7 +120,7 @@ class EmployeeController extends Controller
             'records',
             'positions',
             'documents',
-            'permits',
+            'permits.updater',
         ])->findOrFail($id);
 
         $latestPosition = $employee->positions->sortByDesc('tmt_jabatan')->first();
@@ -283,6 +283,8 @@ class EmployeeController extends Controller
                 'download_url' => $p->download_url,
                 'status' => $p->status,
                 'catatan' => $p->catatan,
+                'updater_name' => $p->updater?->name,
+                'updater_role' => $p->updater?->role,
                 'created_at' => $p->created_at?->format('Y-m-d H:i:s'),
                 'formatted_created_at' => $p->created_at?->translatedFormat('d M Y H:i'),
             ])->toArray(),
@@ -754,6 +756,13 @@ class EmployeeController extends Controller
                         if (! empty($permitItem['id'])) {
                             $existingPermit = $employee->permits()->find($permitItem['id']);
                             if ($existingPermit) {
+                                if ($user?->isTeacher() && $existingPermit->status !== 'diajukan') {
+                                    // Perizinan yang sudah disetujui / ditolak tidak dapat diubah oleh Guru
+                                    $keptPermitIds[] = $existingPermit->id;
+
+                                    continue;
+                                }
+
                                 if ($user?->isTeacher()) {
                                     $permitData['status'] = $existingPermit->status;
                                     $permitData['catatan'] = $existingPermit->catatan;
@@ -776,6 +785,10 @@ class EmployeeController extends Controller
 
                 $permitsToDelete = $employee->permits()->whereNotIn('id', $keptPermitIds)->get();
                 foreach ($permitsToDelete as $delPermit) {
+                    if ($user?->isTeacher() && $delPermit->status !== 'diajukan') {
+                        // Guru tidak dapat menghapus perizinan yang sudah disetujui / ditolak
+                        continue;
+                    }
                     if ($delPermit->lampiran_path && Storage::disk('local')->exists($delPermit->lampiran_path)) {
                         Storage::disk('local')->delete($delPermit->lampiran_path);
                     }
