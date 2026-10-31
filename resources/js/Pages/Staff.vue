@@ -45,7 +45,7 @@ const page = usePage();
 // ============================================================
 const searchQuery = ref('');
 const unitFilter = ref('');
-const statusFilter = ref('');
+const statusFilter = ref('aktif');
 const currentPage = ref(1);
 const perPage = ref(10);
 const showImportModal = ref(false);
@@ -70,8 +70,15 @@ const filteredEmployees = computed(() => {
         result = result.filter(e => e.unit_kerja === unitFilter.value);
     }
 
-    if (statusFilter.value) {
-        result = result.filter(e => e.status_keaktifan === statusFilter.value);
+    if (statusFilter.value && statusFilter.value !== 'semua') {
+        const val = statusFilter.value.toLowerCase();
+        if (val === 'aktif') {
+            result = result.filter(e => !e.status_keaktifan || e.status_keaktifan.toLowerCase() === 'aktif');
+        } else if (val === 'tidak_aktif' || val === 'non-aktif') {
+            result = result.filter(e => e.status_keaktifan && e.status_keaktifan.toLowerCase() !== 'aktif');
+        } else {
+            result = result.filter(e => (e.status_keaktifan || '').toLowerCase() === val);
+        }
     }
 
     return result;
@@ -108,7 +115,7 @@ function onFilterStatus(status) {
 function onResetFilters() {
     searchQuery.value = '';
     unitFilter.value = '';
-    statusFilter.value = '';
+    statusFilter.value = 'aktif';
     currentPage.value = 1;
 }
 
