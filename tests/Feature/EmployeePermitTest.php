@@ -406,4 +406,56 @@ class EmployeePermitTest extends TestCase
         $response->assertJsonPath('permits.0.jenis', 'Sakit');
         $response->assertJsonPath('permits.0.status', 'diajukan');
     }
+
+    public function test_approver_can_edit_and_delete_approved_permits_in_main_update(): void
+    {
+        $superadmin = User::factory()->create(['role' => 'superadmin']);
+        $employee = Employee::create([
+            'nama' => 'Pegawai Uji',
+            'nik' => '3301010101010088',
+        ]);
+
+        $permit1 = EmployeePermit::create([
+            'employee_id' => $employee->id,
+            'tanggal' => '2026-10-31',
+            'jenis' => 'Sakit',
+            'detail' => 'Demam',
+            'status' => 'disetujui',
+        ]);
+
+        $permit2 = EmployeePermit::create([
+            'employee_id' => $employee->id,
+            'tanggal' => '2026-11-01',
+            'jenis' => 'Cuti',
+            'detail' => 'Cuti Tahunan',
+            'status' => 'disetujui',
+        ]);
+
+        // Approver (Superadmin) mengedit permit1 dan menghapus permit2 dengan tidak menyertakannya
+        $response = $this->actingAs($superadmin)->put("/staff/{$employee->id}", [
+            'nama' => 'Pegawai Uji',
+            'nik' => '3301010101010088',
+            'riwayat_perizinan' => [
+                [
+                    'id' => $permit1->id,
+                    'tanggal' => '2026-10-31',
+                    'tanggal_selesai' => '2026-11-02',
+                    'jenis' => 'Sakit Berat',
+                    'detail' => 'Rawat Inap',
+                    'status' => 'disetujui',
+                ],
+            ],
+        ]);
+
+        $response->assertRedirect();
+        $this->assertEquals(1, $employee->permits()->count());
+
+        $permit1->refresh();
+        $this->assertEquals('Sakit Berat', $permit1->jenis);
+        $this->assertEquals('Rawat Inap', $permit1->detail);
+        $this->assertEquals('2026-11-02', $permit1->tanggal_selesai?->format('Y-m-d'));
+
+        // Permit 2 berhasil dihapus oleh superadmin/approver
+        $this->assertNull(EmployeePermit::find($permit2->id));
+    }
 }
