@@ -161,4 +161,9 @@ class Employee extends Model
     {
         return $this->hasMany(EmployeeDocument::class);
     }
+
+    public function permits(): HasMany
+    {
+        return $this->hasMany(EmployeePermit::class);
+    }
 }

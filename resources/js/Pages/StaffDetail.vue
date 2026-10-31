@@ -3,6 +3,7 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { Head, Link, usePage, useForm, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import EditDataButton from '@/Components/Shared/EditDataButton.vue';
+import StaffPermitsTab from '@/Components/Staff/StaffPermitsTab.vue';
 import { useWilayah } from '@/Composables/useWilayah';
 
 defineOptions({
@@ -69,6 +70,7 @@ const allTabs = [
     { id: 'penugasan', label: 'Penugasan', icon: 'assignment_ind' },
     { id: 'pendidikan', label: 'Pendidikan', icon: 'school' },
     { id: 'dokumen', label: 'Dokumen', icon: 'folder_shared' },
+    { id: 'perizinan', label: 'Perizinan', icon: 'assignment_turned_in' },
 ];
 
 const tabs = computed(() => {
@@ -4299,6 +4301,14 @@ function deleteDocument(doc) {
                         </div>
                     </div>
                 </div>
+
+                <!-- TAB 8: PERIZINAN -->
+                <StaffPermitsTab
+                    v-if="activeTab === 'perizinan'"
+                    :employee="employee"
+                    :is-teacher="isTeacher"
+                    :can-edit="canEdit"
+                />
 
             </div>
         </div>

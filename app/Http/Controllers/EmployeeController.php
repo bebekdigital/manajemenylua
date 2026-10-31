@@ -119,6 +119,7 @@ class EmployeeController extends Controller
             'records',
             'positions',
             'documents',
+            'permits',
         ])->findOrFail($id);
 
         $latestPosition = $employee->positions->sortByDesc('tmt_jabatan')->first();
@@ -265,6 +266,25 @@ class EmployeeController extends Controller
 
             // Seluruh dokumen
             'all_documents' => $employee->documents->values()->toArray(),
+
+            // Riwayat & Data Perizinan Pegawai
+            'perizinan' => $employee->permits->sortByDesc('tanggal')->values()->map(fn ($p) => [
+                'id' => $p->id,
+                'tanggal' => $p->tanggal?->format('Y-m-d'),
+                'tanggal_selesai' => $p->tanggal_selesai?->format('Y-m-d'),
+                'formatted_tanggal' => $p->formatted_tanggal,
+                'jenis' => $p->jenis,
+                'detail' => $p->detail,
+                'keterangan' => $p->keterangan,
+                'lampiran_path' => $p->lampiran_path,
+                'lampiran_nama' => $p->lampiran_nama,
+                'preview_url' => $p->preview_url,
+                'download_url' => $p->download_url,
+                'status' => $p->status,
+                'catatan' => $p->catatan,
+                'created_at' => $p->created_at?->format('Y-m-d H:i:s'),
+                'formatted_created_at' => $p->created_at?->translatedFormat('d M Y H:i'),
+            ])->toArray(),
         ];
 
         $departments = Schema::hasTable('departments') && Schema::hasTable('department_positions')

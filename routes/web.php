@@ -8,6 +8,7 @@ use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\DepartmentPositionController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeeDocumentController;
+use App\Http\Controllers\EmployeePermitController;
 use App\Http\Controllers\PembelajaranController;
 use App\Http\Controllers\PortalController;
 use App\Http\Controllers\ProfileController;
@@ -136,6 +137,14 @@ Route::middleware('auth')->group(function () {
     Route::get('/staff/{id}/documents/{documentId}/preview', [EmployeeDocumentController::class, 'preview'])->name('staff.documents.preview');
     Route::get('/staff/{id}/documents/{documentId}/download', [EmployeeDocumentController::class, 'download'])->name('staff.documents.download');
     Route::delete('/staff/{id}/documents/{documentId}', [EmployeeDocumentController::class, 'destroy'])->name('staff.documents.destroy');
+
+    // Perizinan Pegawai
+    Route::post('/staff/{id}/permits', [EmployeePermitController::class, 'store'])->name('staff.permits.store');
+    Route::put('/staff/{id}/permits/{permitId}', [EmployeePermitController::class, 'update'])->name('staff.permits.update');
+    Route::patch('/staff/{id}/permits/{permitId}/note', [EmployeePermitController::class, 'updateNote'])->name('staff.permits.note');
+    Route::delete('/staff/{id}/permits/{permitId}', [EmployeePermitController::class, 'destroy'])->name('staff.permits.destroy');
+    Route::get('/staff/{id}/permits/{permitId}/preview', [EmployeePermitController::class, 'preview'])->name('staff.permits.preview');
+    Route::get('/staff/{id}/permits/{permitId}/download', [EmployeePermitController::class, 'download'])->name('staff.permits.download');
 
     // Wilayah Indonesia (Proxy & Caching)
     Route::prefix('api/wilayah')->name('api.wilayah.')->group(function () {
