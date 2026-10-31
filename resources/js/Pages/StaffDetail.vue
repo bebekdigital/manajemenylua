@@ -1003,6 +1003,7 @@ function submitPermitNote() {
         preserveScroll: true,
         onSuccess: () => {
             closePermitNoteModal();
+            fetchPermitsRealtime();
         },
     });
 }
@@ -1019,16 +1020,19 @@ watch(() => props.employee?.perizinan, (newVal) => {
 let permitPollInterval = null;
 
 async function fetchPermitsRealtime() {
-    // Hindari reload jika sedang mode edit form profil utama
+    // Hindari reload jika sedang mode edit form profil utama atau sedang mengisi form approval
     if (isEditing.value) return;
+
+    // Jika pihak approval sedang membuka modal untuk memberi status/catatan, jangan fetch agar input tidak terganggu
+    if (showPermitNoteModal.value && canApprovePermit.value) return;
 
     try {
         const response = await axios.get(`/staff/${props.employee.id}/permits/realtime`);
         if (response.data && Array.isArray(response.data.permits)) {
             perizinanList.value = response.data.permits;
 
-            // Auto-sinkronisasi data di modal jika modal catatan sedang terbuka saat update approval masuk
-            if (showPermitNoteModal.value && permitNoteForm.id) {
+            // Auto-sinkronisasi data di modal HANYA jika modal sedang dibuka oleh penerima respon (bukan approver)
+            if (showPermitNoteModal.value && permitNoteForm.id && !canApprovePermit.value) {
                 const item = response.data.permits.find(p => p.id === permitNoteForm.id);
                 if (item) {
                     permitNoteForm.status = item.status || 'diajukan';
@@ -1049,7 +1053,7 @@ function startPermitPolling() {
     fetchPermitsRealtime();
     // Interval 3 detik HANYA saat tab perizinan aktif
     permitPollInterval = setInterval(() => {
-        if (activeTab.value === 'perizinan' && !isEditing.value) {
+        if (activeTab.value === 'perizinan' && !isEditing.value && !(showPermitNoteModal.value && canApprovePermit.value)) {
             fetchPermitsRealtime();
         }
     }, 3000);
@@ -1063,7 +1067,7 @@ function stopPermitPolling() {
 }
 
 function onWindowFocus() {
-    if (activeTab.value === 'perizinan' && !isEditing.value) {
+    if (activeTab.value === 'perizinan' && !isEditing.value && !(showPermitNoteModal.value && canApprovePermit.value)) {
         fetchPermitsRealtime();
     }
 }
