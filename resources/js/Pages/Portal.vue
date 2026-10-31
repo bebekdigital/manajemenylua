@@ -982,7 +982,6 @@ function formatDate(dateStr) {
                             <th class="border border-outline-variant/60 px-5 py-3 text-left">Nama Lengkap</th>
                             <th class="border border-outline-variant/60 px-5 py-3 text-left">NIP / Username</th>
                             <th class="border border-outline-variant/60 px-4 py-3 text-center w-36">Pass Default</th>
-                            <th class="border border-outline-variant/60 px-5 py-3 text-left">Email</th>
                             <th class="border border-outline-variant/60 px-4 py-3 text-center w-28">Role</th>
                             <th class="border border-outline-variant/60 px-4 py-3 text-center w-32">Status Akses</th>
                             <th class="border border-outline-variant/60 px-4 py-3 text-center w-36">Dibuat Pada</th>
@@ -1023,9 +1022,6 @@ function formatDate(dateStr) {
                                     </button>
                                 </div>
                                 <span v-else class="text-on-surface-variant/40 text-xs">—</span>
-                            </td>
-                            <td class="border border-outline-variant/60 px-5 py-3.5 text-on-surface-variant">
-                                {{ u.email || '—' }}
                             </td>
                             <td class="border border-outline-variant/60 px-4 py-3.5 text-center">
                                 <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider"
@@ -1104,7 +1100,7 @@ function formatDate(dateStr) {
                             </td>
                         </tr>
                         <tr v-if="users.length === 0">
-                            <td colspan="9" class="border border-outline-variant/60 px-5 py-10 text-center text-on-surface-variant">
+                            <td colspan="8" class="border border-outline-variant/60 px-5 py-10 text-center text-on-surface-variant">
                                 Belum ada data pengguna lainnya.
                             </td>
                         </tr>

@@ -32,7 +32,6 @@ const emit = defineEmits(['close', 'success']);
 const form = useForm({
     name: '',
     username: '',
-    email: '',
     password: '',
     role: 'superadmin',
     is_active: true,
@@ -51,7 +50,6 @@ watch(
                 // Edit mode
                 form.name = props.editing.name;
                 form.username = props.editing.username;
-                form.email = props.editing.email || '';
                 form.role = props.editing.role;
                 form.is_active = props.editing.is_active !== undefined ? !!props.editing.is_active : true;
                 form.password = ''; // Don't show password
@@ -163,22 +161,6 @@ function submit() {
                                 placeholder="Contoh: 19850312001"
                             >
                             <div v-if="form.errors.username" class="text-error text-xs mt-1.5 ml-1 font-medium">{{ form.errors.username }}</div>
-                        </div>
-
-                        <!-- Email -->
-                        <div>
-                            <label for="email" class="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1.5">
-                                Email
-                            </label>
-                            <input
-                                id="email"
-                                v-model="form.email"
-                                type="email"
-                                autocomplete="off"
-                                class="w-full px-3.5 py-2.5 bg-white text-sm font-medium rounded-xl border border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-on-surface placeholder:text-on-surface-variant/50"
-                                placeholder="Contoh: guru@sekolah.com"
-                            >
-                            <div v-if="form.errors.email" class="text-error text-xs mt-1.5 ml-1 font-medium">{{ form.errors.email }}</div>
                         </div>
 
                         <!-- Role -->

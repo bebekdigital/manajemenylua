@@ -66,18 +66,13 @@ class UserController extends Controller
                 $pos = $employee->currentPosition ?? $employee->positions->sortByDesc('tmt_jabatan')->first();
                 $role = $pos?->jabatan ?: 'Guru';
 
-                // Email
-                $email = $username.'@ulilalbabkra.sch.id';
-                if ($employee->email && ! User::where('email', $employee->email)->exists()) {
-                    $email = $employee->email;
-                }
-
                 $user = User::create([
                     'name' => $employee->nama,
                     'username' => $username,
-                    'email' => $email,
+                    'email' => null,
                     'password' => Hash::make($rawPassword),
                     'role' => $role,
+                    'is_active' => true,
                     'nipy' => $employee->nipy,
                     'status_kepegawaian' => $employee->status_keaktifan ?? 'Aktif',
                     'jk' => $employee->jk,
@@ -123,9 +118,8 @@ class UserController extends Controller
         ]);
 
         if (empty($validated['email'])) {
-            $validated['email'] = $validated['username'].'@ulilalbabkra.sch.id';
+            $validated['email'] = null;
         }
-
         $validated['password'] = Hash::make($validated['password']);
         if (! isset($validated['is_active'])) {
             $validated['is_active'] = true;
@@ -153,10 +147,6 @@ class UserController extends Controller
             'role' => ['required', 'string', 'max:100'],
             'is_active' => ['nullable', 'boolean'],
         ]);
-
-        if (empty($validated['email'])) {
-            $validated['email'] = $validated['username'].'@ulilalbabkra.sch.id';
-        }
 
         if (! empty($validated['password'])) {
             $validated['password'] = Hash::make($validated['password']);
