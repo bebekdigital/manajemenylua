@@ -362,4 +362,53 @@ class TeacherEmployeeScopingTest extends TestCase
         $this->assertEquals('ORIGINAL_NIPY', $employee->nipy);
         $this->assertEquals('Aktif', $employee->status_keaktifan);
     }
+
+    public function test_teacher_by_default_has_can_update_kepegawaian_false_and_superadmin_has_true(): void
+    {
+        $teacher = User::factory()->create([
+            'name' => 'Guru IPA',
+            'role' => 'Guru',
+            'nipy' => 'GURU_NIPY_1',
+        ]);
+        $teacherEmp = Employee::create([
+            'nama' => 'Guru IPA',
+            'nipy' => 'GURU_NIPY_1',
+            'nik' => '3301010101018888',
+            'status_keaktifan' => 'Aktif',
+        ]);
+
+        $superadmin = User::factory()->create([
+            'name' => 'Super Admin',
+            'role' => 'superadmin',
+        ]);
+
+        // Guru views their own profile
+        $responseGuru = $this->actingAs($teacher)->get('/staff/'.$teacherEmp->id);
+        $responseGuru->assertOk();
+        $responseGuru->assertInertia(function ($page) {
+            $page->where('permissions.can_update', true)
+                ->where('permissions.can_view_kepegawaian', true)
+                ->where('permissions.can_update_kepegawaian', false);
+        });
+
+        // Superadmin views employee
+        $responseSuper = $this->actingAs($superadmin)->get('/staff/'.$teacherEmp->id);
+        $responseSuper->assertOk();
+        $responseSuper->assertInertia(function ($page) {
+            $page->where('permissions.can_update', true)
+                ->where('permissions.can_view_kepegawaian', true)
+                ->where('permissions.can_update_kepegawaian', true);
+        });
+
+        // Superadmin updates NIPY
+        $updateSuper = $this->actingAs($superadmin)->put('/staff/'.$teacherEmp->id, [
+            'nama' => 'Guru IPA Updated',
+            'nipy' => 'GURU_NIPY_UPDATED',
+            'status_keaktifan' => 'Aktif',
+        ]);
+        $updateSuper->assertRedirect('/staff/'.$teacherEmp->id);
+
+        $teacherEmp->refresh();
+        $this->assertEquals('GURU_NIPY_UPDATED', $teacherEmp->nipy);
+    }
 }

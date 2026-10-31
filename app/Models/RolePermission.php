@@ -118,24 +118,25 @@ class RolePermission extends Model
             if (! in_array($group, $existingGroups)) {
                 $defaults = self::getDefaultValuesForRoleAndGroup($role, $group);
 
-                $canView = ($group === 'employee_kepegawaian' && $parentPerm)
-                    ? (bool) $parentPerm->can_view
-                    : ($defaults['view'] ?? false);
-                $canCreate = ($group === 'employee_kepegawaian' && $parentPerm)
-                    ? (bool) $parentPerm->can_create
-                    : ($defaults['create'] ?? false);
-                $canUpdate = ($group === 'employee_kepegawaian' && $parentPerm)
-                    ? (bool) $parentPerm->can_update
-                    : ($defaults['update'] ?? false);
-                $canDelete = ($group === 'employee_kepegawaian' && $parentPerm)
-                    ? (bool) $parentPerm->can_delete
-                    : ($defaults['delete'] ?? false);
-                $canExport = ($group === 'employee_kepegawaian' && $parentPerm)
-                    ? (bool) $parentPerm->can_export
-                    : ($defaults['export'] ?? false);
-                $canImport = ($group === 'employee_kepegawaian' && $parentPerm)
-                    ? (bool) $parentPerm->can_import
-                    : ($defaults['import'] ?? false);
+                $isSDMOrAdmin = in_array(strtolower($role), ['superadmin', 'admin', 'kepala bidang sdm'])
+                    || str_contains(strtolower($role), 'sdm')
+                    || str_contains(strtolower($role), 'kepegawaian');
+
+                if ($group === 'employee_kepegawaian') {
+                    $canView = $parentPerm ? (bool) $parentPerm->can_view : ($defaults['view'] ?? false);
+                    $canCreate = $isSDMOrAdmin ? ($defaults['create'] ?? false) : false;
+                    $canUpdate = $isSDMOrAdmin ? ($defaults['update'] ?? false) : false;
+                    $canDelete = $isSDMOrAdmin ? ($defaults['delete'] ?? false) : false;
+                    $canExport = $defaults['export'] ?? false;
+                    $canImport = $isSDMOrAdmin ? ($defaults['import'] ?? false) : false;
+                } else {
+                    $canView = $defaults['view'] ?? false;
+                    $canCreate = $defaults['create'] ?? false;
+                    $canUpdate = $defaults['update'] ?? false;
+                    $canDelete = $defaults['delete'] ?? false;
+                    $canExport = $defaults['export'] ?? false;
+                    $canImport = $defaults['import'] ?? false;
+                }
 
                 self::create([
                     'role' => $role,
@@ -192,16 +193,24 @@ class RolePermission extends Model
 
         // Fallback untuk child employee_kepegawaian ke parent employee_detail_history jika belum diset
         if (! $perm && $group === 'employee_kepegawaian') {
-            $parentPerm = self::where('role', $role)
-                ->where('feature_group', 'employee_detail_history')
-                ->first();
-            if (! $parentPerm && (str_contains(strtolower($role), 'guru') || str_contains(strtolower($role), 'wali kelas'))) {
-                $parentPerm = self::where('role', 'Guru')
+            if ($action === 'view') {
+                $parentPerm = self::where('role', $role)
                     ->where('feature_group', 'employee_detail_history')
                     ->first();
-            }
-            if ($parentPerm) {
-                $perm = $parentPerm;
+                if (! $parentPerm && (str_contains(strtolower($role), 'guru') || str_contains(strtolower($role), 'wali kelas'))) {
+                    $parentPerm = self::where('role', 'Guru')
+                        ->where('feature_group', 'employee_detail_history')
+                        ->first();
+                }
+                if ($parentPerm) {
+                    $perm = $parentPerm;
+                }
+            } else {
+                // Untuk aksi selain view (update, create, delete, import), jangan warisi dari parent employee_detail_history
+                // Karena izin update profil pegawai tidak otomatis memberikan izin ubah data kepegawaian (NIPY, status aktif, TMT/TST)
+                $defaults = self::getDefaultValuesForRoleAndGroup($role, 'employee_kepegawaian');
+
+                return (bool) ($defaults[$action] ?? false);
             }
         }
 
@@ -232,6 +241,22 @@ class RolePermission extends Model
                 'delete' => true,
                 'export' => true,
                 'import' => true,
+            ];
+        }
+
+        $isSDM = in_array(strtolower($role), ['kepala bidang sdm'])
+            || str_contains(strtolower($role), 'sdm')
+            || str_contains(strtolower($role), 'kepegawaian');
+
+        // Modul Data Kepegawaian (NIPY, status keaktifan, SK jenjang)
+        if ($group === 'employee_kepegawaian') {
+            return [
+                'view' => true,
+                'create' => $isSDM,
+                'update' => $isSDM,
+                'delete' => false,
+                'export' => true,
+                'import' => false,
             ];
         }
 

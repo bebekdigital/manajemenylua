@@ -51,6 +51,7 @@ const isEditing = ref(false);
 const canEdit = computed(() => props.permissions?.can_update ?? true);
 const canViewKepegawaian = computed(() => props.permissions?.can_view_kepegawaian ?? true);
 const canUpdateKepegawaian = computed(() => props.permissions?.can_update_kepegawaian ?? true);
+const isEditingKepegawaian = computed(() => isEditing.value && canUpdateKepegawaian.value);
 const dismissedFlash = ref(false);
 
 const flashSuccess = computed(() => !dismissedFlash.value ? page.props.flash?.success : null);
@@ -629,7 +630,21 @@ function cancelEdit() {
 }
 
 function saveChanges() {
-    if (form.riwayat_kepegawaian && form.riwayat_kepegawaian.length > 0) {
+    if (!canUpdateKepegawaian.value) {
+        // Pulihkan nilai asli kepegawaian agar tidak terubah saat user tidak memiliki hak akses edit kepegawaian
+        form.nipy = props.employee.nipy || '';
+        form.tmt_pengangkatan = props.employee.tmt_pengangkatan || '';
+        form.tst_pengangkatan = props.employee.tst_pengangkatan || '';
+        form.status_keaktifan = props.employee.status_keaktifan || 'Aktif';
+        form.keterangan_tidak_aktif = props.employee.keterangan_tidak_aktif || '';
+        form.keaktifan_dapodik = props.employee.keaktifan_dapodik || '';
+        form.unit_keaktifan_dapodik = props.employee.unit_keaktifan_dapodik || '';
+        form.jenjang_kepegawaian = props.employee.jenjang_kepegawaian || '';
+        form.tmt_kenaikan_jenjang = props.employee.tmt_kenaikan_jenjang || '';
+        form.tst_kenaikan_jenjang = props.employee.tst_kenaikan_jenjang || props.employee.tst_jenjang || '';
+        form.tst_jenjang = props.employee.tst_kenaikan_jenjang || props.employee.tst_jenjang || '';
+        form.riwayat_kepegawaian = JSON.parse(JSON.stringify(props.employee.riwayat_kepegawaian || []));
+    } else if (form.riwayat_kepegawaian && form.riwayat_kepegawaian.length > 0) {
         const validRecs = form.riwayat_kepegawaian.filter((r) => r.jenjang_kepegawaian || r.tmt_kenaikan_jenjang);
         if (validRecs.length > 0) {
             const sorted = [...validRecs].sort((a, b) => (b.tmt_kenaikan_jenjang || '').localeCompare(a.tmt_kenaikan_jenjang || ''));
@@ -1388,15 +1403,25 @@ function deleteDocument(doc) {
 
                 <!-- Action Buttons in Header -->
                 <div class="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                    <!-- Tab Kepegawaian Terkunci (Jika user tidak memiliki hak akses ubah kepegawaian) -->
+                    <div
+                        v-if="!isEditing && activeTab === 'kepegawaian' && !canUpdateKepegawaian"
+                        class="inline-flex items-center gap-1.5 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl bg-slate-100 border border-outline-variant/60 text-slate-400 font-semibold text-xs sm:text-sm cursor-not-allowed select-none"
+                        title="Tab Kepegawaian terkunci — Role Anda tidak memiliki izin untuk mengubah data pada tab ini"
+                    >
+                        <span class="material-symbols-outlined text-[18px]">lock</span>
+                        <span>Tab Terkunci</span>
+                    </div>
+
                     <!-- View Mode: Edit Data Button (Reusable Component dari Database Siswa) -->
                     <EditDataButton
-                        v-if="!isEditing && canEdit"
+                        v-else-if="!isEditing && canEdit"
                         @click="startEdit"
                         title="Edit data pegawai ini langsung di tab"
                     />
 
                     <!-- Edit Mode: Batal & Simpan Perubahan Buttons (Hijau Tema Web) -->
-                    <div v-else class="flex items-center gap-2">
+                    <div v-else-if="isEditing" class="flex items-center gap-2">
                         <button
                             type="button"
                             @click="cancelEdit"
@@ -1578,25 +1603,37 @@ function deleteDocument(doc) {
                         <div v-if="canViewKepegawaian">
                             <div class="flex items-center justify-between mb-1.5">
                                 <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider">
-                                    NIPY
+                                    NIPY (Nomor Induk Pegawai Yayasan)
                                 </label>
-                                <span class="inline-flex items-center gap-1 text-[10px] font-semibold text-on-surface-variant/80 bg-slate-100 px-2 py-0.5 rounded-md border border-outline-variant/40">
+                                <span v-if="canUpdateKepegawaian" class="inline-flex items-center gap-1 text-[10px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20">
+                                    <span class="material-symbols-outlined text-[13px]">badge</span>
+                                    Data Kepegawaian
+                                </span>
+                                <span v-else class="inline-flex items-center gap-1 text-[10px] font-semibold text-on-surface-variant/80 bg-slate-100 px-2 py-0.5 rounded-md border border-outline-variant/40">
                                     <span class="material-symbols-outlined text-[13px]">lock</span>
-                                    Hanya SDM
+                                    Terkunci
                                 </span>
                             </div>
                             <input
+                                v-if="canUpdateKepegawaian"
                                 v-model="form.nipy"
                                 type="text"
                                 placeholder="Nomor Induk Pegawai Yayasan"
-                                :disabled="!canUpdateKepegawaian"
-                                :readonly="!canUpdateKepegawaian"
-                                class="w-full px-3.5 py-2 sm:py-2.5 bg-slate-100/90 border border-outline-variant/50 rounded-xl text-xs sm:text-sm text-slate-500 placeholder:text-outline cursor-not-allowed font-mono select-none"
+                                class="w-full px-3.5 py-2 sm:py-2.5 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 font-mono transition-all"
                                 :class="{ 'border-error': form.errors.nipy }"
                             />
-                            <p class="text-[11px] text-on-surface-variant/75 mt-1 flex items-center gap-1">
-                                <span class="material-symbols-outlined text-[13px]">info</span>
-                                Terkunci — hanya dapat diisi oleh bagian SDM.
+                            <input
+                                v-else
+                                :value="form.nipy"
+                                type="text"
+                                placeholder="Nomor Induk Pegawai Yayasan"
+                                disabled
+                                readonly
+                                class="w-full px-3.5 py-2 sm:py-2.5 bg-slate-100/90 border border-outline-variant/50 rounded-xl text-xs sm:text-sm text-slate-500 placeholder:text-outline cursor-not-allowed font-mono select-none"
+                            />
+                            <p v-if="!canUpdateKepegawaian" class="text-[11px] text-on-surface-variant/75 mt-1 flex items-center gap-1">
+                                <span class="material-symbols-outlined text-[13px]">lock</span>
+                                Terkunci — hanya role dengan hak akses ubah Data Kepegawaian yang dapat mengubah NIPY.
                             </p>
                             <div v-if="form.errors.nipy" class="text-error text-xs mt-1">{{ form.errors.nipy }}</div>
                         </div>
@@ -2432,6 +2469,14 @@ function deleteDocument(doc) {
 
                 <!-- TAB 4: KEPEGAWAIAN -->
                 <div v-if="activeTab === 'kepegawaian' && canViewKepegawaian" class="space-y-6">
+                    <!-- Banner jika user tidak memiliki izin edit kepegawaian -->
+                    <div v-if="!canUpdateKepegawaian" class="p-3.5 rounded-xl bg-amber-50/80 border border-amber-200 text-amber-900 text-xs flex items-center gap-2.5">
+                        <span class="material-symbols-outlined text-[18px] text-amber-700 shrink-0">lock</span>
+                        <div>
+                            <strong>Mode Lihat Saja:</strong> Anda tidak memiliki hak akses untuk mengubah Data Kepegawaian. Data pada tab ini terkunci dan hanya dapat diubah oleh role yang memiliki hak akses Ubah Data Kepegawaian.
+                        </div>
+                    </div>
+
                     <!-- DATA STATIS: PENGANGKATAN, KEAKTIFAN & DAPODIK (SHEET 1) -->
                     <div>
                         <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
@@ -2442,7 +2487,7 @@ function deleteDocument(doc) {
                         </div>
 
                         <!-- View Mode Data Statis -->
-                        <div v-if="!isEditing" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div v-if="!isEditingKepegawaian" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                             <!-- TMT Pengangkatan -->
                             <div class="p-3.5 bg-white rounded-xl border border-outline-variant/60 flex items-start gap-3 shadow-2xs">
                                 <div class="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
@@ -2620,17 +2665,17 @@ function deleteDocument(doc) {
                                     <span class="material-symbols-outlined text-[18px]">work_history</span>
                                     Riwayat Jenjang Kepegawaian
                                 </h4>
-                                <p v-if="isEditing" class="text-xs text-on-surface-variant mt-0.5">
+                                <p v-if="isEditingKepegawaian" class="text-xs text-on-surface-variant mt-0.5">
                                     Edit data langsung di baris tabel atau klik tombol di baris paling bawah untuk menambah riwayat baru
                                 </p>
                             </div>
                             <span class="text-xs text-outline font-medium">
-                                {{ (isEditing ? form.riwayat_kepegawaian?.length : employee.riwayat_kepegawaian?.length) || 0 }} Catatan
+                                {{ (isEditingKepegawaian ? form.riwayat_kepegawaian?.length : employee.riwayat_kepegawaian?.length) || 0 }} Catatan
                             </span>
                         </div>
 
                         <!-- VIEW MODE (Ketika tidak sedang edit) -->
-                        <div v-if="!isEditing">
+                        <div v-if="!isEditingKepegawaian">
                             <div v-if="employee.riwayat_kepegawaian && employee.riwayat_kepegawaian.length > 0" class="overflow-x-auto rounded-xl border border-outline-variant/60 bg-white shadow-2xs">
                                 <table class="w-full text-xs sm:text-sm border-collapse border border-outline-variant/60">
                                     <thead>
