@@ -297,8 +297,38 @@ class EmployeeController extends Controller
         $availableUnits = array_values(array_unique(array_filter(array_merge($units, $deptNames, $posUnits))));
         sort($availableUnits);
 
+        $isTeacher = $user?->isTeacher() ?? false;
+        $myEmployee = $isTeacher ? $user?->employeeProfile() : null;
+
+        $employeeListQuery = Employee::query()->orderBy('nama');
+        if ($isTeacher) {
+            if ($myEmployee) {
+                $employeeListQuery->where('id', $myEmployee->id);
+            } else {
+                $employeeListQuery->whereRaw('1 = 0');
+            }
+        }
+
+        $allAccessibleEmployees = $employeeListQuery
+            ->with(['positions' => fn ($q) => $q->latest('tmt_jabatan')])
+            ->select(['id', 'nama', 'nipy'])
+            ->get()
+            ->map(function ($emp) {
+                $latestPos = $emp->positions->first();
+
+                return [
+                    'id' => $emp->id,
+                    'nama' => $emp->nama,
+                    'nipy' => $emp->nipy,
+                    'jabatan' => $latestPos?->jabatan,
+                    'unit_kerja' => $latestPos?->unit_kerja,
+                ];
+            })
+            ->toArray();
+
         return Inertia::render('StaffDetail', [
             'employee' => $employeeData,
+            'allEmployees' => $allAccessibleEmployees,
             'permissions' => [
                 'can_update' => RolePermission::canAccess($user, 'employee_detail_history', 'update'),
                 'can_delete' => RolePermission::canAccess($user, 'employee_detail_history', 'delete'),

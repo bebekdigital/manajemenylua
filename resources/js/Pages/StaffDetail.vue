@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { Head, Link, usePage, useForm, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import EditDataButton from '@/Components/Shared/EditDataButton.vue';
@@ -13,6 +13,10 @@ const props = defineProps({
     employee: {
         type: Object,
         required: true,
+    },
+    allEmployees: {
+        type: Array,
+        default: () => [],
     },
     selectedAcademicYear: {
         type: Object,
@@ -79,6 +83,63 @@ watch(canViewKepegawaian, (canView) => {
         activeTab.value = 'identitas';
     }
 });
+
+// Dropdown Switcher Pemilih Pegawai Lain di Header
+const isEmployeeDropdownOpen = ref(false);
+const employeeSearchQuery = ref('');
+const employeeDropdownRef = ref(null);
+const employeeSearchInputRef = ref(null);
+
+const filteredEmployees = computed(() => {
+    const list = props.allEmployees || [];
+    const q = employeeSearchQuery.value.trim().toLowerCase();
+    if (!q) return list;
+    return list.filter((emp) => {
+        const nameMatch = emp.nama?.toLowerCase().includes(q);
+        const nipyMatch = emp.nipy?.toLowerCase().includes(q);
+        const jabatanMatch = emp.jabatan?.toLowerCase().includes(q);
+        const unitMatch = emp.unit_kerja?.toLowerCase().includes(q);
+        return nameMatch || nipyMatch || jabatanMatch || unitMatch;
+    });
+});
+
+function toggleEmployeeDropdown(e) {
+    e.stopPropagation();
+    isEmployeeDropdownOpen.value = !isEmployeeDropdownOpen.value;
+    if (isEmployeeDropdownOpen.value) {
+        employeeSearchQuery.value = '';
+        setTimeout(() => {
+            employeeSearchInputRef.value?.focus();
+        }, 60);
+    }
+}
+
+function closeEmployeeDropdown() {
+    isEmployeeDropdownOpen.value = false;
+    employeeSearchQuery.value = '';
+}
+
+function handleOutsideClick(e) {
+    if (employeeDropdownRef.value && !employeeDropdownRef.value.contains(e.target)) {
+        closeEmployeeDropdown();
+    }
+}
+
+function selectEmployee(empId) {
+    if (String(empId) === String(props.employee.id)) {
+        closeEmployeeDropdown();
+        return;
+    }
+
+    if (isEditing.value && form.isDirty) {
+        if (!confirm('Perubahan yang sedang Anda edit pada pegawai ini belum disimpan. Beralih ke pegawai lain sekarang?')) {
+            return;
+        }
+    }
+
+    closeEmployeeDropdown();
+    router.visit(`/staff/${empId}`);
+}
 
 const form = useForm({
     nama: '',
@@ -612,6 +673,11 @@ onMounted(async () => {
         isEditing.value = true;
     }
     await initWilayahFromForm();
+    window.addEventListener('click', handleOutsideClick);
+});
+
+onUnmounted(() => {
+    window.removeEventListener('click', handleOutsideClick);
 });
 
 function startEdit() {
@@ -1378,7 +1444,85 @@ function deleteDocument(doc) {
                         </span>
                     </div>
                     <div class="space-y-2">
-                        <h3 class="text-lg sm:text-xl font-bold text-on-surface leading-snug">{{ employee.nama }}</h3>
+                        <!-- Dropdown Pemilih Pegawai Lain -->
+                        <div class="relative" ref="employeeDropdownRef">
+                            <button
+                                v-if="allEmployees.length > 1"
+                                type="button"
+                                @click="toggleEmployeeDropdown"
+                                class="inline-flex items-center gap-1.5 text-left text-lg sm:text-xl font-bold text-on-surface hover:text-primary transition-colors cursor-pointer group rounded-xl -ml-2 px-2 py-0.5 hover:bg-slate-100/90 active:scale-[0.99]"
+                                title="Klik untuk beralih memilih pegawai lain"
+                            >
+                                <span>{{ employee.nama }}</span>
+                                <span
+                                    class="material-symbols-outlined text-[22px] text-on-surface-variant group-hover:text-primary transition-transform duration-200"
+                                    :class="{ 'rotate-180 text-primary': isEmployeeDropdownOpen }"
+                                >
+                                    arrow_drop_down
+                                </span>
+                            </button>
+                            <h3 v-else class="text-lg sm:text-xl font-bold text-on-surface leading-snug">{{ employee.nama }}</h3>
+
+                            <!-- Floating Searchable Dropdown Menu -->
+                            <div
+                                v-if="isEmployeeDropdownOpen"
+                                class="absolute left-0 top-full mt-2 w-80 sm:w-96 max-w-[92vw] bg-white rounded-2xl shadow-xl border border-outline-variant/60 z-50 p-2 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150"
+                            >
+                                <div class="px-2 pt-1 pb-2 border-b border-outline-variant/30 flex items-center justify-between text-xs text-on-surface-variant">
+                                    <span class="font-bold text-on-surface text-[11px] uppercase tracking-wider">Pilih Pegawai Lain</span>
+                                    <span class="text-[10px] text-outline">{{ filteredEmployees.length }} dari {{ allEmployees.length }} pegawai</span>
+                                </div>
+
+                                <!-- Search Input -->
+                                <div class="relative p-1 my-1">
+                                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[16px] text-on-surface-variant">search</span>
+                                    <input
+                                        ref="employeeSearchInputRef"
+                                        v-model="employeeSearchQuery"
+                                        type="text"
+                                        placeholder="Cari nama atau NIPY pegawai..."
+                                        class="w-full pl-8 pr-7 py-1.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest text-xs text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                                        @keydown.esc="closeEmployeeDropdown"
+                                    />
+                                    <button
+                                        v-if="employeeSearchQuery"
+                                        type="button"
+                                        @click="employeeSearchQuery = ''"
+                                        class="absolute right-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface"
+                                    >
+                                        <span class="material-symbols-outlined text-[14px]">close</span>
+                                    </button>
+                                </div>
+
+                                <!-- Scrollable List -->
+                                <div class="max-h-64 overflow-y-auto divide-y divide-outline-variant/20">
+                                    <div
+                                        v-for="emp in filteredEmployees"
+                                        :key="emp.id"
+                                        @click="selectEmployee(emp.id)"
+                                        class="p-2.5 rounded-xl hover:bg-slate-50 cursor-pointer transition-colors flex items-center justify-between gap-2.5"
+                                        :class="{ 'bg-primary/10 hover:bg-primary/15': String(emp.id) === String(employee.id) }"
+                                    >
+                                        <div class="min-w-0 flex-1">
+                                            <p class="text-xs font-bold text-on-surface truncate" :class="{ 'text-primary': String(emp.id) === String(employee.id) }">
+                                                {{ emp.nama }}
+                                            </p>
+                                            <div class="flex items-center gap-1.5 text-[10px] text-on-surface-variant truncate mt-0.5">
+                                                <span v-if="emp.nipy && canViewKepegawaian" class="font-mono">NIPY: {{ emp.nipy }}</span>
+                                                <span v-if="emp.nipy && canViewKepegawaian && (emp.jabatan || emp.unit_kerja)">·</span>
+                                                <span v-if="emp.jabatan || emp.unit_kerja" class="truncate">{{ emp.jabatan || emp.unit_kerja }}</span>
+                                            </div>
+                                        </div>
+                                        <span v-if="String(emp.id) === String(employee.id)" class="material-symbols-outlined text-primary text-[18px] shrink-0">check</span>
+                                    </div>
+
+                                    <div v-if="filteredEmployees.length === 0" class="py-6 text-center text-xs text-on-surface-variant italic">
+                                        Pegawai tidak ditemukan.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <p v-if="canViewKepegawaian" class="text-xs sm:text-sm text-on-surface-variant font-medium">NIPY: {{ employee.nipy || '-' }}</p>
                         <div class="flex flex-wrap items-center gap-2 pt-0.5">
                             <span

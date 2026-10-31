@@ -381,23 +381,32 @@ class TeacherEmployeeScopingTest extends TestCase
             'name' => 'Super Admin',
             'role' => 'superadmin',
         ]);
+        $otherEmp = Employee::create([
+            'nama' => 'Staff Keuangan',
+            'nipy' => 'STAFF_NIPY_2',
+            'nik' => '3301010101017777',
+            'status_keaktifan' => 'Aktif',
+        ]);
 
-        // Guru views their own profile
+        // Guru views their own profile: dropdown only has their 1 record
         $responseGuru = $this->actingAs($teacher)->get('/staff/'.$teacherEmp->id);
         $responseGuru->assertOk();
-        $responseGuru->assertInertia(function ($page) {
+        $responseGuru->assertInertia(function ($page) use ($teacherEmp) {
             $page->where('permissions.can_update', true)
                 ->where('permissions.can_view_kepegawaian', true)
-                ->where('permissions.can_update_kepegawaian', false);
+                ->where('permissions.can_update_kepegawaian', false)
+                ->has('allEmployees', 1)
+                ->where('allEmployees.0.id', $teacherEmp->id);
         });
 
-        // Superadmin views employee
+        // Superadmin views employee: dropdown has all employees
         $responseSuper = $this->actingAs($superadmin)->get('/staff/'.$teacherEmp->id);
         $responseSuper->assertOk();
         $responseSuper->assertInertia(function ($page) {
             $page->where('permissions.can_update', true)
                 ->where('permissions.can_view_kepegawaian', true)
-                ->where('permissions.can_update_kepegawaian', true);
+                ->where('permissions.can_update_kepegawaian', true)
+                ->has('allEmployees', 2);
         });
 
         // Superadmin updates NIPY
