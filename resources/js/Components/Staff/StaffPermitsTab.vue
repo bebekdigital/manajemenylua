@@ -272,12 +272,13 @@ function closePreviewModal() {
 
             <!-- Tabel Perizinan (Format sama persis seperti tabel Riwayat Jabatan di Tab Penugasan) -->
             <div class="overflow-x-auto rounded-xl border border-primary/30 bg-white shadow-2xs">
-                <table class="w-full text-xs sm:text-sm border-collapse border border-outline-variant/60 min-w-[920px]">
+                <table class="w-full text-xs sm:text-sm border-collapse border border-outline-variant/60 min-w-[1050px]">
                     <thead>
                         <tr class="bg-primary/5 text-primary font-bold text-[10px] sm:text-xs uppercase tracking-wider">
                             <th class="border border-outline-variant/60 px-3 py-2.5 text-center w-12">NO</th>
-                            <th class="border border-outline-variant/60 px-3 py-2.5 text-left min-w-[150px]">TANGGAL</th>
-                            <th class="border border-outline-variant/60 px-3 py-2.5 text-left min-w-[150px]">JENIS</th>
+                            <th class="border border-outline-variant/60 px-3 py-2.5 text-left min-w-[145px]">TANGGAL MULAI</th>
+                            <th class="border border-outline-variant/60 px-3 py-2.5 text-left min-w-[145px]">TANGGAL AKHIR</th>
+                            <th class="border border-outline-variant/60 px-3 py-2.5 text-left min-w-[140px]">JENIS</th>
                             <th class="border border-outline-variant/60 px-3 py-2.5 text-left min-w-[160px]">DETAIL</th>
                             <th class="border border-outline-variant/60 px-3 py-2.5 text-left min-w-[180px]">KETERANGAN</th>
                             <th class="border border-outline-variant/60 px-3 py-2.5 text-center min-w-[140px]">LAMPIRAN</th>
@@ -288,7 +289,7 @@ function closePreviewModal() {
                     <tbody>
                         <!-- Empty State jika belum ada baris -->
                         <tr v-if="rows.length === 0">
-                            <td colspan="8" class="border border-outline-variant/60 p-6 text-center text-xs text-on-surface-variant italic">
+                            <td colspan="9" class="border border-outline-variant/60 p-6 text-center text-xs text-on-surface-variant italic">
                                 <span class="material-symbols-outlined text-2xl text-outline/60 block mb-1">event_busy</span>
                                 Belum ada riwayat perizinan. Klik tombol di bawah untuk menambah riwayat perizinan baru.
                             </td>
@@ -308,7 +309,7 @@ function closePreviewModal() {
                                 {{ idx + 1 }}
                             </td>
 
-                            <!-- 2. TANGGAL -->
+                            <!-- 2. TANGGAL MULAI -->
                             <td class="border border-outline-variant/60 px-3 py-2.5">
                                 <input
                                     v-model="row.tanggal"
@@ -318,7 +319,18 @@ function closePreviewModal() {
                                 />
                             </td>
 
-                            <!-- 3. JENIS (Format biasa, bukan dropdown) -->
+                            <!-- 3. TANGGAL AKHIR -->
+                            <td class="border border-outline-variant/60 px-3 py-2.5">
+                                <input
+                                    v-model="row.tanggal_selesai"
+                                    type="date"
+                                    @change="markDirty(row)"
+                                    class="w-full px-3 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                                />
+                                <span class="text-[10px] text-outline mt-0.5 block">Kosongkan jika 1 hari</span>
+                            </td>
+
+                            <!-- 4. JENIS (Format biasa, bukan dropdown) -->
                             <td class="border border-outline-variant/60 px-3 py-2.5">
                                 <input
                                     v-model="row.jenis"
@@ -330,7 +342,7 @@ function closePreviewModal() {
                                 />
                             </td>
 
-                            <!-- 4. DETAIL (Format biasa, bukan dropdown) -->
+                            <!-- 5. DETAIL (Format biasa, bukan dropdown) -->
                             <td class="border border-outline-variant/60 px-3 py-2.5">
                                 <input
                                     v-model="row.detail"
@@ -341,7 +353,7 @@ function closePreviewModal() {
                                 />
                             </td>
 
-                            <!-- 5. KETERANGAN -->
+                            <!-- 6. KETERANGAN -->
                             <td class="border border-outline-variant/60 px-3 py-2.5">
                                 <input
                                     v-model="row.keterangan"
@@ -352,7 +364,7 @@ function closePreviewModal() {
                                 />
                             </td>
 
-                            <!-- 6. LAMPIRAN -->
+                            <!-- 7. LAMPIRAN -->
                             <td class="border border-outline-variant/60 px-3 py-2.5 text-center">
                                 <div class="flex flex-col items-center gap-1.5 justify-center">
                                     <div v-if="row.preview_url" class="inline-flex items-center gap-1">
@@ -383,45 +395,83 @@ function closePreviewModal() {
                                 </div>
                             </td>
 
-                            <!-- 7. STATUS (diajukan, disetujui, ditolak) -->
+                            <!-- 8. STATUS (diajukan, disetujui, ditolak) -->
                             <td class="border border-outline-variant/60 px-3 py-2.5 text-center">
-                                <select
-                                    v-if="!isTeacher"
-                                    v-model="row.status"
-                                    @change="markDirty(row)"
-                                    :class="[
-                                        'w-full px-2.5 py-2 border rounded-xl text-xs sm:text-sm font-bold cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20',
-                                        row.status === 'disetujui' ? 'bg-emerald-50 border-emerald-300 text-emerald-800' :
-                                        row.status === 'ditolak' ? 'bg-rose-50 border-rose-300 text-rose-800' :
-                                        'bg-amber-50 border-amber-300 text-amber-800'
-                                    ]"
-                                >
-                                    <option value="diajukan">Diajukan</option>
-                                    <option value="disetujui">Disetujui</option>
-                                    <option value="ditolak">Ditolak</option>
-                                </select>
+                                <!-- Mode Tambah Baru (isNew): Tanpa dropdown, selalu Diajukan -->
                                 <span
-                                    v-else
-                                    :class="[
-                                        'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold border',
-                                        row.status === 'disetujui' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                                        row.status === 'ditolak' ? 'bg-rose-50 text-rose-700 border-rose-200' :
-                                        'bg-amber-50 text-amber-700 border-amber-200'
-                                    ]"
+                                    v-if="row.isNew"
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200"
                                 >
-                                    {{ row.status === 'disetujui' ? 'Disetujui' : row.status === 'ditolak' ? 'Ditolak' : 'Diajukan' }}
+                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                    Diajukan
                                 </span>
+
+                                <!-- Mode Baris Sudah Tersimpan: Dropdown untuk Admin, Badge untuk Guru -->
+                                <template v-else>
+                                    <select
+                                        v-if="!isTeacher"
+                                        v-model="row.status"
+                                        @change="markDirty(row)"
+                                        :class="[
+                                            'w-full px-2.5 py-2 border rounded-xl text-xs sm:text-sm font-bold cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20',
+                                            row.status === 'disetujui' ? 'bg-emerald-50 border-emerald-300 text-emerald-800' :
+                                            row.status === 'ditolak' ? 'bg-rose-50 border-rose-300 text-rose-800' :
+                                            'bg-amber-50 border-amber-300 text-amber-800'
+                                        ]"
+                                    >
+                                        <option value="diajukan">Diajukan</option>
+                                        <option value="disetujui">Disetujui</option>
+                                        <option value="ditolak">Ditolak</option>
+                                    </select>
+                                    <span
+                                        v-else
+                                        :class="[
+                                            'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold border',
+                                            row.status === 'disetujui' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                                            row.status === 'ditolak' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                                            'bg-amber-50 text-amber-700 border-amber-200'
+                                        ]"
+                                    >
+                                        {{ row.status === 'disetujui' ? 'Disetujui' : row.status === 'ditolak' ? 'Ditolak' : 'Diajukan' }}
+                                    </span>
+                                </template>
                             </td>
 
-                            <!-- 8. AKSI (Catatan, Simpan, Hapus) -->
+                            <!-- 9. AKSI -->
                             <td class="border border-outline-variant/60 px-3 py-2.5 text-center">
-                                <div class="inline-flex items-center gap-1.5 justify-center">
-                                    <!-- Aksi: Catatan -->
+                                <!-- Mode Tambah Baru (isNew): HANYA Tampilkan Simpan dan Hapus -->
+                                <div v-if="row.isNew" class="inline-flex items-center gap-1.5 justify-center">
+                                    <!-- Simpan -->
+                                    <button
+                                        type="button"
+                                        @click="saveRow(row)"
+                                        :disabled="row.isSaving"
+                                        class="inline-flex items-center justify-center p-2 rounded-xl bg-primary text-white hover:bg-primary/90 transition-all shadow-2xs active:scale-95 disabled:opacity-50 cursor-pointer"
+                                        title="Simpan baris perizinan baru ini"
+                                    >
+                                        <span v-if="row.isSaving" class="material-symbols-outlined text-[17px] animate-spin">sync</span>
+                                        <span v-else class="material-symbols-outlined text-[17px]">save</span>
+                                    </button>
+
+                                    <!-- Hapus -->
+                                    <button
+                                        type="button"
+                                        @click="confirmDeleteRow(row, idx)"
+                                        class="w-8 h-8 rounded-xl text-error hover:bg-error/10 flex items-center justify-center transition-colors cursor-pointer"
+                                        title="Batalkan / hapus baris ini"
+                                    >
+                                        <span class="material-symbols-outlined text-[18px]">delete</span>
+                                    </button>
+                                </div>
+
+                                <!-- Mode Baris Sudah Tersimpan: Tampilkan Catatan, Simpan, dan Hapus -->
+                                <div v-else class="inline-flex items-center gap-1.5 justify-center">
+                                    <!-- Catatan -->
                                     <button
                                         type="button"
                                         @click="openNoteModal(row)"
                                         :class="[
-                                            'relative w-8 h-8 rounded-lg border flex items-center justify-center transition-colors cursor-pointer',
+                                            'relative w-8 h-8 rounded-xl border flex items-center justify-center transition-colors cursor-pointer',
                                             row.catatan
                                                 ? 'bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100'
                                                 : 'bg-white border-outline-variant/60 text-slate-500 hover:bg-slate-100'
@@ -435,23 +485,23 @@ function closePreviewModal() {
                                         ></span>
                                     </button>
 
-                                    <!-- Aksi: Simpan (Aktif saat baris baru atau baris ada perubahan) -->
+                                    <!-- Simpan (Perubahan) -->
                                     <button
                                         type="button"
                                         @click="saveRow(row)"
                                         :disabled="row.isSaving"
-                                        class="inline-flex items-center justify-center p-1.5 rounded-lg bg-primary text-white hover:bg-primary/90 transition-all shadow-2xs active:scale-95 disabled:opacity-50 cursor-pointer"
-                                        title="Simpan baris perizinan ini"
+                                        class="inline-flex items-center justify-center p-2 rounded-xl bg-primary text-white hover:bg-primary/90 transition-all shadow-2xs active:scale-95 disabled:opacity-50 cursor-pointer"
+                                        title="Simpan perubahan baris ini"
                                     >
-                                        <span v-if="row.isSaving" class="material-symbols-outlined text-[16px] animate-spin">sync</span>
-                                        <span v-else class="material-symbols-outlined text-[16px]">save</span>
+                                        <span v-if="row.isSaving" class="material-symbols-outlined text-[17px] animate-spin">sync</span>
+                                        <span v-else class="material-symbols-outlined text-[17px]">save</span>
                                     </button>
 
-                                    <!-- Aksi: Hapus -->
+                                    <!-- Hapus -->
                                     <button
                                         type="button"
                                         @click="confirmDeleteRow(row, idx)"
-                                        class="w-8 h-8 rounded-lg text-error hover:bg-error/10 flex items-center justify-center transition-colors cursor-pointer"
+                                        class="w-8 h-8 rounded-xl text-error hover:bg-error/10 flex items-center justify-center transition-colors cursor-pointer"
                                         title="Hapus baris perizinan ini"
                                     >
                                         <span class="material-symbols-outlined text-[18px]">delete</span>
@@ -462,7 +512,7 @@ function closePreviewModal() {
 
                         <!-- BARIS PALING BAWAH: TOMBOL TAMBAH RIWAYAT PERIZINAN (PERSIS SEPERTI DI SCREENSHOT) -->
                         <tr class="bg-slate-50/70 hover:bg-slate-100/70 transition-colors">
-                            <td colspan="8" class="border border-outline-variant/60 p-2.5 text-center">
+                            <td colspan="9" class="border border-outline-variant/60 p-2.5 text-center">
                                 <button
                                     type="button"
                                     @click="addNewPermitRow"
