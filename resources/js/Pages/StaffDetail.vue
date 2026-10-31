@@ -58,6 +58,16 @@ const canViewKepegawaian = computed(() => props.permissions?.can_view_kepegawaia
 const canUpdateKepegawaian = computed(() => props.permissions?.can_update_kepegawaian ?? true);
 const canApprovePermit = computed(() => props.permissions?.can_approve_permit ?? false);
 const isEditingKepegawaian = computed(() => isEditing.value && canUpdateKepegawaian.value);
+
+// REALTIME PERMIT STATE (Reactive untuk Live Update & Edit Data)
+const perizinanList = ref([...(props.employee?.perizinan || [])]);
+
+watch(() => props.employee?.perizinan, (newVal) => {
+    if (newVal) {
+        perizinanList.value = [...newVal];
+    }
+}, { deep: true, immediate: true });
+
 const dismissedFlash = ref(false);
 
 const flashSuccess = computed(() => !dismissedFlash.value ? page.props.flash?.success : null);
@@ -323,7 +333,11 @@ function initFormFromProps() {
         document: t.document || null,
     }));
 
-    form.riwayat_perizinan = (props.employee.perizinan || []).map((p) => ({
+    const sourcePermits = (perizinanList.value && perizinanList.value.length > 0)
+        ? perizinanList.value
+        : (props.employee.perizinan || []);
+
+    form.riwayat_perizinan = sourcePermits.map((p) => ({
         id: p.id || null,
         tanggal: p.tanggal || '',
         tanggal_selesai: p.tanggal_selesai || '',
@@ -946,6 +960,15 @@ function addRiwayatPerizinanRow() {
 }
 
 function removeRiwayatPerizinanRow(index) {
+    const row = form.riwayat_perizinan[index];
+    if (row && row.id && row.status === 'disetujui') {
+        alert('Perizinan yang sudah disetujui tidak dapat dihapus.');
+        return;
+    }
+    if (isTeacher.value && row && row.id && row.status !== 'diajukan') {
+        alert('Perizinan yang sudah diproses tidak dapat dihapus.');
+        return;
+    }
     form.riwayat_perizinan.splice(index, 1);
 }
 
@@ -1008,15 +1031,7 @@ function submitPermitNote() {
     });
 }
 
-// REALTIME PERMIT POLLING DENGAN REACTIVE DATA (Ringan & Cepat untuk Shared Hosting)
-const perizinanList = ref([...(props.employee?.perizinan || [])]);
-
-watch(() => props.employee?.perizinan, (newVal) => {
-    if (newVal) {
-        perizinanList.value = [...newVal];
-    }
-}, { deep: true, immediate: true });
-
+// REALTIME PERMIT POLLING (Ringan & Cepat untuk Shared Hosting)
 let permitPollInterval = null;
 
 async function fetchPermitsRealtime() {
@@ -1030,6 +1045,9 @@ async function fetchPermitsRealtime() {
         const response = await axios.get(`/staff/${props.employee.id}/permits/realtime`);
         if (response.data && Array.isArray(response.data.permits)) {
             perizinanList.value = response.data.permits;
+            if (props.employee) {
+                props.employee.perizinan = response.data.permits;
+            }
 
             // Auto-sinkronisasi data di modal HANYA jika modal sedang dibuka oleh penerima respon (bukan approver)
             if (showPermitNoteModal.value && permitNoteForm.id && !canApprovePermit.value) {
@@ -4019,14 +4037,26 @@ function deleteDocument(doc) {
                                                 <input
                                                     v-model="row.tanggal"
                                                     type="date"
-                                                    class="w-full px-2.5 py-1.5 bg-white border border-outline-variant/60 rounded-xl text-xs text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                                                    :disabled="row.id && (row.status === 'disetujui' || (isTeacher && row.status !== 'diajukan'))"
+                                                    :class="[
+                                                        'w-full px-2.5 py-1.5 border rounded-xl text-xs focus:outline-none focus:ring-2 cursor-pointer',
+                                                        (row.id && (row.status === 'disetujui' || (isTeacher && row.status !== 'diajukan')))
+                                                            ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
+                                                            : 'bg-white border-outline-variant/60 text-on-surface focus:border-primary focus:ring-primary/20'
+                                                    ]"
                                                     title="Tgl Mulai"
                                                 />
                                                 <span class="text-outline text-xs font-semibold shrink-0">s/d</span>
                                                 <input
                                                     v-model="row.tanggal_selesai"
                                                     type="date"
-                                                    class="w-full px-2.5 py-1.5 bg-white border border-outline-variant/60 rounded-xl text-xs text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                                                    :disabled="row.id && (row.status === 'disetujui' || (isTeacher && row.status !== 'diajukan'))"
+                                                    :class="[
+                                                        'w-full px-2.5 py-1.5 border rounded-xl text-xs focus:outline-none focus:ring-2 cursor-pointer',
+                                                        (row.id && (row.status === 'disetujui' || (isTeacher && row.status !== 'diajukan')))
+                                                            ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
+                                                            : 'bg-white border-outline-variant/60 text-on-surface focus:border-primary focus:ring-primary/20'
+                                                    ]"
                                                     title="Tgl Akhir (Kosongkan jika 1 hari)"
                                                 />
                                             </div>
@@ -4038,7 +4068,13 @@ function deleteDocument(doc) {
                                                 v-model="row.jenis"
                                                 type="text"
                                                 placeholder="Izin, Sakit, Cuti..."
-                                                class="w-full px-3 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface font-semibold focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                                :disabled="row.id && (row.status === 'disetujui' || (isTeacher && row.status !== 'diajukan'))"
+                                                :class="[
+                                                    'w-full px-3 py-2 border rounded-xl text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2',
+                                                    (row.id && (row.status === 'disetujui' || (isTeacher && row.status !== 'diajukan')))
+                                                        ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
+                                                        : 'bg-white border-outline-variant/60 text-on-surface focus:border-primary focus:ring-primary/20'
+                                                ]"
                                             />
                                         </td>
                                         <!-- DETAIL -->
@@ -4047,7 +4083,13 @@ function deleteDocument(doc) {
                                                 v-model="row.detail"
                                                 type="text"
                                                 placeholder="Detail perizinan..."
-                                                class="w-full px-3 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                                :disabled="row.id && (row.status === 'disetujui' || (isTeacher && row.status !== 'diajukan'))"
+                                                :class="[
+                                                    'w-full px-3 py-2 border rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2',
+                                                    (row.id && (row.status === 'disetujui' || (isTeacher && row.status !== 'diajukan')))
+                                                        ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
+                                                        : 'bg-white border-outline-variant/60 text-on-surface focus:border-primary focus:ring-primary/20'
+                                                ]"
                                             />
                                         </td>
                                         <!-- KETERANGAN -->
@@ -4056,7 +4098,13 @@ function deleteDocument(doc) {
                                                 v-model="row.keterangan"
                                                 type="text"
                                                 placeholder="Keterangan / alasan..."
-                                                class="w-full px-3 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                                :disabled="row.id && (row.status === 'disetujui' || (isTeacher && row.status !== 'diajukan'))"
+                                                :class="[
+                                                    'w-full px-3 py-2 border rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2',
+                                                    (row.id && (row.status === 'disetujui' || (isTeacher && row.status !== 'diajukan')))
+                                                        ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
+                                                        : 'bg-white border-outline-variant/60 text-on-surface focus:border-primary focus:ring-primary/20'
+                                                ]"
                                             />
                                         </td>
                                         <!-- LAMPIRAN -->
@@ -4077,7 +4125,8 @@ function deleteDocument(doc) {
                                                     type="file"
                                                     @change="e => onPermitFileChange(row, e)"
                                                     accept=".pdf,.jpg,.jpeg,.png,.webp"
-                                                    class="w-full max-w-[140px] text-[10px] text-on-surface-variant file:mr-1 file:py-0.5 file:px-1.5 file:rounded-md file:border-0 file:text-[10px] file:font-semibold file:bg-primary/10 file:text-primary cursor-pointer border border-outline-variant/40 rounded-lg p-0.5 bg-white"
+                                                    :disabled="row.id && (row.status === 'disetujui' || (isTeacher && row.status !== 'diajukan'))"
+                                                    class="w-full max-w-[140px] text-[10px] text-on-surface-variant file:mr-1 file:py-0.5 file:px-1.5 file:rounded-md file:border-0 file:text-[10px] file:font-semibold file:bg-primary/10 file:text-primary cursor-pointer border border-outline-variant/40 rounded-lg p-0.5 bg-white disabled:opacity-40 disabled:cursor-not-allowed"
                                                     :title="row.lampiran_nama ? 'Ganti berkas: ' + row.lampiran_nama : 'Pilih berkas lampiran'"
                                                 />
                                             </div>
@@ -4103,19 +4152,19 @@ function deleteDocument(doc) {
                                                 {{ row.status === 'disetujui' ? 'Disetujui' : row.status === 'ditolak' ? 'Ditolak' : 'Diajukan' }}
                                             </span>
                                         </td>
-                                        <!-- AKSI: HANYA TOMBOL HAPUS (AKTIF SELAMA DIAJUKAN / BARIS BARU) -->
+                                        <!-- AKSI: HANYA TOMBOL HAPUS (TIDAK BISA DIHAPUS JIKA SUDAH DISETUJUI) -->
                                         <td class="border border-outline-variant/60 px-3 py-2.5 text-center">
                                             <button
                                                 type="button"
                                                 @click="removeRiwayatPerizinanRow(idx)"
-                                                :disabled="isTeacher && row.id && row.status !== 'diajukan'"
+                                                :disabled="row.id && (row.status === 'disetujui' || (isTeacher && row.status !== 'diajukan'))"
                                                 :class="[
                                                     'w-8 h-8 rounded-lg flex items-center justify-center mx-auto transition-colors',
-                                                    (!isTeacher || !row.id || row.status === 'diajukan')
-                                                        ? 'text-error hover:bg-error/10 cursor-pointer'
+                                                    (!row.id || (row.status !== 'disetujui' && (!isTeacher || row.status === 'diajukan')))
+                                                        ? 'text-error hover:bg-error/10 cursor-pointer active:scale-95'
                                                         : 'text-slate-300 cursor-not-allowed opacity-40'
                                                 ]"
-                                                :title="(!isTeacher || !row.id || row.status === 'diajukan') ? 'Hapus baris perizinan ini' : 'Hanya dapat dihapus saat status masih Diajukan'"
+                                                :title="row.status === 'disetujui' ? 'Perizinan yang sudah disetujui tidak dapat dihapus' : ((isTeacher && row.id && row.status !== 'diajukan') ? 'Hanya dapat dihapus saat status masih Diajukan' : 'Hapus baris perizinan ini')"
                                             >
                                                 <span class="material-symbols-outlined text-[18px]">delete</span>
                                             </button>
