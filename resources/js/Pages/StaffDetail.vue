@@ -1002,71 +1002,6 @@ function submitPermitNote() {
     });
 }
 
-function deletePermit(item) {
-    if (isTeacher.value && item.status !== 'diajukan') {
-        return;
-    }
-    if (!confirm(`Apakah Anda yakin ingin menghapus perizinan "${item.jenis}" (${item.formatted_tanggal || item.tanggal})?`)) {
-        return;
-    }
-    router.delete(`/staff/${props.employee.id}/permits/${item.id}`, {
-        preserveScroll: true,
-    });
-}
-
-const showEditPermitModal = ref(false);
-const editPermitForm = useForm({
-    id: null,
-    tanggal: '',
-    tanggal_selesai: '',
-    jenis: '',
-    detail: '',
-    keterangan: '',
-    lampiran: null,
-    lampiran_nama: '',
-    preview_url: '',
-});
-
-function openEditPermitModal(item) {
-    if (isTeacher.value && item.status !== 'diajukan') {
-        return;
-    }
-    editPermitForm.clearErrors();
-    editPermitForm.id = item.id;
-    editPermitForm.tanggal = item.tanggal || '';
-    editPermitForm.tanggal_selesai = item.tanggal_selesai || '';
-    editPermitForm.jenis = item.jenis || '';
-    editPermitForm.detail = item.detail || '';
-    editPermitForm.keterangan = item.keterangan || '';
-    editPermitForm.lampiran = null;
-    editPermitForm.lampiran_nama = item.lampiran_nama || '';
-    editPermitForm.preview_url = item.preview_url || '';
-    showEditPermitModal.value = true;
-}
-
-function closeEditPermitModal() {
-    showEditPermitModal.value = false;
-    editPermitForm.reset();
-}
-
-function onEditPermitFileChange(event) {
-    editPermitForm.lampiran = event.target.files?.[0] || null;
-}
-
-function submitEditPermit() {
-    if (!editPermitForm.id) return;
-    editPermitForm.transform((data) => ({
-        ...data,
-        _method: 'put',
-    })).post(`/staff/${props.employee.id}/permits/${editPermitForm.id}`, {
-        preserveScroll: true,
-        forceFormData: true,
-        onSuccess: () => {
-            closeEditPermitModal();
-        },
-    });
-}
-
 function getAlamatDomisili(e) {
     return [e.jalan_domisili, e.rt_rw_domisili, e.dusun_domisili, e.desa_domisili, e.kecamatan_domisili, e.kab_domisili, e.provinsi_domisili]
         .filter(Boolean).join(', ') || '-';
@@ -3943,53 +3878,16 @@ function deleteDocument(doc) {
                                                 </span>
                                             </td>
                                             <td class="border border-outline-variant/60 px-4 py-3 text-center">
-                                                <div class="inline-flex items-center gap-1.5 justify-center">
-                                                    <!-- Tombol Catatan -->
-                                                    <button
-                                                        type="button"
-                                                        @click="openPermitNoteModal(item)"
-                                                        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-primary/5 hover:bg-primary/10 text-primary border border-primary/20 transition-colors cursor-pointer"
-                                                        :title="item.catatan ? 'Lihat Catatan: ' + item.catatan : 'Lihat Catatan'"
-                                                    >
-                                                        <span class="material-symbols-outlined text-[15px]">sticky_note_2</span>
-                                                        <span>Catatan</span>
-                                                        <span v-if="item.catatan" class="w-1.5 h-1.5 rounded-full bg-primary" title="Ada catatan"></span>
-                                                    </button>
-
-                                                    <!-- Tombol Edit (Aktif selama status Diajukan untuk Guru, atau Admin) -->
-                                                    <button
-                                                        type="button"
-                                                        @click="openEditPermitModal(item)"
-                                                        :disabled="isTeacher && item.status !== 'diajukan'"
-                                                        :class="[
-                                                            'inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors',
-                                                            (!isTeacher || item.status === 'diajukan')
-                                                                ? 'bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 cursor-pointer active:scale-95'
-                                                                : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-50'
-                                                        ]"
-                                                        :title="(!isTeacher || item.status === 'diajukan') ? 'Edit Data Perizinan' : 'Hanya dapat diedit saat status masih Diajukan'"
-                                                    >
-                                                        <span class="material-symbols-outlined text-[15px]">edit</span>
-                                                        <span>Edit</span>
-                                                    </button>
-
-                                                    <!-- Tombol Hapus (Aktif selama status Diajukan untuk Guru, atau Admin) -->
-                                                    <button
-                                                        type="button"
-                                                        @click="deletePermit(item)"
-                                                        :disabled="isTeacher && item.status !== 'diajukan'"
-                                                        :class="[
-                                                            'inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors',
-                                                            (!isTeacher || item.status === 'diajukan')
-                                                                ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 cursor-pointer active:scale-95'
-                                                                : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-50'
-                                                        ]"
-                                                        :title="(!isTeacher || item.status === 'diajukan') ? 'Hapus Pengajuan Perizinan' : 'Hanya dapat dihapus saat status masih Diajukan'"
-                                                    >
-                                                        <span class="material-symbols-outlined text-[15px]">delete</span>
-                                                        <span>Hapus</span>
-                                                    </button>
-                                                </div>
+                                                <button
+                                                    type="button"
+                                                    @click="openPermitNoteModal(item)"
+                                                    class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-primary/5 hover:bg-primary/10 text-primary border border-primary/20 transition-colors cursor-pointer"
+                                                    :title="item.catatan ? 'Lihat Catatan: ' + item.catatan : 'Buka Catatan Perizinan'"
+                                                >
+                                                    <span class="material-symbols-outlined text-[15px]">sticky_note_2</span>
+                                                    <span>Catatan</span>
+                                                    <span v-if="item.catatan" class="w-1.5 h-1.5 rounded-full bg-primary" title="Ada catatan"></span>
+                                                </button>
                                             </td>
                                         </tr>
                                     </tbody>
@@ -5080,137 +4978,6 @@ function deleteDocument(doc) {
                             >
                                 <span v-if="permitNoteForm.processing" class="material-symbols-outlined text-[16px] animate-spin">sync</span>
                                 <span>Simpan Catatan</span>
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </Transition>
-
-        <!-- MODAL EDIT PERIZINAN -->
-        <Transition
-            enter-active-class="transition duration-200 ease-out"
-            enter-from-class="opacity-0"
-            enter-to-class="opacity-100"
-            leave-active-class="transition duration-150 ease-in"
-            leave-from-class="opacity-100"
-            leave-to-class="opacity-0"
-        >
-            <div
-                v-if="showEditPermitModal"
-                class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs"
-                @click.self="closeEditPermitModal"
-            >
-                <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-outline-variant/60 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                    <div class="px-6 py-4 border-b border-outline-variant/60 flex items-center justify-between bg-surface-container-low">
-                        <div class="flex items-center gap-2 text-primary font-bold text-sm sm:text-base">
-                            <span class="material-symbols-outlined text-[20px]">edit_calendar</span>
-                            <span>Edit Data Perizinan</span>
-                        </div>
-                        <button
-                            type="button"
-                            @click="closeEditPermitModal"
-                            class="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-slate-100 transition-colors cursor-pointer"
-                        >
-                            <span class="material-symbols-outlined text-[20px]">close</span>
-                        </button>
-                    </div>
-
-                    <form @submit.prevent="submitEditPermit" class="p-6 space-y-4">
-                        <!-- Tgl Mulai & Tgl Akhir -->
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div class="space-y-1">
-                                <label class="block text-xs font-bold text-on-surface">Tgl Mulai <span class="text-error">*</span></label>
-                                <input
-                                    v-model="editPermitForm.tanggal"
-                                    type="date"
-                                    required
-                                    class="w-full px-3 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
-                                />
-                            </div>
-                            <div class="space-y-1">
-                                <label class="block text-xs font-bold text-on-surface">Tgl Akhir</label>
-                                <input
-                                    v-model="editPermitForm.tanggal_selesai"
-                                    type="date"
-                                    class="w-full px-3 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
-                                />
-                                <span class="text-[10px] text-outline block">Kosongkan jika 1 hari</span>
-                            </div>
-                        </div>
-
-                        <!-- Jenis -->
-                        <div class="space-y-1">
-                            <label class="block text-xs font-bold text-on-surface">Jenis Perizinan <span class="text-error">*</span></label>
-                            <input
-                                v-model="editPermitForm.jenis"
-                                type="text"
-                                required
-                                placeholder="Izin, Sakit, Cuti..."
-                                class="w-full px-3 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface font-semibold focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                            />
-                        </div>
-
-                        <!-- Detail -->
-                        <div class="space-y-1">
-                            <label class="block text-xs font-bold text-on-surface">Detail Perizinan</label>
-                            <input
-                                v-model="editPermitForm.detail"
-                                type="text"
-                                placeholder="Detail perizinan..."
-                                class="w-full px-3 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                            />
-                        </div>
-
-                        <!-- Keterangan -->
-                        <div class="space-y-1">
-                            <label class="block text-xs font-bold text-on-surface">Keterangan / Alasan</label>
-                            <textarea
-                                v-model="editPermitForm.keterangan"
-                                rows="3"
-                                placeholder="Keterangan atau alasan perizinan..."
-                                class="w-full px-3 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 resize-y"
-                            ></textarea>
-                        </div>
-
-                        <!-- Lampiran -->
-                        <div class="space-y-1">
-                            <label class="block text-xs font-bold text-on-surface">Berkas Lampiran</label>
-                            <div v-if="editPermitForm.preview_url" class="mb-2 flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-outline-variant/40 text-xs">
-                                <span class="truncate text-on-surface-variant max-w-[200px]">{{ editPermitForm.lampiran_nama || 'Berkas Lampiran' }}</span>
-                                <a
-                                    :href="editPermitForm.preview_url"
-                                    target="_blank"
-                                    class="text-primary font-bold hover:underline inline-flex items-center gap-1"
-                                >
-                                    <span class="material-symbols-outlined text-[14px]">visibility</span>
-                                    <span>Lihat</span>
-                                </a>
-                            </div>
-                            <input
-                                type="file"
-                                @change="onEditPermitFileChange"
-                                accept=".pdf,.jpg,.jpeg,.png,.webp"
-                                class="w-full text-xs text-on-surface-variant file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-primary/10 file:text-primary cursor-pointer border border-outline-variant/40 rounded-xl p-1 bg-white"
-                            />
-                            <span class="text-[10px] text-outline block">Mendukung PDF, JPG, PNG, WEBP (Maksimal 10MB)</span>
-                        </div>
-
-                        <div class="flex items-center justify-end gap-2 pt-3 border-t border-outline-variant/40">
-                            <button
-                                type="button"
-                                @click="closeEditPermitModal"
-                                class="px-4 py-2 rounded-xl border border-outline-variant/60 text-xs sm:text-sm font-semibold text-on-surface hover:bg-slate-50 transition-colors cursor-pointer"
-                            >
-                                Batal
-                            </button>
-                            <button
-                                type="submit"
-                                :disabled="editPermitForm.processing"
-                                class="px-5 py-2 rounded-xl bg-primary text-white text-xs sm:text-sm font-bold hover:bg-primary/90 transition-all shadow-2xs active:scale-95 disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
-                            >
-                                <span v-if="editPermitForm.processing" class="material-symbols-outlined text-[16px] animate-spin">sync</span>
-                                <span>Simpan Perubahan</span>
                             </button>
                         </div>
                     </form>
