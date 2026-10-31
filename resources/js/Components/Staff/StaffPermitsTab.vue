@@ -1,6 +1,6 @@
 <script setup>
-import { ref, computed } from 'vue';
-import { useForm, router } from '@inertiajs/vue3';
+import { ref, computed, nextTick } from 'vue';
+import { router, useForm } from '@inertiajs/vue3';
 
 const props = defineProps({
     employee: {
@@ -20,67 +20,104 @@ const props = defineProps({
 const permitsList = computed(() => props.employee?.perizinan || []);
 
 // -------------------------------------------------------------
-// Modals State
-// -------------------------------------------------------------
-const showCreateModal = ref(false);
-const showEditModal = ref(false);
-const showNoteModal = ref(false);
-const showDeleteConfirmModal = ref(false);
-const showPreviewModal = ref(false);
-
-const previewData = ref({ url: '', name: '', isPdf: false });
-const permitToDelete = ref(null);
-const isDeleting = ref(false);
-
-// -------------------------------------------------------------
-// Form Create
+// Inline Add Row State
 // -------------------------------------------------------------
 const todayStr = new Date().toISOString().split('T')[0];
+const isAddingNew = ref(false);
+const isSavingNew = ref(false);
+const newJenisInputRef = ref(null);
 
-const formCreate = useForm({
+const newPermit = ref({
     tanggal: todayStr,
     tanggal_selesai: '',
     jenis: '',
     detail: '',
     keterangan: '',
     status: 'diajukan',
-    catatan: '',
     lampiran: null,
 });
 
-function openCreateModal() {
-    formCreate.reset();
-    formCreate.clearErrors();
-    formCreate.tanggal = todayStr;
-    formCreate.status = 'diajukan';
-    formCreate.lampiran = null;
-    showCreateModal.value = true;
-}
-
-function closeCreateModal() {
-    showCreateModal.value = false;
-    formCreate.reset();
-    formCreate.clearErrors();
-}
-
-function handleCreateFileChange(e) {
-    formCreate.lampiran = e.target.files[0] || null;
-}
-
-function submitCreate() {
-    formCreate.post(route('staff.permits.store', props.employee.id), {
-        forceFormData: true,
-        preserveScroll: true,
-        onSuccess: () => {
-            closeCreateModal();
-        },
+function addNewPermitRow() {
+    isAddingNew.value = true;
+    newPermit.value = {
+        tanggal: todayStr,
+        tanggal_selesai: '',
+        jenis: '',
+        detail: '',
+        keterangan: '',
+        status: 'diajukan',
+        lampiran: null,
+    };
+    nextTick(() => {
+        if (newJenisInputRef.value) {
+            newJenisInputRef.value.focus();
+        }
     });
 }
 
+function cancelNewPermit() {
+    isAddingNew.value = false;
+    newPermit.value = {
+        tanggal: todayStr,
+        tanggal_selesai: '',
+        jenis: '',
+        detail: '',
+        keterangan: '',
+        status: 'diajukan',
+        lampiran: null,
+    };
+}
+
+function handleNewFileChange(e) {
+    newPermit.value.lampiran = e.target.files[0] || null;
+}
+
+function saveNewPermit() {
+    if (!newPermit.value.jenis || !newPermit.value.jenis.trim()) {
+        alert('Jenis perizinan wajib diisi.');
+        return;
+    }
+
+    isSavingNew.value = true;
+    router.post(
+        route('staff.permits.store', props.employee.id),
+        {
+            tanggal: newPermit.value.tanggal,
+            tanggal_selesai: newPermit.value.tanggal_selesai || null,
+            jenis: newPermit.value.jenis,
+            detail: newPermit.value.detail || null,
+            keterangan: newPermit.value.keterangan || null,
+            status: props.isTeacher ? 'diajukan' : newPermit.value.status,
+            lampiran: newPermit.value.lampiran,
+        },
+        {
+            forceFormData: true,
+            preserveScroll: true,
+            onSuccess: () => {
+                isAddingNew.value = false;
+                newPermit.value = {
+                    tanggal: todayStr,
+                    tanggal_selesai: '',
+                    jenis: '',
+                    detail: '',
+                    keterangan: '',
+                    status: 'diajukan',
+                    lampiran: null,
+                };
+            },
+            onFinish: () => {
+                isSavingNew.value = false;
+            },
+        }
+    );
+}
+
 // -------------------------------------------------------------
-// Form Edit
+// Inline Edit Row State
 // -------------------------------------------------------------
-const formEdit = useForm({
+const editingId = ref(null);
+const isSavingEdit = ref(false);
+const editingPermit = ref({
     id: null,
     tanggal: '',
     tanggal_selesai: '',
@@ -88,68 +125,83 @@ const formEdit = useForm({
     detail: '',
     keterangan: '',
     status: 'diajukan',
-    catatan: '',
     lampiran: null,
     current_lampiran_nama: '',
     current_preview_url: '',
 });
 
-function openEditModal(permit) {
-    formEdit.clearErrors();
-    formEdit.id = permit.id;
-    formEdit.tanggal = permit.tanggal || '';
-    formEdit.tanggal_selesai = permit.tanggal_selesai || '';
-    formEdit.jenis = permit.jenis || '';
-    formEdit.detail = permit.detail || '';
-    formEdit.keterangan = permit.keterangan || '';
-    formEdit.status = permit.status || 'diajukan';
-    formEdit.catatan = permit.catatan || '';
-    formEdit.lampiran = null;
-    formEdit.current_lampiran_nama = permit.lampiran_nama || '';
-    formEdit.current_preview_url = permit.preview_url || '';
-    showEditModal.value = true;
+function startEditRow(permit) {
+    editingId.value = permit.id;
+    editingPermit.value = {
+        id: permit.id,
+        tanggal: permit.tanggal || '',
+        tanggal_selesai: permit.tanggal_selesai || '',
+        jenis: permit.jenis || '',
+        detail: permit.detail || '',
+        keterangan: permit.keterangan || '',
+        status: permit.status || 'diajukan',
+        lampiran: null,
+        current_lampiran_nama: permit.lampiran_nama || '',
+        current_preview_url: permit.preview_url || '',
+    };
 }
 
-function closeEditModal() {
-    showEditModal.value = false;
-    formEdit.reset();
-    formEdit.clearErrors();
+function cancelEditRow() {
+    editingId.value = null;
+    editingPermit.value = {
+        id: null,
+        tanggal: '',
+        tanggal_selesai: '',
+        jenis: '',
+        detail: '',
+        keterangan: '',
+        status: 'diajukan',
+        lampiran: null,
+        current_lampiran_nama: '',
+        current_preview_url: '',
+    };
 }
 
 function handleEditFileChange(e) {
-    formEdit.lampiran = e.target.files[0] || null;
+    editingPermit.value.lampiran = e.target.files[0] || null;
 }
 
-function submitEdit() {
+function saveEditRow() {
+    if (!editingPermit.value.jenis || !editingPermit.value.jenis.trim()) {
+        alert('Jenis perizinan wajib diisi.');
+        return;
+    }
+
+    isSavingEdit.value = true;
     router.post(
-        route('staff.permits.update', { id: props.employee.id, permitId: formEdit.id }),
+        route('staff.permits.update', { id: props.employee.id, permitId: editingPermit.value.id }),
         {
             _method: 'PUT',
-            tanggal: formEdit.tanggal,
-            tanggal_selesai: formEdit.tanggal_selesai,
-            jenis: formEdit.jenis,
-            detail: formEdit.detail,
-            keterangan: formEdit.keterangan,
-            status: formEdit.status,
-            catatan: formEdit.catatan,
-            lampiran: formEdit.lampiran,
+            tanggal: editingPermit.value.tanggal,
+            tanggal_selesai: editingPermit.value.tanggal_selesai || null,
+            jenis: editingPermit.value.jenis,
+            detail: editingPermit.value.detail || null,
+            keterangan: editingPermit.value.keterangan || null,
+            status: props.isTeacher ? undefined : editingPermit.value.status,
+            lampiran: editingPermit.value.lampiran,
         },
         {
             forceFormData: true,
             preserveScroll: true,
             onSuccess: () => {
-                closeEditModal();
+                editingId.value = null;
             },
-            onError: (err) => {
-                formEdit.setError(err);
+            onFinish: () => {
+                isSavingEdit.value = false;
             },
         }
     );
 }
 
 // -------------------------------------------------------------
-// Form Note (Catatan & Status)
+// Modal Catatan State
 // -------------------------------------------------------------
+const showNoteModal = ref(false);
 const formNote = useForm({
     id: null,
     jenis: '',
@@ -186,6 +238,10 @@ function submitNote() {
 // -------------------------------------------------------------
 // Delete Confirmation
 // -------------------------------------------------------------
+const showDeleteConfirmModal = ref(false);
+const permitToDelete = ref(null);
+const isDeleting = ref(false);
+
 function confirmDelete(permit) {
     permitToDelete.value = permit;
     showDeleteConfirmModal.value = true;
@@ -212,8 +268,11 @@ function submitDelete() {
 }
 
 // -------------------------------------------------------------
-// Preview
+// Preview State
 // -------------------------------------------------------------
+const showPreviewModal = ref(false);
+const previewData = ref({ url: '', name: '', isPdf: false });
+
 function openPreview(permit) {
     if (!permit.preview_url) return;
     const isPdf = (permit.lampiran_nama || '').toLowerCase().endsWith('.pdf');
@@ -261,183 +320,395 @@ function getStatusBadge(status) {
 </script>
 
 <template>
-    <div class="space-y-6">
-        <!-- Header & Action Row -->
-        <div class="bg-white rounded-2xl p-5 border border-outline-variant/60 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div class="space-y-1">
-                <div class="flex items-center gap-2">
-                    <span class="material-symbols-outlined text-primary text-[22px]">assignment_turned_in</span>
-                    <h3 class="text-base sm:text-lg font-bold text-on-surface">Data Perizinan Pegawai</h3>
-                </div>
-                <p class="text-xs text-on-surface-variant">
-                    Kelola riwayat pengajuan izin, sakit, cuti, dinas luar, lampiran surat, serta catatan persetujuan status.
+    <div class="space-y-4">
+        <!-- Header Row -->
+        <div class="flex items-center justify-between flex-wrap gap-2">
+            <div>
+                <h4 class="text-xs sm:text-sm font-bold text-primary flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[18px]">assignment_turned_in</span>
+                    Riwayat dan Pengajuan Perizinan Pegawai
+                </h4>
+                <p class="text-xs text-on-surface-variant mt-0.5">
+                    Kelola data izin, sakit, cuti, dinas luar, lampiran berkas, dan status persetujuan langsung pada tabel di bawah
                 </p>
             </div>
 
-            <button
-                type="button"
-                @click="openCreateModal"
-                class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-white text-xs sm:text-sm font-semibold hover:bg-primary/90 transition-all shadow-sm active:scale-[0.98] cursor-pointer shrink-0"
-            >
-                <span class="material-symbols-outlined text-[18px]">add_circle</span>
-                <span>Ajukan Perizinan</span>
-            </button>
+            <div class="flex items-center gap-2">
+                <span class="text-xs text-outline font-medium mr-1">
+                    {{ permitsList.length }} Catatan
+                </span>
+                <button
+                    v-if="!isAddingNew"
+                    type="button"
+                    @click="addNewPermitRow"
+                    class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary/90 transition-all shadow-sm active:scale-[0.98] cursor-pointer"
+                >
+                    <span class="material-symbols-outlined text-[16px]">add_circle</span>
+                    <span>Ajukan Perizinan</span>
+                </button>
+            </div>
         </div>
 
-        <!-- Table Container -->
-        <div class="overflow-hidden rounded-2xl border border-outline-variant/60 bg-white shadow-xs">
+        <!-- Tabel Perizinan -->
+        <div class="overflow-hidden rounded-xl border border-outline-variant/60 bg-white shadow-2xs">
             <div class="overflow-x-auto">
-                <table class="w-full text-xs sm:text-sm border-collapse">
+                <table class="w-full text-xs sm:text-sm border-collapse border border-outline-variant/60">
                     <thead>
-                        <tr class="bg-surface-container-low/70 border-b border-outline-variant/60 text-on-surface-variant font-bold text-[11px] sm:text-xs uppercase tracking-wider">
-                            <th class="px-4 py-3 text-center w-12 border-r border-outline-variant/40">No</th>
-                            <th class="px-4 py-3 text-left w-36 border-r border-outline-variant/40">Tanggal</th>
-                            <th class="px-4 py-3 text-left w-36 border-r border-outline-variant/40">Jenis</th>
-                            <th class="px-4 py-3 text-left w-48 border-r border-outline-variant/40">Detail</th>
-                            <th class="px-4 py-3 text-left border-r border-outline-variant/40">Keterangan</th>
-                            <th class="px-4 py-3 text-center w-36 border-r border-outline-variant/40">Lampiran</th>
-                            <th class="px-4 py-3 text-center w-32 border-r border-outline-variant/40">Status</th>
-                            <th class="px-4 py-3 text-center w-36">Aksi</th>
+                        <tr class="bg-white text-on-surface-variant font-bold text-[10px] sm:text-xs uppercase tracking-wider">
+                            <th class="border border-outline-variant/60 px-3 py-3 text-center w-12">No</th>
+                            <th class="border border-outline-variant/60 px-3 py-3 text-left w-36">Tanggal</th>
+                            <th class="border border-outline-variant/60 px-3 py-3 text-left w-36">Jenis</th>
+                            <th class="border border-outline-variant/60 px-3 py-3 text-left w-48">Detail</th>
+                            <th class="border border-outline-variant/60 px-3 py-3 text-left">Keterangan</th>
+                            <th class="border border-outline-variant/60 px-3 py-3 text-center w-36">Lampiran</th>
+                            <th class="border border-outline-variant/60 px-3 py-3 text-center w-32">Status</th>
+                            <th class="border border-outline-variant/60 px-3 py-3 text-center w-36">Aksi</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-outline-variant/40">
+                    <tbody>
+                        <!-- BARIS FORM INLINE UNTUK AJUKAN PERIZINAN BARU -->
                         <tr
-                            v-for="(item, idx) in permitsList"
-                            :key="item.id"
-                            class="hover:bg-slate-50/80 transition-colors"
+                            v-if="isAddingNew"
+                            class="bg-primary/5 border-2 border-primary/40 animate-in fade-in duration-150"
                         >
                             <!-- No -->
-                            <td class="px-4 py-3.5 text-center text-on-surface-variant font-mono text-xs border-r border-outline-variant/40">
-                                {{ idx + 1 }}
+                            <td class="border border-outline-variant/60 px-3 py-2 text-center text-primary font-bold">
+                                +
                             </td>
 
                             <!-- Tanggal -->
-                            <td class="px-4 py-3.5 text-on-surface whitespace-nowrap border-r border-outline-variant/40 font-medium">
-                                {{ item.formatted_tanggal || item.tanggal || '-' }}
+                            <td class="border border-outline-variant/60 px-2 py-2">
+                                <input
+                                    v-model="newPermit.tanggal"
+                                    type="date"
+                                    required
+                                    class="w-full px-2 py-1.5 bg-white border border-outline-variant/60 rounded-lg text-xs text-on-surface focus:outline-none focus:border-primary"
+                                />
                             </td>
 
-                            <!-- Jenis -->
-                            <td class="px-4 py-3.5 font-bold text-on-surface border-r border-outline-variant/40">
-                                <span class="px-2.5 py-1 rounded-lg bg-surface-container-high text-on-surface font-semibold text-xs inline-block">
-                                    {{ item.jenis || '-' }}
-                                </span>
+                            <!-- Jenis (Format Biasa) -->
+                            <td class="border border-outline-variant/60 px-2 py-2">
+                                <input
+                                    ref="newJenisInputRef"
+                                    v-model="newPermit.jenis"
+                                    type="text"
+                                    required
+                                    placeholder="Izin, Sakit, Cuti..."
+                                    class="w-full px-2.5 py-1.5 bg-white border border-outline-variant/60 rounded-lg text-xs font-semibold text-on-surface focus:outline-none focus:border-primary placeholder:text-outline"
+                                />
                             </td>
 
-                            <!-- Detail -->
-                            <td class="px-4 py-3.5 text-on-surface border-r border-outline-variant/40 font-medium">
-                                {{ item.detail || '-' }}
+                            <!-- Detail (Format Biasa) -->
+                            <td class="border border-outline-variant/60 px-2 py-2">
+                                <input
+                                    v-model="newPermit.detail"
+                                    type="text"
+                                    placeholder="Detail perizinan..."
+                                    class="w-full px-2.5 py-1.5 bg-white border border-outline-variant/60 rounded-lg text-xs text-on-surface focus:outline-none focus:border-primary placeholder:text-outline"
+                                />
                             </td>
 
                             <!-- Keterangan -->
-                            <td class="px-4 py-3.5 text-on-surface-variant border-r border-outline-variant/40">
-                                <div class="max-w-xs xl:max-w-md line-clamp-2 text-xs leading-relaxed" :title="item.keterangan">
-                                    {{ item.keterangan || '-' }}
-                                </div>
+                            <td class="border border-outline-variant/60 px-2 py-2">
+                                <input
+                                    v-model="newPermit.keterangan"
+                                    type="text"
+                                    placeholder="Keterangan / alasan..."
+                                    class="w-full px-2.5 py-1.5 bg-white border border-outline-variant/60 rounded-lg text-xs text-on-surface focus:outline-none focus:border-primary placeholder:text-outline"
+                                />
                             </td>
 
-                            <!-- Lampiran -->
-                            <td class="px-4 py-3.5 text-center border-r border-outline-variant/40">
-                                <div v-if="item.lampiran_path" class="inline-flex items-center gap-1.5 justify-center flex-wrap">
-                                    <button
-                                        type="button"
-                                        @click="openPreview(item)"
-                                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors border border-emerald-200 cursor-pointer"
-                                        title="Lihat Pratinjau Berkas"
-                                    >
-                                        <span class="material-symbols-outlined text-[15px]">visibility</span>
-                                        <span>Lihat</span>
-                                    </button>
-                                    <a
-                                        :href="item.download_url"
-                                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-outline-variant/60 hover:bg-slate-100 text-on-surface transition-colors cursor-pointer"
-                                        title="Unduh Berkas"
-                                    >
-                                        <span class="material-symbols-outlined text-[15px]">download</span>
-                                    </a>
-                                </div>
-                                <span v-else class="text-xs text-outline italic">
-                                    Tidak ada
-                                </span>
+                            <!-- Lampiran File -->
+                            <td class="border border-outline-variant/60 px-2 py-2 text-center">
+                                <input
+                                    type="file"
+                                    @change="handleNewFileChange"
+                                    accept=".pdf,.jpg,.jpeg,.png,.webp"
+                                    class="w-full text-[11px] text-on-surface-variant file:mr-1.5 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[10px] file:font-semibold file:bg-primary/10 file:text-primary cursor-pointer border border-outline-variant/60 rounded-lg p-0.5 bg-white"
+                                />
                             </td>
 
                             <!-- Status -->
-                            <td class="px-4 py-3.5 text-center border-r border-outline-variant/40">
-                                <span
-                                    :class="[
-                                        'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border transition-colors',
-                                        getStatusBadge(item.status).badgeClass
-                                    ]"
+                            <td class="border border-outline-variant/60 px-2 py-2 text-center">
+                                <select
+                                    v-if="!isTeacher"
+                                    v-model="newPermit.status"
+                                    class="w-full px-2 py-1.5 bg-white border border-outline-variant/60 rounded-lg text-xs font-bold text-on-surface focus:outline-none focus:border-primary cursor-pointer"
                                 >
-                                    <span class="w-1.5 h-1.5 rounded-full" :class="getStatusBadge(item.status).dotClass"></span>
-                                    <span>{{ getStatusBadge(item.status).label }}</span>
+                                    <option value="diajukan">Diajukan</option>
+                                    <option value="disetujui">Disetujui</option>
+                                    <option value="ditolak">Ditolak</option>
+                                </select>
+                                <span
+                                    v-else
+                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200"
+                                >
+                                    Diajukan
                                 </span>
                             </td>
 
-                            <!-- Aksi (Catatan, Edit, Hapus) -->
-                            <td class="px-4 py-3.5 text-center">
-                                <div class="inline-flex items-center gap-1 justify-center">
-                                    <!-- Aksi: Catatan -->
+                            <!-- Aksi Simpan / Batal -->
+                            <td class="border border-outline-variant/60 px-2 py-2 text-center">
+                                <div class="inline-flex items-center gap-1.5 justify-center">
                                     <button
                                         type="button"
-                                        @click="openNoteModal(item)"
-                                        :class="[
-                                            'relative inline-flex items-center justify-center p-1.5 rounded-lg border transition-all cursor-pointer',
-                                            item.catatan
-                                                ? 'bg-amber-50 text-amber-700 border-amber-300 hover:bg-amber-100'
-                                                : 'bg-white text-slate-600 border-outline-variant/60 hover:bg-slate-100'
-                                        ]"
-                                        :title="item.catatan ? 'Lihat/Ubah Catatan: ' + item.catatan : 'Beri Catatan / Tindak Lanjut'"
+                                        @click="saveNewPermit"
+                                        :disabled="isSavingNew"
+                                        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-primary text-white text-xs font-bold hover:bg-primary/90 transition-all shadow-sm active:scale-95 disabled:opacity-50 cursor-pointer"
+                                        title="Simpan Perizinan Baru"
                                     >
-                                        <span class="material-symbols-outlined text-[17px]">note_alt</span>
-                                        <span
-                                            v-if="item.catatan"
-                                            class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-amber-500 rounded-full border-2 border-white"
-                                        ></span>
+                                        <span v-if="isSavingNew" class="material-symbols-outlined text-[15px] animate-spin">sync</span>
+                                        <span v-else class="material-symbols-outlined text-[15px]">check</span>
+                                        <span>Simpan</span>
                                     </button>
-
-                                    <!-- Aksi: Edit -->
                                     <button
                                         type="button"
-                                        @click="openEditModal(item)"
-                                        class="inline-flex items-center justify-center p-1.5 rounded-lg bg-white border border-outline-variant/60 hover:bg-slate-100 text-slate-700 transition-colors cursor-pointer"
-                                        title="Edit Data Perizinan"
+                                        @click="cancelNewPermit"
+                                        class="p-1.5 rounded-lg text-slate-500 hover:text-on-surface hover:bg-slate-200/60 transition-colors cursor-pointer"
+                                        title="Batalkan"
                                     >
-                                        <span class="material-symbols-outlined text-[17px]">edit</span>
-                                    </button>
-
-                                    <!-- Aksi: Hapus -->
-                                    <button
-                                        type="button"
-                                        @click="confirmDelete(item)"
-                                        class="inline-flex items-center justify-center p-1.5 rounded-lg bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                                        title="Hapus Perizinan"
-                                    >
-                                        <span class="material-symbols-outlined text-[17px]">delete</span>
+                                        <span class="material-symbols-outlined text-[16px]">close</span>
                                     </button>
                                 </div>
                             </td>
                         </tr>
 
-                        <!-- Empty State Row -->
-                        <tr v-if="permitsList.length === 0">
-                            <td colspan="8" class="px-6 py-12 text-center">
-                                <div class="flex flex-col items-center justify-center gap-2 text-on-surface-variant max-w-sm mx-auto">
-                                    <div class="w-12 h-12 rounded-full bg-surface-container-high flex items-center justify-center text-outline">
-                                        <span class="material-symbols-outlined text-2xl">event_busy</span>
+                        <!-- LIST EXISTING PERIZINAN ROWS -->
+                        <tr
+                            v-for="(item, idx) in permitsList"
+                            :key="item.id"
+                            :class="[
+                                'transition-colors',
+                                editingId === item.id ? 'bg-amber-50/50' : 'hover:bg-slate-50'
+                            ]"
+                        >
+                            <!-- 1. MODE INLINE EDIT -->
+                            <template v-if="editingId === item.id">
+                                <td class="border border-outline-variant/60 px-3 py-2 text-center font-mono text-xs">
+                                    {{ idx + 1 }}
+                                </td>
+                                <td class="border border-outline-variant/60 px-2 py-2">
+                                    <input
+                                        v-model="editingPermit.tanggal"
+                                        type="date"
+                                        required
+                                        class="w-full px-2 py-1.5 bg-white border border-outline-variant/60 rounded-lg text-xs text-on-surface focus:outline-none focus:border-primary"
+                                    />
+                                </td>
+                                <td class="border border-outline-variant/60 px-2 py-2">
+                                    <input
+                                        v-model="editingPermit.jenis"
+                                        type="text"
+                                        required
+                                        placeholder="Jenis..."
+                                        class="w-full px-2.5 py-1.5 bg-white border border-outline-variant/60 rounded-lg text-xs font-semibold text-on-surface focus:outline-none focus:border-primary"
+                                    />
+                                </td>
+                                <td class="border border-outline-variant/60 px-2 py-2">
+                                    <input
+                                        v-model="editingPermit.detail"
+                                        type="text"
+                                        placeholder="Detail..."
+                                        class="w-full px-2.5 py-1.5 bg-white border border-outline-variant/60 rounded-lg text-xs text-on-surface focus:outline-none focus:border-primary"
+                                    />
+                                </td>
+                                <td class="border border-outline-variant/60 px-2 py-2">
+                                    <input
+                                        v-model="editingPermit.keterangan"
+                                        type="text"
+                                        placeholder="Keterangan..."
+                                        class="w-full px-2.5 py-1.5 bg-white border border-outline-variant/60 rounded-lg text-xs text-on-surface focus:outline-none focus:border-primary"
+                                    />
+                                </td>
+                                <td class="border border-outline-variant/60 px-2 py-2 text-center">
+                                    <div v-if="editingPermit.current_lampiran_nama" class="text-[10px] text-on-surface-variant truncate max-w-[130px] mb-1">
+                                        {{ editingPermit.current_lampiran_nama }}
                                     </div>
-                                    <h4 class="font-bold text-sm text-on-surface">Belum Ada Data Perizinan</h4>
-                                    <p class="text-xs text-on-surface-variant mb-2">
-                                        Pegawai ini belum memiliki riwayat pengajuan perizinan.
-                                    </p>
-                                    <button
-                                        type="button"
-                                        @click="openCreateModal"
-                                        class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary font-bold text-xs transition-colors cursor-pointer"
+                                    <input
+                                        type="file"
+                                        @change="handleEditFileChange"
+                                        accept=".pdf,.jpg,.jpeg,.png,.webp"
+                                        class="w-full text-[11px] text-on-surface-variant file:mr-1.5 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[10px] file:font-semibold file:bg-primary/10 file:text-primary cursor-pointer border border-outline-variant/60 rounded-lg p-0.5 bg-white"
+                                    />
+                                </td>
+                                <td class="border border-outline-variant/60 px-2 py-2 text-center">
+                                    <select
+                                        v-if="!isTeacher"
+                                        v-model="editingPermit.status"
+                                        class="w-full px-2 py-1.5 bg-white border border-outline-variant/60 rounded-lg text-xs font-bold text-on-surface focus:outline-none focus:border-primary cursor-pointer"
                                     >
-                                        <span class="material-symbols-outlined text-[16px]">add_circle</span>
-                                        <span>Ajukan Perizinan Pertama</span>
-                                    </button>
-                                </div>
+                                        <option value="diajukan">Diajukan</option>
+                                        <option value="disetujui">Disetujui</option>
+                                        <option value="ditolak">Ditolak</option>
+                                    </select>
+                                    <span
+                                        v-else
+                                        :class="[
+                                            'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold border',
+                                            getStatusBadge(editingPermit.status).badgeClass
+                                        ]"
+                                    >
+                                        {{ getStatusBadge(editingPermit.status).label }}
+                                    </span>
+                                </td>
+                                <td class="border border-outline-variant/60 px-2 py-2 text-center">
+                                    <div class="inline-flex items-center gap-1.5 justify-center">
+                                        <button
+                                            type="button"
+                                            @click="saveEditRow"
+                                            :disabled="isSavingEdit"
+                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-primary text-white text-xs font-bold hover:bg-primary/90 transition-all shadow-sm active:scale-95 disabled:opacity-50 cursor-pointer"
+                                            title="Simpan Perubahan"
+                                        >
+                                            <span v-if="isSavingEdit" class="material-symbols-outlined text-[15px] animate-spin">sync</span>
+                                            <span v-else class="material-symbols-outlined text-[15px]">check</span>
+                                            <span>Simpan</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            @click="cancelEditRow"
+                                            class="p-1.5 rounded-lg text-slate-500 hover:text-on-surface hover:bg-slate-200/60 transition-colors cursor-pointer"
+                                            title="Batal"
+                                        >
+                                            <span class="material-symbols-outlined text-[16px]">close</span>
+                                        </button>
+                                    </div>
+                                </td>
+                            </template>
+
+                            <!-- 2. MODE NORMAL DISPLAY -->
+                            <template v-else>
+                                <!-- No -->
+                                <td class="border border-outline-variant/60 px-4 py-3 text-center text-on-surface-variant font-mono text-xs">
+                                    {{ idx + 1 }}
+                                </td>
+
+                                <!-- Tanggal -->
+                                <td class="border border-outline-variant/60 px-4 py-3 text-on-surface whitespace-nowrap font-medium">
+                                    {{ item.formatted_tanggal || item.tanggal || '-' }}
+                                </td>
+
+                                <!-- Jenis -->
+                                <td class="border border-outline-variant/60 px-4 py-3 font-bold text-on-surface">
+                                    <span class="px-2.5 py-1 rounded-lg bg-surface-container-high text-on-surface font-semibold text-xs inline-block">
+                                        {{ item.jenis || '-' }}
+                                    </span>
+                                </td>
+
+                                <!-- Detail -->
+                                <td class="border border-outline-variant/60 px-4 py-3 text-on-surface font-medium">
+                                    {{ item.detail || '-' }}
+                                </td>
+
+                                <!-- Keterangan -->
+                                <td class="border border-outline-variant/60 px-4 py-3 text-on-surface-variant">
+                                    <div class="max-w-xs xl:max-w-md line-clamp-2 text-xs leading-relaxed" :title="item.keterangan">
+                                        {{ item.keterangan || '-' }}
+                                    </div>
+                                </td>
+
+                                <!-- Lampiran -->
+                                <td class="border border-outline-variant/60 px-4 py-3 text-center">
+                                    <div v-if="item.lampiran_path" class="inline-flex items-center gap-1.5 justify-center flex-wrap">
+                                        <button
+                                            type="button"
+                                            @click="openPreview(item)"
+                                            class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors border border-emerald-200 cursor-pointer"
+                                            title="Lihat Pratinjau Berkas"
+                                        >
+                                            <span class="material-symbols-outlined text-[15px]">visibility</span>
+                                            <span>Lihat</span>
+                                        </button>
+                                        <a
+                                            :href="item.download_url"
+                                            class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-outline-variant/60 hover:bg-slate-100 text-on-surface transition-colors cursor-pointer"
+                                            title="Unduh Berkas"
+                                        >
+                                            <span class="material-symbols-outlined text-[15px]">download</span>
+                                        </a>
+                                    </div>
+                                    <span v-else class="text-xs text-outline italic">
+                                        Tidak ada
+                                    </span>
+                                </td>
+
+                                <!-- Status -->
+                                <td class="border border-outline-variant/60 px-4 py-3 text-center">
+                                    <span
+                                        :class="[
+                                            'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border transition-colors',
+                                            getStatusBadge(item.status).badgeClass
+                                        ]"
+                                    >
+                                        <span class="w-1.5 h-1.5 rounded-full" :class="getStatusBadge(item.status).dotClass"></span>
+                                        <span>{{ getStatusBadge(item.status).label }}</span>
+                                    </span>
+                                </td>
+
+                                <!-- Aksi (Catatan, Edit, Hapus) -->
+                                <td class="border border-outline-variant/60 px-4 py-3 text-center">
+                                    <div class="inline-flex items-center gap-1.5 justify-center">
+                                        <!-- Catatan -->
+                                        <button
+                                            type="button"
+                                            @click="openNoteModal(item)"
+                                            :class="[
+                                                'relative inline-flex items-center justify-center p-1.5 rounded-lg border transition-all cursor-pointer',
+                                                item.catatan
+                                                    ? 'bg-amber-50 text-amber-700 border-amber-300 hover:bg-amber-100'
+                                                    : 'bg-white text-slate-600 border-outline-variant/60 hover:bg-slate-100'
+                                            ]"
+                                            :title="item.catatan ? 'Lihat/Ubah Catatan: ' + item.catatan : 'Beri Catatan / Tindak Lanjut'"
+                                        >
+                                            <span class="material-symbols-outlined text-[17px]">note_alt</span>
+                                            <span
+                                                v-if="item.catatan"
+                                                class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-amber-500 rounded-full border-2 border-white"
+                                            ></span>
+                                        </button>
+
+                                        <!-- Edit -->
+                                        <button
+                                            type="button"
+                                            @click="startEditRow(item)"
+                                            class="inline-flex items-center justify-center p-1.5 rounded-lg bg-white border border-outline-variant/60 hover:bg-slate-100 text-slate-700 transition-colors cursor-pointer"
+                                            title="Edit Data Perizinan Langsung di Baris Ini"
+                                        >
+                                            <span class="material-symbols-outlined text-[17px]">edit</span>
+                                        </button>
+
+                                        <!-- Hapus -->
+                                        <button
+                                            type="button"
+                                            @click="confirmDelete(item)"
+                                            class="inline-flex items-center justify-center p-1.5 rounded-lg bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                                            title="Hapus Perizinan"
+                                        >
+                                            <span class="material-symbols-outlined text-[17px]">delete</span>
+                                        </button>
+                                    </div>
+                                </td>
+                            </template>
+                        </tr>
+
+                        <!-- Empty State Row (Jika belum ada data dan tidak sedang menambah baris) -->
+                        <tr v-if="permitsList.length === 0 && !isAddingNew">
+                            <td colspan="8" class="border border-outline-variant/60 px-4 py-8 text-center text-xs text-on-surface-variant">
+                                Belum ada data riwayat perizinan untuk pegawai ini.
+                            </td>
+                        </tr>
+
+                        <!-- BARIS PALING BAWAH: TOMBOL TAMBAH PERIZINAN (MIRIP RIWAYAT PENDIDIKAN) -->
+                        <tr class="bg-slate-50/70 hover:bg-slate-100/70 transition-colors">
+                            <td colspan="8" class="border border-outline-variant/60 p-2.5 text-center">
+                                <button
+                                    type="button"
+                                    @click="addNewPermitRow"
+                                    class="w-full py-2.5 px-4 rounded-xl border border-dashed border-primary/50 hover:border-primary bg-primary/5 hover:bg-primary/10 text-primary font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-[0.99]"
+                                >
+                                    <span class="material-symbols-outlined text-[18px]">add_circle</span>
+                                    <span>Ajukan / Tambah Perizinan</span>
+                                </button>
                             </td>
                         </tr>
                     </tbody>
@@ -446,370 +717,7 @@ function getStatusBadge(status) {
         </div>
 
         <!-- ======================================================= -->
-        <!-- MODAL 1: AJUKAN / TAMBAH PERIZINAN                      -->
-        <!-- ======================================================= -->
-        <Transition
-            enter-active-class="transition duration-200 ease-out"
-            enter-from-class="opacity-0"
-            enter-to-class="opacity-100"
-            leave-active-class="transition duration-150 ease-in"
-            leave-from-class="opacity-100"
-            leave-to-class="opacity-0"
-        >
-            <div
-                v-if="showCreateModal"
-                class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overflow-y-auto"
-                @click.self="closeCreateModal"
-            >
-                <div class="bg-white rounded-2xl border border-outline-variant/60 shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 my-8">
-                    <!-- Modal Header -->
-                    <div class="flex items-center justify-between p-5 border-b border-outline-variant/60 bg-white">
-                        <div class="flex items-center gap-3">
-                            <div class="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                                <span class="material-symbols-outlined text-[20px]">add_circle</span>
-                            </div>
-                            <div>
-                                <h3 class="text-sm font-bold text-on-surface">Ajukan Perizinan Pegawai</h3>
-                                <p class="text-xs text-on-surface-variant">{{ employee.nama }}</p>
-                            </div>
-                        </div>
-                        <button
-                            type="button"
-                            @click="closeCreateModal"
-                            class="p-1.5 rounded-lg text-outline hover:text-on-surface hover:bg-surface-variant transition-colors cursor-pointer"
-                        >
-                            <span class="material-symbols-outlined text-[20px]">close</span>
-                        </button>
-                    </div>
-
-                    <!-- Modal Body Form -->
-                    <form @submit.prevent="submitCreate" class="p-5 space-y-4">
-                        <!-- Tanggal & Tanggal Selesai -->
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">
-                                    Tanggal Mulai <span class="text-error">*</span>
-                                </label>
-                                <input
-                                    v-model="formCreate.tanggal"
-                                    type="date"
-                                    required
-                                    class="w-full px-3 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                                />
-                                <span v-if="formCreate.errors.tanggal" class="text-xs text-error mt-0.5 block">{{ formCreate.errors.tanggal }}</span>
-                            </div>
-
-                            <div>
-                                <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">
-                                    Tanggal Selesai (Opsional)
-                                </label>
-                                <input
-                                    v-model="formCreate.tanggal_selesai"
-                                    type="date"
-                                    class="w-full px-3 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                                />
-                                <span v-if="formCreate.errors.tanggal_selesai" class="text-xs text-error mt-0.5 block">{{ formCreate.errors.tanggal_selesai }}</span>
-                            </div>
-                        </div>
-
-                        <!-- Jenis (Format Biasa) -->
-                        <div>
-                            <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">
-                                Jenis Perizinan <span class="text-error">*</span>
-                            </label>
-                            <input
-                                v-model="formCreate.jenis"
-                                type="text"
-                                required
-                                placeholder="Contoh: Izin, Sakit, Cuti, Dinas Luar, dll."
-                                class="w-full px-3.5 py-2.5 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-outline"
-                            />
-                            <span v-if="formCreate.errors.jenis" class="text-xs text-error mt-0.5 block">{{ formCreate.errors.jenis }}</span>
-                        </div>
-
-                        <!-- Detail (Format Biasa) -->
-                        <div>
-                            <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">
-                                Detail Perizinan
-                            </label>
-                            <input
-                                v-model="formCreate.detail"
-                                type="text"
-                                placeholder="Contoh: Keperluan keluarga, rawat inap, pelatihan kurikulum, dll."
-                                class="w-full px-3.5 py-2.5 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-outline"
-                            />
-                            <span v-if="formCreate.errors.detail" class="text-xs text-error mt-0.5 block">{{ formCreate.errors.detail }}</span>
-                        </div>
-
-                        <!-- Keterangan -->
-                        <div>
-                            <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">
-                                Keterangan / Alasan
-                            </label>
-                            <textarea
-                                v-model="formCreate.keterangan"
-                                rows="3"
-                                placeholder="Tuliskan keterangan detail atau rincian perizinan..."
-                                class="w-full px-3.5 py-2.5 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-outline resize-none"
-                            ></textarea>
-                            <span v-if="formCreate.errors.keterangan" class="text-xs text-error mt-0.5 block">{{ formCreate.errors.keterangan }}</span>
-                        </div>
-
-                        <!-- Lampiran -->
-                        <div>
-                            <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">
-                                Berkas Lampiran (Opsional)
-                            </label>
-                            <input
-                                type="file"
-                                @change="handleCreateFileChange"
-                                accept=".pdf,.jpg,.jpeg,.png,.webp"
-                                class="w-full text-xs text-on-surface-variant file:mr-3 file:py-2 file:px-3.5 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 file:cursor-pointer cursor-pointer border border-outline-variant/60 rounded-xl p-1 bg-white"
-                            />
-                            <p class="text-[11px] text-on-surface-variant mt-1">Format: PDF, JPG, PNG, WEBP (Maksimal 10MB)</p>
-                            <span v-if="formCreate.errors.lampiran" class="text-xs text-error mt-0.5 block">{{ formCreate.errors.lampiran }}</span>
-                        </div>
-
-                        <!-- Status (Hanya untuk Admin / Pimpinan jika bukan Guru) -->
-                        <div v-if="!isTeacher">
-                            <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">
-                                Status Awal
-                            </label>
-                            <select
-                                v-model="formCreate.status"
-                                class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary cursor-pointer"
-                            >
-                                <option value="diajukan">Diajukan</option>
-                                <option value="disetujui">Disetujui</option>
-                                <option value="ditolak">Ditolak</option>
-                            </select>
-                        </div>
-
-                        <!-- Catatan Opsional -->
-                        <div>
-                            <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">
-                                Catatan Tambahan (Opsional)
-                            </label>
-                            <input
-                                v-model="formCreate.catatan"
-                                type="text"
-                                placeholder="Catatan internal / tindak lanjut..."
-                                class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary placeholder:text-outline"
-                            />
-                        </div>
-
-                        <!-- Action Buttons -->
-                        <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-outline-variant/60">
-                            <button
-                                type="button"
-                                @click="closeCreateModal"
-                                class="px-4 py-2 rounded-xl text-xs font-semibold text-on-surface-variant hover:bg-surface-variant transition-colors cursor-pointer"
-                            >
-                                Batal
-                            </button>
-                            <button
-                                type="submit"
-                                :disabled="formCreate.processing"
-                                class="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary/90 transition-all shadow-sm active:scale-[0.98] disabled:opacity-50 cursor-pointer"
-                            >
-                                <span v-if="formCreate.processing" class="material-symbols-outlined text-[16px] animate-spin">sync</span>
-                                <span v-else class="material-symbols-outlined text-[16px]">save</span>
-                                <span>{{ formCreate.processing ? 'Menyimpan...' : 'Simpan Perizinan' }}</span>
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </Transition>
-
-        <!-- ======================================================= -->
-        <!-- MODAL 2: EDIT PERIZINAN                                 -->
-        <!-- ======================================================= -->
-        <Transition
-            enter-active-class="transition duration-200 ease-out"
-            enter-from-class="opacity-0"
-            enter-to-class="opacity-100"
-            leave-active-class="transition duration-150 ease-in"
-            leave-from-class="opacity-100"
-            leave-to-class="opacity-0"
-        >
-            <div
-                v-if="showEditModal"
-                class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overflow-y-auto"
-                @click.self="closeEditModal"
-            >
-                <div class="bg-white rounded-2xl border border-outline-variant/60 shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 my-8">
-                    <!-- Modal Header -->
-                    <div class="flex items-center justify-between p-5 border-b border-outline-variant/60 bg-white">
-                        <div class="flex items-center gap-3">
-                            <div class="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                                <span class="material-symbols-outlined text-[20px]">edit</span>
-                            </div>
-                            <div>
-                                <h3 class="text-sm font-bold text-on-surface">Edit Data Perizinan</h3>
-                                <p class="text-xs text-on-surface-variant">{{ employee.nama }}</p>
-                            </div>
-                        </div>
-                        <button
-                            type="button"
-                            @click="closeEditModal"
-                            class="p-1.5 rounded-lg text-outline hover:text-on-surface hover:bg-surface-variant transition-colors cursor-pointer"
-                        >
-                            <span class="material-symbols-outlined text-[20px]">close</span>
-                        </button>
-                    </div>
-
-                    <!-- Modal Body Form -->
-                    <form @submit.prevent="submitEdit" class="p-5 space-y-4">
-                        <!-- Tanggal & Tanggal Selesai -->
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">
-                                    Tanggal Mulai <span class="text-error">*</span>
-                                </label>
-                                <input
-                                    v-model="formEdit.tanggal"
-                                    type="date"
-                                    required
-                                    class="w-full px-3 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                                />
-                                <span v-if="formEdit.errors.tanggal" class="text-xs text-error mt-0.5 block">{{ formEdit.errors.tanggal }}</span>
-                            </div>
-
-                            <div>
-                                <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">
-                                    Tanggal Selesai (Opsional)
-                                </label>
-                                <input
-                                    v-model="formEdit.tanggal_selesai"
-                                    type="date"
-                                    class="w-full px-3 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                                />
-                                <span v-if="formEdit.errors.tanggal_selesai" class="text-xs text-error mt-0.5 block">{{ formEdit.errors.tanggal_selesai }}</span>
-                            </div>
-                        </div>
-
-                        <!-- Jenis -->
-                        <div>
-                            <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">
-                                Jenis Perizinan <span class="text-error">*</span>
-                            </label>
-                            <input
-                                v-model="formEdit.jenis"
-                                type="text"
-                                required
-                                placeholder="Contoh: Izin, Sakit, Cuti, Dinas Luar, dll."
-                                class="w-full px-3.5 py-2.5 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary placeholder:text-outline"
-                            />
-                            <span v-if="formEdit.errors.jenis" class="text-xs text-error mt-0.5 block">{{ formEdit.errors.jenis }}</span>
-                        </div>
-
-                        <!-- Detail -->
-                        <div>
-                            <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">
-                                Detail Perizinan
-                            </label>
-                            <input
-                                v-model="formEdit.detail"
-                                type="text"
-                                placeholder="Contoh: Keperluan keluarga, rawat inap, dll."
-                                class="w-full px-3.5 py-2.5 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary placeholder:text-outline"
-                            />
-                            <span v-if="formEdit.errors.detail" class="text-xs text-error mt-0.5 block">{{ formEdit.errors.detail }}</span>
-                        </div>
-
-                        <!-- Keterangan -->
-                        <div>
-                            <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">
-                                Keterangan / Alasan
-                            </label>
-                            <textarea
-                                v-model="formEdit.keterangan"
-                                rows="3"
-                                class="w-full px-3.5 py-2.5 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary placeholder:text-outline resize-none"
-                            ></textarea>
-                            <span v-if="formEdit.errors.keterangan" class="text-xs text-error mt-0.5 block">{{ formEdit.errors.keterangan }}</span>
-                        </div>
-
-                        <!-- Lampiran & File Terpasang -->
-                        <div>
-                            <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">
-                                Berkas Lampiran
-                            </label>
-
-                            <div v-if="formEdit.current_lampiran_nama" class="mb-2 p-2.5 rounded-xl bg-slate-50 border border-outline-variant/40 flex items-center justify-between">
-                                <div class="flex items-center gap-2 truncate">
-                                    <span class="material-symbols-outlined text-primary text-[18px]">attach_file</span>
-                                    <span class="text-xs font-semibold text-on-surface truncate">{{ formEdit.current_lampiran_nama }}</span>
-                                </div>
-                                <span class="text-[10px] text-on-surface-variant px-2 py-0.5 rounded bg-white border border-outline-variant/40">Tersimpan</span>
-                            </div>
-
-                            <input
-                                type="file"
-                                @change="handleEditFileChange"
-                                accept=".pdf,.jpg,.jpeg,.png,.webp"
-                                class="w-full text-xs text-on-surface-variant file:mr-3 file:py-2 file:px-3.5 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 file:cursor-pointer cursor-pointer border border-outline-variant/60 rounded-xl p-1 bg-white"
-                            />
-                            <p class="text-[11px] text-on-surface-variant mt-1">Pilih berkas baru jika ingin mengganti lampiran saat ini.</p>
-                            <span v-if="formEdit.errors.lampiran" class="text-xs text-error mt-0.5 block">{{ formEdit.errors.lampiran }}</span>
-                        </div>
-
-                        <!-- Status -->
-                        <div>
-                            <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">
-                                Status Perizinan
-                            </label>
-                            <select
-                                v-model="formEdit.status"
-                                :disabled="isTeacher"
-                                class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary cursor-pointer disabled:bg-slate-100 disabled:cursor-not-allowed"
-                            >
-                                <option value="diajukan">Diajukan</option>
-                                <option value="disetujui">Disetujui</option>
-                                <option value="ditolak">Ditolak</option>
-                            </select>
-                        </div>
-
-                        <!-- Catatan -->
-                        <div>
-                            <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">
-                                Catatan
-                            </label>
-                            <textarea
-                                v-model="formEdit.catatan"
-                                rows="2"
-                                placeholder="Catatan persetujuan / catatan verifikasi..."
-                                class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary placeholder:text-outline resize-none"
-                            ></textarea>
-                        </div>
-
-                        <!-- Action Buttons -->
-                        <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-outline-variant/60">
-                            <button
-                                type="button"
-                                @click="closeEditModal"
-                                class="px-4 py-2 rounded-xl text-xs font-semibold text-on-surface-variant hover:bg-surface-variant transition-colors cursor-pointer"
-                            >
-                                Batal
-                            </button>
-                            <button
-                                type="submit"
-                                :disabled="formEdit.processing"
-                                class="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary/90 transition-all shadow-sm active:scale-[0.98] disabled:opacity-50 cursor-pointer"
-                            >
-                                <span v-if="formEdit.processing" class="material-symbols-outlined text-[16px] animate-spin">sync</span>
-                                <span v-else class="material-symbols-outlined text-[16px]">save</span>
-                                <span>{{ formEdit.processing ? 'Menyimpan...' : 'Perbarui Perizinan' }}</span>
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </Transition>
-
-        <!-- ======================================================= -->
-        <!-- MODAL 3: CATATAN & STATUS PERIZINAN                     -->
+        <!-- MODAL CATATAN & STATUS PERIZINAN                        -->
         <!-- ======================================================= -->
         <Transition
             enter-active-class="transition duration-200 ease-out"
@@ -825,7 +733,6 @@ function getStatusBadge(status) {
                 @click.self="closeNoteModal"
             >
                 <div class="bg-white rounded-2xl border border-outline-variant/60 shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                    <!-- Modal Header -->
                     <div class="flex items-center justify-between p-5 border-b border-outline-variant/60 bg-white">
                         <div class="flex items-center gap-3">
                             <div class="w-9 h-9 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center">
@@ -847,9 +754,7 @@ function getStatusBadge(status) {
                         </button>
                     </div>
 
-                    <!-- Modal Body Form -->
                     <form @submit.prevent="submitNote" class="p-5 space-y-4">
-                        <!-- Status Pilihan Cepat -->
                         <div v-if="!isTeacher">
                             <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">
                                 Status Perizinan
@@ -899,21 +804,19 @@ function getStatusBadge(status) {
                             </div>
                         </div>
 
-                        <!-- Catatan Textarea -->
                         <div>
                             <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">
-                                Isi Catatan / Alasan / Tindak Lanjut
+                                Isi Catatan / Tindak Lanjut
                             </label>
                             <textarea
                                 v-model="formNote.catatan"
                                 rows="4"
-                                placeholder="Contoh: Disetujui oleh Kepala Sekolah, atau alasan jika izin ditolak..."
+                                placeholder="Tuliskan catatan verifikasi, persetujuan, atau alasan penolakan..."
                                 class="w-full px-3.5 py-2.5 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary placeholder:text-outline resize-none leading-relaxed"
                             ></textarea>
                             <span v-if="formNote.errors.catatan" class="text-xs text-error mt-0.5 block">{{ formNote.errors.catatan }}</span>
                         </div>
 
-                        <!-- Action Buttons -->
                         <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-outline-variant/60">
                             <button
                                 type="button"
@@ -938,7 +841,7 @@ function getStatusBadge(status) {
         </Transition>
 
         <!-- ======================================================= -->
-        <!-- MODAL 4: KONFIRMASI HAPUS PERIZINAN                     -->
+        <!-- MODAL KONFIRMASI HAPUS PERIZINAN                        -->
         <!-- ======================================================= -->
         <Transition
             enter-active-class="transition duration-200 ease-out"
@@ -960,7 +863,7 @@ function getStatusBadge(status) {
 
                     <h3 class="text-base font-bold text-on-surface mb-1">Hapus Data Perizinan?</h3>
                     <p class="text-xs text-on-surface-variant mb-5">
-                        Apakah Anda yakin ingin menghapus data perizinan <strong>{{ permitToDelete.jenis }}</strong> ({{ permitToDelete.formatted_tanggal || permitToDelete.tanggal }})? Tindakan ini tidak dapat dibatalkan.
+                        Apakah Anda yakin ingin menghapus perizinan <strong>{{ permitToDelete.jenis }}</strong> ({{ permitToDelete.formatted_tanggal || permitToDelete.tanggal }})?
                     </p>
 
                     <div class="flex items-center justify-center gap-3">
@@ -987,7 +890,7 @@ function getStatusBadge(status) {
         </Transition>
 
         <!-- ======================================================= -->
-        <!-- MODAL 5: PREVIEW LAMPIRAN DOKUMEN                       -->
+        <!-- MODAL PREVIEW LAMPIRAN DOKUMEN                          -->
         <!-- ======================================================= -->
         <Transition
             enter-active-class="transition duration-200 ease-out"
@@ -1003,7 +906,6 @@ function getStatusBadge(status) {
                 @click.self="closePreviewModal"
             >
                 <div class="bg-white rounded-2xl border border-outline-variant/60 shadow-2xl w-full max-w-4xl h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                    <!-- Modal Header -->
                     <div class="flex items-center justify-between p-4 border-b border-outline-variant/60 bg-white shrink-0">
                         <div class="flex items-center gap-3 truncate mr-2">
                             <div class="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
@@ -1037,7 +939,6 @@ function getStatusBadge(status) {
                         </div>
                     </div>
 
-                    <!-- Modal Body (Preview Iframe / Image) -->
                     <div class="flex-1 bg-surface-container-low/40 p-2 sm:p-4 overflow-auto flex items-center justify-center">
                         <iframe
                             v-if="previewData.isPdf"

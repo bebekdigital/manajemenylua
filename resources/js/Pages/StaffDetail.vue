@@ -69,8 +69,8 @@ const allTabs = [
     { id: 'kepegawaian', label: 'Kepegawaian', icon: 'work' },
     { id: 'penugasan', label: 'Penugasan', icon: 'assignment_ind' },
     { id: 'pendidikan', label: 'Pendidikan', icon: 'school' },
-    { id: 'dokumen', label: 'Dokumen', icon: 'folder_shared' },
     { id: 'perizinan', label: 'Perizinan', icon: 'assignment_turned_in' },
+    { id: 'dokumen', label: 'Dokumen', icon: 'folder_shared' },
 ];
 
 const tabs = computed(() => {
@@ -3668,7 +3668,15 @@ function deleteDocument(doc) {
                     </div>
                 </div>
 
-                                <!-- TAB 7: DOKUMEN -->
+                <!-- TAB 7: PERIZINAN -->
+                <StaffPermitsTab
+                    v-if="activeTab === 'perizinan'"
+                    :employee="employee"
+                    :is-teacher="isTeacher"
+                    :can-edit="canEdit"
+                />
+
+                <!-- TAB 8: DOKUMEN -->
                 <div v-if="activeTab === 'dokumen'" class="space-y-8">
                     <!-- 1. TABEL DOKUMEN PRIBADI -->
                     <div class="space-y-3">
@@ -4301,14 +4309,6 @@ function deleteDocument(doc) {
                         </div>
                     </div>
                 </div>
-
-                <!-- TAB 8: PERIZINAN -->
-                <StaffPermitsTab
-                    v-if="activeTab === 'perizinan'"
-                    :employee="employee"
-                    :is-teacher="isTeacher"
-                    :can-edit="canEdit"
-                />
 
             </div>
         </div>
