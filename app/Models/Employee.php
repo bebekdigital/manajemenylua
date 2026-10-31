@@ -166,4 +166,66 @@ class Employee extends Model
     {
         return $this->hasMany(EmployeePermit::class);
     }
+
+    /**
+     * Dapatkan informasi parent jabatan (atasan langsung) dari pegawai ini berdasarkan
+     * hierarki diagram susunan organisasi (DepartmentPosition).
+     *
+     * @return array{
+     *     position_name: ?string,
+     *     unit_name: ?string,
+     *     parent_position: ?DepartmentPosition,
+     *     parent_position_name: ?string,
+     *     parent_department_name: ?string
+     * }
+     */
+    public function getDirectSupervisorPosition(): array
+    {
+        $currentPos = $this->currentPosition ?? $this->positions()->orderByDesc('tmt_jabatan')->first();
+        $posName = trim((string) ($currentPos?->jabatan ?? ''));
+        $unitName = trim((string) ($currentPos?->unit_kerja ?? ''));
+
+        if (empty($posName)) {
+            return [
+                'position_name' => null,
+                'unit_name' => $unitName ?: null,
+                'parent_position' => null,
+                'parent_position_name' => null,
+                'parent_department_name' => null,
+            ];
+        }
+
+        $deptPos = null;
+        if (! empty($unitName)) {
+            $dept = Department::where('name', $unitName)
+                ->orWhere('name', 'like', "%{$unitName}%")
+                ->first();
+
+            if ($dept) {
+                $deptPos = DepartmentPosition::where('department_id', $dept->id)
+                    ->where('name', $posName)
+                    ->first();
+
+                if (! $deptPos) {
+                    $deptPos = DepartmentPosition::where('department_id', $dept->id)
+                        ->where('name', 'like', "%{$posName}%")
+                        ->first();
+                }
+            }
+        }
+
+        if (! $deptPos) {
+            $deptPos = DepartmentPosition::where('name', $posName)->first();
+        }
+
+        $parent = $deptPos?->parent;
+
+        return [
+            'position_name' => $posName,
+            'unit_name' => $unitName ?: null,
+            'parent_position' => $parent,
+            'parent_position_name' => $parent?->name,
+            'parent_department_name' => $parent?->department?->name,
+        ];
+    }
 }

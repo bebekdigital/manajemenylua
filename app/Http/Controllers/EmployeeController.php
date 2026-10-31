@@ -104,7 +104,9 @@ class EmployeeController extends Controller
 
         if ($user?->isTeacher()) {
             $myEmployee = $user->employeeProfile();
-            if (! $myEmployee || (string) $myEmployee->id !== (string) $id) {
+            $targetEmployee = Employee::find($id);
+            $isSupervisor = $targetEmployee && $user->canApprovePermitFor($targetEmployee);
+            if (! $isSupervisor && (! $myEmployee || (string) $myEmployee->id !== (string) $id)) {
                 abort(403, 'Akses ditolak: Sebagai Guru, Anda hanya dapat melihat data profil pegawai atas nama Anda sendiri.');
             }
         }
@@ -349,6 +351,9 @@ class EmployeeController extends Controller
             })
             ->toArray();
 
+        $supervisorInfo = $employee->getDirectSupervisorPosition();
+        $canApprovePermit = $user ? $user->canApprovePermitFor($employee) : false;
+
         return Inertia::render('StaffDetail', [
             'employee' => $employeeData,
             'allEmployees' => $allAccessibleEmployees,
@@ -357,6 +362,9 @@ class EmployeeController extends Controller
                 'can_delete' => RolePermission::canAccess($user, 'employee_detail_history', 'delete'),
                 'can_view_kepegawaian' => RolePermission::canAccess($user, 'employee_kepegawaian', 'view'),
                 'can_update_kepegawaian' => RolePermission::canAccess($user, 'employee_kepegawaian', 'update'),
+                'can_approve_permit' => $canApprovePermit,
+                'permit_supervisor_position' => $supervisorInfo['parent_position_name'],
+                'permit_supervisor_dept' => $supervisorInfo['parent_department_name'],
             ],
             'selectedAcademicYear' => $selectedYear ? [
                 'id' => $selectedYear->id,
@@ -731,10 +739,11 @@ class EmployeeController extends Controller
 
             // Handle Perizinan Pegawai
             if (isset($validated['riwayat_perizinan']) && is_array($validated['riwayat_perizinan'])) {
+                $canApprove = $user?->canApprovePermitFor($employee) ?? false;
                 $keptPermitIds = [];
                 foreach ($validated['riwayat_perizinan'] as $index => $permitItem) {
                     if (! empty($permitItem['jenis'])) {
-                        $status = (! $user?->isTeacher() && ! empty($permitItem['status'])) ? $permitItem['status'] : 'diajukan';
+                        $status = ($canApprove && ! empty($permitItem['status'])) ? $permitItem['status'] : 'diajukan';
 
                         $permitData = [
                             'tanggal' => ! empty($permitItem['tanggal']) ? $permitItem['tanggal'] : now()->toDateString(),
@@ -763,7 +772,7 @@ class EmployeeController extends Controller
                                     continue;
                                 }
 
-                                if ($user?->isTeacher()) {
+                                if (! $canApprove) {
                                     $permitData['status'] = $existingPermit->status;
                                     $permitData['catatan'] = $existingPermit->catatan;
                                 }

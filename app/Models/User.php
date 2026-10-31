@@ -80,4 +80,75 @@ class User extends Authenticatable
             return $e->nama_lengkap_gelar === $this->name || $e->nama === $this->name;
         });
     }
+
+    /**
+     * Tentukan apakah user berwenang menyetujui / memberi approval pada perizinan pegawai.
+     * Aturan: Hanya Atasan Langsung sesuai hierarki diagram susunan organisasi dan Superadmin.
+     */
+    public function canApprovePermitFor(Employee $employee): bool
+    {
+        // 1. Superadmin atau Admin selalu berhak
+        if (in_array(strtolower((string) $this->role), ['superadmin', 'admin'])) {
+            return true;
+        }
+
+        // 2. Pegawai tidak dapat menyetujui izin atas namanya sendiri
+        $myProfile = $this->employeeProfile();
+        if ($myProfile && (int) $myProfile->id === (int) $employee->id) {
+            return false;
+        }
+
+        // 3. Cari atasan langsung pegawai yang mengajukan izin
+        $supervisorInfo = $employee->getDirectSupervisorPosition();
+        $parentPosName = $supervisorInfo['parent_position_name'];
+        $parentDeptName = $supervisorInfo['parent_department_name'];
+
+        if (! $parentPosName) {
+            return false;
+        }
+
+        $parentNameClean = strtolower(trim($parentPosName));
+        $parentDeptClean = strtolower(trim((string) $parentDeptName));
+
+        $userRole = strtolower(trim((string) $this->role));
+        $userJabatan = strtolower(trim((string) $this->jabatan));
+        $userUnit = strtolower(trim((string) $this->unit));
+
+        $isGlobalDept = in_array($parentDeptClean, ['yayasan', 'badan pelaksana', '']);
+
+        $roleMatch = ($userRole === $parentNameClean || str_contains($userRole, $parentNameClean) ||
+                      $userJabatan === $parentNameClean || str_contains($userJabatan, $parentNameClean));
+
+        $unitMatch = $isGlobalDept || (
+            $userUnit === $parentDeptClean ||
+            str_contains($userUnit, $parentDeptClean) ||
+            str_contains($parentDeptClean, $userUnit)
+        );
+
+        if ($roleMatch && $unitMatch) {
+            return true;
+        }
+
+        // 4. Periksa juga riwayat posisi di profil pegawai milik user jika ada
+        if ($myProfile) {
+            $myPositions = $myProfile->positions;
+            foreach ($myPositions as $pos) {
+                $posTitle = strtolower(trim((string) $pos->jabatan));
+                $posUnit = strtolower(trim((string) $pos->unit_kerja));
+
+                $pMatch = ($posTitle === $parentNameClean || str_contains($posTitle, $parentNameClean));
+                $uMatch = $isGlobalDept || (
+                    $posUnit === $parentDeptClean ||
+                    str_contains($posUnit, $parentDeptClean) ||
+                    str_contains($parentDeptClean, $posUnit)
+                );
+
+                if ($pMatch && $uMatch) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
 }

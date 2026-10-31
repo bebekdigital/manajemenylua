@@ -2,8 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Models\Department;
+use App\Models\DepartmentPosition;
 use App\Models\Employee;
 use App\Models\EmployeePermit;
+use App\Models\EmployeePosition;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -280,5 +283,99 @@ class EmployeePermitTest extends TestCase
             'catatan' => 'Catatan dari guru',
         ]);
         $res5->assertStatus(403);
+    }
+
+    public function test_permit_approval_can_only_be_done_by_direct_supervisor_in_hierarchy_and_superadmin(): void
+    {
+        $dept = Department::create([
+            'name' => 'SMP IT Tahfidzul Quran Ulil Albab Karanganyar',
+            'order' => 1,
+        ]);
+
+        $kepalaPos = DepartmentPosition::create([
+            'department_id' => $dept->id,
+            'name' => 'Kepala Sekolah',
+            'level' => 3,
+        ]);
+
+        $guruPos = DepartmentPosition::create([
+            'department_id' => $dept->id,
+            'parent_id' => $kepalaPos->id,
+            'name' => 'Guru',
+            'level' => 4,
+        ]);
+
+        $guruEmployee = Employee::create([
+            'nama' => 'Guru SMP',
+            'nik' => '3301010101010099',
+        ]);
+
+        EmployeePosition::create([
+            'employee_id' => $guruEmployee->id,
+            'unit_kerja' => 'SMP IT Tahfidzul Quran Ulil Albab Karanganyar',
+            'jabatan' => 'Guru',
+            'tmt_jabatan' => '2023-01-01',
+        ]);
+
+        $permit = EmployeePermit::create([
+            'employee_id' => $guruEmployee->id,
+            'tanggal' => '2026-10-31',
+            'jenis' => 'Sakit',
+            'status' => 'diajukan',
+        ]);
+
+        $superadmin = User::factory()->create(['role' => 'superadmin']);
+        $kepalaSekolah = User::factory()->create([
+            'name' => 'Kepala Sekolah SMP',
+            'role' => 'Kepala Sekolah',
+            'unit' => 'SMP IT Tahfidzul Quran Ulil Albab Karanganyar',
+            'jabatan' => 'Kepala Sekolah',
+        ]);
+        $kepalaLain = User::factory()->create([
+            'name' => 'Kepala Sekolah SD',
+            'role' => 'Kepala Sekolah',
+            'unit' => 'SDIT Ulil Albab',
+            'jabatan' => 'Kepala Sekolah',
+        ]);
+        $guruLain = User::factory()->create([
+            'role' => 'Guru',
+            'name' => 'Guru Lain',
+        ]);
+
+        // 1. Guru lain tidak boleh approve
+        $this->actingAs($guruLain)
+            ->patch("/staff/{$guruEmployee->id}/permits/{$permit->id}/note", [
+                'status' => 'disetujui',
+                'catatan' => 'Coba approve',
+            ])->assertStatus(403);
+
+        // 2. Kepala sekolah dari unit lain (SD) tidak boleh approve
+        $this->actingAs($kepalaLain)
+            ->patch("/staff/{$guruEmployee->id}/permits/{$permit->id}/note", [
+                'status' => 'disetujui',
+                'catatan' => 'Coba approve unit lain',
+            ])->assertStatus(403);
+
+        // 3. Kepala Sekolah SMP (Atasan Langsung) BERHASIL approve
+        $this->actingAs($kepalaSekolah)
+            ->patch("/staff/{$guruEmployee->id}/permits/{$permit->id}/note", [
+                'status' => 'disetujui',
+                'catatan' => 'Disetujui Kepala Sekolah SMP',
+            ])->assertRedirect();
+
+        $permit->refresh();
+        $this->assertEquals('disetujui', $permit->status);
+        $this->assertEquals('Disetujui Kepala Sekolah SMP', $permit->catatan);
+
+        // 4. Superadmin BERHASIL mengubah status / approve
+        $this->actingAs($superadmin)
+            ->patch("/staff/{$guruEmployee->id}/permits/{$permit->id}/note", [
+                'status' => 'ditolak',
+                'catatan' => 'Ditolak Superadmin karena berkas belum lengkap',
+            ])->assertRedirect();
+
+        $permit->refresh();
+        $this->assertEquals('ditolak', $permit->status);
+        $this->assertEquals('Ditolak Superadmin karena berkas belum lengkap', $permit->catatan);
     }
 }

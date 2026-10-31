@@ -129,8 +129,8 @@ class EmployeePermitController extends Controller
             $updateData['catatan'] = $validated['catatan'];
         }
 
-        // Hanya non-guru atau admin yang berhak mengubah status, atau jika guru maka status tetap kecuali belum diset
-        if (! $user?->isTeacher() && isset($validated['status'])) {
+        // Hanya atasan langsung sesuai hierarki jabatan atau superadmin yang berhak mengubah status
+        if (isset($validated['status']) && $user?->canApprovePermitFor($employee)) {
             $updateData['status'] = $validated['status'];
         }
 
@@ -160,8 +160,8 @@ class EmployeePermitController extends Controller
         $permit = $employee->permits()->findOrFail($permitId);
         $user = auth()->user();
 
-        if ($user?->isTeacher()) {
-            abort(403, 'Akses ditolak: Guru tidak diizinkan mengubah catatan perizinan.');
+        if (! $user?->canApprovePermitFor($employee)) {
+            abort(403, 'Akses ditolak: Persetujuan dan pengubahan catatan perizinan hanya dapat dilakukan oleh Atasan Langsung sesuai hierarki jabatan atau Superadmin.');
         }
 
         $validated = $request->validate([
@@ -174,7 +174,7 @@ class EmployeePermitController extends Controller
             'updated_by' => $user?->id,
         ];
 
-        if (! $user?->isTeacher() && isset($validated['status'])) {
+        if (isset($validated['status'])) {
             $updateData['status'] = $validated['status'];
         }
 
@@ -253,6 +253,13 @@ class EmployeePermitController extends Controller
         $user = auth()->user();
         if (! $user) {
             abort(401);
+        }
+
+        $employee = Employee::findOrFail($employeeId);
+
+        // Atasan langsung sesuai hierarki diagram jabatan atau superadmin diizinkan mengakses perizinan bawahannya
+        if ($user->canApprovePermitFor($employee)) {
+            return;
         }
 
         if ($user->isTeacher()) {

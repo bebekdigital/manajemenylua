@@ -55,6 +55,7 @@ const isEditing = ref(false);
 const canEdit = computed(() => props.permissions?.can_update ?? true);
 const canViewKepegawaian = computed(() => props.permissions?.can_view_kepegawaian ?? true);
 const canUpdateKepegawaian = computed(() => props.permissions?.can_update_kepegawaian ?? true);
+const canApprovePermit = computed(() => props.permissions?.can_approve_permit ?? false);
 const isEditingKepegawaian = computed(() => isEditing.value && canUpdateKepegawaian.value);
 const dismissedFlash = ref(false);
 
@@ -3793,6 +3794,10 @@ function deleteDocument(doc) {
                                 <p v-if="isEditing" class="text-xs text-on-surface-variant mt-0.5">
                                     Edit data langsung di baris tabel atau klik tombol di baris paling bawah untuk menambah riwayat perizinan baru
                                 </p>
+                                <p v-else-if="permissions?.permit_supervisor_position" class="text-xs text-on-surface-variant mt-0.5 flex items-center gap-1.5">
+                                    <span class="material-symbols-outlined text-[15px] text-primary">account_tree</span>
+                                    <span>Approval: <strong class="text-primary">{{ permissions.permit_supervisor_position }}</strong> ({{ permissions.permit_supervisor_dept || 'Unit' }}) &amp; Superadmin</span>
+                                </p>
                             </div>
                             <span class="text-xs text-outline font-medium">
                                 {{ (isEditing ? form.riwayat_perizinan?.length : employee.perizinan?.length) || 0 }} Perizinan
@@ -4924,8 +4929,8 @@ function deleteDocument(doc) {
                             </div>
                         </div>
 
-                        <!-- Update Status jika bukan guru -->
-                        <div v-if="!isTeacher" class="space-y-1.5">
+                        <!-- Update Status jika berwenang approval (Atasan Langsung atau Superadmin) -->
+                        <div v-if="canApprovePermit" class="space-y-1.5">
                             <label class="block text-xs font-bold text-on-surface">Status Pengajuan</label>
                             <select
                                 v-model="permitNoteForm.status"
@@ -4940,10 +4945,10 @@ function deleteDocument(doc) {
                         <!-- Catatan / Feedback -->
                         <div class="space-y-1.5">
                             <label class="block text-xs font-bold text-on-surface">
-                                {{ isTeacher ? 'Catatan dari Pihak Sekolah / SDM' : 'Catatan / Alasan Persetujuan / Penolakan' }}
+                                {{ canApprovePermit ? 'Catatan / Alasan Persetujuan / Penolakan' : 'Catatan dari Pihak Sekolah / Atasan Langsung' }}
                             </label>
                             <textarea
-                                v-if="!isTeacher"
+                                v-if="canApprovePermit"
                                 v-model="permitNoteForm.catatan"
                                 rows="4"
                                 placeholder="Tuliskan catatan, alasan, atau keterangan tambahan..."
@@ -4953,11 +4958,11 @@ function deleteDocument(doc) {
                                 <div
                                     class="p-3.5 bg-slate-50 rounded-xl border border-outline-variant/40 text-xs sm:text-sm text-on-surface min-h-[80px] whitespace-pre-wrap leading-relaxed"
                                 >
-                                    {{ permitNoteForm.catatan || 'Belum ada catatan yang diberikan oleh pihak sekolah / SDM untuk perizinan ini.' }}
+                                    {{ permitNoteForm.catatan || 'Belum ada catatan yang diberikan oleh pihak sekolah / atasan untuk perizinan ini.' }}
                                 </div>
                                 <div v-if="permitNoteForm.updater_name" class="flex items-center gap-1.5 text-[11px] text-on-surface-variant bg-primary/5 px-2.5 py-1.5 rounded-lg border border-primary/10">
                                     <span class="material-symbols-outlined text-[14px] text-primary">verified_user</span>
-                                    <span>Diberikan oleh: <strong class="text-on-surface">{{ permitNoteForm.updater_name }}</strong> ({{ permitNoteForm.updater_role || 'Petugas SDM' }})</span>
+                                    <span>Diberikan oleh: <strong class="text-on-surface">{{ permitNoteForm.updater_name }}</strong> ({{ permitNoteForm.updater_role || 'Pemberi Approval' }})</span>
                                 </div>
                             </div>
                         </div>
@@ -4968,10 +4973,10 @@ function deleteDocument(doc) {
                                 @click="closePermitNoteModal"
                                 class="px-4 py-2 rounded-xl border border-outline-variant/60 text-xs sm:text-sm font-semibold text-on-surface hover:bg-slate-50 transition-colors cursor-pointer"
                             >
-                                {{ isTeacher ? 'Tutup' : 'Batal' }}
+                                {{ canApprovePermit ? 'Batal' : 'Tutup' }}
                             </button>
                             <button
-                                v-if="!isTeacher"
+                                v-if="canApprovePermit"
                                 type="submit"
                                 :disabled="permitNoteForm.processing"
                                 class="px-5 py-2 rounded-xl bg-primary text-white text-xs sm:text-sm font-bold hover:bg-primary/90 transition-all shadow-2xs active:scale-95 disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
