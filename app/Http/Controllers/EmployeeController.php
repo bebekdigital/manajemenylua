@@ -13,6 +13,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -504,6 +505,18 @@ class EmployeeController extends Controller
             'riwayat_pelatihan.*.instansi_penyelenggara' => ['nullable', 'string', 'max:150'],
             'riwayat_pelatihan.*.tahun' => ['nullable', 'string', 'max:20'],
             'riwayat_pelatihan.*.pembiayaan' => ['nullable', 'string', 'max:100'],
+
+            // Riwayat Perizinan array
+            'riwayat_perizinan' => ['nullable', 'array'],
+            'riwayat_perizinan.*.id' => ['nullable'],
+            'riwayat_perizinan.*.tanggal' => ['nullable', 'date'],
+            'riwayat_perizinan.*.tanggal_selesai' => ['nullable', 'date'],
+            'riwayat_perizinan.*.jenis' => ['nullable', 'string', 'max:100'],
+            'riwayat_perizinan.*.detail' => ['nullable', 'string', 'max:255'],
+            'riwayat_perizinan.*.keterangan' => ['nullable', 'string'],
+            'riwayat_perizinan.*.status' => ['nullable', 'string', 'in:diajukan,disetujui,ditolak'],
+            'riwayat_perizinan.*.catatan' => ['nullable', 'string'],
+            'riwayat_perizinan.*.lampiran' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:10240'],
         ], [
             'nama.required' => 'Nama lengkap wajib diisi.',
             'nik.unique' => 'NIK sudah digunakan oleh pegawai lain.',
@@ -527,7 +540,7 @@ class EmployeeController extends Controller
             );
         }
 
-        DB::transaction(function () use ($employee, $validated) {
+        DB::transaction(function () use ($employee, $validated, $user, $request) {
             $employee->update(collect($validated)->only([
                 'nama', 'gelar_depan', 'gelar_belakang', 'nipy', 'nik', 'jk', 'tempat_lahir', 'tanggal_lahir', 'no_wa', 'email', 'skill',
                 'jalan_domisili', 'rt_rw_domisili', 'dusun_domisili', 'desa_domisili', 'kecamatan_domisili', 'kab_domisili', 'provinsi_domisili',
@@ -711,6 +724,62 @@ class EmployeeController extends Controller
                 foreach ($trainingsToDelete as $delTraining) {
                     $employee->documents()->where('record_type', 'training')->where('record_id', $delTraining->id)->delete();
                     $delTraining->delete();
+                }
+            }
+
+            // Handle Perizinan Pegawai
+            if (isset($validated['riwayat_perizinan']) && is_array($validated['riwayat_perizinan'])) {
+                $keptPermitIds = [];
+                foreach ($validated['riwayat_perizinan'] as $index => $permitItem) {
+                    if (! empty($permitItem['jenis'])) {
+                        $status = (! $user?->isTeacher() && ! empty($permitItem['status'])) ? $permitItem['status'] : 'diajukan';
+
+                        $permitData = [
+                            'tanggal' => ! empty($permitItem['tanggal']) ? $permitItem['tanggal'] : now()->toDateString(),
+                            'tanggal_selesai' => ! empty($permitItem['tanggal_selesai']) ? $permitItem['tanggal_selesai'] : null,
+                            'jenis' => $permitItem['jenis'],
+                            'detail' => $permitItem['detail'] ?? null,
+                            'keterangan' => $permitItem['keterangan'] ?? null,
+                            'status' => $status,
+                            'catatan' => $permitItem['catatan'] ?? null,
+                            'updated_by' => $user?->id,
+                        ];
+
+                        if ($request->hasFile("riwayat_perizinan.{$index}.lampiran")) {
+                            $file = $request->file("riwayat_perizinan.{$index}.lampiran");
+                            $permitData['lampiran_nama'] = $file->getClientOriginalName();
+                            $permitData['lampiran_path'] = $file->store("employee_permits/{$employee->id}", 'local');
+                        }
+
+                        if (! empty($permitItem['id'])) {
+                            $existingPermit = $employee->permits()->find($permitItem['id']);
+                            if ($existingPermit) {
+                                if ($user?->isTeacher()) {
+                                    $permitData['status'] = $existingPermit->status;
+                                    $permitData['catatan'] = $existingPermit->catatan;
+                                }
+                                if (! empty($permitData['lampiran_path']) && $existingPermit->lampiran_path && $existingPermit->lampiran_path !== $permitData['lampiran_path'] && Storage::disk('local')->exists($existingPermit->lampiran_path)) {
+                                    Storage::disk('local')->delete($existingPermit->lampiran_path);
+                                }
+                                $existingPermit->update($permitData);
+                                $keptPermitIds[] = $existingPermit->id;
+
+                                continue;
+                            }
+                        }
+
+                        $permitData['created_by'] = $user?->id;
+                        $newPermit = $employee->permits()->create($permitData);
+                        $keptPermitIds[] = $newPermit->id;
+                    }
+                }
+
+                $permitsToDelete = $employee->permits()->whereNotIn('id', $keptPermitIds)->get();
+                foreach ($permitsToDelete as $delPermit) {
+                    if ($delPermit->lampiran_path && Storage::disk('local')->exists($delPermit->lampiran_path)) {
+                        Storage::disk('local')->delete($delPermit->lampiran_path);
+                    }
+                    $delPermit->delete();
                 }
             }
         });

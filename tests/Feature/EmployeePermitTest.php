@@ -146,4 +146,79 @@ class EmployeePermitTest extends TestCase
         $this->assertNull(EmployeePermit::find($permit->id));
         Storage::disk('local')->assertMissing($storedPath);
     }
+
+    public function test_permits_can_be_saved_and_synced_via_main_staff_update(): void
+    {
+        Storage::fake('local');
+
+        $user = User::factory()->create(['role' => 'admin']);
+        $employee = Employee::create([
+            'nama' => 'Budi Santoso',
+            'nik' => '3301010101010006',
+        ]);
+
+        $existingPermit = EmployeePermit::create([
+            'employee_id' => $employee->id,
+            'tanggal' => '2026-10-25',
+            'jenis' => 'Izin',
+            'detail' => 'Acara Keluarga',
+            'status' => 'diajukan',
+        ]);
+
+        $file = UploadedFile::fake()->create('surat_tugas.pdf', 200, 'application/pdf');
+
+        $response = $this->actingAs($user)->put("/staff/{$employee->id}", [
+            'nama' => 'Budi Santoso',
+            'nik' => '3301010101010006',
+            'riwayat_perizinan' => [
+                [
+                    'id' => $existingPermit->id,
+                    'tanggal' => '2026-10-25',
+                    'tanggal_selesai' => '2026-10-26',
+                    'jenis' => 'Izin Resmi',
+                    'detail' => 'Acara Keluarga Besar',
+                    'status' => 'disetujui',
+                ],
+                [
+                    'id' => null,
+                    'tanggal' => '2026-10-31',
+                    'tanggal_selesai' => null,
+                    'jenis' => 'Dinas',
+                    'detail' => 'Pelatihan MGMP',
+                    'status' => 'diajukan',
+                    'lampiran' => $file,
+                ],
+            ],
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        $this->assertEquals(2, $employee->permits()->count());
+
+        $existingPermit->refresh();
+        $this->assertEquals('Izin Resmi', $existingPermit->jenis);
+        $this->assertEquals('disetujui', $existingPermit->status);
+
+        $newPermit = $employee->permits()->where('jenis', 'Dinas')->first();
+        $this->assertNotNull($newPermit);
+        $this->assertEquals('Pelatihan MGMP', $newPermit->detail);
+        $this->assertNotNull($newPermit->lampiran_path);
+        Storage::disk('local')->assertExists($newPermit->lampiran_path);
+
+        // Uji penghapusan baris jika tidak lagi dikirim
+        $this->actingAs($user)->put("/staff/{$employee->id}", [
+            'nama' => 'Budi Santoso',
+            'nik' => '3301010101010006',
+            'riwayat_perizinan' => [
+                [
+                    'id' => $newPermit->id,
+                    'tanggal' => '2026-10-31',
+                    'jenis' => 'Dinas',
+                ],
+            ],
+        ]);
+        $this->assertEquals(1, $employee->permits()->count());
+        $this->assertNull(EmployeePermit::find($existingPermit->id));
+    }
 }

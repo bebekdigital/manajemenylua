@@ -130,7 +130,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/staff/template', [EmployeeController::class, 'downloadTemplate'])->name('staff.template');
     Route::post('/staff/import', [EmployeeController::class, 'import'])->name('staff.import');
     Route::get('/staff/{id}', [EmployeeController::class, 'show'])->name('staff.show');
-    Route::put('/staff/{id}', [EmployeeController::class, 'update'])->name('staff.update');
+    Route::match(['put', 'post'], '/staff/{id}', [EmployeeController::class, 'update'])->name('staff.update');
 
     // Dokumen Pegawai (Private Storage Opsi A)
     Route::post('/staff/{id}/documents', [EmployeeDocumentController::class, 'store'])->name('staff.documents.store');
