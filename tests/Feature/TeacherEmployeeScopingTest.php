@@ -292,7 +292,7 @@ class TeacherEmployeeScopingTest extends TestCase
         RolePermission::updateOrCreate(
             ['role' => 'Kepala Tata Usaha', 'feature_group' => 'employee_detail_history'],
             [
-                'feature_name' => 'Detail Data Pegawai',
+                'feature_name' => 'Data Pegawai',
                 'can_view' => true,
             ]
         );
@@ -303,5 +303,63 @@ class TeacherEmployeeScopingTest extends TestCase
             $page->where('auth.permissions.can_view_employee', true)
                 ->where('auth.user.can_view_employee', true);
         });
+    }
+
+    public function test_child_kepegawaian_permission_controls_can_view_kepegawaian_and_update(): void
+    {
+        $user = User::factory()->create([
+            'name' => 'Admin Data',
+            'role' => 'Staf Administrasi',
+        ]);
+
+        $employee = Employee::create([
+            'nama' => 'Pegawai Lama',
+            'nipy' => 'ORIGINAL_NIPY',
+            'nik' => '3301010101019999',
+            'status_keaktifan' => 'Aktif',
+        ]);
+
+        // Parent Data Pegawai: view true, update true
+        RolePermission::updateOrCreate(
+            ['role' => 'Staf Administrasi', 'feature_group' => 'employee_detail_history'],
+            [
+                'feature_name' => 'Data Pegawai',
+                'can_view' => true,
+                'can_update' => true,
+            ]
+        );
+
+        // Child Data Kepegawaian: view false, update false
+        RolePermission::updateOrCreate(
+            ['role' => 'Staf Administrasi', 'feature_group' => 'employee_kepegawaian'],
+            [
+                'feature_name' => 'Data Kepegawaian',
+                'can_view' => false,
+                'can_update' => false,
+            ]
+        );
+
+        // View detail page
+        $response = $this->actingAs($user)->get('/staff/'.$employee->id);
+        $response->assertOk();
+        $response->assertInertia(function ($page) {
+            $page->where('permissions.can_update', true)
+                ->where('permissions.can_view_kepegawaian', false)
+                ->where('permissions.can_update_kepegawaian', false);
+        });
+
+        // Try updating NIPY
+        $updateResponse = $this->actingAs($user)->put('/staff/'.$employee->id, [
+            'nama' => 'Nama Baru',
+            'nipy' => 'CHANGED_NIPY',
+            'status_keaktifan' => 'Nonaktif',
+        ]);
+        $updateResponse->assertRedirect('/staff/'.$employee->id);
+
+        $employee->refresh();
+        $this->assertEquals('Nama Baru', $employee->nama);
+        // Kepegawaian fields must be untouched
+        $this->assertEquals('ORIGINAL_NIPY', $employee->nipy);
+        $this->assertEquals('Aktif', $employee->status_keaktifan);
     }
 }

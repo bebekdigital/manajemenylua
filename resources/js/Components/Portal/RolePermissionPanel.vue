@@ -83,6 +83,7 @@ function loadRoleMatrix(role) {
             name: feat.name,
             category: feat.category,
             description: feat.description,
+            parent_group: feat.parent_group || null,
             supported_actions: feat.supported_actions,
             can_view: true,
             can_create: true,
@@ -161,6 +162,7 @@ function onBidangChange(e) {
             name: feat.name,
             category: feat.category,
             description: feat.description,
+            parent_group: feat.parent_group || null,
             supported_actions: feat.supported_actions,
             can_view: false,
             can_create: false,
@@ -236,19 +238,118 @@ function getCategoryMeta(cat) {
     return categoryMeta[cat] || { icon: 'folder', color: 'bg-surface-container-high text-on-surface border-outline-variant/40' };
 }
 
+// Hierarchy & Parent-Child Helpers
+function getChildren(item) {
+    if (!item || !item.group) return [];
+    return currentMatrix.value.filter((m) => m.parent_group === item.group);
+}
+
+function hasChildren(item) {
+    return getChildren(item).length > 0;
+}
+
+function isChild(item) {
+    return Boolean(item && item.parent_group);
+}
+
+function getParent(item) {
+    if (!item || !item.parent_group) return null;
+    return currentMatrix.value.find((m) => m.group === item.parent_group) || null;
+}
+
+/**
+ * Menghitung status checklist sebuah fitur dan aksi:
+ * - 'checked': Tercentang penuh (parent & seluruh child aktif)
+ * - 'indeterminate': Tercentang sebagian (strip [-])
+ * - 'unchecked': Kosong / tidak tercentang sama sekali
+ */
+function getActionState(item, act) {
+    if (!hasChildren(item)) {
+        return item[`can_${act}`] ? 'checked' : 'unchecked';
+    }
+
+    const children = getChildren(item);
+    const checkedChildren = children.filter((c) => Boolean(c[`can_${act}`])).length;
+    const isParentChecked = Boolean(item[`can_${act}`]);
+
+    if (checkedChildren === children.length && isParentChecked) {
+        return 'checked';
+    }
+    if (checkedChildren === 0 && !isParentChecked) {
+        return 'unchecked';
+    }
+    return 'indeterminate';
+}
+
+function getActionTitle(item, act) {
+    const state = getActionState(item, act);
+    if (state === 'checked') return 'Semua tercentang penuh. Klik untuk mengosongkan.';
+    if (state === 'indeterminate') return 'Checklist sebagian (strip). Klik untuk mencentang semua.';
+    return 'Kosong. Klik untuk mencentang semua.';
+}
+
+function toggleParentAction(item, act) {
+    if (isSuperadminActive.value) return;
+
+    const currentState = getActionState(item, act);
+    // Jika penuh -> uncheck; jika strip atau kosong -> check penuh
+    const targetState = currentState !== 'checked';
+
+    item[`can_${act}`] = targetState;
+    const children = getChildren(item);
+    children.forEach((c) => {
+        c[`can_${act}`] = targetState;
+    });
+}
+
+function onChildActionChange(item, act) {
+    if (isSuperadminActive.value) return;
+
+    // Jika child dicentang, pastikan parent juga tercentang
+    if (item[`can_${act}`]) {
+        const parent = getParent(item);
+        if (parent) {
+            parent[`can_${act}`] = true;
+        }
+    }
+}
+
 // Filtered and grouped matrix
 const filteredMatrix = computed(() => {
     return currentMatrix.value.filter((item) => {
         const matchesCategory = selectedCategory.value === 'all' || item.category === selectedCategory.value;
         const q = searchQuery.value.trim().toLowerCase();
-        const matchesSearch =
-            !q ||
+
+        if (!matchesCategory) return false;
+        if (!q) return true;
+
+        const selfMatch =
             item.name.toLowerCase().includes(q) ||
             item.group.toLowerCase().includes(q) ||
-            item.description.toLowerCase().includes(q) ||
-            item.category.toLowerCase().includes(q);
+            (item.description && item.description.toLowerCase().includes(q)) ||
+            (item.category && item.category.toLowerCase().includes(q));
 
-        return matchesCategory && matchesSearch;
+        if (selfMatch) return true;
+
+        if (hasChildren(item)) {
+            const children = getChildren(item);
+            return children.some((c) =>
+                c.name.toLowerCase().includes(q) ||
+                c.group.toLowerCase().includes(q) ||
+                (c.description && c.description.toLowerCase().includes(q))
+            );
+        }
+
+        if (isChild(item)) {
+            const parent = getParent(item);
+            return parent && (
+                parent.name.toLowerCase().includes(q) ||
+                parent.group.toLowerCase().includes(q) ||
+                (parent.description && parent.description.toLowerCase().includes(q))
+            );
+        }
+
+        return false;
     });
 });
 
@@ -269,12 +370,42 @@ const groupedMatrix = computed(() => {
 function toggleRow(item) {
     if (isSuperadminActive.value) return;
 
-    const allChecked = item.supported_actions.every((act) => item[`can_${act}`]);
-    const targetState = !allChecked;
+    if (hasChildren(item)) {
+        const children = getChildren(item);
+        const allParentChecked = item.supported_actions.every((act) => Boolean(item[`can_${act}`]));
+        const allChildrenChecked = children.every((child) =>
+            child.supported_actions.every((act) => Boolean(child[`can_${act}`]))
+        );
+        const allChecked = allParentChecked && allChildrenChecked;
+        const targetState = !allChecked;
 
-    item.supported_actions.forEach((act) => {
-        item[`can_${act}`] = targetState;
-    });
+        item.supported_actions.forEach((act) => {
+            item[`can_${act}`] = targetState;
+        });
+        children.forEach((child) => {
+            child.supported_actions.forEach((act) => {
+                child[`can_${act}`] = targetState;
+            });
+        });
+    } else {
+        const allChecked = item.supported_actions.every((act) => Boolean(item[`can_${act}`]));
+        const targetState = !allChecked;
+
+        item.supported_actions.forEach((act) => {
+            item[`can_${act}`] = targetState;
+        });
+
+        if (isChild(item) && targetState) {
+            const parent = getParent(item);
+            if (parent) {
+                item.supported_actions.forEach((act) => {
+                    if (item[`can_${act}`]) {
+                        parent[`can_${act}`] = true;
+                    }
+                });
+            }
+        }
+    }
 }
 
 // Toggle all in a category
@@ -454,7 +585,7 @@ function savePermissions() {
 
         <!-- Filter & Search Toolbar -->
         <div class="px-6 py-3 bg-surface-container-low/40 border-b border-outline-variant/30 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
-            <div class="flex items-center gap-2">
+            <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 flex-wrap">
                 <span v-if="isSuperadminActive" class="text-on-surface font-medium">
                     Role <strong>Superadmin</strong> memiliki hak akses penuh ke seluruh fitur dan tidak dibatasi oleh matriks perizinan.
                 </span>
@@ -467,6 +598,22 @@ function savePermissions() {
                         Bidang: {{ selectedBidangName }}
                     </span>
                 </span>
+
+                <!-- Tri-State Indicator Legend -->
+                <div v-if="!isSuperadminActive" class="flex items-center gap-2.5 text-[11px] text-on-surface-variant font-medium pt-1 sm:pt-0 sm:border-l sm:border-outline-variant/40 sm:pl-3">
+                    <span class="flex items-center gap-1" title="Semua sub-modul tercentang penuh">
+                        <span class="inline-flex items-center justify-center w-4 h-4 rounded bg-primary text-white text-[10px] font-bold leading-none">✓</span>
+                        Penuh
+                    </span>
+                    <span class="flex items-center gap-1" title="Checklist sebagian: beberapa sub-modul aktif, beberapa tidak">
+                        <span class="inline-flex items-center justify-center w-4 h-4 rounded bg-primary/20 border border-primary text-primary text-[11px] font-black leading-none">−</span>
+                        Sebagian (Strip)
+                    </span>
+                    <span class="flex items-center gap-1" title="Tidak ada yang tercentang">
+                        <span class="inline-flex items-center justify-center w-4 h-4 rounded bg-surface-container-lowest border border-outline-variant text-[10px]"></span>
+                        Kosong
+                    </span>
+                </div>
             </div>
 
             <div class="flex flex-wrap items-center gap-2">
@@ -568,14 +715,27 @@ function savePermissions() {
                             v-for="item in items"
                             :key="item.group"
                             class="hover:bg-surface-container-low/30 transition-colors"
+                            :class="{ 'bg-surface-container-low/20': isChild(item) }"
                         >
                             <!-- Nama Fitur & Deskripsi -->
-                            <td class="border border-outline-variant/60 p-3 pl-5">
-                                <div class="font-bold text-on-surface text-xs sm:text-sm flex items-center gap-2">
-                                    <span>{{ item.name }}</span>
-                                    <code class="text-[10px] text-on-surface-variant font-mono bg-surface-container-high px-1 rounded">{{ item.group }}</code>
+                            <td
+                                class="border border-outline-variant/60 p-3"
+                                :class="isChild(item) ? 'pl-8 sm:pl-10' : 'pl-5'"
+                            >
+                                <div class="flex items-center gap-2">
+                                    <span v-if="isChild(item)" class="material-symbols-outlined text-[16px] text-primary/70 shrink-0">subdirectory_arrow_right</span>
+                                    <div class="font-bold text-on-surface text-xs sm:text-sm flex items-center gap-1.5 flex-wrap">
+                                        <span>{{ item.name }}</span>
+                                        <span v-if="hasChildren(item)" class="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                                            Modul Utama
+                                        </span>
+                                        <span v-else-if="isChild(item)" class="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-surface-container-high text-on-surface-variant border border-outline-variant/40">
+                                            Sub-Modul
+                                        </span>
+                                        <code class="text-[10px] text-on-surface-variant font-mono bg-surface-container-high px-1 rounded">{{ item.group }}</code>
+                                    </div>
                                 </div>
-                                <div class="text-[11px] text-on-surface-variant leading-relaxed mt-0.5">{{ item.description }}</div>
+                                <div class="text-[11px] text-on-surface-variant leading-relaxed mt-0.5" :class="isChild(item) ? 'pl-6' : ''">{{ item.description }}</div>
                             </td>
 
                             <!-- Kategori Badge -->
@@ -585,75 +745,41 @@ function savePermissions() {
                                 </span>
                             </td>
 
-                            <!-- Aksi: View -->
-                            <td class="border border-outline-variant/60 p-3 text-center">
-                                <input
-                                    v-if="item.supported_actions.includes('view')"
-                                    type="checkbox"
-                                    v-model="item.can_view"
-                                    :disabled="isSuperadminActive"
-                                    class="rounded border-outline-variant text-primary focus:ring-primary/20 cursor-pointer disabled:opacity-60 w-4 h-4"
-                                />
-                                <span v-else class="text-outline-variant">-</span>
-                            </td>
+                            <!-- Aksi-Aksi: View, Create, Update, Delete, Export, Import -->
+                            <td
+                                v-for="act in ['view', 'create', 'update', 'delete', 'export', 'import']"
+                                :key="act"
+                                class="border border-outline-variant/60 p-2.5 text-center align-middle"
+                            >
+                                <template v-if="item.supported_actions.includes(act)">
+                                    <!-- Parent Item with Children: Tri-State Indicator Button -->
+                                    <button
+                                        v-if="hasChildren(item)"
+                                        type="button"
+                                        :disabled="isSuperadminActive"
+                                        @click="toggleParentAction(item, act)"
+                                        class="inline-flex items-center justify-center w-5 h-5 rounded border transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed select-none mx-auto"
+                                        :class="{
+                                            'bg-primary border-primary text-white shadow-2xs': getActionState(item, act) === 'checked',
+                                            'bg-primary/20 border-primary text-primary font-bold shadow-2xs': getActionState(item, act) === 'indeterminate',
+                                            'bg-surface-container-lowest border-outline-variant hover:border-primary/60': getActionState(item, act) === 'unchecked'
+                                        }"
+                                        :title="getActionTitle(item, act)"
+                                    >
+                                        <span v-if="getActionState(item, act) === 'checked'" class="material-symbols-outlined text-[15px] leading-none font-bold">check</span>
+                                        <span v-else-if="getActionState(item, act) === 'indeterminate'" class="material-symbols-outlined text-[15px] leading-none font-black">remove</span>
+                                    </button>
 
-                            <!-- Aksi: Create -->
-                            <td class="border border-outline-variant/60 p-3 text-center">
-                                <input
-                                    v-if="item.supported_actions.includes('create')"
-                                    type="checkbox"
-                                    v-model="item.can_create"
-                                    :disabled="isSuperadminActive"
-                                    class="rounded border-outline-variant text-primary focus:ring-primary/20 cursor-pointer disabled:opacity-60 w-4 h-4"
-                                />
-                                <span v-else class="text-outline-variant">-</span>
-                            </td>
-
-                            <!-- Aksi: Update -->
-                            <td class="border border-outline-variant/60 p-3 text-center">
-                                <input
-                                    v-if="item.supported_actions.includes('update')"
-                                    type="checkbox"
-                                    v-model="item.can_update"
-                                    :disabled="isSuperadminActive"
-                                    class="rounded border-outline-variant text-primary focus:ring-primary/20 cursor-pointer disabled:opacity-60 w-4 h-4"
-                                />
-                                <span v-else class="text-outline-variant">-</span>
-                            </td>
-
-                            <!-- Aksi: Delete -->
-                            <td class="border border-outline-variant/60 p-3 text-center">
-                                <input
-                                    v-if="item.supported_actions.includes('delete')"
-                                    type="checkbox"
-                                    v-model="item.can_delete"
-                                    :disabled="isSuperadminActive"
-                                    class="rounded border-outline-variant text-primary focus:ring-primary/20 cursor-pointer disabled:opacity-60 w-4 h-4"
-                                />
-                                <span v-else class="text-outline-variant">-</span>
-                            </td>
-
-                            <!-- Aksi: Export -->
-                            <td class="border border-outline-variant/60 p-3 text-center">
-                                <input
-                                    v-if="item.supported_actions.includes('export')"
-                                    type="checkbox"
-                                    v-model="item.can_export"
-                                    :disabled="isSuperadminActive"
-                                    class="rounded border-outline-variant text-primary focus:ring-primary/20 cursor-pointer disabled:opacity-60 w-4 h-4"
-                                />
-                                <span v-else class="text-outline-variant">-</span>
-                            </td>
-
-                            <!-- Aksi: Import -->
-                            <td class="border border-outline-variant/60 p-3 text-center">
-                                <input
-                                    v-if="item.supported_actions.includes('import')"
-                                    type="checkbox"
-                                    v-model="item.can_import"
-                                    :disabled="isSuperadminActive"
-                                    class="rounded border-outline-variant text-primary focus:ring-primary/20 cursor-pointer disabled:opacity-60 w-4 h-4"
-                                />
+                                    <!-- Leaf / Child Item: Standard Checkbox -->
+                                    <input
+                                        v-else
+                                        type="checkbox"
+                                        v-model="item['can_' + act]"
+                                        @change="onChildActionChange(item, act)"
+                                        :disabled="isSuperadminActive"
+                                        class="rounded border-outline-variant text-primary focus:ring-primary/20 cursor-pointer disabled:opacity-60 w-4 h-4"
+                                    />
+                                </template>
                                 <span v-else class="text-outline-variant">-</span>
                             </td>
 
@@ -663,7 +789,7 @@ function savePermissions() {
                                     type="button"
                                     @click="toggleRow(item)"
                                     class="p-1 rounded-lg hover:bg-surface-container-high text-on-surface-variant hover:text-primary transition-colors cursor-pointer"
-                                    title="Beralih centang semua aksi pada fitur ini"
+                                    :title="hasChildren(item) ? 'Beralih centang semua aksi pada modul utama dan sub-modul ini' : 'Beralih centang semua aksi pada fitur ini'"
                                 >
                                     <span class="material-symbols-outlined text-[16px]">select_all</span>
                                 </button>

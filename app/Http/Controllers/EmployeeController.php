@@ -302,6 +302,8 @@ class EmployeeController extends Controller
             'permissions' => [
                 'can_update' => RolePermission::canAccess($user, 'employee_detail_history', 'update'),
                 'can_delete' => RolePermission::canAccess($user, 'employee_detail_history', 'delete'),
+                'can_view_kepegawaian' => RolePermission::canAccess($user, 'employee_kepegawaian', 'view'),
+                'can_update_kepegawaian' => RolePermission::canAccess($user, 'employee_kepegawaian', 'update'),
             ],
             'selectedAcademicYear' => $selectedYear ? [
                 'id' => $selectedYear->id,
@@ -456,6 +458,24 @@ class EmployeeController extends Controller
             'nama.required' => 'Nama lengkap wajib diisi.',
             'nik.unique' => 'NIK sudah digunakan oleh pegawai lain.',
         ]);
+
+        $canUpdateKepegawaian = RolePermission::canAccess($user, 'employee_kepegawaian', 'update');
+        if (! $canUpdateKepegawaian) {
+            unset(
+                $validated['nipy'],
+                $validated['tmt_pengangkatan'],
+                $validated['tst_pengangkatan'],
+                $validated['keaktifan_dapodik'],
+                $validated['unit_keaktifan_dapodik'],
+                $validated['status_keaktifan'],
+                $validated['keterangan_tidak_aktif'],
+                $validated['jenjang_kepegawaian'],
+                $validated['tmt_kenaikan_jenjang'],
+                $validated['tst_kenaikan_jenjang'],
+                $validated['tst_jenjang'],
+                $validated['riwayat_kepegawaian']
+            );
+        }
 
         DB::transaction(function () use ($employee, $validated) {
             $employee->update(collect($validated)->only([

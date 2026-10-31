@@ -46,12 +46,22 @@ class RolePermission extends Model
     public static function defaultFeatures(): array
     {
         return [
-            // Kategori: Database Pegawai
+            // Kategori: Database Pegawai (Parent: Data Pegawai)
             [
                 'group' => 'employee_detail_history',
-                'name' => 'Detail Data Pegawai',
+                'name' => 'Data Pegawai',
                 'category' => 'Database Pegawai',
-                'description' => 'Melihat, menambah, mengubah, dan menghapus rincian data pegawai (biodata, riwayat penugasan, dan dokumen pegawai).',
+                'description' => 'Akses modul data pegawai (direktori, profil, dan sub-modul terkait).',
+                'parent_group' => null,
+                'supported_actions' => ['view', 'create', 'update', 'delete', 'export', 'import'],
+            ],
+            // Kategori: Database Pegawai (Child: Data Kepegawaian)
+            [
+                'group' => 'employee_kepegawaian',
+                'name' => 'Data Kepegawaian',
+                'category' => 'Database Pegawai',
+                'description' => 'Akses rincian data kepegawaian (NIPY, status keaktifan, TMT/TST, dan riwayat di Tab Kepegawaian).',
+                'parent_group' => 'employee_detail_history',
                 'supported_actions' => ['view', 'create', 'update', 'delete', 'export', 'import'],
             ],
         ];
@@ -80,6 +90,7 @@ class RolePermission extends Model
                 'name' => $feat['name'],
                 'category' => $feat['category'],
                 'description' => $feat['description'],
+                'parent_group' => $feat['parent_group'] ?? null,
                 'supported_actions' => $feat['supported_actions'],
                 'can_view' => $isSuper || (bool) ($perm?->can_view),
                 'can_create' => $isSuper || (bool) ($perm?->can_create),
@@ -98,6 +109,7 @@ class RolePermission extends Model
     {
         $features = self::defaultFeatures();
         $existingGroups = self::where('role', $role)->pluck('feature_group')->toArray();
+        $parentPerm = self::where('role', $role)->where('feature_group', 'employee_detail_history')->first();
 
         foreach ($features as $feat) {
             $group = $feat['group'];
@@ -106,16 +118,35 @@ class RolePermission extends Model
             if (! in_array($group, $existingGroups)) {
                 $defaults = self::getDefaultValuesForRoleAndGroup($role, $group);
 
+                $canView = ($group === 'employee_kepegawaian' && $parentPerm)
+                    ? (bool) $parentPerm->can_view
+                    : ($defaults['view'] ?? false);
+                $canCreate = ($group === 'employee_kepegawaian' && $parentPerm)
+                    ? (bool) $parentPerm->can_create
+                    : ($defaults['create'] ?? false);
+                $canUpdate = ($group === 'employee_kepegawaian' && $parentPerm)
+                    ? (bool) $parentPerm->can_update
+                    : ($defaults['update'] ?? false);
+                $canDelete = ($group === 'employee_kepegawaian' && $parentPerm)
+                    ? (bool) $parentPerm->can_delete
+                    : ($defaults['delete'] ?? false);
+                $canExport = ($group === 'employee_kepegawaian' && $parentPerm)
+                    ? (bool) $parentPerm->can_export
+                    : ($defaults['export'] ?? false);
+                $canImport = ($group === 'employee_kepegawaian' && $parentPerm)
+                    ? (bool) $parentPerm->can_import
+                    : ($defaults['import'] ?? false);
+
                 self::create([
                     'role' => $role,
                     'feature_group' => $group,
                     'feature_name' => $feat['name'],
-                    'can_view' => $defaults['view'] ?? false,
-                    'can_create' => $defaults['create'] ?? false,
-                    'can_update' => $defaults['update'] ?? false,
-                    'can_delete' => $defaults['delete'] ?? false,
-                    'can_export' => $defaults['export'] ?? false,
-                    'can_import' => $defaults['import'] ?? false,
+                    'can_view' => $canView,
+                    'can_create' => $canCreate,
+                    'can_update' => $canUpdate,
+                    'can_delete' => $canDelete,
+                    'can_export' => $canExport,
+                    'can_import' => $canImport,
                 ]);
             }
         }
@@ -137,9 +168,11 @@ class RolePermission extends Model
             return true;
         }
 
-        // Petakan seluruh modul pegawai ke 'employee_detail_history'
+        // Petakan seluruh modul pegawai
         if (in_array($group, ['employee_directory', 'employee_detail_history', 'employee_documents'])) {
             $group = 'employee_detail_history';
+        } elseif ($group === 'employee_kepegawaian') {
+            $group = 'employee_kepegawaian';
         } else {
             // Modul selain pegawai belum dimasukkan ke matriks perizinan bertahap, izinkan secara default
             return true;
@@ -155,6 +188,21 @@ class RolePermission extends Model
             $perm = self::where('role', 'Guru')
                 ->where('feature_group', $group)
                 ->first();
+        }
+
+        // Fallback untuk child employee_kepegawaian ke parent employee_detail_history jika belum diset
+        if (! $perm && $group === 'employee_kepegawaian') {
+            $parentPerm = self::where('role', $role)
+                ->where('feature_group', 'employee_detail_history')
+                ->first();
+            if (! $parentPerm && (str_contains(strtolower($role), 'guru') || str_contains(strtolower($role), 'wali kelas'))) {
+                $parentPerm = self::where('role', 'Guru')
+                    ->where('feature_group', 'employee_detail_history')
+                    ->first();
+            }
+            if ($parentPerm) {
+                $perm = $parentPerm;
+            }
         }
 
         $column = 'can_'.strtolower($action);

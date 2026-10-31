@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { Head, Link, usePage, useForm, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import EditDataButton from '@/Components/Shared/EditDataButton.vue';
@@ -39,6 +39,8 @@ const props = defineProps({
         default: () => ({
             can_update: true,
             can_delete: true,
+            can_view_kepegawaian: true,
+            can_update_kepegawaian: true,
         }),
     },
 });
@@ -47,12 +49,14 @@ const page = usePage();
 const activeTab = ref('identitas');
 const isEditing = ref(false);
 const canEdit = computed(() => props.permissions?.can_update ?? true);
+const canViewKepegawaian = computed(() => props.permissions?.can_view_kepegawaian ?? true);
+const canUpdateKepegawaian = computed(() => props.permissions?.can_update_kepegawaian ?? true);
 const dismissedFlash = ref(false);
 
 const flashSuccess = computed(() => !dismissedFlash.value ? page.props.flash?.success : null);
 const flashError = computed(() => !dismissedFlash.value ? page.props.flash?.error : null);
 
-const tabs = [
+const allTabs = [
     { id: 'identitas', label: 'Identitas', icon: 'badge' },
     { id: 'alamat', label: 'Alamat', icon: 'home' },
     { id: 'keluarga', label: 'Keluarga', icon: 'family_restroom' },
@@ -61,6 +65,19 @@ const tabs = [
     { id: 'pendidikan', label: 'Pendidikan', icon: 'school' },
     { id: 'dokumen', label: 'Dokumen', icon: 'folder_shared' },
 ];
+
+const tabs = computed(() => {
+    if (!canViewKepegawaian.value) {
+        return allTabs.filter((t) => t.id !== 'kepegawaian');
+    }
+    return allTabs;
+});
+
+watch(canViewKepegawaian, (canView) => {
+    if (!canView && activeTab.value === 'kepegawaian') {
+        activeTab.value = 'identitas';
+    }
+});
 
 const form = useForm({
     nama: '',
@@ -1347,7 +1364,7 @@ function deleteDocument(doc) {
                     </div>
                     <div class="space-y-2">
                         <h3 class="text-lg sm:text-xl font-bold text-on-surface leading-snug">{{ employee.nama }}</h3>
-                        <p class="text-xs sm:text-sm text-on-surface-variant font-medium">NIPY: {{ employee.nipy || '-' }}</p>
+                        <p v-if="canViewKepegawaian" class="text-xs sm:text-sm text-on-surface-variant font-medium">NIPY: {{ employee.nipy || '-' }}</p>
                         <div class="flex flex-wrap items-center gap-2 pt-0.5">
                             <span
                                 v-if="employee.jenjang_kepegawaian"
@@ -1455,7 +1472,7 @@ function deleteDocument(doc) {
                             <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Nama Lengkap</label>
                             <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ employee.nama }}</p>
                         </div>
-                        <div>
+                        <div v-if="canViewKepegawaian">
                             <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">NIPY</label>
                             <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5 font-mono">{{ employee.nipy || '-' }}</p>
                         </div>
@@ -1558,7 +1575,7 @@ function deleteDocument(doc) {
                             <div v-if="form.errors.nama" class="text-error text-xs mt-1">{{ form.errors.nama }}</div>
                         </div>
 
-                        <div>
+                        <div v-if="canViewKepegawaian">
                             <div class="flex items-center justify-between mb-1.5">
                                 <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider">
                                     NIPY
@@ -1572,8 +1589,8 @@ function deleteDocument(doc) {
                                 v-model="form.nipy"
                                 type="text"
                                 placeholder="Nomor Induk Pegawai Yayasan"
-                                disabled
-                                readonly
+                                :disabled="!canUpdateKepegawaian"
+                                :readonly="!canUpdateKepegawaian"
                                 class="w-full px-3.5 py-2 sm:py-2.5 bg-slate-100/90 border border-outline-variant/50 rounded-xl text-xs sm:text-sm text-slate-500 placeholder:text-outline cursor-not-allowed font-mono select-none"
                                 :class="{ 'border-error': form.errors.nipy }"
                             />
@@ -2414,7 +2431,7 @@ function deleteDocument(doc) {
                 </div>
 
                 <!-- TAB 4: KEPEGAWAIAN -->
-                <div v-if="activeTab === 'kepegawaian'" class="space-y-6">
+                <div v-if="activeTab === 'kepegawaian' && canViewKepegawaian" class="space-y-6">
                     <!-- DATA STATIS: PENGANGKATAN, KEAKTIFAN & DAPODIK (SHEET 1) -->
                     <div>
                         <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
