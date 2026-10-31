@@ -6,7 +6,6 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Inertia\Inertia;
 
 class AuthController extends Controller
 {
@@ -30,30 +29,12 @@ class AuthController extends Controller
         if (Auth::attempt([$loginField => $credentials['user_id'], 'password' => $credentials['password'], 'is_active' => true], $request->boolean('remember'))) {
             $request->session()->regenerate();
 
-            if (Auth::user()?->must_change_password) {
-                return redirect()->route('password.force_change');
-            }
-
             return redirect()->intended('/beranda');
         }
 
         return back()->withErrors([
             'user_id' => 'The provided credentials do not match our records.',
         ])->onlyInput('user_id');
-    }
-
-    public function showForceChangePassword(Request $request)
-    {
-        if (! $request->user()?->must_change_password) {
-            return redirect()->intended('/beranda');
-        }
-
-        return Inertia::render('Auth/ForceChangePassword', [
-            'user' => [
-                'name' => $request->user()->name,
-                'username' => $request->user()->username,
-            ],
-        ]);
     }
 
     public function updateForceChangePassword(Request $request)
@@ -72,7 +53,7 @@ class AuthController extends Controller
             'must_change_password' => false,
         ]);
 
-        return redirect('/beranda')->with('success', 'Kata sandi baru berhasil dibuat. Selamat datang di sistem!');
+        return back()->with('success', 'Kata sandi baru berhasil dibuat. Selamat datang di sistem!');
     }
 
     public function logout(Request $request)

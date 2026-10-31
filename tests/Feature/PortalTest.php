@@ -323,39 +323,39 @@ class PortalTest extends TestCase
             'is_active' => true,
         ]);
 
-        // 1. Saat login, diarahkan ke route ganti password wajib
+        // 1. Saat login, masuk ke /beranda (dashboard)
         $loginRes = $this->post('/login', [
             'user_id' => 'userreset1',
             'password' => 'default1990',
         ]);
 
-        $loginRes->assertRedirect(route('password.force_change'));
+        $loginRes->assertRedirect('/beranda');
         $this->assertAuthenticatedAs($user);
 
-        // 2. Ketika mencoba buka /beranda, dicegat middleware dan diredirect ke password.force_change
+        // 2. Di dashboard, shared prop must_change_password bernilai true (menampilkan popup modal terkunci)
         $pageRes = $this->actingAs($user)->get('/beranda');
-        $pageRes->assertRedirect(route('password.force_change'));
+        $pageRes->assertOk();
+        $pageRes->assertInertia(fn (Assert $page) => $page
+            ->where('auth.user.must_change_password', true)
+        );
 
-        // 3. User mengakses halaman ganti password wajib
-        $formRes = $this->actingAs($user)->get(route('password.force_change'));
-        $formRes->assertOk();
-        $formRes->assertInertia(fn (Assert $page) => $page->component('Auth/ForceChangePassword'));
-
-        // 4. User mengirimkan password baru yang valid
+        // 3. User mengirimkan password baru lewat popup modal
         $updateRes = $this->actingAs($user)->post(route('password.force_change.update'), [
             'password' => 'PasswordBaru2026!',
             'password_confirmation' => 'PasswordBaru2026!',
         ]);
 
-        $updateRes->assertRedirect('/beranda');
         $updateRes->assertSessionHas('success');
 
         $user->refresh();
         $this->assertFalse($user->must_change_password);
         $this->assertTrue(Hash::check('PasswordBaru2026!', $user->password));
 
-        // 5. Sekarang user bisa membuka /beranda dengan sukses
+        // 4. Setelah disimpan, shared prop must_change_password bernilai false (modal tertutup)
         $afterRes = $this->actingAs($user)->get('/beranda');
         $afterRes->assertOk();
+        $afterRes->assertInertia(fn (Assert $page) => $page
+            ->where('auth.user.must_change_password', false)
+        );
     }
 }

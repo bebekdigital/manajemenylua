@@ -95,7 +95,6 @@ Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
     // Force Change Password
-    Route::get('/auth/force-change-password', [AuthController::class, 'showForceChangePassword'])->name('password.force_change');
     Route::post('/auth/force-change-password', [AuthController::class, 'updateForceChangePassword'])->name('password.force_change.update');
 
     Route::get('/beranda', function () {

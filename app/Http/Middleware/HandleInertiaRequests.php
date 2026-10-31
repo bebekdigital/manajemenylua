@@ -47,6 +47,7 @@ class HandleInertiaRequests extends Middleware
                     'name' => $user->employeeProfile()?->nama ?: $user->name,
                     'username' => $user->username,
                     'role' => $user->role,
+                    'must_change_password' => (bool) ($user->must_change_password ?? false),
                     'can_view_employee' => $canViewEmployee,
                 ] : null,
                 'permissions' => [
