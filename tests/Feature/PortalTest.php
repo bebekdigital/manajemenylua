@@ -283,4 +283,79 @@ class PortalTest extends TestCase
         $responseActive->assertRedirect('/beranda');
         $this->assertAuthenticatedAs($inactiveUser);
     }
+
+    public function test_superadmin_can_reset_user_password_to_default(): void
+    {
+        $superadmin = User::factory()->create([
+            'role' => 'superadmin',
+        ]);
+
+        $employee = Employee::create([
+            'nama' => 'Dewi Sartika',
+            'tanggal_lahir' => '1990-12-04',
+            'nipy' => '19901204001',
+        ]);
+
+        $targetUser = User::factory()->create([
+            'name' => 'Dewi Sartika',
+            'username' => 'dewi123',
+            'nipy' => '19901204001',
+            'password' => Hash::make('customPassword999'),
+            'must_change_password' => false,
+        ]);
+
+        $response = $this->actingAs($superadmin)->post(route('portal.users.reset-password', $targetUser));
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        $targetUser->refresh();
+        $this->assertTrue(Hash::check('19901204', $targetUser->password));
+        $this->assertTrue($targetUser->must_change_password);
+    }
+
+    public function test_user_must_change_password_when_must_change_password_is_true(): void
+    {
+        $user = User::factory()->create([
+            'username' => 'userreset1',
+            'password' => Hash::make('default1990'),
+            'must_change_password' => true,
+            'is_active' => true,
+        ]);
+
+        // 1. Saat login, diarahkan ke route ganti password wajib
+        $loginRes = $this->post('/login', [
+            'user_id' => 'userreset1',
+            'password' => 'default1990',
+        ]);
+
+        $loginRes->assertRedirect(route('password.force_change'));
+        $this->assertAuthenticatedAs($user);
+
+        // 2. Ketika mencoba buka /beranda, dicegat middleware dan diredirect ke password.force_change
+        $pageRes = $this->actingAs($user)->get('/beranda');
+        $pageRes->assertRedirect(route('password.force_change'));
+
+        // 3. User mengakses halaman ganti password wajib
+        $formRes = $this->actingAs($user)->get(route('password.force_change'));
+        $formRes->assertOk();
+        $formRes->assertInertia(fn (Assert $page) => $page->component('Auth/ForceChangePassword'));
+
+        // 4. User mengirimkan password baru yang valid
+        $updateRes = $this->actingAs($user)->post(route('password.force_change.update'), [
+            'password' => 'PasswordBaru2026!',
+            'password_confirmation' => 'PasswordBaru2026!',
+        ]);
+
+        $updateRes->assertRedirect('/beranda');
+        $updateRes->assertSessionHas('success');
+
+        $user->refresh();
+        $this->assertFalse($user->must_change_password);
+        $this->assertTrue(Hash::check('PasswordBaru2026!', $user->password));
+
+        // 5. Sekarang user bisa membuka /beranda dengan sukses
+        $afterRes = $this->actingAs($user)->get('/beranda');
+        $afterRes->assertOk();
+    }
 }

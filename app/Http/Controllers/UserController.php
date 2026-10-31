@@ -73,6 +73,7 @@ class UserController extends Controller
                     'password' => Hash::make($rawPassword),
                     'role' => $role,
                     'is_active' => true,
+                    'must_change_password' => true,
                     'nipy' => $employee->nipy,
                     'status_kepegawaian' => $employee->status_keaktifan ?? 'Aktif',
                     'jk' => $employee->jk,
@@ -123,6 +124,9 @@ class UserController extends Controller
         $validated['password'] = Hash::make($validated['password']);
         if (! isset($validated['is_active'])) {
             $validated['is_active'] = true;
+        }
+        if (! isset($validated['must_change_password'])) {
+            $validated['must_change_password'] = true;
         }
 
         User::create($validated);
@@ -178,6 +182,25 @@ class UserController extends Controller
         $statusText = $user->is_active ? 'diaktifkan (akses dibuka)' : 'dinonaktifkan (akses ditutup)';
 
         return back()->with('success', "Akun '{$user->name}' berhasil {$statusText}.");
+    }
+
+    /**
+     * Reset user password back to default password (tanggal lahir YYYYMMDD).
+     */
+    public function resetPassword(User $user): RedirectResponse
+    {
+        if (auth()->user()?->role !== 'superadmin') {
+            abort(403, 'Hanya Superadmin yang berhak mereset password akun.');
+        }
+
+        $rawPassword = $user->getDefaultPassword() ?: '12345678';
+
+        $user->update([
+            'password' => Hash::make($rawPassword),
+            'must_change_password' => true,
+        ]);
+
+        return back()->with('success', "Password akun '{$user->name}' berhasil direset ke password default ({$rawPassword}). Pengguna wajib membuat password baru saat login berikutnya.");
     }
 
     /**

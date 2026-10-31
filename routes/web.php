@@ -94,6 +94,10 @@ Route::post('/login', [AuthController::class, 'login'])->name('login.post');
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
+    // Force Change Password
+    Route::get('/auth/force-change-password', [AuthController::class, 'showForceChangePassword'])->name('password.force_change');
+    Route::post('/auth/force-change-password', [AuthController::class, 'updateForceChangePassword'])->name('password.force_change.update');
+
     Route::get('/beranda', function () {
         return Inertia::render('Dashboard');
     })->name('dashboard');
@@ -192,6 +196,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/portal/users', [UserController::class, 'store'])->name('portal.users.store');
     Route::put('/portal/users/{user}', [UserController::class, 'update'])->name('portal.users.update');
     Route::patch('/portal/users/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('portal.users.toggle-status');
+    Route::post('/portal/users/{user}/reset-password', [UserController::class, 'resetPassword'])->name('portal.users.reset-password');
     Route::delete('/portal/users/{user}', [UserController::class, 'destroy'])->name('portal.users.destroy');
 
     // Portal Management - Role Permissions (Hak Akses)

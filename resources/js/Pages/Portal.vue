@@ -386,6 +386,7 @@ const showGenerateUserModal = ref(false);
 const editingUser = ref(null);
 const deletingUserId = ref(null);
 const togglingUserId = ref(null);
+const resettingUserId = ref(null);
 const copiedPassId = ref(null);
 
 const dismissedFlash = ref(false);
@@ -534,6 +535,26 @@ function confirmUserDelete(user) {
                 preserveScroll: true,
                 onFinish: () => {
                     deletingUserId.value = null;
+                    done();
+                },
+            });
+        },
+    });
+}
+
+function confirmResetPassword(user) {
+    const passInfo = user.pass_default ? ` (${user.pass_default})` : '';
+    openConfirmModal({
+        title: 'Reset Password Akun',
+        message: `Kembalikan password akun "${user.name}" ke password default${passInfo}? Pengguna akan diwajibkan membuat password baru saat login berikutnya.`,
+        itemName: `${user.name} (${user.username})`,
+        confirmText: 'Ya, Reset Password',
+        onConfirm: (done) => {
+            resettingUserId.value = user.id;
+            router.post(`/portal/users/${user.id}/reset-password`, {}, {
+                preserveScroll: true,
+                onFinish: () => {
+                    resettingUserId.value = null;
                     done();
                 },
             });
@@ -985,7 +1006,7 @@ function formatDate(dateStr) {
                             <th class="border border-outline-variant/60 px-4 py-3 text-center w-28">Role</th>
                             <th class="border border-outline-variant/60 px-4 py-3 text-center w-32">Status Akses</th>
                             <th class="border border-outline-variant/60 px-4 py-3 text-center w-36">Dibuat Pada</th>
-                            <th class="border border-outline-variant/60 px-4 py-3 text-center w-24">Aksi</th>
+                            <th class="border border-outline-variant/60 px-4 py-3 text-center w-32">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -1072,6 +1093,19 @@ function formatDate(dateStr) {
                             </td>
                             <td class="border border-outline-variant/60 px-4 py-3.5 text-center">
                                 <div class="flex items-center justify-center gap-1">
+                                    <button
+                                        type="button"
+                                        @click="confirmResetPassword(u)"
+                                        :disabled="resettingUserId === u.id"
+                                        class="p-2 rounded-lg text-on-surface-variant hover:text-amber-600 hover:bg-amber-500/10 transition-colors cursor-pointer"
+                                        title="Reset Password ke Default"
+                                    >
+                                        <span
+                                            v-if="resettingUserId === u.id"
+                                            class="material-symbols-outlined text-[18px] animate-spin text-amber-600"
+                                        >sync</span>
+                                        <span v-else class="material-symbols-outlined text-[18px]">lock_reset</span>
+                                    </button>
                                     <button
                                         type="button"
                                         @click="openUserEditModal(u)"
