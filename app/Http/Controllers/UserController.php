@@ -119,6 +119,7 @@ class UserController extends Controller
             'email' => ['nullable', 'string', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8'],
             'role' => ['required', 'string', 'max:100'],
+            'is_active' => ['nullable', 'boolean'],
         ]);
 
         if (empty($validated['email'])) {
@@ -126,6 +127,9 @@ class UserController extends Controller
         }
 
         $validated['password'] = Hash::make($validated['password']);
+        if (! isset($validated['is_active'])) {
+            $validated['is_active'] = true;
+        }
 
         User::create($validated);
 
@@ -147,6 +151,7 @@ class UserController extends Controller
             'email' => ['nullable', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
             'password' => ['nullable', 'string', 'min:8'],
             'role' => ['required', 'string', 'max:100'],
+            'is_active' => ['nullable', 'boolean'],
         ]);
 
         if (empty($validated['email'])) {
@@ -162,6 +167,27 @@ class UserController extends Controller
         $user->update($validated);
 
         return back()->with('success', 'Data akun berhasil diperbarui.');
+    }
+
+    /**
+     * Toggle active status of a user account.
+     */
+    public function toggleStatus(User $user): RedirectResponse
+    {
+        if (auth()->user()?->role !== 'superadmin') {
+            abort(403, 'Hanya Superadmin yang berhak mengubah status akun.');
+        }
+
+        if (auth()->id() === $user->id) {
+            return back()->with('error', 'Anda tidak dapat menonaktifkan akun Anda sendiri.');
+        }
+
+        $user->is_active = ! $user->is_active;
+        $user->save();
+
+        $statusText = $user->is_active ? 'diaktifkan (akses dibuka)' : 'dinonaktifkan (akses ditutup)';
+
+        return back()->with('success', "Akun '{$user->name}' berhasil {$statusText}.");
     }
 
     /**

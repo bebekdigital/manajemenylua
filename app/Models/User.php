@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Carbon\Carbon;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -10,7 +11,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'username', 'role', 'email', 'password', 'nipy', 'status_kepegawaian', 'jk', 'ttl', 'unit', 'jabatan', 'no_wa', 'foto'])]
+#[Fillable(['name', 'username', 'role', 'is_active', 'email', 'password', 'nipy', 'status_kepegawaian', 'jk', 'ttl', 'unit', 'jabatan', 'no_wa', 'foto'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -27,6 +28,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_active' => 'boolean',
         ];
     }
 
@@ -79,6 +81,36 @@ class User extends Authenticatable
         return Employee::all()->first(function (Employee $e) {
             return $e->nama_lengkap_gelar === $this->name || $e->nama === $this->name;
         });
+    }
+
+    /**
+     * Get default password generated from user account (tanggal lahir YYYYMMDD).
+     */
+    public function getDefaultPassword(?Employee $matchedEmployee = null): ?string
+    {
+        $emp = $matchedEmployee ?? $this->employeeProfile();
+        if ($emp && $emp->tanggal_lahir) {
+            return $emp->tanggal_lahir->format('Ymd');
+        }
+
+        if (! empty($this->ttl)) {
+            if (preg_match('/(\d{4})-(\d{2})-(\d{2})/', $this->ttl, $matches)) {
+                return $matches[1].$matches[2].$matches[3];
+            }
+            if (preg_match('/(\d{2})[- \/](\d{2})[- \/](\d{4})/', $this->ttl, $matches)) {
+                return $matches[3].$matches[2].$matches[1];
+            }
+            try {
+                $parsed = Carbon::parse($this->ttl);
+                if ($parsed && $parsed->year > 1900 && $parsed->year < 2100) {
+                    return $parsed->format('Ymd');
+                }
+            } catch (\Throwable) {
+                // ignore
+            }
+        }
+
+        return null;
     }
 
     /**

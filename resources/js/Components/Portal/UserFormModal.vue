@@ -35,6 +35,7 @@ const form = useForm({
     email: '',
     password: '',
     role: 'superadmin',
+    is_active: true,
 });
 
 const allRoleValues = computed(() => {
@@ -52,10 +53,12 @@ watch(
                 form.username = props.editing.username;
                 form.email = props.editing.email || '';
                 form.role = props.editing.role;
+                form.is_active = props.editing.is_active !== undefined ? !!props.editing.is_active : true;
                 form.password = ''; // Don't show password
             } else {
                 // Create mode
                 form.reset();
+                form.is_active = true;
                 if (props.schoolRoles && props.schoolRoles.length > 0) {
                     form.role = props.schoolRoles[0];
                 } else {
@@ -233,6 +236,36 @@ function submit() {
                                 Kosongkan jika tidak ingin mengubah kata sandi.
                             </p>
                             <div v-if="form.errors.password" class="text-error text-xs mt-1.5 ml-1 font-medium">{{ form.errors.password }}</div>
+                        </div>
+
+                        <!-- Status Akses Akun -->
+                        <div>
+                            <label class="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1.5">
+                                Status Akses Akun
+                            </label>
+                            <div class="flex items-center gap-3 bg-surface-container-low/60 p-3 rounded-xl border border-outline-variant/60">
+                                <button
+                                    type="button"
+                                    role="switch"
+                                    :aria-checked="form.is_active"
+                                    @click="form.is_active = !form.is_active"
+                                    :class="[
+                                        'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary/20',
+                                        form.is_active ? 'bg-emerald-500' : 'bg-slate-300'
+                                    ]"
+                                >
+                                    <span
+                                        aria-hidden="true"
+                                        :class="[
+                                            'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
+                                            form.is_active ? 'translate-x-5' : 'translate-x-0'
+                                        ]"
+                                    />
+                                </button>
+                                <span class="text-xs sm:text-sm font-semibold" :class="form.is_active ? 'text-emerald-700' : 'text-slate-500'">
+                                    {{ form.is_active ? 'Aktif (Diberi Akses Login)' : 'Tidak Aktif (Akses Login Ditutup)' }}
+                                </span>
+                            </div>
                         </div>
 
                         <!-- Actions -->

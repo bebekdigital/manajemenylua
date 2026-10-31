@@ -385,6 +385,8 @@ const showUserModal = ref(false);
 const showGenerateUserModal = ref(false);
 const editingUser = ref(null);
 const deletingUserId = ref(null);
+const togglingUserId = ref(null);
+const copiedPassId = ref(null);
 
 const dismissedFlash = ref(false);
 const settingActiveId = ref(null);
@@ -535,6 +537,33 @@ function confirmUserDelete(user) {
                     done();
                 },
             });
+        },
+    });
+}
+
+function copyPassDefault(user) {
+    if (!user.pass_default) return;
+    navigator.clipboard.writeText(user.pass_default).then(() => {
+        copiedPassId.value = user.id;
+        setTimeout(() => {
+            if (copiedPassId.value === user.id) {
+                copiedPassId.value = null;
+            }
+        }, 2000);
+    });
+}
+
+function toggleUserStatus(user) {
+    if (user.id === page.props.auth?.user?.id) {
+        alert('Anda tidak dapat menonaktifkan akun yang sedang Anda gunakan.');
+        return;
+    }
+    togglingUserId.value = user.id;
+    router.patch(`/portal/users/${user.id}/toggle-status`, {}, {
+        preserveScroll: true,
+        preserveState: true,
+        onFinish: () => {
+            togglingUserId.value = null;
         },
     });
 }
@@ -952,10 +981,12 @@ function formatDate(dateStr) {
                             <th class="border border-outline-variant/60 px-4 py-3 text-center w-12">No</th>
                             <th class="border border-outline-variant/60 px-5 py-3 text-left">Nama Lengkap</th>
                             <th class="border border-outline-variant/60 px-5 py-3 text-left">NIP / Username</th>
+                            <th class="border border-outline-variant/60 px-4 py-3 text-center w-36">Pass Default</th>
                             <th class="border border-outline-variant/60 px-5 py-3 text-left">Email</th>
-                            <th class="border border-outline-variant/60 px-4 py-3 text-center w-32">Role</th>
+                            <th class="border border-outline-variant/60 px-4 py-3 text-center w-28">Role</th>
+                            <th class="border border-outline-variant/60 px-4 py-3 text-center w-32">Status Akses</th>
                             <th class="border border-outline-variant/60 px-4 py-3 text-center w-36">Dibuat Pada</th>
-                            <th class="border border-outline-variant/60 px-4 py-3 text-center w-28">Aksi</th>
+                            <th class="border border-outline-variant/60 px-4 py-3 text-center w-24">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -976,6 +1007,23 @@ function formatDate(dateStr) {
                             <td class="border border-outline-variant/60 px-5 py-3.5 text-on-surface-variant">
                                 {{ u.username }}
                             </td>
+                            <!-- PASS DEFAULT -->
+                            <td class="border border-outline-variant/60 px-4 py-3.5 text-center">
+                                <div v-if="u.pass_default" class="inline-flex items-center gap-1.5 bg-surface-container-high/80 px-2.5 py-1 rounded-lg border border-outline-variant/40">
+                                    <span class="font-mono text-xs font-bold text-on-surface tracking-wider">{{ u.pass_default }}</span>
+                                    <button
+                                        type="button"
+                                        @click="copyPassDefault(u)"
+                                        class="text-outline hover:text-primary transition-colors p-0.5 rounded cursor-pointer"
+                                        :title="copiedPassId === u.id ? 'Berhasil disalin!' : 'Salin password default'"
+                                    >
+                                        <span class="material-symbols-outlined text-[15px]" :class="copiedPassId === u.id ? 'text-emerald-600' : ''">
+                                            {{ copiedPassId === u.id ? 'check' : 'content_copy' }}
+                                        </span>
+                                    </button>
+                                </div>
+                                <span v-else class="text-on-surface-variant/40 text-xs">—</span>
+                            </td>
                             <td class="border border-outline-variant/60 px-5 py-3.5 text-on-surface-variant">
                                 {{ u.email || '—' }}
                             </td>
@@ -984,6 +1032,44 @@ function formatDate(dateStr) {
                                       :class="u.role === 'superadmin' ? 'bg-error/10 text-error border border-error/20' : 'bg-secondary-container/40 text-on-secondary-container border border-secondary-container/60'">
                                     {{ u.role }}
                                 </span>
+                            </td>
+                            <!-- TOGGLE AKTIF / TIDAK -->
+                            <td class="border border-outline-variant/60 px-4 py-3.5 text-center">
+                                <div class="inline-flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        role="switch"
+                                        :aria-checked="u.is_active"
+                                        :disabled="togglingUserId === u.id || u.id === $page.props.auth?.user?.id"
+                                        @click="toggleUserStatus(u)"
+                                        :class="[
+                                            'relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary/20',
+                                            u.id === $page.props.auth?.user?.id ? 'cursor-not-allowed opacity-50' : '',
+                                            u.is_active ? 'bg-emerald-500' : 'bg-slate-300'
+                                        ]"
+                                        :title="u.id === $page.props.auth?.user?.id ? 'Tidak dapat menonaktifkan akun sendiri' : (u.is_active ? 'Klik untuk nonaktifkan akses akun' : 'Klik untuk aktifkan akses akun')"
+                                    >
+                                        <span
+                                            aria-hidden="true"
+                                            :class="[
+                                                'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
+                                                u.is_active ? 'translate-x-5' : 'translate-x-0'
+                                            ]"
+                                        >
+                                            <span v-if="togglingUserId === u.id" class="material-symbols-outlined text-[10px] text-slate-500 animate-spin flex items-center justify-center h-full">
+                                                sync
+                                            </span>
+                                        </span>
+                                    </button>
+                                    <span
+                                        :class="[
+                                            'text-xs font-semibold select-none',
+                                            u.is_active ? 'text-emerald-700' : 'text-slate-400'
+                                        ]"
+                                    >
+                                        {{ u.is_active ? 'Aktif' : 'Tidak' }}
+                                    </span>
+                                </div>
                             </td>
                             <td class="border border-outline-variant/60 px-4 py-3.5 text-center text-on-surface-variant text-xs">
                                 {{ u.created_at }}
@@ -1018,7 +1104,7 @@ function formatDate(dateStr) {
                             </td>
                         </tr>
                         <tr v-if="users.length === 0">
-                            <td colspan="7" class="border border-outline-variant/60 px-5 py-10 text-center text-on-surface-variant">
+                            <td colspan="9" class="border border-outline-variant/60 px-5 py-10 text-center text-on-surface-variant">
                                 Belum ada data pengguna lainnya.
                             </td>
                         </tr>

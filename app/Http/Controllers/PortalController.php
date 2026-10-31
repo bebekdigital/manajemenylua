@@ -35,14 +35,39 @@ class PortalController extends Controller
                 'classrooms_count' => $year->classrooms()->count(),
             ]);
 
-        $users = User::orderBy('name')->get()->map(fn ($user) => [
-            'id' => $user->id,
-            'name' => $user->name,
-            'username' => $user->username,
-            'email' => $user->email,
-            'role' => $user->role,
-            'created_at' => $user->created_at?->format('Y-m-d H:i'),
-        ]);
+        $employeeModels = Schema::hasTable('employees')
+            ? Employee::with(['currentPosition', 'positions'])->orderBy('nama')->get()
+            : collect([]);
+
+        $empByNipy = $employeeModels->whereNotNull('nipy')->filter(fn ($e) => trim((string) $e->nipy) !== '')->keyBy(fn ($e) => trim((string) $e->nipy));
+        $empByEmail = $employeeModels->whereNotNull('email')->filter(fn ($e) => trim((string) $e->email) !== '')->keyBy(fn ($e) => strtolower(trim((string) $e->email)));
+        $empByName = $employeeModels->whereNotNull('nama')->keyBy(fn ($e) => strtolower(trim((string) $e->nama)));
+        $empByGelar = $employeeModels->whereNotNull('nama_lengkap_gelar')->keyBy(fn ($e) => strtolower(trim((string) $e->nama_lengkap_gelar)));
+
+        $users = User::orderBy('name')->get()->map(function ($user) use ($empByNipy, $empByEmail, $empByName, $empByGelar) {
+            $matchedEmp = null;
+            if (! empty($user->nipy) && isset($empByNipy[trim((string) $user->nipy)])) {
+                $matchedEmp = $empByNipy[trim((string) $user->nipy)];
+            } elseif (! empty($user->email) && isset($empByEmail[strtolower(trim((string) $user->email))])) {
+                $matchedEmp = $empByEmail[strtolower(trim((string) $user->email))];
+            } elseif (! empty($user->name)) {
+                $nameClean = strtolower(trim((string) $user->name));
+                $matchedEmp = $empByName[$nameClean] ?? $empByGelar[$nameClean] ?? null;
+            }
+
+            $passDefault = $user->getDefaultPassword($matchedEmp);
+
+            return [
+                'id' => $user->id,
+                'name' => $user->name,
+                'username' => $user->username,
+                'email' => $user->email,
+                'role' => $user->role,
+                'is_active' => (bool) ($user->is_active ?? true),
+                'pass_default' => $passDefault,
+                'created_at' => $user->created_at?->format('Y-m-d H:i'),
+            ];
+        });
 
         $schoolLevels = SchoolLevel::with(['units.programs', 'units.classes'])->orderBy('order')->get();
 
@@ -81,32 +106,27 @@ class PortalController extends Controller
         $availableRoles = array_values(array_unique(array_merge(['superadmin'], $distinctPositions)));
         $primaryRoles = ['superadmin', 'Kepala Bidang SDM', 'Guru'];
 
-        $employees = Schema::hasTable('employees')
-            ? Employee::with(['currentPosition', 'positions'])
-                ->orderBy('nama')
-                ->get()
-                ->map(function (Employee $emp) use ($users) {
-                    $latestPos = $emp->currentPosition ?? $emp->positions->sortByDesc('tmt_jabatan')->first();
-                    $hasAccount = $users->contains(function ($u) use ($emp) {
-                        return ($emp->nipy && ! empty($u['username']) && $u['username'] === $emp->nipy)
-                            || strcasecmp($u['name'], $emp->nama) === 0
-                            || ($emp->nama_lengkap_gelar && strcasecmp($u['name'], $emp->nama_lengkap_gelar) === 0);
-                    });
+        $employees = $employeeModels->map(function (Employee $emp) use ($users) {
+            $latestPos = $emp->currentPosition ?? $emp->positions->sortByDesc('tmt_jabatan')->first();
+            $hasAccount = $users->contains(function ($u) use ($emp) {
+                return ($emp->nipy && ! empty($u['username']) && $u['username'] === $emp->nipy)
+                    || strcasecmp($u['name'], $emp->nama) === 0
+                    || ($emp->nama_lengkap_gelar && strcasecmp($u['name'], $emp->nama_lengkap_gelar) === 0);
+            });
 
-                    return [
-                        'id' => $emp->id,
-                        'nama' => $emp->nama,
-                        'nama_lengkap_gelar' => $emp->nama,
-                        'nipy' => $emp->nipy,
-                        'tanggal_lahir' => $emp->tanggal_lahir?->format('Y-m-d'),
-                        'tanggal_lahir_formatted' => $emp->tanggal_lahir?->translatedFormat('d F Y') ?? '-',
-                        'default_password' => $emp->tanggal_lahir ? $emp->tanggal_lahir->format('Ymd') : '12345678',
-                        'jabatan' => $latestPos?->jabatan ?: 'Guru',
-                        'unit_kerja' => $latestPos?->unit_kerja ?: '-',
-                        'has_account' => $hasAccount,
-                    ];
-                })
-            : collect([]);
+            return [
+                'id' => $emp->id,
+                'nama' => $emp->nama,
+                'nama_lengkap_gelar' => $emp->nama,
+                'nipy' => $emp->nipy,
+                'tanggal_lahir' => $emp->tanggal_lahir?->format('Y-m-d'),
+                'tanggal_lahir_formatted' => $emp->tanggal_lahir?->translatedFormat('d F Y') ?? '-',
+                'default_password' => $emp->tanggal_lahir ? $emp->tanggal_lahir->format('Ymd') : '12345678',
+                'jabatan' => $latestPos?->jabatan ?: 'Guru',
+                'unit_kerja' => $latestPos?->unit_kerja ?: '-',
+                'has_account' => $hasAccount,
+            ];
+        });
 
         $defaultFeatures = RolePermission::defaultFeatures();
         $permissionsData = [];

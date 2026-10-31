@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
@@ -16,7 +18,15 @@ class AuthController extends Controller
 
         $loginField = filter_var($credentials['user_id'], FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
 
-        if (Auth::attempt([$loginField => $credentials['user_id'], 'password' => $credentials['password']], $request->boolean('remember'))) {
+        // Cek jika akun ada namun dinonaktifkan
+        $existingUser = User::where($loginField, $credentials['user_id'])->first();
+        if ($existingUser && ! $existingUser->is_active && Hash::check($credentials['password'], $existingUser->password)) {
+            return back()->withErrors([
+                'user_id' => 'Akun Anda sedang dinonaktifkan. Silakan hubungi administrator.',
+            ])->onlyInput('user_id');
+        }
+
+        if (Auth::attempt([$loginField => $credentials['user_id'], 'password' => $credentials['password'], 'is_active' => true], $request->boolean('remember'))) {
             $request->session()->regenerate();
 
             return redirect()->intended('/beranda');

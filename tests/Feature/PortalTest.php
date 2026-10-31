@@ -194,4 +194,93 @@ class PortalTest extends TestCase
 
         $response->assertStatus(403);
     }
+
+    public function test_portal_index_returns_pass_default_and_is_active_for_users(): void
+    {
+        $superadmin = User::factory()->create([
+            'role' => 'superadmin',
+        ]);
+
+        $employee = Employee::create([
+            'nama' => 'Siti Nurhaliza',
+            'tanggal_lahir' => '1992-04-21',
+            'nipy' => '19920421001',
+        ]);
+
+        $user = User::factory()->create([
+            'name' => 'Siti Nurhaliza',
+            'username' => 'sitinur92',
+            'nipy' => '19920421001',
+            'is_active' => true,
+        ]);
+
+        $response = $this->actingAs($superadmin)->get(route('portal.index'));
+
+        $response->assertOk();
+        $response->assertInertia(fn (Assert $page) => $page
+            ->component('Portal')
+            ->has('users', 2) // superadmin + user
+            ->where('users.1.pass_default', '19920421')
+            ->where('users.1.is_active', true)
+        );
+    }
+
+    public function test_superadmin_can_toggle_user_active_status(): void
+    {
+        $superadmin = User::factory()->create([
+            'role' => 'superadmin',
+        ]);
+
+        $targetUser = User::factory()->create([
+            'name' => 'Target User',
+            'username' => 'target123',
+            'is_active' => true,
+        ]);
+
+        // 1. Nonaktifkan user
+        $response = $this->actingAs($superadmin)->patch(route('portal.users.toggle-status', $targetUser));
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+        $this->assertFalse($targetUser->fresh()->is_active);
+
+        // 2. Aktifkan kembali user
+        $response2 = $this->actingAs($superadmin)->patch(route('portal.users.toggle-status', $targetUser));
+        $response2->assertRedirect();
+        $response2->assertSessionHas('success');
+        $this->assertTrue($targetUser->fresh()->is_active);
+
+        // 3. Superadmin tidak bisa menonaktifkan akun sendiri
+        $responseSelf = $this->actingAs($superadmin)->patch(route('portal.users.toggle-status', $superadmin));
+        $responseSelf->assertRedirect();
+        $responseSelf->assertSessionHas('error');
+        $this->assertTrue($superadmin->fresh()->is_active);
+    }
+
+    public function test_inactive_user_cannot_login(): void
+    {
+        $inactiveUser = User::factory()->create([
+            'username' => 'nonaktif123',
+            'password' => Hash::make('rahasia123'),
+            'is_active' => false,
+        ]);
+
+        $response = $this->post('/login', [
+            'user_id' => 'nonaktif123',
+            'password' => 'rahasia123',
+        ]);
+
+        $response->assertSessionHasErrors(['user_id']);
+        $this->assertGuest();
+
+        // Aktifkan user, kemudian coba login lagi
+        $inactiveUser->update(['is_active' => true]);
+
+        $responseActive = $this->post('/login', [
+            'user_id' => 'nonaktif123',
+            'password' => 'rahasia123',
+        ]);
+
+        $responseActive->assertRedirect('/beranda');
+        $this->assertAuthenticatedAs($inactiveUser);
+    }
 }
