@@ -19,17 +19,10 @@ const canViewEmployee = computed(() => {
     return Boolean(page.props.auth?.permissions?.can_view_employee ?? user.can_view_employee ?? false);
 });
 
-const isDataMenuOpen = ref(false);
-const isPembelajaranOpen = ref(false);
 const isMobileSubMenuOpen = ref(false);
-// Track which mobile item is "active/selected" for the label reveal effect
 const mobileActiveTab = ref(props.currentRoute === 'overview' ? 'overview'
     : ['students', 'staff', 'administration', 'statistics'].includes(props.currentRoute) ? 'data'
     : props.currentRoute);
-
-function toggleDataMenu() {
-    isDataMenuOpen.value = !isDataMenuOpen.value;
-}
 
 function handleMobileTab(tabId) {
     if (tabId === 'data') {
@@ -46,154 +39,133 @@ function closeMobileSubMenu() {
 </script>
 
 <template>
-    <!-- Sidebar: Hidden on mobile, visible on md+ -->
-    <nav class="hidden md:flex bg-emerald-900 border-r border-emerald-800 h-screen w-64 fixed left-0 top-0 flex-col p-4 space-y-2 z-40">
+    <!-- Desktop Sidebar: Hidden on mobile, visible on md+ -->
+    <nav class="hidden md:flex bg-white border-r border-slate-200/80 h-screen w-64 fixed left-0 top-0 flex-col p-3.5 z-40 select-none">
         <!-- Brand Header -->
-        <div class="mb-8 px-2 flex items-center space-x-3 mt-4">
-            <div class="w-10 h-10 rounded-full bg-yellow-200 flex items-center justify-center text-emerald-900 shadow-sm shrink-0">
-                <span class="material-symbols-outlined filled-icon">school</span>
-            </div>
-            <div>
-                <h2 class="text-white leading-tight text-[15px] font-bold">Yayasan Li Ulil Albab Karanganyar</h2>
-            </div>
+        <div class="px-2 pt-2 pb-5 border-b border-slate-100">
+            <Link href="/beranda" class="flex items-center space-x-3 group">
+                <div class="w-10 h-10 rounded-xl bg-emerald-800 flex items-center justify-center text-yellow-300 shadow-sm shrink-0 group-hover:scale-105 transition-transform duration-200">
+                    <span class="material-symbols-outlined filled-icon text-[22px]">school</span>
+                </div>
+                <div class="min-w-0">
+                    <h2 class="text-slate-900 leading-tight text-[13.5px] font-bold truncate">Yayasan Li Ulil Albab</h2>
+                    <p class="text-[11px] text-slate-400 font-medium truncate">Karanganyar</p>
+                </div>
+            </Link>
         </div>
 
-        <!-- Main Navigation Links -->
-        <ul class="flex-grow space-y-1 overflow-y-auto custom-scrollbar">
-            <!-- Beranda -->
-            <SidebarMenuItem href="/beranda" icon="home" label="Beranda" :active="currentRoute === 'overview'" />
+        <!-- Navigation Categories & Links -->
+        <div class="flex-grow overflow-y-auto custom-scrollbar px-1 py-3 space-y-4">
+            <!-- Category: WORKSPACE -->
+            <div>
+                <div class="px-3 pb-1 text-[11px] font-semibold text-slate-400 tracking-wider uppercase">
+                    Workspace
+                </div>
+                <ul class="space-y-0.5">
+                    <SidebarMenuItem
+                        href="/beranda"
+                        icon="grid_view"
+                        label="Beranda"
+                        :active="currentRoute === 'overview'"
+                    />
+                </ul>
+            </div>
 
-            <!-- Database (with sub-menu) -->
-            <li>
-                <button
-                    @click="toggleDataMenu"
-                    :class="[
-                        'w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all cursor-pointer active:scale-95 duration-200',
-                        ['students', 'staff', 'administration', 'statistics'].includes(currentRoute)
-                            ? 'bg-emerald-800 text-yellow-200 font-semibold shadow-sm'
-                            : 'text-emerald-100/80 hover:bg-emerald-800 hover:text-yellow-200 font-medium'
-                    ]"
-                >
-                    <div class="flex items-center space-x-3">
-                        <span class="material-symbols-outlined text-[22px] transition-all duration-200" :class="{ 'filled-icon': ['students', 'staff', 'administration', 'statistics'].includes(currentRoute) }">folder</span>
-                        <span>Database</span>
-                    </div>
-                    <span class="material-symbols-outlined text-[18px] transition-transform duration-200" :class="{ 'rotate-180': isDataMenuOpen, 'filled-icon': ['students', 'staff', 'administration', 'statistics'].includes(currentRoute) }">expand_more</span>
-                </button>
+            <!-- Category: DATABASE -->
+            <div>
+                <div class="px-3 pb-1 text-[11px] font-semibold text-slate-400 tracking-wider uppercase">
+                    Database
+                </div>
+                <ul class="space-y-0.5">
+                    <SidebarMenuItem
+                        href="/students"
+                        icon="groups"
+                        label="Data Siswa"
+                        :active="currentRoute === 'students'"
+                    />
+                    <SidebarMenuItem
+                        v-if="canViewEmployee"
+                        href="/staff"
+                        icon="badge"
+                        label="Data Pegawai"
+                        :active="currentRoute === 'staff'"
+                    />
+                    <SidebarMenuItem
+                        href="/administration"
+                        icon="description"
+                        label="Administrasi"
+                        :active="currentRoute === 'administration'"
+                    />
+                    <SidebarMenuItem
+                        href="/statistics"
+                        icon="bar_chart"
+                        label="Statistik"
+                        :active="currentRoute === 'statistics'"
+                    />
+                    <SidebarMenuItem
+                        href="https://assetulil.com"
+                        icon="inventory_2"
+                        label="Aset"
+                        :external="true"
+                    />
+                </ul>
+            </div>
 
-                <!-- Sub Menu -->
-                <Transition
-                    enter-active-class="transition-all duration-200 ease-out"
-                    enter-from-class="max-h-0 opacity-0"
-                    enter-to-class="max-h-64 opacity-100"
-                    leave-active-class="transition-all duration-150 ease-in"
-                    leave-from-class="max-h-64 opacity-100"
-                    leave-to-class="max-h-0 opacity-0"
-                >
-                    <ul v-show="isDataMenuOpen || ['students', 'staff', 'administration', 'statistics'].includes(currentRoute)" class="mt-1 ml-4 pl-4 border-l border-emerald-700 space-y-0.5 overflow-hidden">
-                        <li>
-                            <Link href="/students" :class="['flex items-center space-x-2.5 px-3 py-2 rounded-lg transition-all cursor-pointer active:scale-95 duration-200 text-[13px]', currentRoute === 'students' ? 'bg-emerald-800 text-yellow-200 font-semibold shadow-sm' : 'text-emerald-100/60 hover:bg-emerald-800 hover:text-yellow-200 font-medium']">
-                                <span class="material-symbols-outlined text-[17px] transition-all duration-200" :class="{ 'filled-icon': currentRoute === 'students' }">groups</span>
-                                <span>Data Siswa</span>
-                            </Link>
-                        </li>
-                        <li v-if="canViewEmployee">
-                            <Link href="/staff" :class="['flex items-center space-x-2.5 px-3 py-2 rounded-lg transition-all cursor-pointer active:scale-95 duration-200 text-[13px]', currentRoute === 'staff' ? 'bg-emerald-800 text-yellow-200 font-semibold shadow-sm' : 'text-emerald-100/60 hover:bg-emerald-800 hover:text-yellow-200 font-medium']">
-                                <span class="material-symbols-outlined text-[17px] transition-all duration-200" :class="{ 'filled-icon': currentRoute === 'staff' }">badge</span>
-                                <span>Data Pegawai</span>
-                            </Link>
-                        </li>
-                        <li>
-                            <Link href="/administration" :class="['flex items-center space-x-2.5 px-3 py-2 rounded-lg transition-all cursor-pointer active:scale-95 duration-200 text-[13px]', currentRoute === 'administration' ? 'bg-emerald-800 text-yellow-200 font-semibold shadow-sm' : 'text-emerald-100/60 hover:bg-emerald-800 hover:text-yellow-200 font-medium']">
-                                <span class="material-symbols-outlined text-[17px] transition-all duration-200" :class="{ 'filled-icon': currentRoute === 'administration' }">description</span>
-                                <span>Administrasi</span>
-                            </Link>
-                        </li>
-                        <li>
-                            <Link href="/statistics" :class="['flex items-center space-x-2.5 px-3 py-2 rounded-lg transition-all cursor-pointer active:scale-95 duration-200 text-[13px]', currentRoute === 'statistics' ? 'bg-emerald-800 text-yellow-200 font-semibold shadow-sm' : 'text-emerald-100/60 hover:bg-emerald-800 hover:text-yellow-200 font-medium']">
-                                <span class="material-symbols-outlined text-[17px] transition-all duration-200" :class="{ 'filled-icon': currentRoute === 'statistics' }">bar_chart</span>
-                                <span>Statistik</span>
-                            </Link>
-                        </li>
-                        <li>
-                            <a href="https://assetulil.com" target="_blank" rel="noopener noreferrer" class="flex items-center space-x-2.5 px-3 py-2 rounded-lg transition-all cursor-pointer active:scale-95 duration-200 text-[13px] text-emerald-100/60 hover:bg-emerald-800 hover:text-yellow-200 font-medium">
-                                <span class="material-symbols-outlined text-[17px] transition-all duration-200">inventory_2</span>
-                                <span>Aset</span>
-                            </a>
-                        </li>
-                    </ul>
-                </Transition>
-            </li>
+            <!-- Category: AKADEMIK -->
+            <div>
+                <div class="px-3 pb-1 text-[11px] font-semibold text-slate-400 tracking-wider uppercase">
+                    Akademik
+                </div>
+                <ul class="space-y-0.5">
+                    <SidebarMenuItem
+                        href="/pembelajaran/kelas"
+                        icon="menu_book"
+                        label="Pembelajaran"
+                        :active="currentRoute === 'pembelajaran'"
+                    />
+                    <SidebarMenuItem
+                        href="#"
+                        icon="diversity_3"
+                        label="Kesiswaan"
+                        :active="currentRoute === 'kesiswaan'"
+                    />
+                </ul>
+            </div>
 
-            <!-- Pembelajaran (with sub-menu) -->
-            <li>
-                <button
-                    @click="isPembelajaranOpen = !isPembelajaranOpen"
-                    :class="[
-                        'w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all cursor-pointer active:scale-95 duration-200',
-                        currentRoute === 'pembelajaran'
-                            ? 'bg-emerald-800 text-yellow-200 font-semibold shadow-sm'
-                            : 'text-emerald-100/80 hover:bg-emerald-800 hover:text-yellow-200 font-medium'
-                    ]"
-                >
-                    <div class="flex items-center space-x-3">
-                        <span class="material-symbols-outlined text-[22px] transition-all duration-200" :class="{ 'filled-icon': currentRoute === 'pembelajaran' }">menu_book</span>
-                        <span>Pembelajaran</span>
-                    </div>
-                    <span class="material-symbols-outlined text-[18px] transition-transform duration-200" :class="{ 'rotate-180': isPembelajaranOpen, 'filled-icon': currentRoute === 'pembelajaran' }">expand_more</span>
-                </button>
-
-                <Transition
-                    enter-active-class="transition-all duration-200 ease-out"
-                    enter-from-class="max-h-0 opacity-0"
-                    enter-to-class="max-h-64 opacity-100"
-                    leave-active-class="transition-all duration-150 ease-in"
-                    leave-from-class="max-h-64 opacity-100"
-                    leave-to-class="max-h-0 opacity-0"
-                >
-                    <ul v-show="isPembelajaranOpen || currentRoute === 'pembelajaran'" class="mt-1 ml-4 pl-4 border-l border-emerald-700 space-y-0.5 overflow-hidden">
-                        <li>
-                            <Link href="/pembelajaran/kelas" :class="['flex items-center space-x-2.5 px-3 py-2 rounded-lg transition-all cursor-pointer active:scale-95 duration-200 text-[13px]', currentRoute === 'pembelajaran' ? 'bg-emerald-800 text-yellow-200 font-semibold shadow-sm' : 'text-emerald-100/60 hover:bg-emerald-800 hover:text-yellow-200 font-medium']">
-                                <span class="material-symbols-outlined text-[17px] transition-all duration-200" :class="{ 'filled-icon': currentRoute === 'pembelajaran' }">meeting_room</span>
-                                <span>Kelas</span>
-                            </Link>
-                        </li>
-                    </ul>
-                </Transition>
-            </li>
-
-            <!-- Kesiswaan -->
-            <SidebarMenuItem href="#" icon="diversity_3" label="Kesiswaan" :active="currentRoute === 'kesiswaan'" />
-
-            <!-- Manajemen -->
-            <SidebarMenuItem href="#" icon="admin_panel_settings" label="Manajemen" :active="currentRoute === 'manajemen'" />
-        </ul>
-
-        <!-- Bottom Action & Utilities -->
-        <div class="mt-auto pt-4 border-t border-emerald-800 space-y-2">
-            <button class="w-full bg-yellow-200 text-emerald-900 py-2 px-4 rounded-full hover:bg-yellow-300 transition-colors mb-4 flex items-center justify-center space-x-2 shadow-sm cursor-pointer font-semibold text-sm">
-                <span class="material-symbols-outlined text-[18px] filled-icon">add_circle</span>
-                <span>Buat Laporan</span>
-            </button>
-            <ul class="space-y-1">
-                <li>
-                    <Link href="/portal" class="flex items-center space-x-3 px-4 py-2 text-emerald-100/80 hover:bg-emerald-800 hover:text-yellow-200 rounded-xl transition-colors duration-200 cursor-pointer font-medium text-sm">
-                        <span class="material-symbols-outlined text-[20px] filled-icon">settings</span>
-                        <span>Pengaturan</span>
-                    </Link>
-                </li>
-                <li>
-                    <Link href="/logout" method="post" as="button" class="w-full flex items-center space-x-3 px-4 py-2 text-emerald-100/80 hover:bg-emerald-800 hover:text-yellow-200 rounded-xl transition-colors duration-200 cursor-pointer font-medium text-sm">
-                        <span class="material-symbols-outlined text-[20px] filled-icon">logout</span>
-                        <span>Logout</span>
-                    </Link>
-                </li>
-            </ul>
+            <!-- Category: SISTEM -->
+            <div>
+                <div class="px-3 pb-1 text-[11px] font-semibold text-slate-400 tracking-wider uppercase">
+                    Sistem
+                </div>
+                <ul class="space-y-0.5">
+                    <SidebarMenuItem
+                        href="/portal"
+                        icon="settings"
+                        label="Pengaturan"
+                        :active="currentRoute === 'portal'"
+                    />
+                    <li>
+                        <Link
+                            href="/logout"
+                            method="post"
+                            as="button"
+                            class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-150 cursor-pointer group text-slate-600 hover:text-rose-600 hover:bg-rose-50/70 font-medium active:scale-[0.98]"
+                        >
+                            <div class="flex items-center space-x-3 min-w-0">
+                                <span class="material-symbols-outlined text-[20px] text-slate-400 group-hover:text-rose-600 transition-colors duration-150 shrink-0">
+                                    logout
+                                </span>
+                                <span class="text-[13.5px] truncate leading-none">Logout</span>
+                            </div>
+                        </Link>
+                    </li>
+                </ul>
+            </div>
         </div>
     </nav>
 
     <!-- Mobile Bottom Navigation Bar -->
-    <nav class="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-outline-variant/30 safe-area-bottom">
+    <nav class="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200/80 safe-area-bottom">
 
         <!-- Sub-menu panel (slides up from above the nav bar) -->
         <Transition
@@ -204,40 +176,40 @@ function closeMobileSubMenu() {
             leave-from-class="max-h-48 opacity-100"
             leave-to-class="max-h-0 opacity-0"
         >
-            <div v-show="isMobileSubMenuOpen" class="overflow-hidden bg-white rounded-t-3xl border-t border-outline-variant/30 pb-2 pt-1 relative -top-[1px]">
-                <div class="w-12 h-1 bg-outline-variant/40 rounded-full mx-auto my-2"></div>
+            <div v-show="isMobileSubMenuOpen" class="overflow-hidden bg-white rounded-t-3xl border-t border-slate-200/80 pb-2 pt-1 relative -top-[1px]">
+                <div class="w-12 h-1 bg-slate-200 rounded-full mx-auto my-2"></div>
                 <div class="flex items-center justify-around px-4 py-2 gap-2">
                     <Link
                         href="/students"
                         @click="closeMobileSubMenu"
-                        :class="['flex flex-col items-center justify-center px-3 py-2 rounded-xl flex-1 transition-all', currentRoute === 'students' ? 'text-emerald-900 bg-emerald-50' : 'text-on-surface-variant active:text-emerald-900']"
+                        :class="['flex flex-col items-center justify-center px-3 py-2 rounded-xl flex-1 transition-all', currentRoute === 'students' ? 'text-slate-900 bg-slate-100 font-bold' : 'text-slate-500 active:text-slate-900']"
                     >
-                        <span class="material-symbols-outlined text-[20px] filled-icon">groups</span>
+                        <span class="material-symbols-outlined text-[20px]" :class="{ 'filled-icon': currentRoute === 'students' }">groups</span>
                         <span class="text-[10px] font-semibold mt-1 leading-tight">Data Siswa</span>
                     </Link>
                     <Link
                         v-if="canViewEmployee"
                         href="/staff"
                         @click="closeMobileSubMenu"
-                        :class="['flex flex-col items-center justify-center px-3 py-2 rounded-xl flex-1 transition-all', currentRoute === 'staff' ? 'text-emerald-900 bg-emerald-50' : 'text-on-surface-variant active:text-emerald-900']"
+                        :class="['flex flex-col items-center justify-center px-3 py-2 rounded-xl flex-1 transition-all', currentRoute === 'staff' ? 'text-slate-900 bg-slate-100 font-bold' : 'text-slate-500 active:text-slate-900']"
                     >
-                        <span class="material-symbols-outlined text-[20px] filled-icon">badge</span>
+                        <span class="material-symbols-outlined text-[20px]" :class="{ 'filled-icon': currentRoute === 'staff' }">badge</span>
                         <span class="text-[10px] font-semibold mt-1 leading-tight">Data Pegawai</span>
                     </Link>
                     <Link
                         href="/administration"
                         @click="closeMobileSubMenu"
-                        :class="['flex flex-col items-center justify-center px-3 py-2 rounded-xl flex-1 transition-all', currentRoute === 'administration' ? 'text-emerald-900 bg-emerald-50' : 'text-on-surface-variant active:text-emerald-900']"
+                        :class="['flex flex-col items-center justify-center px-3 py-2 rounded-xl flex-1 transition-all', currentRoute === 'administration' ? 'text-slate-900 bg-slate-100 font-bold' : 'text-slate-500 active:text-slate-900']"
                     >
-                        <span class="material-symbols-outlined text-[20px] filled-icon">description</span>
+                        <span class="material-symbols-outlined text-[20px]" :class="{ 'filled-icon': currentRoute === 'administration' }">description</span>
                         <span class="text-[10px] font-semibold mt-1 leading-tight">Administrasi</span>
                     </Link>
                     <Link
                         href="/statistics"
                         @click="closeMobileSubMenu"
-                        :class="['flex flex-col items-center justify-center px-3 py-2 rounded-xl flex-1 transition-all', currentRoute === 'statistics' ? 'text-emerald-900 bg-emerald-50' : 'text-on-surface-variant active:text-emerald-900']"
+                        :class="['flex flex-col items-center justify-center px-3 py-2 rounded-xl flex-1 transition-all', currentRoute === 'statistics' ? 'text-slate-900 bg-slate-100 font-bold' : 'text-slate-500 active:text-slate-900']"
                     >
-                        <span class="material-symbols-outlined text-[20px] filled-icon">bar_chart</span>
+                        <span class="material-symbols-outlined text-[20px]" :class="{ 'filled-icon': currentRoute === 'statistics' }">bar_chart</span>
                         <span class="text-[10px] font-semibold mt-1 leading-tight">Statistik</span>
                     </Link>
                     <a
@@ -245,9 +217,9 @@ function closeMobileSubMenu() {
                         target="_blank"
                         rel="noopener noreferrer"
                         @click="closeMobileSubMenu"
-                        class="flex flex-col items-center justify-center px-3 py-2 rounded-xl flex-1 transition-all text-on-surface-variant active:text-emerald-900"
+                        class="flex flex-col items-center justify-center px-3 py-2 rounded-xl flex-1 transition-all text-slate-500 active:text-slate-900"
                     >
-                        <span class="material-symbols-outlined text-[20px] filled-icon">inventory_2</span>
+                        <span class="material-symbols-outlined text-[20px]">inventory_2</span>
                         <span class="text-[10px] font-semibold mt-1 leading-tight">Aset</span>
                     </a>
                 </div>
@@ -262,10 +234,10 @@ function closeMobileSubMenu() {
                 href="/beranda"
                 @click="handleMobileTab('overview')"
                 class="flex flex-col items-center justify-center w-full py-1.5 transition-all duration-300 relative group"
-                :class="mobileActiveTab === 'overview' ? 'text-emerald-900' : 'text-on-surface-variant hover:text-emerald-900'"
+                :class="mobileActiveTab === 'overview' ? 'text-slate-900' : 'text-slate-500 hover:text-slate-900'"
             >
-                <div class="flex items-center justify-center px-4 py-1 rounded-full transition-all duration-300" :class="mobileActiveTab === 'overview' ? 'bg-emerald-100' : 'bg-transparent'">
-                    <span class="material-symbols-outlined text-[22px] transition-all duration-300 group-active:scale-90" :class="{ 'filled-icon': mobileActiveTab === 'overview' }">home</span>
+                <div class="flex items-center justify-center px-4 py-1 rounded-full transition-all duration-300" :class="mobileActiveTab === 'overview' ? 'bg-slate-100' : 'bg-transparent'">
+                    <span class="material-symbols-outlined text-[22px] transition-all duration-300 group-active:scale-90" :class="{ 'filled-icon': mobileActiveTab === 'overview' }">grid_view</span>
                 </div>
                 <span class="text-[10px] mt-1 transition-all duration-300" :class="mobileActiveTab === 'overview' ? 'font-bold opacity-100' : 'font-medium opacity-80'">Beranda</span>
             </Link>
@@ -274,9 +246,9 @@ function closeMobileSubMenu() {
             <button
                 @click="handleMobileTab('data')"
                 class="flex flex-col items-center justify-center w-full py-1.5 transition-all duration-300 relative group cursor-pointer"
-                :class="mobileActiveTab === 'data' || ['students', 'staff', 'administration', 'statistics'].includes(currentRoute) ? 'text-emerald-900' : 'text-on-surface-variant hover:text-emerald-900'"
+                :class="mobileActiveTab === 'data' || ['students', 'staff', 'administration', 'statistics'].includes(currentRoute) ? 'text-slate-900' : 'text-slate-500 hover:text-slate-900'"
             >
-                <div class="flex items-center justify-center px-4 py-1 rounded-full transition-all duration-300" :class="mobileActiveTab === 'data' || ['students', 'staff', 'administration', 'statistics'].includes(currentRoute) ? 'bg-emerald-100' : 'bg-transparent'">
+                <div class="flex items-center justify-center px-4 py-1 rounded-full transition-all duration-300" :class="mobileActiveTab === 'data' || ['students', 'staff', 'administration', 'statistics'].includes(currentRoute) ? 'bg-slate-100' : 'bg-transparent'">
                     <span class="material-symbols-outlined text-[22px] transition-all duration-300 group-active:scale-90" :class="{ 'filled-icon': mobileActiveTab === 'data' || ['students', 'staff', 'administration', 'statistics'].includes(currentRoute) }">folder</span>
                 </div>
                 <span class="text-[10px] mt-1 transition-all duration-300" :class="mobileActiveTab === 'data' || ['students', 'staff', 'administration', 'statistics'].includes(currentRoute) ? 'font-bold opacity-100' : 'font-medium opacity-80'">Database</span>
@@ -287,9 +259,9 @@ function closeMobileSubMenu() {
                 href="/pembelajaran/kelas"
                 @click="handleMobileTab('pembelajaran')"
                 class="flex flex-col items-center justify-center w-full py-1.5 transition-all duration-300 relative group"
-                :class="mobileActiveTab === 'pembelajaran' ? 'text-emerald-900' : 'text-on-surface-variant hover:text-emerald-900'"
+                :class="mobileActiveTab === 'pembelajaran' ? 'text-slate-900' : 'text-slate-500 hover:text-slate-900'"
             >
-                <div class="flex items-center justify-center px-4 py-1 rounded-full transition-all duration-300" :class="mobileActiveTab === 'pembelajaran' ? 'bg-emerald-100' : 'bg-transparent'">
+                <div class="flex items-center justify-center px-4 py-1 rounded-full transition-all duration-300" :class="mobileActiveTab === 'pembelajaran' ? 'bg-slate-100' : 'bg-transparent'">
                     <span class="material-symbols-outlined text-[22px] transition-all duration-300 group-active:scale-90" :class="{ 'filled-icon': mobileActiveTab === 'pembelajaran' }">menu_book</span>
                 </div>
                 <span class="text-[10px] mt-1 transition-all duration-300" :class="mobileActiveTab === 'pembelajaran' ? 'font-bold opacity-100' : 'font-medium opacity-80'">Belajar</span>
@@ -300,25 +272,25 @@ function closeMobileSubMenu() {
                 href="#"
                 @click="handleMobileTab('kesiswaan')"
                 class="flex flex-col items-center justify-center w-full py-1.5 transition-all duration-300 relative group"
-                :class="mobileActiveTab === 'kesiswaan' ? 'text-emerald-900' : 'text-on-surface-variant hover:text-emerald-900'"
+                :class="mobileActiveTab === 'kesiswaan' ? 'text-slate-900' : 'text-slate-500 hover:text-slate-900'"
             >
-                <div class="flex items-center justify-center px-4 py-1 rounded-full transition-all duration-300" :class="mobileActiveTab === 'kesiswaan' ? 'bg-emerald-100' : 'bg-transparent'">
+                <div class="flex items-center justify-center px-4 py-1 rounded-full transition-all duration-300" :class="mobileActiveTab === 'kesiswaan' ? 'bg-slate-100' : 'bg-transparent'">
                     <span class="material-symbols-outlined text-[22px] transition-all duration-300 group-active:scale-90" :class="{ 'filled-icon': mobileActiveTab === 'kesiswaan' }">diversity_3</span>
                 </div>
                 <span class="text-[10px] mt-1 transition-all duration-300" :class="mobileActiveTab === 'kesiswaan' ? 'font-bold opacity-100' : 'font-medium opacity-80'">Kesiswaan</span>
             </Link>
 
-            <!-- Manajemen -->
+            <!-- Manajemen / Pengaturan -->
             <Link
-                href="#"
+                href="/portal"
                 @click="handleMobileTab('manajemen')"
                 class="flex flex-col items-center justify-center w-full py-1.5 transition-all duration-300 relative group"
-                :class="mobileActiveTab === 'manajemen' ? 'text-emerald-900' : 'text-on-surface-variant hover:text-emerald-900'"
+                :class="mobileActiveTab === 'manajemen' || currentRoute === 'portal' ? 'text-slate-900' : 'text-slate-500 hover:text-slate-900'"
             >
-                <div class="flex items-center justify-center px-4 py-1 rounded-full transition-all duration-300" :class="mobileActiveTab === 'manajemen' ? 'bg-emerald-100' : 'bg-transparent'">
-                    <span class="material-symbols-outlined text-[22px] transition-all duration-300 group-active:scale-90" :class="{ 'filled-icon': mobileActiveTab === 'manajemen' }">admin_panel_settings</span>
+                <div class="flex items-center justify-center px-4 py-1 rounded-full transition-all duration-300" :class="mobileActiveTab === 'manajemen' || currentRoute === 'portal' ? 'bg-slate-100' : 'bg-transparent'">
+                    <span class="material-symbols-outlined text-[22px] transition-all duration-300 group-active:scale-90" :class="{ 'filled-icon': mobileActiveTab === 'manajemen' || currentRoute === 'portal' }">settings</span>
                 </div>
-                <span class="text-[10px] mt-1 transition-all duration-300" :class="mobileActiveTab === 'manajemen' ? 'font-bold opacity-100' : 'font-medium opacity-80'">Manajemen</span>
+                <span class="text-[10px] mt-1 transition-all duration-300" :class="mobileActiveTab === 'manajemen' || currentRoute === 'portal' ? 'font-bold opacity-100' : 'font-medium opacity-80'">Pengaturan</span>
             </Link>
 
         </div>
@@ -336,11 +308,11 @@ function closeMobileSubMenu() {
 /* Custom Scrollbar for Sidebar */
 .custom-scrollbar {
     scrollbar-width: thin;
-    scrollbar-color: #047857 transparent; /* emerald-700 */
+    scrollbar-color: #cbd5e1 transparent; /* slate-300 */
 }
 
 .custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
+    width: 4px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
@@ -348,11 +320,11 @@ function closeMobileSubMenu() {
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-    background-color: #047857; /* emerald-700 */
-    border-radius: 10px;
+    background-color: #cbd5e1; /* slate-300 */
+    border-radius: 9999px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background-color: #059669; /* emerald-600 */
+    background-color: #94a3b8; /* slate-400 */
 }
 </style>
