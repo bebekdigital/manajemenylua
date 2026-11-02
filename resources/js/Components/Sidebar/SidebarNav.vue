@@ -42,7 +42,7 @@ function closeMobileSubMenu() {
     <!-- Desktop Sidebar: Hidden on mobile, visible on md+ -->
     <nav class="hidden md:flex bg-emerald-900 border-r border-emerald-800 h-screen w-64 fixed left-0 top-0 flex-col p-3.5 z-40 select-none shadow-sm">
         <!-- Brand Header -->
-        <div class="px-2 pt-2 pb-5 border-b border-emerald-800/80">
+        <div class="px-2 pt-2 pb-5 border-b border-emerald-800/80 shrink-0">
             <Link href="/beranda" class="flex items-center space-x-3 group">
                 <div class="w-10 h-10 rounded-xl bg-yellow-200 flex items-center justify-center text-emerald-950 shadow-sm shrink-0 group-hover:scale-105 transition-transform duration-200">
                     <span class="material-symbols-outlined filled-icon text-[22px]">school</span>
@@ -54,8 +54,8 @@ function closeMobileSubMenu() {
             </Link>
         </div>
 
-        <!-- Navigation Categories & Links -->
-        <div class="flex-grow overflow-y-auto custom-scrollbar px-1 py-3 space-y-4">
+        <!-- Navigation Categories & Links (Kategori Utama dengan Garis Pemisah) -->
+        <div class="flex-grow overflow-y-auto custom-scrollbar px-1 py-3 space-y-3">
             <!-- Category: WORKSPACE -->
             <div>
                 <div class="px-3 pb-1 text-[11px] font-bold text-emerald-300/90 tracking-wider uppercase">
@@ -70,6 +70,9 @@ function closeMobileSubMenu() {
                     />
                 </ul>
             </div>
+
+            <!-- Garis Pemisah Kategori -->
+            <div class="h-[1px] bg-emerald-800/80 mx-2"></div>
 
             <!-- Category: DATABASE -->
             <div>
@@ -111,6 +114,9 @@ function closeMobileSubMenu() {
                 </ul>
             </div>
 
+            <!-- Garis Pemisah Kategori -->
+            <div class="h-[1px] bg-emerald-800/80 mx-2"></div>
+
             <!-- Category: AKADEMIK -->
             <div>
                 <div class="px-3 pb-1 text-[11px] font-bold text-emerald-300/90 tracking-wider uppercase">
@@ -131,36 +137,36 @@ function closeMobileSubMenu() {
                     />
                 </ul>
             </div>
+        </div>
 
-            <!-- Category: SISTEM -->
-            <div>
-                <div class="px-3 pb-1 text-[11px] font-bold text-emerald-300/90 tracking-wider uppercase">
-                    Sistem
-                </div>
-                <ul class="space-y-0.5">
-                    <SidebarMenuItem
-                        href="/portal"
-                        icon="settings"
-                        label="Pengaturan"
-                        :active="currentRoute === 'portal'"
-                    />
-                    <li>
-                        <Link
-                            href="/logout"
-                            method="post"
-                            as="button"
-                            class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-150 cursor-pointer group text-emerald-100/90 hover:text-rose-200 hover:bg-rose-900/40 font-medium active:scale-[0.98]"
-                        >
-                            <div class="flex items-center space-x-3 min-w-0">
-                                <span class="material-symbols-outlined text-[20px] text-emerald-300 group-hover:text-rose-300 transition-colors duration-150 shrink-0">
-                                    logout
-                                </span>
-                                <span class="text-[13.5px] truncate leading-none">Logout</span>
-                            </div>
-                        </Link>
-                    </li>
-                </ul>
+        <!-- Bottom Pinned Section: Pengaturan & Logout (Terpisah di bagian bawah) -->
+        <div class="pt-3 border-t border-emerald-800/80 mt-auto shrink-0 px-1">
+            <div class="px-3 pb-1 text-[11px] font-bold text-emerald-300/90 tracking-wider uppercase">
+                Sistem
             </div>
+            <ul class="space-y-0.5">
+                <SidebarMenuItem
+                    href="/portal"
+                    icon="settings"
+                    label="Pengaturan"
+                    :active="currentRoute === 'portal'"
+                />
+                <li>
+                    <Link
+                        href="/logout"
+                        method="post"
+                        as="button"
+                        class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-150 cursor-pointer group text-emerald-100/90 hover:text-rose-200 hover:bg-rose-900/40 font-medium active:scale-[0.98]"
+                    >
+                        <div class="flex items-center space-x-3 min-w-0">
+                            <span class="material-symbols-outlined text-[20px] text-emerald-300 group-hover:text-rose-300 transition-colors duration-150 shrink-0">
+                                logout
+                            </span>
+                            <span class="text-[13.5px] truncate leading-none">Logout</span>
+                        </div>
+                    </Link>
+                </li>
+            </ul>
         </div>
     </nav>
 

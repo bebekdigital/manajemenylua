@@ -1,6 +1,6 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { usePage, router, Link } from '@inertiajs/vue3';
+import { ref, onMounted, onUnmounted } from 'vue';
+import { usePage, Link } from '@inertiajs/vue3';
 
 defineProps({
     pageTitle: {
@@ -12,25 +12,35 @@ defineProps({
 defineEmits(['toggle-sidebar']);
 
 const page = usePage();
-const isSwitching = ref(false);
-const isDropdownOpen = ref(false);
-const dropdownRef = ref(null);
+
+// State dropdown untuk menu baru di Topbar (Agenda, Info, Persetujuan)
+const activeDropdown = ref(null); // 'agenda' | 'info' | 'persetujuan' | null
+const agendaMenuRef = ref(null);
+const infoMenuRef = ref(null);
+const persetujuanMenuRef = ref(null);
 
 const isProfileMenuOpen = ref(false);
 const profileMenuRef = ref(null);
 
-function toggleDropdown() {
-    if (!isSwitching.value) {
-        isDropdownOpen.value = !isDropdownOpen.value;
+function toggleMenu(menuName) {
+    if (activeDropdown.value === menuName) {
+        activeDropdown.value = null;
+    } else {
+        activeDropdown.value = menuName;
+        isProfileMenuOpen.value = false;
     }
 }
 
-function closeDropdown() {
-    isDropdownOpen.value = false;
+function closeAllMenus() {
+    activeDropdown.value = null;
+    isProfileMenuOpen.value = false;
 }
 
 function toggleProfileMenu() {
     isProfileMenuOpen.value = !isProfileMenuOpen.value;
+    if (isProfileMenuOpen.value) {
+        activeDropdown.value = null;
+    }
 }
 
 function closeProfileMenu() {
@@ -38,8 +48,13 @@ function closeProfileMenu() {
 }
 
 function handleClickOutside(event) {
-    if (dropdownRef.value && !dropdownRef.value.contains(event.target)) {
-        closeDropdown();
+    if (
+        activeDropdown.value &&
+        !agendaMenuRef.value?.contains(event.target) &&
+        !infoMenuRef.value?.contains(event.target) &&
+        !persetujuanMenuRef.value?.contains(event.target)
+    ) {
+        activeDropdown.value = null;
     }
     if (profileMenuRef.value && !profileMenuRef.value.contains(event.target)) {
         closeProfileMenu();
@@ -48,8 +63,7 @@ function handleClickOutside(event) {
 
 function handleKeydown(event) {
     if (event.key === 'Escape') {
-        closeDropdown();
-        closeProfileMenu();
+        closeAllMenus();
     }
 }
 
@@ -68,18 +82,153 @@ onUnmounted(() => {
     <header class="bg-surface-container-lowest shadow-sm docked full-width top-0 sticky z-30 border-b border-outline-variant/30 transition-all duration-300">
         <div class="flex items-center justify-between h-16 px-4 md:px-gutter max-w-container-max mx-auto gap-2 md:gap-4 w-full">
             
-            <!-- Left: Title -->
-            <div class="flex items-center gap-2 md:gap-4 shrink-0">
-
+            <!-- Left: Title & Topbar Navigation Menus -->
+            <div class="flex items-center gap-3 sm:gap-6 shrink-0">
                 <!-- Page Title (Desktop only) -->
                 <div class="hidden md:flex items-center shrink-0">
-                    <h1 class="hidden text-sm font-bold text-on-surface">{{ pageTitle }}</h1>
+                    <h1 class="text-sm font-bold text-slate-800">{{ pageTitle }}</h1>
                 </div>
-            </div>
 
-            <!-- Center: Empty space for Brand Logo (Mobile) -->
-            <div class="flex-grow flex justify-center md:hidden">
-                <!-- Nanti untuk logo brand -->
+                <!-- Topbar Menu Buttons: Agenda, Info, Persetujuan -->
+                <div class="flex items-center gap-1.5 sm:gap-2">
+                    <!-- Menu: Agenda -->
+                    <div class="relative" ref="agendaMenuRef">
+                        <button
+                            type="button"
+                            @click="toggleMenu('agenda')"
+                            :class="[
+                                'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12.5px] sm:text-[13px] font-semibold transition-all cursor-pointer border',
+                                activeDropdown === 'agenda'
+                                    ? 'bg-emerald-50 text-emerald-950 border-emerald-600 shadow-2xs'
+                                    : 'bg-white text-slate-700 border-slate-200/90 hover:bg-slate-50 hover:text-emerald-900 shadow-2xs'
+                            ]"
+                            title="Menu Agenda"
+                        >
+                            <span class="material-symbols-outlined text-[17px] text-emerald-700">calendar_month</span>
+                            <span>Agenda</span>
+                        </button>
+
+                        <!-- Dropdown Menu Agenda (Isinya nanti) -->
+                        <Transition
+                            enter-active-class="transition duration-150 ease-out"
+                            enter-from-class="transform scale-95 opacity-0 -translate-y-1"
+                            enter-to-class="transform scale-100 opacity-100 translate-y-0"
+                            leave-active-class="transition duration-100 ease-in"
+                            leave-from-class="transform scale-100 opacity-100 translate-y-0"
+                            leave-to-class="transform scale-95 opacity-0 -translate-y-1"
+                        >
+                            <div
+                                v-if="activeDropdown === 'agenda'"
+                                class="absolute left-0 mt-2 w-72 sm:w-80 bg-white rounded-2xl shadow-xl border border-slate-200 z-50 p-4 animate-in fade-in"
+                            >
+                                <div class="flex items-center justify-between pb-2.5 border-b border-slate-100">
+                                    <div class="flex items-center gap-2">
+                                        <span class="material-symbols-outlined text-[18px] text-emerald-700">calendar_month</span>
+                                        <h4 class="text-[13px] font-bold text-slate-900">Agenda Kegiatan</h4>
+                                    </div>
+                                    <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">Segera Hadir</span>
+                                </div>
+                                <div class="py-6 text-center">
+                                    <span class="material-symbols-outlined text-4xl text-slate-300 mb-1.5 block">event_upcoming</span>
+                                    <p class="text-[12.5px] font-medium text-slate-600">Belum ada agenda kegiatan.</p>
+                                    <p class="text-[11px] text-slate-400 mt-0.5">Jadwal dan kalender kegiatan akan ditampilkan di sini.</p>
+                                </div>
+                            </div>
+                        </Transition>
+                    </div>
+
+                    <!-- Menu: Info -->
+                    <div class="relative" ref="infoMenuRef">
+                        <button
+                            type="button"
+                            @click="toggleMenu('info')"
+                            :class="[
+                                'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12.5px] sm:text-[13px] font-semibold transition-all cursor-pointer border',
+                                activeDropdown === 'info'
+                                    ? 'bg-emerald-50 text-emerald-950 border-emerald-600 shadow-2xs'
+                                    : 'bg-white text-slate-700 border-slate-200/90 hover:bg-slate-50 hover:text-emerald-900 shadow-2xs'
+                            ]"
+                            title="Menu Info"
+                        >
+                            <span class="material-symbols-outlined text-[17px] text-emerald-700">campaign</span>
+                            <span>Info</span>
+                        </button>
+
+                        <!-- Dropdown Menu Info (Isinya nanti) -->
+                        <Transition
+                            enter-active-class="transition duration-150 ease-out"
+                            enter-from-class="transform scale-95 opacity-0 -translate-y-1"
+                            enter-to-class="transform scale-100 opacity-100 translate-y-0"
+                            leave-active-class="transition duration-100 ease-in"
+                            leave-from-class="transform scale-100 opacity-100 translate-y-0"
+                            leave-to-class="transform scale-95 opacity-0 -translate-y-1"
+                        >
+                            <div
+                                v-if="activeDropdown === 'info'"
+                                class="absolute left-0 mt-2 w-72 sm:w-80 bg-white rounded-2xl shadow-xl border border-slate-200 z-50 p-4 animate-in fade-in"
+                            >
+                                <div class="flex items-center justify-between pb-2.5 border-b border-slate-100">
+                                    <div class="flex items-center gap-2">
+                                        <span class="material-symbols-outlined text-[18px] text-emerald-700">campaign</span>
+                                        <h4 class="text-[13px] font-bold text-slate-900">Pusat Informasi</h4>
+                                    </div>
+                                    <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">Segera Hadir</span>
+                                </div>
+                                <div class="py-6 text-center">
+                                    <span class="material-symbols-outlined text-4xl text-slate-300 mb-1.5 block">notifications_paused</span>
+                                    <p class="text-[12.5px] font-medium text-slate-600">Belum ada pengumuman terbaru.</p>
+                                    <p class="text-[11px] text-slate-400 mt-0.5">Papan pengumuman dan berita penting akan ditampilkan di sini.</p>
+                                </div>
+                            </div>
+                        </Transition>
+                    </div>
+
+                    <!-- Menu: Persetujuan -->
+                    <div class="relative" ref="persetujuanMenuRef">
+                        <button
+                            type="button"
+                            @click="toggleMenu('persetujuan')"
+                            :class="[
+                                'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12.5px] sm:text-[13px] font-semibold transition-all cursor-pointer border',
+                                activeDropdown === 'persetujuan'
+                                    ? 'bg-emerald-50 text-emerald-950 border-emerald-600 shadow-2xs'
+                                    : 'bg-white text-slate-700 border-slate-200/90 hover:bg-slate-50 hover:text-emerald-900 shadow-2xs'
+                            ]"
+                            title="Menu Persetujuan"
+                        >
+                            <span class="material-symbols-outlined text-[17px] text-emerald-700">task_alt</span>
+                            <span>Persetujuan</span>
+                        </button>
+
+                        <!-- Dropdown Menu Persetujuan (Isinya nanti) -->
+                        <Transition
+                            enter-active-class="transition duration-150 ease-out"
+                            enter-from-class="transform scale-95 opacity-0 -translate-y-1"
+                            enter-to-class="transform scale-100 opacity-100 translate-y-0"
+                            leave-active-class="transition duration-100 ease-in"
+                            leave-from-class="transform scale-100 opacity-100 translate-y-0"
+                            leave-to-class="transform scale-95 opacity-0 -translate-y-1"
+                        >
+                            <div
+                                v-if="activeDropdown === 'persetujuan'"
+                                class="absolute left-0 mt-2 w-72 sm:w-80 bg-white rounded-2xl shadow-xl border border-slate-200 z-50 p-4 animate-in fade-in"
+                            >
+                                <div class="flex items-center justify-between pb-2.5 border-b border-slate-100">
+                                    <div class="flex items-center gap-2">
+                                        <span class="material-symbols-outlined text-[18px] text-emerald-700">task_alt</span>
+                                        <h4 class="text-[13px] font-bold text-slate-900">Persetujuan & Verifikasi</h4>
+                                    </div>
+                                    <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">Segera Hadir</span>
+                                </div>
+                                <div class="py-6 text-center">
+                                    <span class="material-symbols-outlined text-4xl text-slate-300 mb-1.5 block">fact_check</span>
+                                    <p class="text-[12.5px] font-medium text-slate-600">Tidak ada persetujuan tertunda.</p>
+                                    <p class="text-[11px] text-slate-400 mt-0.5">Daftar persetujuan dokumen atau izin akan muncul di sini.</p>
+                                </div>
+                            </div>
+                        </Transition>
+                    </div>
+                </div>
             </div>
 
             <!-- Right Actions: Role, Notifications & Profile -->
