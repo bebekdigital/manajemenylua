@@ -27,8 +27,8 @@ const props = defineProps({
         default: '',
     },
     activeJenjang: {
-        type: String,
-        default: '',
+        type: Array,
+        default: () => [],
     },
 });
 
@@ -82,7 +82,7 @@ const units = computed(() => {
     ];
 });
 
-// Daftar jenjang/kategori yang tersedia (untuk checklist dropdown Filter)
+// Daftar jenjang yang tersedia (untuk checklist dropdown Filter)
 const availableJenjang = computed(() => {
     return [...new Set(props.employees.map(e => e.jenjang_kepegawaian).filter(Boolean))].sort();
 });
@@ -100,7 +100,7 @@ const activeFiltersCount = computed(() => {
     let count = 0;
     if (props.activeStatus && props.activeStatus !== 'semua') count++;
     if (props.activeUnit) count++;
-    if (props.activeJenjang) count++;
+    if (props.activeJenjang && props.activeJenjang.length > 0) count += props.activeJenjang.length;
     if (searchQuery.value.trim()) count++;
     return count;
 });
@@ -122,12 +122,21 @@ function onUnitChange(event) {
     emit('filter-unit', event.target.value);
 }
 
+// Multi-select toggle for Jenjang
 function toggleJenjang(j) {
-    if (props.activeJenjang === j) {
-        emit('filter-jenjang', '');
+    const current = [...props.activeJenjang];
+    const index = current.indexOf(j);
+    if (index > -1) {
+        current.splice(index, 1);
     } else {
-        emit('filter-jenjang', j);
+        current.push(j);
     }
+    emit('filter-jenjang', current);
+}
+
+function removeJenjang(j) {
+    const current = props.activeJenjang.filter(item => item !== j);
+    emit('filter-jenjang', current);
 }
 
 function onPerPageChange(event) {
@@ -241,7 +250,7 @@ onUnmounted(() => {
                 </button>
             </div>
 
-            <!-- Filters Button dengan Dropdown Checklist -->
+            <!-- Filters Button dengan Dropdown Checklist Multi-select -->
             <div class="relative" ref="filterDropdownRef">
                 <button
                     type="button"
@@ -291,10 +300,11 @@ onUnmounted(() => {
                             </button>
                         </div>
 
-                        <!-- Kategori / Jenjang Kepegawaian Checklist -->
+                        <!-- Jenjang Kepegawaian Checklist (Multi-select) -->
                         <div>
-                            <span class="text-[12px] font-bold text-slate-700 block mb-2">Kategori Pegawai</span>
-                            <div class="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                            <span class="text-[12px] font-bold text-slate-700 block mb-1">Jenjang Pegawai</span>
+                            <span class="text-[11px] text-slate-400 block mb-2">Bisa pilih lebih dari 1</span>
+                            <div class="space-y-1 max-h-48 overflow-y-auto pr-1">
                                 <label
                                     v-for="j in availableJenjang"
                                     :key="j"
@@ -303,7 +313,7 @@ onUnmounted(() => {
                                     <span class="text-slate-700 font-medium">{{ j }}</span>
                                     <input
                                         type="checkbox"
-                                        :checked="activeJenjang === j"
+                                        :checked="activeJenjang.includes(j)"
                                         @change="toggleJenjang(j)"
                                         class="w-4 h-4 rounded text-emerald-800 border-slate-300 focus:ring-emerald-500 cursor-pointer"
                                     />
@@ -373,22 +383,25 @@ onUnmounted(() => {
                     </button>
                 </div>
 
-                <!-- Jenjang / Kategori Chip (Muncul saat di-checklist dari dropdown filter) -->
-                <div
-                    v-if="activeJenjang"
-                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white border border-slate-200 text-[12.5px] shadow-2xs"
-                >
-                    <span class="text-slate-400">Kategori:</span>
-                    <strong class="text-slate-800 font-semibold">{{ activeJenjang }}</strong>
-                    <button
-                        type="button"
-                        @click="emit('filter-jenjang', '')"
-                        class="text-slate-400 hover:text-slate-700 ml-0.5 flex items-center cursor-pointer"
-                        title="Hapus filter kategori"
+                <!-- Jenjang Chips (Muncul untuk setiap jenjang yang dipilih pada dropdown) -->
+                <template v-if="activeJenjang && activeJenjang.length > 0">
+                    <div
+                        v-for="j in activeJenjang"
+                        :key="j"
+                        class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white border border-slate-200 text-[12.5px] shadow-2xs"
                     >
-                        <span class="material-symbols-outlined text-[15px]">close</span>
-                    </button>
-                </div>
+                        <span class="text-slate-400">Jenjang:</span>
+                        <strong class="text-slate-800 font-semibold">{{ j }}</strong>
+                        <button
+                            type="button"
+                            @click="removeJenjang(j)"
+                            class="text-slate-400 hover:text-slate-700 ml-0.5 flex items-center cursor-pointer"
+                            :title="`Hapus filter jenjang ${j}`"
+                        >
+                            <span class="material-symbols-outlined text-[15px]">close</span>
+                        </button>
+                    </div>
+                </template>
 
                 <!-- Tombol Reset Filter jika ada filter aktif -->
                 <button

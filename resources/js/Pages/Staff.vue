@@ -46,7 +46,7 @@ const page = usePage();
 const searchQuery = ref('');
 const unitFilter = ref('');
 const statusFilter = ref('aktif'); // Default Aktif sesuai permintaan user
-const jenjangFilter = ref('');
+const jenjangFilters = ref([]); // Multi-select array untuk Jenjang
 const sortBy = ref('nama');
 const sortDirection = ref('asc');
 const currentPage = ref(1);
@@ -79,8 +79,10 @@ const filteredEmployees = computed(() => {
         result = result.filter(e => e.unit_kerja === unitFilter.value);
     }
 
-    if (jenjangFilter.value) {
-        result = result.filter(e => (e.jenjang_kepegawaian || '').toUpperCase() === jenjangFilter.value.toUpperCase());
+    // Multi-select jenjang filter
+    if (jenjangFilters.value.length > 0) {
+        const activeList = jenjangFilters.value.map(j => j.toUpperCase());
+        result = result.filter(e => activeList.includes((e.jenjang_kepegawaian || '').toUpperCase()));
     }
 
     if (statusFilter.value && statusFilter.value !== 'semua') {
@@ -135,8 +137,8 @@ function onFilterStatus(status) {
     currentPage.value = 1;
 }
 
-function onFilterJenjang(jenjang) {
-    jenjangFilter.value = jenjang;
+function onFilterJenjang(jenjangs) {
+    jenjangFilters.value = jenjangs;
     currentPage.value = 1;
 }
 
@@ -154,7 +156,7 @@ function onResetFilters() {
     searchQuery.value = '';
     unitFilter.value = '';
     statusFilter.value = 'aktif';
-    jenjangFilter.value = '';
+    jenjangFilters.value = [];
     sortBy.value = 'nama';
     sortDirection.value = 'asc';
     currentPage.value = 1;
@@ -275,7 +277,7 @@ function onPageChange(p) {
                 </button>
             </div>
 
-            <!-- Toolbar (Modern layout matching image: Status tabs, Search Bar Database Siswa, Filter Dropdown Checklist) -->
+            <!-- Toolbar (Modern layout matching image: Status tabs, Search Bar Database Siswa, Multi-select Jenjang Filter) -->
             <StaffToolbar
                 :employees="employees"
                 :total-count="employees.length"
@@ -283,7 +285,7 @@ function onPageChange(p) {
                 :per-page="perPage"
                 :active-status="statusFilter"
                 :active-unit="unitFilter"
-                :active-jenjang="jenjangFilter"
+                :active-jenjang="jenjangFilters"
                 @update:per-page="onPerPageChange"
                 @search="onSearch"
                 @filter-unit="onFilterUnit"

@@ -233,9 +233,17 @@ function getStatusStyle(status) {
                             </div>
                         </th>
 
-                        <!-- Jenjang / Kategori -->
-                        <th class="py-3.5 px-3 text-[11.5px] font-bold text-white uppercase tracking-wider select-none">
-                            Kategori
+                        <!-- Kolom Jenjang (sebelumnya Kategori) -->
+                        <th
+                            @click="handleSort('jenjang_kepegawaian')"
+                            class="py-3.5 px-3 text-[11.5px] font-bold text-white uppercase tracking-wider cursor-pointer hover:text-yellow-200 transition-colors select-none"
+                        >
+                            <div class="inline-flex items-center gap-1">
+                                <span>Jenjang</span>
+                                <span class="material-symbols-outlined text-[14px]" :class="sortBy === 'jenjang_kepegawaian' ? 'text-yellow-300' : 'text-emerald-300/60'">
+                                    {{ sortBy === 'jenjang_kepegawaian' ? (sortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward') : 'unfold_more' }}
+                                </span>
+                            </div>
                         </th>
 
                         <!-- Jabatan -->
@@ -345,7 +353,7 @@ function getStatusStyle(status) {
                             </div>
                         </td>
 
-                        <!-- Kategori / Jenjang Kepegawaian (Soft Pill persis kolom Category) -->
+                        <!-- Jenjang Kepegawaian (Soft Pill) -->
                         <td class="py-3.5 px-3 align-middle whitespace-nowrap">
                             <span
                                 v-if="emp.jenjang_kepegawaian"
