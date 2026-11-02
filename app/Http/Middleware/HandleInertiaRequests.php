@@ -54,6 +54,7 @@ class HandleInertiaRequests extends Middleware
                     'can_view_employee' => $canViewEmployee,
                 ],
             ],
+            'pending_approvals_count' => fn () => $user ? $user->getPendingPermitApprovals()->count() : 0,
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),

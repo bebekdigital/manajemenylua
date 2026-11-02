@@ -1,6 +1,7 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
 import { usePage, Link } from '@inertiajs/vue3';
+import axios from 'axios';
 
 defineProps({
     pageTitle: {
@@ -13,7 +14,7 @@ defineEmits(['toggle-sidebar']);
 
 const page = usePage();
 
-// State dropdown untuk menu baru di Topbar (Agenda, Info, Persetujuan)
+// State dropdown untuk menu di Topbar (Agenda, Info, Persetujuan)
 const activeDropdown = ref(null); // 'agenda' | 'info' | 'persetujuan' | null
 const agendaMenuRef = ref(null);
 const infoMenuRef = ref(null);
@@ -22,12 +23,55 @@ const persetujuanMenuRef = ref(null);
 const isProfileMenuOpen = ref(false);
 const profileMenuRef = ref(null);
 
+// ============================================================
+// Realtime Pending Approvals (Persetujuan Perizinan Atasan)
+// ============================================================
+const pendingApprovalsCount = ref(page.props.pending_approvals_count ?? 0);
+const pendingApprovalsList = ref([]);
+const isLoadingApprovals = ref(false);
+let approvalsPollInterval = null;
+
+watch(() => page.props.pending_approvals_count, (newVal) => {
+    if (typeof newVal === 'number') {
+        pendingApprovalsCount.value = newVal;
+    }
+});
+
+async function fetchPendingApprovals() {
+    try {
+        const response = await axios.get('/staff/permits/pending-approvals');
+        if (response.data) {
+            pendingApprovalsCount.value = response.data.count ?? 0;
+            pendingApprovalsList.value = response.data.items ?? [];
+        }
+    } catch {
+        // Abaikan error jaringan sementara
+    }
+}
+
+function startApprovalsPolling() {
+    stopApprovalsPolling();
+    fetchPendingApprovals();
+    // Polling setiap 4 detik untuk update realtime
+    approvalsPollInterval = setInterval(fetchPendingApprovals, 4000);
+}
+
+function stopApprovalsPolling() {
+    if (approvalsPollInterval) {
+        clearInterval(approvalsPollInterval);
+        approvalsPollInterval = null;
+    }
+}
+
 function toggleMenu(menuName) {
     if (activeDropdown.value === menuName) {
         activeDropdown.value = null;
     } else {
         activeDropdown.value = menuName;
         isProfileMenuOpen.value = false;
+        if (menuName === 'persetujuan') {
+            fetchPendingApprovals();
+        }
     }
 }
 
@@ -67,14 +111,22 @@ function handleKeydown(event) {
     }
 }
 
+function onWindowFocus() {
+    fetchPendingApprovals();
+}
+
 onMounted(() => {
     document.addEventListener('click', handleClickOutside);
     document.addEventListener('keydown', handleKeydown);
+    window.addEventListener('focus', onWindowFocus);
+    startApprovalsPolling();
 });
 
 onUnmounted(() => {
     document.removeEventListener('click', handleClickOutside);
     document.removeEventListener('keydown', handleKeydown);
+    window.removeEventListener('focus', onWindowFocus);
+    stopApprovalsPolling();
 });
 </script>
 
@@ -177,30 +229,38 @@ onUnmounted(() => {
                                 <div class="py-6 text-center">
                                     <span class="material-symbols-outlined text-4xl text-slate-300 mb-1.5 block">notifications_paused</span>
                                     <p class="text-[12.5px] font-medium text-slate-600">Belum ada pengumuman terbaru.</p>
-                                    <p class="text-[11px] text-slate-400 mt-0.5">Papan pengumuman dan berita penting akan ditampilkan di sini.</p>
+                                    <p class="text-[11px] text-slate-400 mt-0.5">Informasi dan berita penting akan ditampilkan di sini.</p>
                                 </div>
                             </div>
                         </Transition>
                     </div>
 
-                    <!-- Menu: Persetujuan -->
+                    <!-- Menu: Persetujuan (Terhubung Realtime dengan Pengajuan Perizinan Bawahan) -->
                     <div class="relative" ref="persetujuanMenuRef">
                         <button
                             type="button"
                             @click="toggleMenu('persetujuan')"
                             :class="[
-                                'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12.5px] sm:text-[13px] font-semibold transition-all cursor-pointer border',
+                                'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12.5px] sm:text-[13px] font-semibold transition-all cursor-pointer border relative',
                                 activeDropdown === 'persetujuan'
                                     ? 'bg-emerald-50 text-emerald-950 border-emerald-600 shadow-2xs'
                                     : 'bg-white text-slate-700 border-slate-200/90 hover:bg-slate-50 hover:text-emerald-900 shadow-2xs'
                             ]"
-                            title="Menu Persetujuan"
+                            title="Menu Persetujuan Perizinan"
                         >
                             <span class="material-symbols-outlined text-[17px] text-emerald-700">task_alt</span>
                             <span>Persetujuan</span>
+
+                            <!-- Badge Realtime jika ada pengajuan pending -->
+                            <span
+                                v-if="pendingApprovalsCount > 0"
+                                class="inline-flex items-center justify-center px-1.5 py-0.2 rounded-full text-[10.5px] font-bold bg-rose-600 text-white leading-none shadow-2xs animate-pulse"
+                            >
+                                {{ pendingApprovalsCount }}
+                            </span>
                         </button>
 
-                        <!-- Dropdown Menu Persetujuan (Isinya nanti) -->
+                        <!-- Dropdown Menu Persetujuan (Realtime List Pengajuan Perizinan) -->
                         <Transition
                             enter-active-class="transition duration-150 ease-out"
                             enter-from-class="transform scale-95 opacity-0 -translate-y-1"
@@ -211,19 +271,77 @@ onUnmounted(() => {
                         >
                             <div
                                 v-if="activeDropdown === 'persetujuan'"
-                                class="absolute left-0 mt-2 w-72 sm:w-80 bg-white rounded-2xl shadow-xl border border-slate-200 z-50 p-4 animate-in fade-in"
+                                class="absolute left-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-slate-200 z-50 p-3.5 space-y-2 animate-in fade-in"
                             >
-                                <div class="flex items-center justify-between pb-2.5 border-b border-slate-100">
+                                <div class="flex items-center justify-between pb-2 border-b border-slate-100">
                                     <div class="flex items-center gap-2">
                                         <span class="material-symbols-outlined text-[18px] text-emerald-700">task_alt</span>
-                                        <h4 class="text-[13px] font-bold text-slate-900">Persetujuan & Verifikasi</h4>
+                                        <h4 class="text-[13px] font-bold text-slate-900">Persetujuan Perizinan</h4>
                                     </div>
-                                    <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">Segera Hadir</span>
+                                    <span
+                                        :class="[
+                                            'text-[10.5px] font-bold px-2 py-0.5 rounded-full border',
+                                            pendingApprovalsCount > 0
+                                                ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                                : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                        ]"
+                                    >
+                                        {{ pendingApprovalsCount }} Menunggu
+                                    </span>
                                 </div>
-                                <div class="py-6 text-center">
+
+                                <!-- List Item Pengajuan Perizinan -->
+                                <div v-if="pendingApprovalsList.length > 0" class="max-h-80 overflow-y-auto space-y-1.5 pr-0.5">
+                                    <Link
+                                        v-for="item in pendingApprovalsList"
+                                        :key="item.id"
+                                        :href="item.url"
+                                        @click="activeDropdown = null"
+                                        class="p-2.5 rounded-xl border border-slate-200/80 hover:border-emerald-500 hover:bg-emerald-50/50 transition-all flex items-start justify-between gap-2.5 group cursor-pointer block"
+                                        title="Buka tab perizinan pegawai ini"
+                                    >
+                                        <div class="flex items-start gap-2.5 min-w-0">
+                                            <div class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-900 flex items-center justify-center shrink-0 mt-0.5 font-bold text-xs">
+                                                {{ item.employee_nama ? item.employee_nama.substring(0, 2).toUpperCase() : 'PG' }}
+                                            </div>
+                                            <div class="min-w-0">
+                                                <div class="flex items-center gap-1.5 flex-wrap">
+                                                    <span class="text-[12.5px] font-bold text-slate-900 group-hover:text-emerald-950 truncate">
+                                                        {{ item.employee_nama }}
+                                                    </span>
+                                                    <span class="text-[10.5px] px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 font-medium">
+                                                        {{ item.employee_unit }}
+                                                    </span>
+                                                </div>
+                                                <div class="text-[12px] font-semibold text-emerald-800 mt-0.5">
+                                                    {{ item.jenis }}
+                                                    <span v-if="item.detail" class="font-normal text-slate-500">({{ item.detail }})</span>
+                                                </div>
+                                                <div class="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1">
+                                                    <span class="material-symbols-outlined text-[13px]">calendar_today</span>
+                                                    <span>{{ item.tanggal }}</span>
+                                                    <span v-if="item.created_at_human" class="text-slate-400">• {{ item.created_at_human }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 shrink-0">
+                                            Diajukan
+                                        </span>
+                                    </Link>
+                                </div>
+
+                                <!-- Empty State jika tidak ada pengajuan -->
+                                <div v-else class="py-6 text-center">
                                     <span class="material-symbols-outlined text-4xl text-slate-300 mb-1.5 block">fact_check</span>
                                     <p class="text-[12.5px] font-medium text-slate-600">Tidak ada persetujuan tertunda.</p>
-                                    <p class="text-[11px] text-slate-400 mt-0.5">Daftar persetujuan dokumen atau izin akan muncul di sini.</p>
+                                    <p class="text-[11px] text-slate-400 mt-0.5">Semua pengajuan perizinan pegawai telah diproses.</p>
+                                </div>
+
+                                <div class="pt-2 border-t border-slate-100 text-center">
+                                    <p class="text-[10.5px] text-slate-400">
+                                        Klik pengajuan untuk membuka tab perizinan pegawai dan memberikan persetujuan.
+                                    </p>
                                 </div>
                             </div>
                         </Transition>

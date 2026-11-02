@@ -15,6 +15,47 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class EmployeePermitController extends Controller
 {
     /**
+     * Dapatkan daftar perizinan yang menunggu persetujuan oleh user login secara realtime.
+     */
+    public function pendingApprovals(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if (! $user) {
+            return response()->json([
+                'count' => 0,
+                'items' => [],
+            ]);
+        }
+
+        $pending = $user->getPendingPermitApprovals();
+
+        $items = $pending->map(function (EmployeePermit $p) {
+            $emp = $p->employee;
+            $pos = $emp?->currentPosition ?? $emp?->positions()->orderByDesc('tmt_jabatan')->first();
+
+            return [
+                'id' => $p->id,
+                'employee_id' => $p->employee_id,
+                'employee_nama' => $emp?->nama ?? 'Pegawai',
+                'employee_nipy' => $emp?->nipy ?? '-',
+                'employee_unit' => $emp?->unit_kerja ?? $pos?->unit_kerja ?? '-',
+                'employee_jabatan' => $emp?->jabatan ?? $pos?->jabatan ?? '-',
+                'jenis' => $p->jenis,
+                'detail' => $p->detail,
+                'tanggal' => $p->formatted_tanggal,
+                'created_at_human' => $p->created_at?->diffForHumans(),
+                'status' => $p->status,
+                'url' => route('staff.show', $p->employee_id).'?tab=perizinan',
+            ];
+        });
+
+        return response()->json([
+            'count' => $items->count(),
+            'items' => $items,
+        ]);
+    }
+
+    /**
      * Store a newly created employee permit in storage.
      */
     public function store(Request $request, string $id): RedirectResponse

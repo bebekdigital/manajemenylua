@@ -142,6 +142,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/staff/{id}/documents/{documentId}', [EmployeeDocumentController::class, 'destroy'])->name('staff.documents.destroy');
 
     // Perizinan Pegawai
+    Route::get('/staff/permits/pending-approvals', [EmployeePermitController::class, 'pendingApprovals'])->name('staff.permits.pending-approvals');
     Route::get('/staff/{id}/permits/realtime', [EmployeePermitController::class, 'getRealtimeData'])->name('staff.permits.realtime');
     Route::post('/staff/{id}/permits', [EmployeePermitController::class, 'store'])->name('staff.permits.store');
     Route::put('/staff/{id}/permits/{permitId}', [EmployeePermitController::class, 'update'])->name('staff.permits.update');

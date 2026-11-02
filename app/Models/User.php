@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Collection;
 
 #[Fillable(['name', 'username', 'role', 'is_active', 'email', 'password', 'must_change_password', 'nipy', 'status_kepegawaian', 'jk', 'ttl', 'unit', 'jabatan', 'no_wa', 'foto'])]
 #[Hidden(['password', 'remember_token'])]
@@ -183,5 +184,44 @@ class User extends Authenticatable
         }
 
         return false;
+    }
+
+    /**
+     * Dapatkan perizinan berstatus 'diajukan' yang memerlukan persetujuan dari user ini
+     * sesuai diagram susunan organisasi / atasan langsung.
+     *
+     * @return Collection<int, EmployeePermit>
+     */
+    public function getPendingPermitApprovals()
+    {
+        $myProfile = $this->employeeProfile();
+        $myEmployeeId = $myProfile?->id;
+
+        $pendingPermits = EmployeePermit::where('status', 'diajukan')
+            ->with([
+                'employee.currentPosition',
+                'employee.positions',
+            ])
+            ->latest('tanggal')
+            ->latest('created_at')
+            ->get();
+
+        if ($pendingPermits->isEmpty()) {
+            return collect();
+        }
+
+        return $pendingPermits->filter(function (EmployeePermit $permit) use ($myEmployeeId) {
+            // Pegawai tidak menyetujui izin atas namanya sendiri
+            if ($myEmployeeId && (int) $permit->employee_id === (int) $myEmployeeId) {
+                return false;
+            }
+
+            $employee = $permit->employee;
+            if (! $employee) {
+                return false;
+            }
+
+            return $this->canApprovePermitFor($employee);
+        })->values();
     }
 }

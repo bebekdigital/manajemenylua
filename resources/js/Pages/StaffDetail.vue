@@ -50,8 +50,30 @@ const props = defineProps({
     },
 });
 
+const allTabs = [
+    { id: 'identitas', label: 'Identitas', icon: 'badge' },
+    { id: 'alamat', label: 'Alamat', icon: 'home' },
+    { id: 'keluarga', label: 'Keluarga', icon: 'family_restroom' },
+    { id: 'kepegawaian', label: 'Kepegawaian', icon: 'work' },
+    { id: 'penugasan', label: 'Penugasan', icon: 'assignment_ind' },
+    { id: 'pendidikan', label: 'Pendidikan', icon: 'school' },
+    { id: 'perizinan', label: 'Perizinan', icon: 'assignment_turned_in' },
+    { id: 'dokumen', label: 'Dokumen', icon: 'folder_shared' },
+];
+
+const getInitialTab = () => {
+    if (typeof window !== 'undefined') {
+        const urlParams = new URLSearchParams(window.location.search);
+        const tabParam = urlParams.get('tab');
+        if (tabParam && allTabs.some((t) => t.id === tabParam)) {
+            return tabParam;
+        }
+    }
+    return 'identitas';
+};
+
 const page = usePage();
-const activeTab = ref('identitas');
+const activeTab = ref(getInitialTab());
 const isEditing = ref(false);
 const canEdit = computed(() => props.permissions?.can_update ?? true);
 const canViewKepegawaian = computed(() => props.permissions?.can_view_kepegawaian ?? true);
@@ -73,16 +95,17 @@ const dismissedFlash = ref(false);
 const flashSuccess = computed(() => !dismissedFlash.value ? page.props.flash?.success : null);
 const flashError = computed(() => !dismissedFlash.value ? page.props.flash?.error : null);
 
-const allTabs = [
-    { id: 'identitas', label: 'Identitas', icon: 'badge' },
-    { id: 'alamat', label: 'Alamat', icon: 'home' },
-    { id: 'keluarga', label: 'Keluarga', icon: 'family_restroom' },
-    { id: 'kepegawaian', label: 'Kepegawaian', icon: 'work' },
-    { id: 'penugasan', label: 'Penugasan', icon: 'assignment_ind' },
-    { id: 'pendidikan', label: 'Pendidikan', icon: 'school' },
-    { id: 'perizinan', label: 'Perizinan', icon: 'assignment_turned_in' },
-    { id: 'dokumen', label: 'Dokumen', icon: 'folder_shared' },
-];
+watch(() => page.url, (newUrl) => {
+    try {
+        const parsed = new URL(newUrl, window.location.origin);
+        const tabParam = parsed.searchParams.get('tab');
+        if (tabParam && allTabs.some((t) => t.id === tabParam)) {
+            activeTab.value = tabParam;
+        }
+    } catch {
+        // ignore
+    }
+}, { immediate: true });
 
 const tabs = computed(() => {
     if (!canViewKepegawaian.value) {
