@@ -45,7 +45,7 @@ const page = usePage();
 // ============================================================
 const searchQuery = ref('');
 const unitFilter = ref('');
-const statusFilter = ref('semua');
+const statusFilter = ref('aktif'); // Default Aktif sesuai permintaan user
 const jenjangFilter = ref('');
 const sortBy = ref('nama');
 const sortDirection = ref('asc');
@@ -153,7 +153,7 @@ function onSortChange({ field, direction }) {
 function onResetFilters() {
     searchQuery.value = '';
     unitFilter.value = '';
-    statusFilter.value = 'semua';
+    statusFilter.value = 'aktif';
     jenjangFilter.value = '';
     sortBy.value = 'nama';
     sortDirection.value = 'asc';
@@ -275,7 +275,7 @@ function onPageChange(p) {
                 </button>
             </div>
 
-            <!-- Toolbar (Modern layout matching image: Status tabs, Search Bar Database Siswa, Filter chips) -->
+            <!-- Toolbar (Modern layout matching image: Status tabs, Search Bar Database Siswa, Filter Dropdown Checklist) -->
             <StaffToolbar
                 :employees="employees"
                 :total-count="employees.length"
@@ -292,7 +292,7 @@ function onPageChange(p) {
                 @reset-filters="onResetFilters"
             />
 
-            <!-- Table (Modern design with green header and thick border outline) -->
+            <!-- Table (Modern design with green header, thicker horizontal dividers, and reduced rounded corners) -->
             <StaffTable
                 :employees="paginatedEmployees"
                 :current-page="currentPage"

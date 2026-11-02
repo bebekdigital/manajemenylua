@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 
 const props = defineProps({
     employees: {
@@ -20,7 +20,7 @@ const props = defineProps({
     },
     activeStatus: {
         type: String,
-        default: 'semua',
+        default: 'aktif',
     },
     activeUnit: {
         type: String,
@@ -42,9 +42,10 @@ const emit = defineEmits([
 ]);
 
 const searchQuery = ref('');
-const showFilters = ref(false);
+const isFilterOpen = ref(false);
+const filterDropdownRef = ref(null);
 
-// Compute counts per status tab (Tanpa Cuti)
+// Status counts (Semua, Aktif, Pensiun, Non-Aktif - tanpa Cuti)
 const statusCounts = computed(() => {
     const all = props.employees.length;
     let aktif = 0;
@@ -81,9 +82,9 @@ const units = computed(() => {
     ];
 });
 
-const jenjangList = computed(() => {
-    const uniqueJenjang = [...new Set(props.employees.map(e => e.jenjang_kepegawaian).filter(Boolean))].sort();
-    return uniqueJenjang.length > 0 ? uniqueJenjang : ['GTY', 'GTT', 'PTY', 'PTT'];
+// Daftar jenjang/kategori yang tersedia (untuk checklist dropdown Filter)
+const availableJenjang = computed(() => {
+    return [...new Set(props.employees.map(e => e.jenjang_kepegawaian).filter(Boolean))].sort();
 });
 
 const perPageOptions = [
@@ -121,9 +122,12 @@ function onUnitChange(event) {
     emit('filter-unit', event.target.value);
 }
 
-function selectJenjang(val) {
-    const next = props.activeJenjang === val ? '' : val;
-    emit('filter-jenjang', next);
+function toggleJenjang(j) {
+    if (props.activeJenjang === j) {
+        emit('filter-jenjang', '');
+    } else {
+        emit('filter-jenjang', j);
+    }
 }
 
 function onPerPageChange(event) {
@@ -133,14 +137,29 @@ function onPerPageChange(event) {
 function resetAll() {
     searchQuery.value = '';
     emit('reset-filters');
+    isFilterOpen.value = false;
 }
+
+function handleClickOutside(event) {
+    if (filterDropdownRef.value && !filterDropdownRef.value.contains(event.target)) {
+        isFilterOpen.value = false;
+    }
+}
+
+onMounted(() => {
+    document.addEventListener('click', handleClickOutside);
+});
+
+onUnmounted(() => {
+    document.removeEventListener('click', handleClickOutside);
+});
 </script>
 
 <template>
     <div class="mb-4 space-y-3">
         <!-- ROW 1: Segmented Status Tabs (Left) + Unit & Per Page Controls (Right) -->
         <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-            <!-- Segmented Status Tabs (Custom Clean Scrollbar - Tanpa Cuti) -->
+            <!-- Segmented Status Tabs (Default: Aktif) -->
             <div class="bg-slate-200/60 p-1 rounded-full inline-flex items-center gap-0.5 overflow-x-auto custom-tab-scrollbar max-w-full border border-slate-200/80 shrink-0">
                 <button
                     v-for="tab in statusTabs"
@@ -168,7 +187,7 @@ function resetAll() {
                 </button>
             </div>
 
-            <!-- Right Controls: Unit Dropdown + Per Page Selector (Tanpa Sort Nama) -->
+            <!-- Right Controls: Unit Dropdown + Per Page Selector -->
             <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
                 <!-- Unit Kerja Dropdown -->
                 <div class="relative flex-1 sm:flex-initial">
@@ -197,8 +216,8 @@ function resetAll() {
             </div>
         </div>
 
-        <!-- ROW 2: Search Bar (Gaya Database Siswa: rounded-xl, border-slate-300) + Filter Button -->
-        <div class="flex items-center gap-2.5">
+        <!-- ROW 2: Search Bar (Gaya Database Siswa: rounded-xl, border-slate-300) + Filter Button Dropdown -->
+        <div class="flex items-center gap-2.5 relative">
             <!-- Search Bar bergaya Database Siswa -->
             <div class="relative flex-1 min-w-0">
                 <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-[19px] pointer-events-none">
@@ -222,32 +241,105 @@ function resetAll() {
                 </button>
             </div>
 
-            <!-- Filters Button dengan Badge -->
-            <button
-                type="button"
-                @click="showFilters = !showFilters"
-                :class="[
-                    'inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border text-[13px] font-semibold transition-all shadow-2xs cursor-pointer shrink-0',
-                    showFilters || activeFiltersCount > 0
-                        ? 'bg-emerald-50 border-emerald-600 text-emerald-950'
-                        : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
-                ]"
-            >
-                <span class="material-symbols-outlined text-[18px]">tune</span>
-                <span>Filter</span>
-                <span
-                    v-if="activeFiltersCount > 0"
-                    class="px-1.5 py-0.5 rounded-full bg-emerald-900 text-yellow-200 text-[11px] font-bold leading-none"
+            <!-- Filters Button dengan Dropdown Checklist -->
+            <div class="relative" ref="filterDropdownRef">
+                <button
+                    type="button"
+                    @click="isFilterOpen = !isFilterOpen"
+                    :class="[
+                        'inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border text-[13px] font-semibold transition-all shadow-2xs cursor-pointer shrink-0',
+                        isFilterOpen || activeFiltersCount > 0
+                            ? 'bg-emerald-50 border-emerald-600 text-emerald-950 ring-2 ring-emerald-600/10'
+                            : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
+                    ]"
                 >
-                    {{ activeFiltersCount }}
-                </span>
-            </button>
+                    <span class="material-symbols-outlined text-[18px]">tune</span>
+                    <span>Filter</span>
+                    <span
+                        v-if="activeFiltersCount > 0"
+                        class="px-1.5 py-0.5 rounded-full bg-emerald-900 text-yellow-200 text-[11px] font-bold leading-none"
+                    >
+                        {{ activeFiltersCount }}
+                    </span>
+                    <span class="material-symbols-outlined text-[16px] text-slate-400 transition-transform duration-200" :class="{ 'rotate-180': isFilterOpen }">
+                        expand_more
+                    </span>
+                </button>
+
+                <!-- Filter Checklist Dropdown Menu -->
+                <Transition
+                    enter-active-class="transition duration-150 ease-out"
+                    enter-from-class="transform scale-95 opacity-0 -translate-y-1"
+                    enter-to-class="transform scale-100 opacity-100 translate-y-0"
+                    leave-active-class="transition duration-100 ease-in"
+                    leave-from-class="transform scale-100 opacity-100 translate-y-0"
+                    leave-to-class="transform scale-95 opacity-0 -translate-y-1"
+                >
+                    <div
+                        v-if="isFilterOpen"
+                        class="absolute right-0 mt-2 w-72 bg-white rounded-2xl border border-slate-200 shadow-xl z-50 p-4 space-y-3.5"
+                    >
+                        <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+                            <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Pilih Filter</span>
+                            <button
+                                v-if="activeFiltersCount > 0"
+                                type="button"
+                                @click="resetAll"
+                                class="text-[11px] font-semibold text-emerald-700 hover:text-emerald-950 cursor-pointer"
+                            >
+                                Reset Semua
+                            </button>
+                        </div>
+
+                        <!-- Kategori / Jenjang Kepegawaian Checklist -->
+                        <div>
+                            <span class="text-[12px] font-bold text-slate-700 block mb-2">Kategori Pegawai</span>
+                            <div class="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                                <label
+                                    v-for="j in availableJenjang"
+                                    :key="j"
+                                    class="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50 cursor-pointer text-[12.5px] transition-colors"
+                                >
+                                    <span class="text-slate-700 font-medium">{{ j }}</span>
+                                    <input
+                                        type="checkbox"
+                                        :checked="activeJenjang === j"
+                                        @change="toggleJenjang(j)"
+                                        class="w-4 h-4 rounded text-emerald-800 border-slate-300 focus:ring-emerald-500 cursor-pointer"
+                                    />
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Status Keaktifan Checklist -->
+                        <div class="pt-2 border-t border-slate-100">
+                            <span class="text-[12px] font-bold text-slate-700 block mb-2">Status Keaktifan</span>
+                            <div class="space-y-1">
+                                <label
+                                    v-for="s in statusTabs"
+                                    :key="s.key"
+                                    class="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50 cursor-pointer text-[12.5px] transition-colors"
+                                >
+                                    <span class="text-slate-700 font-medium">{{ s.label }}</span>
+                                    <input
+                                        type="radio"
+                                        name="status_radio"
+                                        :checked="activeStatus === s.key"
+                                        @change="selectStatusTab(s.key)"
+                                        class="w-4 h-4 text-emerald-800 border-slate-300 focus:ring-emerald-500 cursor-pointer"
+                                    />
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </Transition>
+            </div>
         </div>
 
-        <!-- ROW 3: Active Filter Chips (Left) + Entry Counter (Right) -->
+        <!-- ROW 3: Active Filter Chips Muncul Di Atas Tabel (Sesuai Referensi Gambar) -->
         <div class="flex flex-wrap items-center justify-between gap-2 pt-0.5">
-            <div class="flex flex-wrap items-center gap-1.5">
-                <!-- Status Chip -->
+            <div class="flex flex-wrap items-center gap-1.5 min-h-[30px]">
+                <!-- Status Chip (Muncul jika status bukan Aktif atau jika ada pilihan) -->
                 <div
                     v-if="activeStatus && activeStatus !== 'semua'"
                     class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white border border-slate-200 text-[12.5px] shadow-2xs"
@@ -258,12 +350,13 @@ function resetAll() {
                         type="button"
                         @click="selectStatusTab('semua')"
                         class="text-slate-400 hover:text-slate-700 ml-0.5 flex items-center cursor-pointer"
+                        title="Hapus filter status"
                     >
                         <span class="material-symbols-outlined text-[15px]">close</span>
                     </button>
                 </div>
 
-                <!-- Unit Chip -->
+                <!-- Unit Chip (Muncul saat unit dipilih) -->
                 <div
                     v-if="activeUnit"
                     class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white border border-slate-200 text-[12.5px] shadow-2xs"
@@ -274,12 +367,13 @@ function resetAll() {
                         type="button"
                         @click="emit('filter-unit', '')"
                         class="text-slate-400 hover:text-slate-700 ml-0.5 flex items-center cursor-pointer"
+                        title="Hapus filter unit"
                     >
                         <span class="material-symbols-outlined text-[15px]">close</span>
                     </button>
                 </div>
 
-                <!-- Jenjang Chip -->
+                <!-- Jenjang / Kategori Chip (Muncul saat di-checklist dari dropdown filter) -->
                 <div
                     v-if="activeJenjang"
                     class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white border border-slate-200 text-[12.5px] shadow-2xs"
@@ -290,31 +384,13 @@ function resetAll() {
                         type="button"
                         @click="emit('filter-jenjang', '')"
                         class="text-slate-400 hover:text-slate-700 ml-0.5 flex items-center cursor-pointer"
+                        title="Hapus filter kategori"
                     >
                         <span class="material-symbols-outlined text-[15px]">close</span>
                     </button>
                 </div>
 
-                <!-- Quick Filter Jenjang Pills -->
-                <div class="inline-flex items-center gap-1 flex-wrap">
-                    <button
-                        v-for="j in jenjangList"
-                        :key="j"
-                        type="button"
-                        @click="selectJenjang(j)"
-                        :class="[
-                            'inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[12px] font-medium transition-all cursor-pointer',
-                            activeJenjang === j
-                                ? 'bg-emerald-900 border-emerald-900 text-yellow-200 font-bold shadow-2xs'
-                                : 'border-dashed border-slate-300 text-slate-600 hover:border-slate-400 hover:text-slate-900 bg-white'
-                        ]"
-                    >
-                        <span v-if="activeJenjang !== j" class="text-slate-400">+</span>
-                        <span>{{ j }}</span>
-                    </button>
-                </div>
-
-                <!-- Reset Filter Link -->
+                <!-- Tombol Reset Filter jika ada filter aktif -->
                 <button
                     v-if="activeFiltersCount > 0"
                     type="button"

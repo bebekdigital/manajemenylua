@@ -183,8 +183,8 @@ function getStatusStyle(status) {
 </script>
 
 <template>
-    <!-- Table Container: Tebalkan outline tabel (border-2 border-emerald-800) -->
-    <div class="bg-white rounded-2xl border-2 border-emerald-800 shadow-[0_4px_25px_rgba(0,40,20,0.08)] overflow-hidden">
+    <!-- Table Container: Radius diperkecil (rounded-lg) & Outline dipertebal (border-2 border-emerald-800) -->
+    <div class="bg-white rounded-lg border-2 border-emerald-800 shadow-[0_4px_25px_rgba(0,40,20,0.08)] overflow-hidden">
         <div class="overflow-x-auto custom-scrollbar-x">
             <table class="w-full text-left border-collapse">
                 <!-- Table Header: Warna Hijau Tema Kontras Menarik -->
@@ -196,7 +196,7 @@ function getStatusStyle(status) {
                                 type="button"
                                 @click="toggleSelectAll"
                                 :class="[
-                                    'w-4 h-4 rounded-[5px] flex items-center justify-center transition-colors cursor-pointer mx-auto border',
+                                    'w-4 h-4 rounded-[4px] flex items-center justify-center transition-colors cursor-pointer mx-auto border',
                                     allSelected || someSelected
                                         ? 'bg-yellow-300 border-yellow-300 text-emerald-950'
                                         : 'bg-emerald-900/60 border-emerald-400 hover:border-yellow-200'
@@ -276,8 +276,8 @@ function getStatusStyle(status) {
                     </tr>
                 </thead>
 
-                <!-- Table Body: Desain Modern Sesuai Referensi Gambar -->
-                <tbody class="divide-y divide-slate-100">
+                <!-- Table Body: Garis kisi horizontal ditebalkan (divide-y-2 divide-slate-200) -->
+                <tbody class="divide-y-2 divide-slate-200">
                     <tr
                         v-for="emp in employees"
                         :key="emp.id"
@@ -292,7 +292,7 @@ function getStatusStyle(status) {
                                 type="button"
                                 @click="toggleSelectRow(emp.id)"
                                 :class="[
-                                    'w-4 h-4 rounded-[5px] flex items-center justify-center transition-colors cursor-pointer mx-auto border',
+                                    'w-4 h-4 rounded-[4px] flex items-center justify-center transition-colors cursor-pointer mx-auto border',
                                     selectedIds.includes(emp.id)
                                         ? 'bg-emerald-900 border-emerald-900 text-yellow-200'
                                         : 'bg-white border-slate-300 group-hover:border-emerald-600'
@@ -350,7 +350,7 @@ function getStatusStyle(status) {
                             <span
                                 v-if="emp.jenjang_kepegawaian"
                                 :class="[
-                                    'inline-flex items-center justify-center px-2.5 py-1 rounded-lg text-[12px] font-medium',
+                                    'inline-flex items-center justify-center px-2.5 py-1 rounded-md text-[12px] font-medium',
                                     getJenjangBadgeClass(emp.jenjang_kepegawaian)
                                 ]"
                             >
@@ -411,7 +411,7 @@ function getStatusStyle(status) {
                                 <div class="inline-flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
                                     <Link
                                         :href="`/staff/${emp.id}`"
-                                        class="p-1.5 rounded-lg text-slate-400 hover:text-emerald-800 hover:bg-emerald-50 transition-colors"
+                                        class="p-1.5 rounded-md text-slate-400 hover:text-emerald-800 hover:bg-emerald-50 transition-colors"
                                         title="Lihat Detail Pegawai"
                                     >
                                         <span class="material-symbols-outlined text-[18px] block">visibility</span>
@@ -419,7 +419,7 @@ function getStatusStyle(status) {
                                     <Link
                                         v-if="canUpdate"
                                         :href="`/staff/${emp.id}?edit=true`"
-                                        class="p-1.5 rounded-lg text-slate-400 hover:text-amber-700 hover:bg-amber-50 transition-colors"
+                                        class="p-1.5 rounded-md text-slate-400 hover:text-amber-700 hover:bg-amber-50 transition-colors"
                                         title="Edit Data Pegawai"
                                     >
                                         <span class="material-symbols-outlined text-[18px] block">more_horiz</span>
@@ -432,7 +432,7 @@ function getStatusStyle(status) {
                     <!-- Empty state -->
                     <tr v-if="employees.length === 0">
                         <td colspan="8" class="py-14 px-6 text-center">
-                            <div class="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-3 text-slate-400">
+                            <div class="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center mx-auto mb-3 text-slate-400">
                                 <span class="material-symbols-outlined text-2xl">search_off</span>
                             </div>
                             <p class="text-[14px] font-semibold text-slate-700">Tidak ada data pegawai ditemukan</p>
@@ -444,7 +444,7 @@ function getStatusStyle(status) {
         </div>
 
         <!-- Pagination Footer -->
-        <div class="px-5 py-3.5 border-t border-slate-200/80 flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50/50">
+        <div class="px-5 py-3.5 border-t-2 border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50/50">
             <div class="flex items-center gap-3">
                 <span class="text-[12.5px] text-slate-500">
                     <template v-if="perPage === 0">
@@ -466,7 +466,7 @@ function getStatusStyle(status) {
             <div v-if="perPage > 0 && totalPages > 1" class="flex items-center gap-1">
                 <button
                     :disabled="currentPage <= 1"
-                    class="p-1.5 rounded-lg border border-slate-300 bg-white text-slate-600 hover:border-emerald-700 hover:text-emerald-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                    class="p-1.5 rounded-md border border-slate-300 bg-white text-slate-600 hover:border-emerald-700 hover:text-emerald-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                     @click="$emit('page-change', currentPage - 1)"
                     title="Halaman sebelumnya"
                 >
@@ -478,7 +478,7 @@ function getStatusStyle(status) {
                     <button
                         v-else
                         :class="[
-                            'min-w-[30px] h-[30px] px-2 rounded-lg text-[12.5px] font-semibold transition-all cursor-pointer',
+                            'min-w-[30px] h-[30px] px-2 rounded-md text-[12.5px] font-semibold transition-all cursor-pointer',
                             page === currentPage
                                 ? 'bg-emerald-900 text-yellow-200 shadow-2xs font-bold'
                                 : 'bg-white border border-slate-300 text-slate-600 hover:border-emerald-700 hover:text-emerald-800'
@@ -491,7 +491,7 @@ function getStatusStyle(status) {
 
                 <button
                     :disabled="currentPage >= totalPages"
-                    class="p-1.5 rounded-lg border border-slate-300 bg-white text-slate-600 hover:border-emerald-700 hover:text-emerald-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                    class="p-1.5 rounded-md border border-slate-300 bg-white text-slate-600 hover:border-emerald-700 hover:text-emerald-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                     @click="$emit('page-change', currentPage + 1)"
                     title="Halaman berikutnya"
                 >
