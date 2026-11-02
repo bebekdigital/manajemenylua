@@ -108,57 +108,34 @@ function handleSort(field) {
     emit('sort-change', { field });
 }
 
-function getUnitInitial(unit) {
-    if (!unit) return 'U';
-    const words = unit.trim().split(/\s+/);
-    if (words.length >= 2) {
-        return (words[0][0] + words[1][0]).toUpperCase();
+// Badge warna untuk Jenis Kelamin (L = Biru, P = Pink/Fuchsia)
+function getJkBadgeClass(jk) {
+    if (jk === 'L') {
+        return 'bg-blue-50 text-blue-700 border border-blue-200';
     }
-    return unit.trim().substring(0, 2).toUpperCase();
+    if (jk === 'P') {
+        return 'bg-rose-50 text-rose-700 border border-rose-200';
+    }
+    return 'bg-slate-100 text-slate-600 border border-slate-200';
 }
 
-function getUnitAvatarClass(unit) {
-    if (!unit) return 'bg-slate-200 text-slate-600';
-    const palettes = [
-        'bg-emerald-900 text-yellow-200',
-        'bg-slate-800 text-white',
-        'bg-amber-600 text-white',
-        'bg-teal-700 text-white',
-        'bg-slate-200 text-slate-800',
-        'bg-emerald-700 text-white',
-    ];
-    let hash = 0;
-    for (let i = 0; i < unit.length; i++) {
-        hash = unit.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    return palettes[Math.abs(hash) % palettes.length];
-}
-
-function getNameInitial(name) {
-    if (!name) return 'P';
-    return name.trim().charAt(0).toUpperCase();
-}
-
-function getJabatanAvatarClass(jabatan) {
-    if (!jabatan) return 'bg-slate-100 text-slate-600';
-    const j = jabatan.toLowerCase();
-    if (j.includes('kepala') || j.includes('ketua') || j.includes('direktur')) {
-        return 'bg-amber-100 text-amber-800 border border-amber-300/60';
-    }
-    if (j.includes('guru') || j.includes('ustadz')) {
-        return 'bg-emerald-100 text-emerald-800 border border-emerald-300/60';
-    }
-    return 'bg-sky-100 text-sky-800 border border-sky-300/60';
-}
-
+// Badge warna untuk Jenjang Kepegawaian (GTY, GTT, PTT, PTY, dll)
 function getJenjangBadgeClass(jenjang) {
-    const map = {
-        'GTY': 'bg-slate-100 text-slate-700 border border-slate-200',
-        'GTT': 'bg-slate-100 text-slate-700 border border-slate-200',
-        'PTY': 'bg-slate-100 text-slate-700 border border-slate-200',
-        'PTT': 'bg-slate-100 text-slate-700 border border-slate-200',
-    };
-    return map[jenjang] ?? 'bg-slate-100 text-slate-600 border border-slate-200';
+    if (!jenjang) return 'bg-slate-100 text-slate-600 border border-slate-200';
+    const j = jenjang.toUpperCase();
+    if (j.startsWith('GTY')) {
+        return 'bg-emerald-50 text-emerald-800 border border-emerald-200 font-semibold';
+    }
+    if (j.startsWith('GTT')) {
+        return 'bg-teal-50 text-teal-800 border border-teal-200 font-semibold';
+    }
+    if (j.startsWith('PTY')) {
+        return 'bg-indigo-50 text-indigo-800 border border-indigo-200 font-semibold';
+    }
+    if (j.startsWith('PTT')) {
+        return 'bg-amber-50 text-amber-800 border border-amber-200 font-semibold';
+    }
+    return 'bg-slate-100 text-slate-700 border border-slate-200 font-medium';
 }
 
 function getStatusStyle(status) {
@@ -233,7 +210,7 @@ function getStatusStyle(status) {
                             </div>
                         </th>
 
-                        <!-- Kolom Jenjang (sebelumnya Kategori) -->
+                        <!-- Kolom Jenjang -->
                         <th
                             @click="handleSort('jenjang_kepegawaian')"
                             class="py-3.5 px-3 text-[11.5px] font-bold text-white uppercase tracking-wider cursor-pointer hover:text-yellow-200 transition-colors select-none"
@@ -269,7 +246,7 @@ function getStatusStyle(status) {
                             Status
                         </th>
 
-                        <!-- Kontak & Aksi -->
+                        <!-- Kontak WhatsApp -->
                         <th
                             @click="handleSort('no_wa')"
                             class="py-3.5 pl-3 pr-5 text-[11.5px] font-bold text-yellow-200 uppercase tracking-wider text-right cursor-pointer hover:text-white transition-colors select-none"
@@ -310,7 +287,7 @@ function getStatusStyle(status) {
                             </button>
                         </td>
 
-                        <!-- Pegawai: Nama Lengkap + NIPY Sub-text (persis layout gambar referensi) -->
+                        <!-- Pegawai: Nama Lengkap + NIPY Sub-text (Font NIPY lebih jelas & kontras) -->
                         <td class="py-3.5 px-3 align-middle">
                             <div class="flex items-start justify-between gap-2">
                                 <div class="min-w-0">
@@ -321,44 +298,39 @@ function getStatusStyle(status) {
                                         >
                                             {{ emp.nama }}
                                         </Link>
+                                        <!-- Badge Jenis Kelamin dengan warna pembeda (Biru untuk L, Pink untuk P) -->
                                         <span
                                             v-if="emp.jk"
-                                            class="text-[10.5px] font-semibold px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 border border-slate-200 shrink-0"
+                                            :class="[
+                                                'text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 leading-none',
+                                                getJkBadgeClass(emp.jk)
+                                            ]"
                                             :title="emp.jk === 'L' ? 'Laki-laki' : 'Perempuan'"
                                         >
                                             {{ emp.jk }}
                                         </span>
                                     </div>
-                                    <div class="text-[11.5px] text-slate-400 font-mono mt-0.5 tracking-tight">
+                                    <!-- Font NIPY lebih jelas (slate-600 font-semibold) -->
+                                    <div class="text-[12px] text-slate-600 font-mono font-medium mt-0.5 tracking-tight">
                                         {{ emp.nipy || 'NIPY -' }}
                                     </div>
                                 </div>
                             </div>
                         </td>
 
-                        <!-- Unit Kerja (Avatar Circle + Unit Name persis kolom Client) -->
+                        <!-- Unit Kerja (Tanpa Icon/Avatar) -->
                         <td class="py-3.5 px-3 align-middle whitespace-nowrap">
-                            <div class="flex items-center gap-2.5">
-                                <div
-                                    :class="[
-                                        'w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 shadow-2xs',
-                                        getUnitAvatarClass(emp.unit_kerja)
-                                    ]"
-                                >
-                                    {{ getUnitInitial(emp.unit_kerja) }}
-                                </div>
-                                <span class="text-[13px] font-medium text-slate-700">
-                                    {{ emp.unit_kerja || '-' }}
-                                </span>
-                            </div>
+                            <span class="text-[13px] font-medium text-slate-700">
+                                {{ emp.unit_kerja || '-' }}
+                            </span>
                         </td>
 
-                        <!-- Jenjang Kepegawaian (Soft Pill) -->
+                        <!-- Jenjang Kepegawaian (Soft Pill dengan warna berbeda per jenjang) -->
                         <td class="py-3.5 px-3 align-middle whitespace-nowrap">
                             <span
                                 v-if="emp.jenjang_kepegawaian"
                                 :class="[
-                                    'inline-flex items-center justify-center px-2.5 py-1 rounded-md text-[12px] font-medium',
+                                    'inline-flex items-center justify-center px-2.5 py-1 rounded-md text-[12px]',
                                     getJenjangBadgeClass(emp.jenjang_kepegawaian)
                                 ]"
                             >
@@ -367,31 +339,21 @@ function getStatusStyle(status) {
                             <span v-else class="text-[13px] text-slate-400">-</span>
                         </td>
 
-                        <!-- Jabatan (Avatar + Jabatan persis kolom Owner) -->
+                        <!-- Jabatan (Tanpa Icon/Avatar) -->
                         <td class="py-3.5 px-3 align-middle whitespace-nowrap">
-                            <div class="flex items-center gap-2">
-                                <div
-                                    :class="[
-                                        'w-6 h-6 rounded-full flex items-center justify-center text-[10.5px] font-bold shrink-0',
-                                        getJabatanAvatarClass(emp.jabatan)
-                                    ]"
-                                >
-                                    {{ getNameInitial(emp.jabatan || emp.nama) }}
-                                </div>
-                                <span class="text-[13px] font-medium text-slate-700">
-                                    {{ emp.jabatan || '-' }}
-                                </span>
-                            </div>
+                            <span class="text-[13px] font-medium text-slate-700">
+                                {{ emp.jabatan || '-' }}
+                            </span>
                         </td>
 
-                        <!-- Tempat, Tgl Lahir (Muted Date persis kolom Date) -->
+                        <!-- Tempat, Tgl Lahir -->
                         <td class="py-3.5 px-3 align-middle whitespace-nowrap">
-                            <span class="text-[13px] text-slate-500">
+                            <span class="text-[13px] text-slate-600 font-medium">
                                 {{ emp.ttl || '-' }}
                             </span>
                         </td>
 
-                        <!-- Status (Colored Dot + Status persis kolom Status) -->
+                        <!-- Status -->
                         <td class="py-3.5 px-3 align-middle whitespace-nowrap">
                             <span
                                 v-if="emp.status_keaktifan"
@@ -409,31 +371,11 @@ function getStatusStyle(status) {
                             </span>
                         </td>
 
-                        <!-- No WA + Actions (Right Aligned persis kolom Amount + ...) -->
+                        <!-- No WA (Tanpa icon mata dan titik 3) -->
                         <td class="py-3.5 pl-3 pr-5 align-middle whitespace-nowrap text-right">
-                            <div class="inline-flex items-center justify-end gap-3">
-                                <span class="text-[13.5px] font-semibold text-slate-900 tabular-nums">
-                                    {{ emp.no_wa || '-' }}
-                                </span>
-
-                                <div class="inline-flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
-                                    <Link
-                                        :href="`/staff/${emp.id}`"
-                                        class="p-1.5 rounded-md text-slate-400 hover:text-emerald-800 hover:bg-emerald-50 transition-colors"
-                                        title="Lihat Detail Pegawai"
-                                    >
-                                        <span class="material-symbols-outlined text-[18px] block">visibility</span>
-                                    </Link>
-                                    <Link
-                                        v-if="canUpdate"
-                                        :href="`/staff/${emp.id}?edit=true`"
-                                        class="p-1.5 rounded-md text-slate-400 hover:text-amber-700 hover:bg-amber-50 transition-colors"
-                                        title="Edit Data Pegawai"
-                                    >
-                                        <span class="material-symbols-outlined text-[18px] block">more_horiz</span>
-                                    </Link>
-                                </div>
-                            </div>
+                            <span class="text-[13.5px] font-semibold text-slate-900 tabular-nums">
+                                {{ emp.no_wa || '-' }}
+                            </span>
                         </td>
                     </tr>
 
