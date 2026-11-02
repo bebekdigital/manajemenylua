@@ -1,7 +1,7 @@
 <script setup>
-import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
+import { ref, onMounted, onUnmounted, watch } from 'vue';
 import { usePage, Link } from '@inertiajs/vue3';
-import axios from 'axios';
+import { usePendingApprovals } from '@/Composables/usePendingApprovals';
 
 defineProps({
     pageTitle: {
@@ -26,42 +26,20 @@ const profileMenuRef = ref(null);
 // ============================================================
 // Realtime Pending Approvals (Persetujuan Perizinan Atasan)
 // ============================================================
-const pendingApprovalsCount = ref(page.props.pending_approvals_count ?? 0);
-const pendingApprovalsList = ref([]);
-const isLoadingApprovals = ref(false);
-let approvalsPollInterval = null;
+const {
+    pendingApprovalsCount,
+    pendingApprovalsList,
+    fetchPendingApprovals,
+    startApprovalsPolling,
+    stopApprovalsPolling,
+    setCount,
+} = usePendingApprovals();
 
 watch(() => page.props.pending_approvals_count, (newVal) => {
     if (typeof newVal === 'number') {
-        pendingApprovalsCount.value = newVal;
+        setCount(newVal);
     }
-});
-
-async function fetchPendingApprovals() {
-    try {
-        const response = await axios.get('/staff/permits/pending-approvals');
-        if (response.data) {
-            pendingApprovalsCount.value = response.data.count ?? 0;
-            pendingApprovalsList.value = response.data.items ?? [];
-        }
-    } catch {
-        // Abaikan error jaringan sementara
-    }
-}
-
-function startApprovalsPolling() {
-    stopApprovalsPolling();
-    fetchPendingApprovals();
-    // Polling setiap 4 detik untuk update realtime
-    approvalsPollInterval = setInterval(fetchPendingApprovals, 4000);
-}
-
-function stopApprovalsPolling() {
-    if (approvalsPollInterval) {
-        clearInterval(approvalsPollInterval);
-        approvalsPollInterval = null;
-    }
-}
+}, { immediate: true });
 
 function toggleMenu(menuName) {
     if (activeDropdown.value === menuName) {
@@ -136,13 +114,19 @@ onUnmounted(() => {
             
             <!-- Left: Title & Topbar Navigation Menus -->
             <div class="flex items-center gap-3 sm:gap-6 shrink-0">
-                <!-- Page Title (Desktop only) -->
-                <div class="hidden md:flex items-center shrink-0">
-                    <h1 class="text-sm font-bold text-slate-800">{{ pageTitle }}</h1>
+                <!-- Page Title -->
+                <div class="flex items-center gap-2.5 shrink-0">
+                    <div class="w-8 h-8 rounded-xl bg-yellow-200 md:hidden flex items-center justify-center text-emerald-950 shadow-2xs shrink-0">
+                        <span class="material-symbols-outlined filled-icon text-[18px]">school</span>
+                    </div>
+                    <div class="flex flex-col md:block">
+                        <h1 class="text-sm font-bold text-slate-800 leading-tight">{{ pageTitle }}</h1>
+                        <span class="text-[10px] text-slate-400 font-medium md:hidden leading-tight">Yayasan Li Ulil Albab</span>
+                    </div>
                 </div>
 
-                <!-- Topbar Menu Buttons: Agenda, Info, Persetujuan -->
-                <div class="flex items-center gap-1.5 sm:gap-2">
+                <!-- Topbar Menu Buttons: Agenda, Info, Persetujuan (Desktop Only, di mobile ada di bottom nav) -->
+                <div class="hidden md:flex items-center gap-1.5 sm:gap-2">
                     <!-- Menu: Agenda -->
                     <div class="relative" ref="agendaMenuRef">
                         <button
