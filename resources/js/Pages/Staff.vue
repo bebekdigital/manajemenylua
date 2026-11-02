@@ -45,24 +45,33 @@ const page = usePage();
 // ============================================================
 const searchQuery = ref('');
 const unitFilter = ref('');
-const statusFilter = ref('aktif');
+const statusFilter = ref('semua');
+const jenjangFilter = ref('');
+const sortBy = ref('nama');
+const sortDirection = ref('asc');
 const currentPage = ref(1);
-const perPage = ref(10);
+const perPage = ref(15);
 const showImportModal = ref(false);
 const dismissedFlash = ref(false);
 
 const flashSuccess = computed(() => !dismissedFlash.value ? page.props.flash?.success : null);
 const flashError = computed(() => !dismissedFlash.value ? page.props.flash?.error : null);
 
+const uniqueUnitsCount = computed(() => {
+    return new Set(props.employees.map(e => e.unit_kerja).filter(Boolean)).size;
+});
+
 const filteredEmployees = computed(() => {
-    let result = props.employees;
+    let result = [...props.employees];
 
     if (searchQuery.value) {
         const query = searchQuery.value.toLowerCase().trim();
         result = result.filter(e =>
             (e.nama || '').toLowerCase().includes(query) ||
             (e.nipy || '').toLowerCase().includes(query) ||
-            (e.jabatan || '').toLowerCase().includes(query)
+            (e.jabatan || '').toLowerCase().includes(query) ||
+            (e.unit_kerja || '').toLowerCase().includes(query) ||
+            (e.no_wa || '').toLowerCase().includes(query)
         );
     }
 
@@ -70,16 +79,30 @@ const filteredEmployees = computed(() => {
         result = result.filter(e => e.unit_kerja === unitFilter.value);
     }
 
+    if (jenjangFilter.value) {
+        result = result.filter(e => (e.jenjang_kepegawaian || '').toUpperCase() === jenjangFilter.value.toUpperCase());
+    }
+
     if (statusFilter.value && statusFilter.value !== 'semua') {
         const val = statusFilter.value.toLowerCase();
         if (val === 'aktif') {
             result = result.filter(e => !e.status_keaktifan || e.status_keaktifan.toLowerCase() === 'aktif');
         } else if (val === 'tidak_aktif' || val === 'non-aktif') {
-            result = result.filter(e => e.status_keaktifan && e.status_keaktifan.toLowerCase() !== 'aktif');
+            result = result.filter(e => e.status_keaktifan && ['non-aktif', 'tidak aktif', 'tidak_aktif', 'resign', 'keluar'].includes(e.status_keaktifan.toLowerCase()));
         } else {
             result = result.filter(e => (e.status_keaktifan || '').toLowerCase() === val);
         }
     }
+
+    // Sorting
+    result.sort((a, b) => {
+        const field = sortBy.value;
+        const valA = (a[field] || '').toString().toLowerCase();
+        const valB = (b[field] || '').toString().toLowerCase();
+        if (valA < valB) return sortDirection.value === 'asc' ? -1 : 1;
+        if (valA > valB) return sortDirection.value === 'asc' ? 1 : -1;
+        return 0;
+    });
 
     return result;
 });
@@ -112,10 +135,28 @@ function onFilterStatus(status) {
     currentPage.value = 1;
 }
 
+function onFilterJenjang(jenjang) {
+    jenjangFilter.value = jenjang;
+    currentPage.value = 1;
+}
+
+function onSortChange({ field, direction }) {
+    sortBy.value = field;
+    if (direction) {
+        sortDirection.value = direction;
+    } else {
+        sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc';
+    }
+    currentPage.value = 1;
+}
+
 function onResetFilters() {
     searchQuery.value = '';
     unitFilter.value = '';
-    statusFilter.value = 'aktif';
+    statusFilter.value = 'semua';
+    jenjangFilter.value = '';
+    sortBy.value = 'nama';
+    sortDirection.value = 'asc';
     currentPage.value = 1;
 }
 
@@ -127,135 +168,149 @@ function onPageChange(p) {
 <template>
     <Head title="Database Pegawai - Foundation Data Center" />
 
-    <div class="flex-1 overflow-y-auto p-4 md:p-margin-desktop">
-        <!-- Page Header -->
-        <div class="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-                <h2 class="text-xl sm:text-2xl text-primary font-bold leading-tight">
-                    Database Pegawai
-                </h2>
-                <p class="font-body-md text-[13px] sm:text-sm text-on-surface-variant mt-1">
-                    Kelola dan tinjau seluruh data pegawai sesuai Tahun Ajaran aktif
-                </p>
+    <div class="flex-1 overflow-y-auto px-4 py-6 md:px-8 md:py-7 bg-[#fafafa] min-h-screen">
+        <div class="max-w-[1440px] mx-auto">
+            <!-- Page Header (Matching Reference Style) -->
+            <div class="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                <div>
+                    <h1 class="text-2xl sm:text-[26px] font-bold text-slate-900 tracking-tight leading-none">
+                        Database Pegawai
+                    </h1>
+                    <p class="text-[13.5px] text-slate-500 mt-2 font-medium flex items-center flex-wrap gap-1.5">
+                        <span><strong class="text-slate-700 font-semibold">{{ employees.length }}</strong> pegawai di <strong class="text-slate-700 font-semibold">{{ uniqueUnitsCount }}</strong> unit kerja</span>
+                        <span class="text-slate-300">·</span>
+                        <span class="text-emerald-800 font-semibold">{{ selectedAcademicYear?.name || 'Tahun Ajaran Aktif' }}</span>
+                    </p>
+                </div>
+
+                <!-- Action Buttons (Khusus Non-Guru & memiliki izin) -->
+                <div v-if="!isTeacher" class="flex items-center gap-2.5 shrink-0 flex-wrap sm:flex-nowrap">
+                    <a
+                        v-if="permissions?.can_export"
+                        href="/staff/template"
+                        download
+                        class="inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-full border border-slate-200 text-slate-700 bg-white hover:bg-slate-50 hover:border-slate-300 font-semibold text-[13px] transition-all shadow-2xs"
+                        title="Download template XLSX untuk import data pegawai"
+                    >
+                        <span class="material-symbols-outlined text-[18px] text-emerald-700">download</span>
+                        <span>Template Excel</span>
+                    </a>
+
+                    <button
+                        v-if="permissions?.can_import"
+                        type="button"
+                        @click="showImportModal = true"
+                        class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-semibold text-[13px] transition-all shadow-xs cursor-pointer active:scale-95"
+                        title="Import data pegawai dari file template Excel"
+                    >
+                        <span class="material-symbols-outlined text-[18px]">upload_file</span>
+                        <span>Import Data Pegawai</span>
+                    </button>
+                </div>
+                <div v-else-if="teacherEmployee" class="flex items-center gap-2 shrink-0">
+                    <Link
+                        :href="`/staff/${teacherEmployee.id}`"
+                        class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-semibold text-[13px] transition-all shadow-xs"
+                    >
+                        <span class="material-symbols-outlined text-[18px]">person</span>
+                        <span>Buka Profil Saya</span>
+                    </Link>
+                </div>
             </div>
 
-            <!-- Action Buttons (Khusus Non-Guru & memiliki izin) -->
-            <div v-if="!isTeacher" class="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
-                <a
-                    v-if="permissions?.can_export"
-                    href="/staff/template"
-                    download
-                    class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2.5 rounded-lg sm:rounded-xl border border-yellow-300 text-yellow-800 bg-yellow-100 hover:bg-yellow-200 active:bg-yellow-300 font-semibold text-[11px] sm:text-sm transition-all shadow-2xs hover:shadow-sm"
-                    title="Download template XLSX untuk import data pegawai"
-                >
-                    <span class="material-symbols-outlined text-[16px] sm:text-[18px]">download</span>
-                    <span>Download Template</span>
-                </a>
+            <!-- Teacher Role Scoping Notice Banner -->
+            <div
+                v-if="isTeacher"
+                class="mb-5 p-4 bg-emerald-50/70 border border-emerald-200 rounded-2xl flex items-start gap-3.5"
+            >
+                <span class="material-symbols-outlined text-emerald-700 text-2xl shrink-0 mt-0.5">shield_person</span>
+                <div class="flex-1">
+                    <h4 class="text-[13.5px] font-bold text-emerald-950">Mode Akses Guru</h4>
+                    <p v-if="teacherEmployee" class="text-[12.5px] text-emerald-800 mt-0.5 leading-relaxed">
+                        Sesuai kebijakan hak akses, Anda hanya dapat melihat dan mengelola data kepegawaian atas nama Anda sendiri:
+                        <strong class="font-semibold text-emerald-950 underline">{{ teacherEmployee.nama }}</strong>.
+                    </p>
+                    <p v-else class="text-[12.5px] text-amber-800 mt-0.5 leading-relaxed">
+                        Akun login Anda belum terhubung dengan data profil pegawai di sistem. Harap hubungi Superadmin atau Bagian SDM untuk menautkan NIPY atau Nama Anda.
+                    </p>
+                </div>
+            </div>
 
+            <!-- Flash Notifications -->
+            <div
+                v-if="flashSuccess"
+                class="mb-5 p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-start justify-between gap-3 animate-in fade-in duration-200"
+            >
+                <div class="flex items-start gap-3">
+                    <span class="material-symbols-outlined text-emerald-700 text-2xl shrink-0 mt-0.5">check_circle</span>
+                    <div>
+                        <h4 class="text-[13.5px] font-bold text-emerald-900">Import Berhasil</h4>
+                        <p class="text-[12.5px] text-emerald-800 mt-0.5 leading-relaxed">{{ flashSuccess }}</p>
+                    </div>
+                </div>
                 <button
-                    v-if="permissions?.can_import"
                     type="button"
-                    @click="showImportModal = true"
-                    class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2.5 rounded-lg sm:rounded-xl bg-primary hover:bg-primary-container text-on-primary font-semibold text-[11px] sm:text-sm transition-all shadow-xs hover:shadow-md cursor-pointer"
-                    title="Import data pegawai dari file template Excel"
+                    @click="dismissedFlash = true"
+                    class="text-emerald-700 hover:text-emerald-950 p-1 rounded-full hover:bg-emerald-100 transition-colors cursor-pointer"
                 >
-                    <span class="material-symbols-outlined text-[16px] sm:text-[18px]">upload_file</span>
-                    <span>Import Data Pegawai</span>
+                    <span class="material-symbols-outlined text-lg">close</span>
                 </button>
             </div>
-            <div v-else-if="teacherEmployee" class="flex items-center gap-2 shrink-0">
-                <Link
-                    :href="`/staff/${teacherEmployee.id}`"
-                    class="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary hover:bg-primary-container text-on-primary font-semibold text-xs sm:text-sm transition-all shadow-xs hover:shadow-md"
+
+            <div
+                v-if="flashError"
+                class="mb-5 p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-start justify-between gap-3 animate-in fade-in duration-200"
+            >
+                <div class="flex items-start gap-3">
+                    <span class="material-symbols-outlined text-rose-600 text-2xl shrink-0 mt-0.5">error</span>
+                    <div>
+                        <h4 class="text-[13.5px] font-bold text-rose-900">Import Gagal</h4>
+                        <p class="text-[12.5px] text-rose-800 mt-0.5 leading-relaxed">{{ flashError }}</p>
+                    </div>
+                </div>
+                <button
+                    type="button"
+                    @click="dismissedFlash = true"
+                    class="text-rose-600 hover:text-rose-900 p-1 rounded-full hover:bg-rose-100 transition-colors cursor-pointer"
                 >
-                    <span class="material-symbols-outlined text-[18px]">person</span>
-                    <span>Buka Profil Saya</span>
-                </Link>
+                    <span class="material-symbols-outlined text-lg">close</span>
+                </button>
             </div>
+
+            <!-- Toolbar (Tabs, Search Bar, Filter Chips) -->
+            <StaffToolbar
+                :employees="employees"
+                :total-count="employees.length"
+                :filtered-count="totalEntries"
+                :per-page="perPage"
+                :active-status="statusFilter"
+                :active-unit="unitFilter"
+                :active-jenjang="jenjangFilter"
+                :sort-by="sortBy"
+                :sort-direction="sortDirection"
+                @update:per-page="onPerPageChange"
+                @search="onSearch"
+                @filter-unit="onFilterUnit"
+                @filter-status="onFilterStatus"
+                @filter-jenjang="onFilterJenjang"
+                @sort-change="onSortChange"
+                @reset-filters="onResetFilters"
+            />
+
+            <!-- Table -->
+            <StaffTable
+                :employees="paginatedEmployees"
+                :current-page="currentPage"
+                :per-page="perPage"
+                :total-entries="totalEntries"
+                :sort-by="sortBy"
+                :sort-direction="sortDirection"
+                :can-update="permissions?.can_update ?? true"
+                @update:per-page="onPerPageChange"
+                @page-change="onPageChange"
+                @sort-change="onSortChange"
+            />
         </div>
-
-        <!-- Teacher Role Scoping Notice Banner -->
-        <div
-            v-if="isTeacher"
-            class="mb-5 p-4 bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800 rounded-2xl flex items-start gap-3.5 shadow-2xs"
-        >
-            <span class="material-symbols-outlined text-sky-600 dark:text-sky-400 text-2xl shrink-0 mt-0.5">shield_person</span>
-            <div class="flex-1">
-                <h4 class="text-sm font-bold text-sky-900 dark:text-sky-200">Mode Akses Guru</h4>
-                <p v-if="teacherEmployee" class="text-xs text-sky-800 dark:text-sky-300 mt-0.5 leading-relaxed">
-                    Sesuai kebijakan hak akses, Anda hanya dapat melihat dan mengelola data kepegawaian atas nama Anda sendiri:
-                    <strong class="font-semibold text-sky-950 dark:text-sky-100 underline">{{ teacherEmployee.nama }}</strong>.
-                </p>
-                <p v-else class="text-xs text-amber-800 dark:text-amber-300 mt-0.5 leading-relaxed">
-                    Akun login Anda belum terhubung dengan data profil pegawai di sistem. Harap hubungi Superadmin atau Bagian SDM untuk menautkan NIPY atau Nama Anda.
-                </p>
-            </div>
-        </div>
-
-        <!-- Flash Notifications -->
-        <div
-            v-if="flashSuccess"
-            class="mb-5 p-4 bg-primary/10 border border-primary/30 rounded-2xl flex items-start justify-between gap-3 animate-in fade-in duration-200"
-        >
-            <div class="flex items-start gap-3">
-                <span class="material-symbols-outlined text-primary text-2xl shrink-0 mt-0.5">check_circle</span>
-                <div>
-                    <h4 class="text-sm font-bold text-primary">Import Berhasil</h4>
-                    <p class="text-xs text-on-surface-variant mt-0.5 leading-relaxed">{{ flashSuccess }}</p>
-                </div>
-            </div>
-            <button
-                type="button"
-                @click="dismissedFlash = true"
-                class="text-on-surface-variant hover:text-on-surface p-1 rounded-full hover:bg-primary/15 transition-colors cursor-pointer"
-            >
-                <span class="material-symbols-outlined text-lg">close</span>
-            </button>
-        </div>
-
-        <div
-            v-if="flashError"
-            class="mb-5 p-4 bg-error/10 border border-error/30 rounded-2xl flex items-start justify-between gap-3 animate-in fade-in duration-200"
-        >
-            <div class="flex items-start gap-3">
-                <span class="material-symbols-outlined text-error text-2xl shrink-0 mt-0.5">error</span>
-                <div>
-                    <h4 class="text-sm font-bold text-error">Import Gagal</h4>
-                    <p class="text-xs text-on-surface-variant mt-0.5 leading-relaxed">{{ flashError }}</p>
-                </div>
-            </div>
-            <button
-                type="button"
-                @click="dismissedFlash = true"
-                class="text-on-surface-variant hover:text-on-surface p-1 rounded-full hover:bg-error/15 transition-colors cursor-pointer"
-            >
-                <span class="material-symbols-outlined text-lg">close</span>
-            </button>
-        </div>
-
-        <!-- Toolbar -->
-        <StaffToolbar
-            :employees="employees"
-            :total-count="employees.length"
-            :filtered-count="totalEntries"
-            :per-page="perPage"
-            @update:per-page="onPerPageChange"
-            @search="onSearch"
-            @filter-unit="onFilterUnit"
-            @filter-status="onFilterStatus"
-            @reset-filters="onResetFilters"
-        />
-
-        <!-- Table -->
-        <StaffTable
-            :employees="paginatedEmployees"
-            :current-page="currentPage"
-            :per-page="perPage"
-            :total-entries="totalEntries"
-            :can-update="permissions?.can_update ?? true"
-            @update:per-page="onPerPageChange"
-            @page-change="onPageChange"
-        />
     </div>
 
     <!-- Import Modal -->
