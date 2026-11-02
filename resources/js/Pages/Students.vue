@@ -26,37 +26,44 @@ const props = defineProps({
 const page = usePage();
 
 // ============================================================
-// Unit Tabs
+// Unit Pendidikan (Dropdown tanpa opsi "Semua Unit")
 // ============================================================
-const unitTabs = [
-    { id: 'SDIT', label: 'SDIT', icon: 'school' },
-    { id: 'SMPIT', label: 'SMPIT', icon: 'domain' },
-];
+const availableUnits = computed(() => {
+    const list = [...new Set(props.students.map(s => s.unit).filter(Boolean))].sort();
+    if (list.length === 0) {
+        return ['SDIT', 'SMPIT'];
+    }
+    return list;
+});
 
-const activeUnitTab = ref(localStorage.getItem('activeUnitTab') || 'SDIT');
+const activeUnitTab = ref(
+    localStorage.getItem('activeUnitTab') || 'SMPIT'
+);
+
+// Pastikan unit yang aktif valid di availableUnits
+watch(availableUnits, (units) => {
+    if (units.length > 0 && !units.includes(activeUnitTab.value)) {
+        activeUnitTab.value = units.includes('SMPIT') ? 'SMPIT' : units[0];
+    }
+}, { immediate: true });
 
 watch(activeUnitTab, (newVal) => {
     localStorage.setItem('activeUnitTab', newVal);
 });
 
 const unitTabStudents = computed(() => {
-    if (activeUnitTab.value === 'all') return props.students;
-
     return props.students.filter(s => {
         if (!s.unit) return false;
         const u = s.unit.toUpperCase();
-        if (activeUnitTab.value === 'SDIT') {
+        const active = (activeUnitTab.value || '').toUpperCase();
+        if (active === 'SDIT') {
             return u.includes('SDIT') || u.includes('SD IT');
         }
-        if (activeUnitTab.value === 'SMPIT') {
+        if (active === 'SMPIT') {
             return u.includes('SMPIT') || u.includes('SMP IT');
         }
-        return false;
+        return u === active;
     });
-});
-
-const activeUnitTabLabel = computed(() => {
-    return unitTabs.find(t => t.id === activeUnitTab.value)?.label ?? '';
 });
 
 function switchUnitTab(unitId) {
@@ -217,22 +224,6 @@ function onPageChange(p) {
     currentPage.value = p;
 }
 
-function unitStudentCount(unitId) {
-    if (unitId === 'all') return props.students.length;
-
-    return props.students.filter(s => {
-        if (!s.unit) return false;
-        const u = s.unit.toUpperCase();
-        if (unitId === 'SDIT') {
-            return u.includes('SDIT') || u.includes('SD IT');
-        }
-        if (unitId === 'SMPIT') {
-            return u.includes('SMPIT') || u.includes('SMP IT');
-        }
-        return false;
-    }).length;
-}
-
 const downloadTemplate = async () => {
     showTemplateDropdown.value = false;
     isDownloadingTemplate.value = true;
@@ -241,7 +232,7 @@ const downloadTemplate = async () => {
         const response = await fetch(url, { method: 'GET' });
         if (!response.ok) throw new Error('Network response was not ok');
 
-        let filename = 'Template_Data_Siswa.xlsx';
+        let filename = `Template_Data_Siswa_${activeUnitTab.value}.xlsx`;
         const disposition = response.headers.get('Content-Disposition');
         if (disposition && disposition.indexOf('attachment') !== -1) {
             const matches = /filename="([^"]*)"/.exec(disposition);
@@ -276,7 +267,7 @@ const downloadTemplate = async () => {
 
     <div class="flex-1 overflow-y-auto px-4 py-6 md:px-8 md:py-7 bg-[#fafafa] min-h-screen">
         <div class="max-w-[1440px] mx-auto">
-            <!-- Page Header: Judul, Unit Tabs & Action Buttons -->
+            <!-- Page Header: Judul, Dropdown Unit Pendidikan & Action Buttons -->
             <div class="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                 <div class="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
                     <div>
@@ -284,47 +275,35 @@ const downloadTemplate = async () => {
                             Database Siswa
                         </h1>
                         <p class="text-[13.5px] text-slate-500 mt-2 font-medium">
-                            <strong class="text-slate-700 font-semibold">{{ unitTabStudents.length }}</strong> siswa di unit <strong class="text-slate-700 font-semibold">{{ activeUnitTabLabel }}</strong>
+                            <strong class="text-slate-700 font-semibold">{{ unitTabStudents.length }}</strong> siswa terdaftar di unit <strong class="text-slate-700 font-semibold">{{ activeUnitTab }}</strong>
                         </p>
                     </div>
 
-                    <!-- Unit Segmented Capsule Tabs (SDIT / SMPIT) -->
-                    <div class="bg-slate-200/60 p-1 rounded-full inline-flex items-center gap-1 border border-slate-200/80 shrink-0">
-                        <button
-                            v-for="tab in unitTabs"
-                            :key="tab.id"
-                            type="button"
-                            @click="switchUnitTab(tab.id)"
-                            :class="[
-                                'inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[13px] font-bold transition-all duration-150 cursor-pointer shrink-0',
-                                activeUnitTab === tab.id
-                                    ? 'bg-emerald-900 text-yellow-200 shadow-xs'
-                                    : 'text-slate-600 hover:text-slate-900 font-semibold'
-                            ]"
+                    <!-- Dropdown Unit Pendidikan (Gaya Dropdown Unit Kerja DB Pegawai, Tanpa Opsi "Semua Unit") -->
+                    <div class="relative shrink-0">
+                        <span class="material-symbols-outlined text-[16px] text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none">domain</span>
+                        <select
+                            :value="activeUnitTab"
+                            @change="switchUnitTab($event.target.value)"
+                            class="pl-9 pr-8 py-2 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl text-[12.5px] sm:text-[13px] font-semibold text-slate-700 focus:outline-none focus:border-emerald-500 shadow-2xs cursor-pointer appearance-none transition-colors"
+                            title="Pilih Unit Pendidikan"
                         >
-                            <span class="material-symbols-outlined text-[16px]">{{ tab.icon }}</span>
-                            <span>{{ tab.label }}</span>
-                            <span
-                                :class="[
-                                    'px-2 py-0.5 rounded-full text-[11px] leading-none transition-colors font-bold',
-                                    activeUnitTab === tab.id
-                                        ? 'bg-emerald-800 text-yellow-100'
-                                        : 'bg-slate-300/80 text-slate-700'
-                                ]"
-                            >
-                                {{ unitStudentCount(tab.id) }}
-                            </span>
-                        </button>
+                            <option v-for="unit in availableUnits" :key="unit" :value="unit">
+                                {{ unit }}
+                            </option>
+                        </select>
+                        <span class="material-symbols-outlined text-[16px] text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none">expand_more</span>
                     </div>
                 </div>
 
-                <!-- Action Buttons: Edit Data Dropdown & Template Dropdown -->
+                <!-- Action Buttons: Edit Data Dropdown & Template Dropdown (Style Serasi, Beda Warna) -->
                 <div class="flex items-center gap-2.5 shrink-0 flex-wrap sm:flex-nowrap relative z-30">
-                    <!-- Edit Data Dropdown -->
+                    <!-- Edit Data Dropdown Button (Solid Amber) -->
                     <div class="relative">
                         <EditDataButton
                             :is-dropdown="true"
                             :is-open="showEditDropdown"
+                            variant="solid-amber"
                             @click="showEditDropdown = !showEditDropdown"
                         />
 
@@ -332,46 +311,47 @@ const downloadTemplate = async () => {
                         <div v-if="showEditDropdown" @click="showEditDropdown = false" class="fixed inset-0 z-40"></div>
 
                         <!-- Dropdown Menu -->
-                        <div v-show="showEditDropdown" class="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-200 z-50 overflow-hidden py-1.5 animate-in fade-in zoom-in-95 duration-100">
+                        <div v-show="showEditDropdown" class="absolute right-0 mt-2 w-60 bg-white rounded-2xl shadow-xl border border-slate-200 z-50 overflow-hidden py-1.5 animate-in fade-in zoom-in-95 duration-100">
                             <Link
                                 href="/students/inline-edit"
-                                class="flex items-center gap-2.5 px-4 py-2.5 text-[13px] font-medium text-slate-700 hover:bg-emerald-50 hover:text-emerald-900 transition-colors w-full text-left"
+                                class="flex items-center gap-2.5 px-4 py-2.5 text-[13px] font-medium text-slate-700 hover:bg-amber-50 hover:text-amber-900 transition-colors w-full text-left"
                                 @click="showEditDropdown = false"
                                 title="Edit langsung data siswa secara massal"
                             >
-                                <span class="material-symbols-outlined text-[18px] text-emerald-700">edit_note</span>
+                                <span class="material-symbols-outlined text-[18px] text-amber-600">edit_note</span>
                                 <span>Edit Massal</span>
                             </Link>
                             <Link
                                 href="/students/mapping"
-                                class="flex items-center gap-2.5 px-4 py-2.5 text-[13px] font-medium text-slate-700 hover:bg-emerald-50 hover:text-emerald-900 transition-colors w-full text-left"
+                                class="flex items-center gap-2.5 px-4 py-2.5 text-[13px] font-medium text-slate-700 hover:bg-amber-50 hover:text-amber-900 transition-colors w-full text-left"
                                 @click="showEditDropdown = false"
                             >
-                                <span class="material-symbols-outlined text-[18px] text-emerald-700">route</span>
+                                <span class="material-symbols-outlined text-[18px] text-amber-600">route</span>
                                 <span>Petakan Riwayat (Bulking)</span>
                             </Link>
                             <button
                                 type="button"
                                 @click="showPhotoUploadModal = true; showEditDropdown = false"
-                                class="flex items-center gap-2.5 px-4 py-2.5 text-[13px] font-medium text-slate-700 hover:bg-emerald-50 hover:text-emerald-900 transition-colors w-full text-left cursor-pointer"
+                                class="flex items-center gap-2.5 px-4 py-2.5 text-[13px] font-medium text-slate-700 hover:bg-amber-50 hover:text-amber-900 transition-colors w-full text-left cursor-pointer"
                                 title="Upload foto siswa secara batch berdasarkan NISN"
                             >
-                                <span class="material-symbols-outlined text-[18px] text-emerald-700">add_a_photo</span>
+                                <span class="material-symbols-outlined text-[18px] text-amber-600">add_a_photo</span>
                                 <span>Upload Foto</span>
                             </button>
                         </div>
                     </div>
 
-                    <!-- Template Dropdown -->
+                    <!-- Template Dropdown Button (Solid Emerald-900 / Teks Kuning, Dengan Keterangan Unit Aktif) -->
                     <div class="relative">
                         <button
                             type="button"
                             @click="showTemplateDropdown = !showTemplateDropdown"
                             class="inline-flex items-center justify-between gap-2 px-4 py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-semibold text-[13px] transition-all shadow-xs cursor-pointer active:scale-95"
+                            :title="`Template & import data siswa khusus untuk unit ${activeUnitTab}`"
                         >
                             <div class="flex items-center gap-1.5">
                                 <span class="material-symbols-outlined text-[18px]">description</span>
-                                <span>Template & Import</span>
+                                <span>Template & Import ({{ activeUnitTab }})</span>
                             </div>
                             <span class="material-symbols-outlined text-[16px] transition-transform duration-200" :class="{ 'rotate-180': showTemplateDropdown }">
                                 expand_more
@@ -382,24 +362,30 @@ const downloadTemplate = async () => {
                         <div v-if="showTemplateDropdown" @click="showTemplateDropdown = false" class="fixed inset-0 z-40"></div>
 
                         <!-- Dropdown Menu -->
-                        <div v-show="showTemplateDropdown" class="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-200 z-50 overflow-hidden py-1.5 animate-in fade-in zoom-in-95 duration-100">
+                        <div v-show="showTemplateDropdown" class="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-slate-200 z-50 overflow-hidden py-1.5 animate-in fade-in zoom-in-95 duration-100">
                             <button
                                 type="button"
                                 @click="downloadTemplate"
-                                class="flex items-center gap-2.5 px-4 py-2.5 text-[13px] font-medium text-slate-700 hover:bg-emerald-50 hover:text-emerald-900 transition-colors w-full text-left cursor-pointer"
-                                title="Download template XLSX resmi untuk import data siswa"
+                                class="flex items-start gap-2.5 px-4 py-2.5 text-[13px] font-medium text-slate-700 hover:bg-emerald-50 hover:text-emerald-900 transition-colors w-full text-left cursor-pointer"
+                                :title="`Download template XLSX resmi untuk unit ${activeUnitTab}`"
                             >
-                                <span class="material-symbols-outlined text-[18px] text-emerald-700">download</span>
-                                <span>Download Template</span>
+                                <span class="material-symbols-outlined text-[18px] text-emerald-700 shrink-0 mt-0.5">download</span>
+                                <div>
+                                    <span class="font-semibold block text-slate-800">Download Template ({{ activeUnitTab }})</span>
+                                    <span class="text-[11px] text-slate-400 block">Format Excel khusus unit {{ activeUnitTab }}</span>
+                                </div>
                             </button>
                             <button
                                 type="button"
                                 @click="showImportModal = true; showTemplateDropdown = false"
-                                class="flex items-center gap-2.5 px-4 py-2.5 text-[13px] font-medium text-slate-700 hover:bg-emerald-50 hover:text-emerald-900 transition-colors w-full text-left cursor-pointer"
-                                title="Import data siswa dari file template Excel"
+                                class="flex items-start gap-2.5 px-4 py-2.5 text-[13px] font-medium text-slate-700 hover:bg-emerald-50 hover:text-emerald-900 transition-colors w-full text-left cursor-pointer"
+                                :title="`Import data siswa ke dalam unit ${activeUnitTab}`"
                             >
-                                <span class="material-symbols-outlined text-[18px] text-emerald-700">upload_file</span>
-                                <span>Import Data Siswa</span>
+                                <span class="material-symbols-outlined text-[18px] text-emerald-700 shrink-0 mt-0.5">upload_file</span>
+                                <div>
+                                    <span class="font-semibold block text-slate-800">Import Data Siswa ({{ activeUnitTab }})</span>
+                                    <span class="text-[11px] text-slate-400 block">Unggah file data siswa ke unit {{ activeUnitTab }}</span>
+                                </div>
                             </button>
                         </div>
                     </div>
@@ -485,7 +471,7 @@ const downloadTemplate = async () => {
     <StudentImportModal
         :show="showImportModal"
         :unit="activeUnitTab"
-        :unit-label="activeUnitTabLabel"
+        :unit-label="activeUnitTab"
         @close="showImportModal = false"
         @success="onImportSuccess"
     />
@@ -504,8 +490,8 @@ const downloadTemplate = async () => {
                 <div class="absolute inset-0 rounded-full border-4 border-emerald-300 border-t-emerald-800 animate-spin"></div>
                 <span class="material-symbols-outlined text-emerald-800 text-3xl">download</span>
             </div>
-            <h3 class="text-lg font-bold text-slate-800 mb-2">Menyiapkan Template...</h3>
-            <p class="text-slate-600 text-sm">Mohon tunggu sebentar, file Excel sedang dibuat. Waktu pembuatan bergantung pada ukuran data.</p>
+            <h3 class="text-lg font-bold text-slate-800 mb-2">Menyiapkan Template ({{ activeUnitTab }})...</h3>
+            <p class="text-slate-600 text-sm">Mohon tunggu sebentar, file Excel sedang dibuat untuk unit {{ activeUnitTab }}.</p>
         </div>
     </div>
 </template>
