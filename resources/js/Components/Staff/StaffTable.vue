@@ -13,7 +13,7 @@ const props = defineProps({
     },
     perPage: {
         type: Number,
-        default: 15,
+        default: 10,
     },
     totalEntries: {
         type: Number,
@@ -153,12 +153,12 @@ function getJabatanAvatarClass(jabatan) {
 
 function getJenjangBadgeClass(jenjang) {
     const map = {
-        'GTY': 'bg-slate-100 text-slate-700 border border-slate-200/80',
-        'GTT': 'bg-slate-100 text-slate-700 border border-slate-200/80',
-        'PTY': 'bg-slate-100 text-slate-700 border border-slate-200/80',
-        'PTT': 'bg-slate-100 text-slate-700 border border-slate-200/80',
+        'GTY': 'bg-slate-100 text-slate-700 border border-slate-200',
+        'GTT': 'bg-slate-100 text-slate-700 border border-slate-200',
+        'PTY': 'bg-slate-100 text-slate-700 border border-slate-200',
+        'PTT': 'bg-slate-100 text-slate-700 border border-slate-200',
     };
-    return map[jenjang] ?? 'bg-slate-100 text-slate-600 border border-slate-200/60';
+    return map[jenjang] ?? 'bg-slate-100 text-slate-600 border border-slate-200';
 }
 
 function getStatusStyle(status) {
@@ -167,38 +167,28 @@ function getStatusStyle(status) {
         return {
             wrapper: 'text-emerald-700',
             dot: 'bg-emerald-600',
-            pill: 'bg-transparent',
-        };
-    }
-    if (s === 'cuti') {
-        return {
-            wrapper: 'text-amber-800 bg-amber-50 px-2.5 py-0.5 rounded-md border border-amber-200/60',
-            dot: 'bg-amber-500',
-            pill: '',
         };
     }
     if (s === 'pensiun') {
         return {
-            wrapper: 'text-orange-700 bg-orange-50 px-2.5 py-0.5 rounded-md border border-orange-200/60',
-            dot: 'bg-orange-500',
-            pill: '',
+            wrapper: 'text-amber-800 bg-amber-50 px-2.5 py-0.5 rounded-md border border-amber-200',
+            dot: 'bg-amber-500',
         };
     }
     return {
         wrapper: 'text-rose-700',
         dot: 'bg-rose-600',
-        pill: '',
     };
 }
 </script>
 
 <template>
-    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-[0_1px_3px_rgba(0,0,0,0.03)] overflow-hidden">
-        <div class="overflow-x-auto">
+    <div class="bg-white rounded-2xl border-2 border-emerald-800/30 shadow-[0_4px_20px_rgba(0,40,20,0.08)] overflow-hidden">
+        <div class="overflow-x-auto custom-scrollbar-x">
             <table class="w-full text-left border-collapse">
-                <!-- Table Header (Matching Reference Style & Sidebar Category Typography) -->
+                <!-- Table Header (Warna Hijau Kontras Menarik) -->
                 <thead>
-                    <tr class="border-b border-slate-200/80 bg-slate-50/50">
+                    <tr class="bg-emerald-800 text-white border-b-2 border-emerald-900">
                         <!-- Checkbox Header -->
                         <th class="py-3.5 pl-4 pr-2 w-10 text-center">
                             <button
@@ -207,8 +197,8 @@ function getStatusStyle(status) {
                                 :class="[
                                     'w-4 h-4 rounded-[5px] flex items-center justify-center transition-colors cursor-pointer mx-auto border',
                                     allSelected || someSelected
-                                        ? 'bg-emerald-900 border-emerald-900 text-yellow-200'
-                                        : 'bg-white border-slate-300 hover:border-slate-400'
+                                        ? 'bg-yellow-300 border-yellow-300 text-emerald-950'
+                                        : 'bg-emerald-900/50 border-emerald-300/70 hover:border-yellow-200'
                                 ]"
                             >
                                 <span v-if="allSelected" class="material-symbols-outlined text-[13px] font-bold">check</span>
@@ -219,11 +209,11 @@ function getStatusStyle(status) {
                         <!-- Pegawai (Nama & NIPY) -->
                         <th
                             @click="handleSort('nama')"
-                            class="py-3.5 px-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-700 transition-colors select-none"
+                            class="py-3.5 px-3 text-[11.5px] font-bold text-emerald-50 uppercase tracking-wider cursor-pointer hover:text-yellow-200 transition-colors select-none"
                         >
                             <div class="inline-flex items-center gap-1">
                                 <span>Pegawai</span>
-                                <span class="material-symbols-outlined text-[14px]" :class="sortBy === 'nama' ? 'text-emerald-700' : 'text-slate-300'">
+                                <span class="material-symbols-outlined text-[14px]" :class="sortBy === 'nama' ? 'text-yellow-300' : 'text-emerald-300/60'">
                                     {{ sortBy === 'nama' ? (sortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward') : 'unfold_more' }}
                                 </span>
                             </div>
@@ -232,52 +222,52 @@ function getStatusStyle(status) {
                         <!-- Unit Kerja -->
                         <th
                             @click="handleSort('unit_kerja')"
-                            class="py-3.5 px-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-700 transition-colors select-none"
+                            class="py-3.5 px-3 text-[11.5px] font-bold text-emerald-50 uppercase tracking-wider cursor-pointer hover:text-yellow-200 transition-colors select-none"
                         >
                             <div class="inline-flex items-center gap-1">
                                 <span>Unit Kerja</span>
-                                <span class="material-symbols-outlined text-[14px]" :class="sortBy === 'unit_kerja' ? 'text-emerald-700' : 'text-slate-300'">
+                                <span class="material-symbols-outlined text-[14px]" :class="sortBy === 'unit_kerja' ? 'text-yellow-300' : 'text-emerald-300/60'">
                                     {{ sortBy === 'unit_kerja' ? (sortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward') : 'unfold_more' }}
                                 </span>
                             </div>
                         </th>
 
                         <!-- Jenjang / Kategori -->
-                        <th class="py-3.5 px-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider select-none">
+                        <th class="py-3.5 px-3 text-[11.5px] font-bold text-emerald-50 uppercase tracking-wider select-none">
                             Kategori
                         </th>
 
                         <!-- Jabatan -->
                         <th
                             @click="handleSort('jabatan')"
-                            class="py-3.5 px-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-700 transition-colors select-none"
+                            class="py-3.5 px-3 text-[11.5px] font-bold text-emerald-50 uppercase tracking-wider cursor-pointer hover:text-yellow-200 transition-colors select-none"
                         >
                             <div class="inline-flex items-center gap-1">
                                 <span>Jabatan</span>
-                                <span class="material-symbols-outlined text-[14px]" :class="sortBy === 'jabatan' ? 'text-emerald-700' : 'text-slate-300'">
+                                <span class="material-symbols-outlined text-[14px]" :class="sortBy === 'jabatan' ? 'text-yellow-300' : 'text-emerald-300/60'">
                                     {{ sortBy === 'jabatan' ? (sortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward') : 'unfold_more' }}
                                 </span>
                             </div>
                         </th>
 
                         <!-- Tempat, Tgl Lahir -->
-                        <th class="py-3.5 px-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider select-none">
+                        <th class="py-3.5 px-3 text-[11.5px] font-bold text-emerald-50 uppercase tracking-wider select-none">
                             Tempat, Tgl Lahir
                         </th>
 
                         <!-- Status -->
-                        <th class="py-3.5 px-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider select-none">
+                        <th class="py-3.5 px-3 text-[11.5px] font-bold text-emerald-50 uppercase tracking-wider select-none">
                             Status
                         </th>
 
                         <!-- Kontak & Aksi -->
                         <th
                             @click="handleSort('no_wa')"
-                            class="py-3.5 pl-3 pr-5 text-[11px] font-bold text-slate-700 uppercase tracking-wider text-right cursor-pointer hover:text-emerald-800 transition-colors select-none"
+                            class="py-3.5 pl-3 pr-5 text-[11.5px] font-bold text-yellow-200 uppercase tracking-wider text-right cursor-pointer hover:text-white transition-colors select-none"
                         >
                             <div class="inline-flex items-center justify-end gap-1">
                                 <span>No. WhatsApp</span>
-                                <span class="material-symbols-outlined text-[14px] text-amber-600">
+                                <span class="material-symbols-outlined text-[14px] text-yellow-300">
                                     {{ sortBy === 'no_wa' && sortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
                                 </span>
                             </div>
@@ -285,13 +275,13 @@ function getStatusStyle(status) {
                     </tr>
                 </thead>
 
-                <tbody class="divide-y divide-slate-100">
+                <tbody class="divide-y divide-slate-200">
                     <tr
                         v-for="emp in employees"
                         :key="emp.id"
                         :class="[
                             'transition-colors group',
-                            selectedIds.includes(emp.id) ? 'bg-emerald-50/40 hover:bg-emerald-50/70' : 'hover:bg-slate-50/80'
+                            selectedIds.includes(emp.id) ? 'bg-emerald-50/60 hover:bg-emerald-50/90' : 'hover:bg-emerald-50/30'
                         ]"
                     >
                         <!-- Checkbox Cell -->
@@ -303,7 +293,7 @@ function getStatusStyle(status) {
                                     'w-4 h-4 rounded-[5px] flex items-center justify-center transition-colors cursor-pointer mx-auto border',
                                     selectedIds.includes(emp.id)
                                         ? 'bg-emerald-900 border-emerald-900 text-yellow-200'
-                                        : 'bg-white border-slate-300 group-hover:border-slate-400'
+                                        : 'bg-white border-slate-300 group-hover:border-emerald-600'
                                 ]"
                             >
                                 <span v-if="selectedIds.includes(emp.id)" class="material-symbols-outlined text-[13px] font-bold">check</span>
@@ -323,7 +313,7 @@ function getStatusStyle(status) {
                                         </Link>
                                         <span
                                             v-if="emp.jk"
-                                            class="text-[10.5px] font-semibold px-1.5 py-0.2 rounded bg-slate-100 text-slate-500 shrink-0"
+                                            class="text-[10.5px] font-semibold px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 border border-slate-200 shrink-0"
                                             :title="emp.jk === 'L' ? 'Laki-laki' : 'Perempuan'"
                                         >
                                             {{ emp.jk }}
@@ -336,7 +326,7 @@ function getStatusStyle(status) {
                             </div>
                         </td>
 
-                        <!-- Unit Kerja (Avatar Circle + Unit Name like Client column) -->
+                        <!-- Unit Kerja (Avatar Circle + Unit Name) -->
                         <td class="py-3.5 px-3 align-middle whitespace-nowrap">
                             <div class="flex items-center gap-2.5">
                                 <div
@@ -353,7 +343,7 @@ function getStatusStyle(status) {
                             </div>
                         </td>
 
-                        <!-- Kategori / Jenjang Kepegawaian (Soft Pill like Category column) -->
+                        <!-- Kategori / Jenjang Kepegawaian (Soft Pill) -->
                         <td class="py-3.5 px-3 align-middle whitespace-nowrap">
                             <span
                                 v-if="emp.jenjang_kepegawaian"
@@ -367,7 +357,7 @@ function getStatusStyle(status) {
                             <span v-else class="text-[13px] text-slate-400">-</span>
                         </td>
 
-                        <!-- Jabatan (Avatar + Jabatan like Owner column) -->
+                        <!-- Jabatan (Avatar + Jabatan) -->
                         <td class="py-3.5 px-3 align-middle whitespace-nowrap">
                             <div class="flex items-center gap-2">
                                 <div
@@ -384,14 +374,14 @@ function getStatusStyle(status) {
                             </div>
                         </td>
 
-                        <!-- Tempat, Tgl Lahir (Muted Date style) -->
+                        <!-- Tempat, Tgl Lahir -->
                         <td class="py-3.5 px-3 align-middle whitespace-nowrap">
                             <span class="text-[13px] text-slate-500">
                                 {{ emp.ttl || '-' }}
                             </span>
                         </td>
 
-                        <!-- Status (Dot + Status text like Paid/Pending/Overdue) -->
+                        <!-- Status -->
                         <td class="py-3.5 px-3 align-middle whitespace-nowrap">
                             <span
                                 v-if="emp.status_keaktifan"
@@ -409,7 +399,7 @@ function getStatusStyle(status) {
                             </span>
                         </td>
 
-                        <!-- No WA + Actions (`...` / Detail & Edit) -->
+                        <!-- No WA + Actions -->
                         <td class="py-3.5 pl-3 pr-5 align-middle whitespace-nowrap text-right">
                             <div class="inline-flex items-center justify-end gap-3">
                                 <span class="text-[13.5px] font-semibold text-slate-900 tabular-nums">
@@ -419,7 +409,7 @@ function getStatusStyle(status) {
                                 <div class="inline-flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
                                     <Link
                                         :href="`/staff/${emp.id}`"
-                                        class="p-1.5 rounded-lg text-slate-400 hover:text-emerald-800 hover:bg-emerald-50 transition-colors"
+                                        class="p-1.5 rounded-lg text-slate-500 hover:text-emerald-800 hover:bg-emerald-100/70 transition-colors"
                                         title="Lihat Detail Pegawai"
                                     >
                                         <span class="material-symbols-outlined text-[18px] block">visibility</span>
@@ -427,7 +417,7 @@ function getStatusStyle(status) {
                                     <Link
                                         v-if="canUpdate"
                                         :href="`/staff/${emp.id}?edit=true`"
-                                        class="p-1.5 rounded-lg text-slate-400 hover:text-amber-700 hover:bg-amber-50 transition-colors"
+                                        class="p-1.5 rounded-lg text-slate-500 hover:text-amber-700 hover:bg-amber-100/70 transition-colors"
                                         title="Edit Data Pegawai"
                                     >
                                         <span class="material-symbols-outlined text-[18px] block">more_horiz</span>
@@ -452,7 +442,7 @@ function getStatusStyle(status) {
         </div>
 
         <!-- Pagination Footer -->
-        <div class="px-5 py-3.5 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50/30">
+        <div class="px-5 py-3.5 border-t-2 border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50/50">
             <div class="flex items-center gap-3">
                 <span class="text-[12.5px] text-slate-500">
                     <template v-if="perPage === 0">
@@ -474,7 +464,7 @@ function getStatusStyle(status) {
             <div v-if="perPage > 0 && totalPages > 1" class="flex items-center gap-1">
                 <button
                     :disabled="currentPage <= 1"
-                    class="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:border-emerald-700 hover:text-emerald-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                    class="p-1.5 rounded-lg border border-slate-300 bg-white text-slate-600 hover:border-emerald-700 hover:text-emerald-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                     @click="$emit('page-change', currentPage - 1)"
                     title="Halaman sebelumnya"
                 >
@@ -489,7 +479,7 @@ function getStatusStyle(status) {
                             'min-w-[30px] h-[30px] px-2 rounded-lg text-[12.5px] font-semibold transition-all cursor-pointer',
                             page === currentPage
                                 ? 'bg-emerald-900 text-yellow-200 shadow-2xs font-bold'
-                                : 'bg-white border border-slate-200 text-slate-600 hover:border-emerald-700 hover:text-emerald-800'
+                                : 'bg-white border border-slate-300 text-slate-600 hover:border-emerald-700 hover:text-emerald-800'
                         ]"
                         @click="$emit('page-change', page)"
                     >
@@ -499,7 +489,7 @@ function getStatusStyle(status) {
 
                 <button
                     :disabled="currentPage >= totalPages"
-                    class="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:border-emerald-700 hover:text-emerald-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                    class="p-1.5 rounded-lg border border-slate-300 bg-white text-slate-600 hover:border-emerald-700 hover:text-emerald-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                     @click="$emit('page-change', currentPage + 1)"
                     title="Halaman berikutnya"
                 >
@@ -509,3 +499,28 @@ function getStatusStyle(status) {
         </div>
     </div>
 </template>
+
+<style scoped>
+/* Custom Horizontal Scrollbar */
+.custom-scrollbar-x {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+}
+
+.custom-scrollbar-x::-webkit-scrollbar {
+    height: 6px;
+}
+
+.custom-scrollbar-x::-webkit-scrollbar-track {
+    background: #f8fafc;
+}
+
+.custom-scrollbar-x::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1;
+    border-radius: 9999px;
+}
+
+.custom-scrollbar-x::-webkit-scrollbar-thumb:hover {
+    background-color: #059669;
+}
+</style>

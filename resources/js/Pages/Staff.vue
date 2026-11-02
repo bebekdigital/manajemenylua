@@ -50,7 +50,7 @@ const jenjangFilter = ref('');
 const sortBy = ref('nama');
 const sortDirection = ref('asc');
 const currentPage = ref(1);
-const perPage = ref(15);
+const perPage = ref(10);
 const showImportModal = ref(false);
 const dismissedFlash = ref(false);
 
@@ -94,7 +94,7 @@ const filteredEmployees = computed(() => {
         }
     }
 
-    // Sorting
+    // Sorting via table column headers
     result.sort((a, b) => {
         const field = sortBy.value;
         const valA = (a[field] || '').toString().toLowerCase();
@@ -141,11 +141,11 @@ function onFilterJenjang(jenjang) {
 }
 
 function onSortChange({ field, direction }) {
-    sortBy.value = field;
-    if (direction) {
-        sortDirection.value = direction;
-    } else {
+    if (sortBy.value === field && !direction) {
         sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc';
+    } else {
+        sortBy.value = field;
+        sortDirection.value = direction || 'asc';
     }
     currentPage.value = 1;
 }
@@ -170,16 +170,14 @@ function onPageChange(p) {
 
     <div class="flex-1 overflow-y-auto px-4 py-6 md:px-8 md:py-7 bg-[#fafafa] min-h-screen">
         <div class="max-w-[1440px] mx-auto">
-            <!-- Page Header (Matching Reference Style) -->
+            <!-- Page Header -->
             <div class="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                 <div>
-                    <h1 class="text-2xl sm:text-[26px] font-bold text-slate-900 tracking-tight leading-none">
+                    <h1 class="text-2xl sm:text-[26px] font-bold text-emerald-950 tracking-tight leading-none">
                         Database Pegawai
                     </h1>
-                    <p class="text-[13.5px] text-slate-500 mt-2 font-medium flex items-center flex-wrap gap-1.5">
-                        <span><strong class="text-slate-700 font-semibold">{{ employees.length }}</strong> pegawai di <strong class="text-slate-700 font-semibold">{{ uniqueUnitsCount }}</strong> unit kerja</span>
-                        <span class="text-slate-300">·</span>
-                        <span class="text-emerald-800 font-semibold">{{ selectedAcademicYear?.name || 'Tahun Ajaran Aktif' }}</span>
+                    <p class="text-[13.5px] text-slate-500 mt-2 font-medium">
+                        <strong class="text-slate-700 font-semibold">{{ employees.length }}</strong> pegawai terdaftar di <strong class="text-slate-700 font-semibold">{{ uniqueUnitsCount }}</strong> unit kerja
                     </p>
                 </div>
 
@@ -189,18 +187,18 @@ function onPageChange(p) {
                         v-if="permissions?.can_export"
                         href="/staff/template"
                         download
-                        class="inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-full border border-slate-200 text-slate-700 bg-white hover:bg-slate-50 hover:border-slate-300 font-semibold text-[13px] transition-all shadow-2xs"
+                        class="inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl border border-yellow-300 text-yellow-900 bg-yellow-100 hover:bg-yellow-200 font-semibold text-[13px] transition-all shadow-2xs"
                         title="Download template XLSX untuk import data pegawai"
                     >
-                        <span class="material-symbols-outlined text-[18px] text-emerald-700">download</span>
-                        <span>Template Excel</span>
+                        <span class="material-symbols-outlined text-[18px]">download</span>
+                        <span>Download Template</span>
                     </a>
 
                     <button
                         v-if="permissions?.can_import"
                         type="button"
                         @click="showImportModal = true"
-                        class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-semibold text-[13px] transition-all shadow-xs cursor-pointer active:scale-95"
+                        class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-semibold text-[13px] transition-all shadow-xs cursor-pointer active:scale-95"
                         title="Import data pegawai dari file template Excel"
                     >
                         <span class="material-symbols-outlined text-[18px]">upload_file</span>
@@ -210,7 +208,7 @@ function onPageChange(p) {
                 <div v-else-if="teacherEmployee" class="flex items-center gap-2 shrink-0">
                     <Link
                         :href="`/staff/${teacherEmployee.id}`"
-                        class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-semibold text-[13px] transition-all shadow-xs"
+                        class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-semibold text-[13px] transition-all shadow-xs"
                     >
                         <span class="material-symbols-outlined text-[18px]">person</span>
                         <span>Buka Profil Saya</span>
@@ -277,7 +275,7 @@ function onPageChange(p) {
                 </button>
             </div>
 
-            <!-- Toolbar (Tabs, Search Bar, Filter Chips) -->
+            <!-- Toolbar (Tabs, Search Bar seperti Database Siswa, Filter Chips) -->
             <StaffToolbar
                 :employees="employees"
                 :total-count="employees.length"
@@ -286,14 +284,11 @@ function onPageChange(p) {
                 :active-status="statusFilter"
                 :active-unit="unitFilter"
                 :active-jenjang="jenjangFilter"
-                :sort-by="sortBy"
-                :sort-direction="sortDirection"
                 @update:per-page="onPerPageChange"
                 @search="onSearch"
                 @filter-unit="onFilterUnit"
                 @filter-status="onFilterStatus"
                 @filter-jenjang="onFilterJenjang"
-                @sort-change="onSortChange"
                 @reset-filters="onResetFilters"
             />
 
