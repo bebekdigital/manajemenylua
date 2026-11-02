@@ -13,15 +13,23 @@ const props = defineProps({
     },
     perPage: {
         type: Number,
-        default: 10,
+        default: 15,
     },
     totalEntries: {
         type: Number,
         default: 0,
     },
+    sortBy: {
+        type: String,
+        default: 'nama',
+    },
+    sortDirection: {
+        type: String,
+        default: 'asc',
+    },
 });
 
-const emit = defineEmits(['page-change', 'show-detail', 'update:per-page']);
+const emit = defineEmits(['page-change', 'update:per-page', 'sort-change', 'show-detail']);
 
 const totalPages = computed(() => {
     if (props.perPage === 0) return 1;
@@ -59,15 +67,18 @@ const visiblePages = computed(() => {
     return pages;
 });
 
-/**
- * Returns initials from a student name (first 2 chars of first + last name)
- */
-function getInitials(name) {
-    const parts = name.split(' ');
-    if (parts.length >= 2) {
-        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+function handleSort(field) {
+    if (props.sortBy === field) {
+        emit('sort-change', {
+            field,
+            direction: props.sortDirection === 'asc' ? 'desc' : 'asc',
+        });
+    } else {
+        emit('sort-change', {
+            field,
+            direction: 'asc',
+        });
     }
-    return name.substring(0, 2).toUpperCase();
 }
 
 /**
@@ -81,155 +92,335 @@ function getAlamatLengkap(s) {
 </script>
 
 <template>
-    <div class="bg-surface-container-lowest rounded-xl border border-primary/10 shadow-[0px_4px_20px_rgba(0,40,20,0.08)] overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse border border-outline-variant/60">
+    <!-- Table Container: Radius diperkecil (rounded-lg) & Outline dipertebal (border-2 border-emerald-800) -->
+    <div class="bg-white rounded-lg border-2 border-emerald-800 shadow-[0_4px_25px_rgba(0,40,20,0.08)] overflow-hidden">
+        <div class="overflow-x-auto custom-scrollbar-x">
+            <table class="w-full text-left border-collapse">
+                <!-- Table Header: Warna Hijau Tema Kontras Menarik -->
                 <thead>
-                    <slot name="thead">
-                        <tr class="bg-emerald-600 text-white">
-                            <th class="border border-emerald-700/80 p-2.5 sm:p-3.5 text-[12px] sm:text-sm font-semibold uppercase tracking-wider w-10 sm:w-12 text-center">No</th>
-                            <th class="border border-emerald-700/80 p-2.5 sm:p-3.5 text-[12px] sm:text-sm font-semibold uppercase tracking-wider">NISN</th>
-                            <th class="border border-emerald-700/80 p-2.5 sm:p-3.5 text-[12px] sm:text-sm font-semibold uppercase tracking-wider">Nama</th>
-                            <th class="border border-emerald-700/80 p-2.5 sm:p-3.5 text-[12px] sm:text-sm font-semibold uppercase tracking-wider">NIPD</th>
-                            <th class="border border-emerald-700/80 p-2.5 sm:p-3.5 text-[12px] sm:text-sm font-semibold uppercase tracking-wider">Jenjang</th>
-                            <th class="border border-emerald-700/80 p-2.5 sm:p-3.5 text-[12px] sm:text-sm font-semibold uppercase tracking-wider">Unit</th>
-                            <th class="border border-emerald-700/80 p-2.5 sm:p-3.5 text-[12px] sm:text-sm font-semibold uppercase tracking-wider text-center">Angkatan</th>
-                            <th class="border border-emerald-700/80 p-2.5 sm:p-3.5 text-[12px] sm:text-sm font-semibold uppercase tracking-wider w-10 sm:w-14 text-center">JK</th>
-                            <th class="border border-emerald-700/80 p-2.5 sm:p-3.5 text-[12px] sm:text-sm font-semibold uppercase tracking-wider">TTL</th>
-                            <th class="border border-emerald-700/80 p-2.5 sm:p-3.5 text-[12px] sm:text-sm font-semibold uppercase tracking-wider">No WA</th>
-                            <th class="border border-emerald-700/80 p-2.5 sm:p-3.5 text-[12px] sm:text-sm font-semibold uppercase tracking-wider">Alamat Lengkap</th>
-                        </tr>
-                    </slot>
+                    <tr class="bg-emerald-800 text-white border-b-2 border-emerald-900">
+                        <!-- No -->
+                        <th class="py-3.5 px-3 w-12 text-center text-[11.5px] font-bold uppercase tracking-wider select-none">
+                            No
+                        </th>
+
+                        <!-- NISN -->
+                        <th
+                            @click="handleSort('nisn')"
+                            :class="[
+                                'py-3.5 px-3 text-[11.5px] font-bold uppercase tracking-wider cursor-pointer transition-colors select-none',
+                                sortBy === 'nisn' ? 'text-yellow-200' : 'text-white hover:text-yellow-200'
+                            ]"
+                        >
+                            <div class="inline-flex items-center gap-1">
+                                <span>NISN</span>
+                                <span class="material-symbols-outlined text-[14px]" :class="sortBy === 'nisn' ? 'text-yellow-300' : 'text-emerald-300/60'">
+                                    {{ sortBy === 'nisn' ? (sortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward') : 'unfold_more' }}
+                                </span>
+                            </div>
+                        </th>
+
+                        <!-- Nama Siswa -->
+                        <th
+                            @click="handleSort('nama')"
+                            :class="[
+                                'py-3.5 px-3 text-[11.5px] font-bold uppercase tracking-wider cursor-pointer transition-colors select-none',
+                                sortBy === 'nama' ? 'text-yellow-200' : 'text-white hover:text-yellow-200'
+                            ]"
+                        >
+                            <div class="inline-flex items-center gap-1">
+                                <span>Nama Siswa</span>
+                                <span class="material-symbols-outlined text-[14px]" :class="sortBy === 'nama' ? 'text-yellow-300' : 'text-emerald-300/60'">
+                                    {{ sortBy === 'nama' ? (sortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward') : 'unfold_more' }}
+                                </span>
+                            </div>
+                        </th>
+
+                        <!-- NIPD -->
+                        <th
+                            @click="handleSort('nipd')"
+                            :class="[
+                                'py-3.5 px-3 text-[11.5px] font-bold uppercase tracking-wider cursor-pointer transition-colors select-none',
+                                sortBy === 'nipd' ? 'text-yellow-200' : 'text-white hover:text-yellow-200'
+                            ]"
+                        >
+                            <div class="inline-flex items-center gap-1">
+                                <span>NIPD</span>
+                                <span class="material-symbols-outlined text-[14px]" :class="sortBy === 'nipd' ? 'text-yellow-300' : 'text-emerald-300/60'">
+                                    {{ sortBy === 'nipd' ? (sortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward') : 'unfold_more' }}
+                                </span>
+                            </div>
+                        </th>
+
+                        <!-- Jenjang -->
+                        <th
+                            @click="handleSort('jenjang')"
+                            :class="[
+                                'py-3.5 px-3 text-[11.5px] font-bold uppercase tracking-wider cursor-pointer transition-colors select-none',
+                                sortBy === 'jenjang' ? 'text-yellow-200' : 'text-white hover:text-yellow-200'
+                            ]"
+                        >
+                            <div class="inline-flex items-center gap-1">
+                                <span>Jenjang</span>
+                                <span class="material-symbols-outlined text-[14px]" :class="sortBy === 'jenjang' ? 'text-yellow-300' : 'text-emerald-300/60'">
+                                    {{ sortBy === 'jenjang' ? (sortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward') : 'unfold_more' }}
+                                </span>
+                            </div>
+                        </th>
+
+                        <!-- Unit -->
+                        <th
+                            @click="handleSort('unit')"
+                            :class="[
+                                'py-3.5 px-3 text-[11.5px] font-bold uppercase tracking-wider cursor-pointer transition-colors select-none',
+                                sortBy === 'unit' ? 'text-yellow-200' : 'text-white hover:text-yellow-200'
+                            ]"
+                        >
+                            <div class="inline-flex items-center gap-1">
+                                <span>Unit</span>
+                                <span class="material-symbols-outlined text-[14px]" :class="sortBy === 'unit' ? 'text-yellow-300' : 'text-emerald-300/60'">
+                                    {{ sortBy === 'unit' ? (sortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward') : 'unfold_more' }}
+                                </span>
+                            </div>
+                        </th>
+
+                        <!-- Angkatan -->
+                        <th
+                            @click="handleSort('angkatan')"
+                            :class="[
+                                'py-3.5 px-3 text-[11.5px] font-bold uppercase tracking-wider text-center cursor-pointer transition-colors select-none',
+                                sortBy === 'angkatan' ? 'text-yellow-200' : 'text-white hover:text-yellow-200'
+                            ]"
+                        >
+                            <div class="inline-flex items-center justify-center gap-1">
+                                <span>Angkatan</span>
+                                <span class="material-symbols-outlined text-[14px]" :class="sortBy === 'angkatan' ? 'text-yellow-300' : 'text-emerald-300/60'">
+                                    {{ sortBy === 'angkatan' ? (sortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward') : 'unfold_more' }}
+                                </span>
+                            </div>
+                        </th>
+
+                        <!-- JK -->
+                        <th class="py-3.5 px-3 w-14 text-center text-[11.5px] font-bold uppercase tracking-wider select-none">
+                            JK
+                        </th>
+
+                        <!-- TTL -->
+                        <th class="py-3.5 px-3 text-[11.5px] font-bold uppercase tracking-wider select-none">
+                            TTL
+                        </th>
+
+                        <!-- Kontak WhatsApp -->
+                        <th
+                            @click="handleSort('no_wa')"
+                            :class="[
+                                'py-3.5 px-3 text-[11.5px] font-bold uppercase tracking-wider cursor-pointer transition-colors select-none',
+                                sortBy === 'no_wa' ? 'text-yellow-200' : 'text-white hover:text-yellow-200'
+                            ]"
+                        >
+                            <div class="inline-flex items-center gap-1">
+                                <span>No. WhatsApp</span>
+                                <span class="material-symbols-outlined text-[14px]" :class="sortBy === 'no_wa' ? 'text-yellow-300' : 'text-emerald-300/60'">
+                                    {{ sortBy === 'no_wa' ? (sortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward') : 'unfold_more' }}
+                                </span>
+                            </div>
+                        </th>
+
+                        <!-- Alamat Lengkap -->
+                        <th class="py-3.5 pl-3 pr-4 text-[11.5px] font-bold uppercase tracking-wider select-none">
+                            Alamat Lengkap
+                        </th>
+                    </tr>
                 </thead>
-                <tbody class="divide-y divide-outline-variant/30">
+
+                <!-- Table Body: Garis kisi horizontal ditebalkan (divide-y-2 divide-slate-200) -->
+                <tbody class="divide-y-2 divide-slate-200">
                     <tr
                         v-for="(student, index) in students"
-                        :key="student.id || student.nisn"
-                        class="hover:bg-surface-container-high/50 transition-colors group"
+                        :key="student.nisn || index"
+                        class="hover:bg-slate-50/80 transition-colors group"
                     >
-                        <slot name="row" :student="student" :index="index" :start-entry="startEntry">
-                            <!-- No -->
-                        <td class="border border-outline-variant/40 p-2.5 sm:p-3.5 text-[12px] sm:text-sm text-on-surface-variant text-center">
+                        <!-- No -->
+                        <td class="py-3.5 px-3 text-[12px] text-slate-500 font-medium text-center align-middle">
                             {{ startEntry + index }}
                         </td>
+
                         <!-- NISN -->
-                        <td class="border border-outline-variant/40 p-2.5 sm:p-3.5 text-[12px] sm:text-sm text-on-surface-variant font-mono">
+                        <td class="py-3.5 px-3 font-mono text-[12px] text-slate-700 font-semibold align-middle whitespace-nowrap">
                             {{ student.nisn }}
                         </td>
-                        <!-- Nama -->
-                        <td class="border border-outline-variant/40 p-2.5 sm:p-3.5">
-                            <div class="flex items-center gap-2">
-                                <Link
-                                    :href="`/students/${student.nisn}`"
-                                    class="inline-flex items-center justify-center p-1 sm:p-1.5 text-primary bg-primary/10 hover:bg-primary/20 rounded-md transition-colors shrink-0"
-                                    title="Detail Siswa"
-                                >
-                                    <span class="material-symbols-outlined text-[16px] sm:text-[18px]">visibility</span>
-                                </Link>
-                                <span class="text-[12px] sm:text-sm font-semibold text-on-surface whitespace-nowrap">{{ student.nama }}</span>
-                            </div>
+
+                        <!-- Nama Siswa (Link bersih tanpa ikon mata yang mengganggu) -->
+                        <td class="py-3.5 px-3 align-middle">
+                            <Link
+                                :href="`/students/${student.nisn}`"
+                                class="font-bold text-slate-900 hover:text-emerald-700 transition-colors text-[13px] whitespace-nowrap block"
+                                title="Buka Detail Siswa"
+                            >
+                                {{ student.nama }}
+                            </Link>
                         </td>
+
                         <!-- NIPD -->
-                        <td class="border border-outline-variant/40 p-2.5 sm:p-3.5 text-[12px] sm:text-sm text-on-surface-variant font-mono">
-                            {{ student.nipd }}
+                        <td class="py-3.5 px-3 font-mono text-[12px] text-slate-600 font-medium align-middle whitespace-nowrap">
+                            {{ student.nipd || '-' }}
                         </td>
+
                         <!-- Jenjang -->
-                        <td class="border border-outline-variant/40 p-2.5 sm:p-3.5 text-[12px] sm:text-sm text-on-surface-variant">
-                            {{ student.jenjang || '-' }}
+                        <td class="py-3.5 px-3 align-middle whitespace-nowrap">
+                            <span
+                                v-if="student.jenjang"
+                                class="inline-flex items-center px-2 py-0.5 rounded-md text-[11.5px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200"
+                            >
+                                {{ student.jenjang }}
+                            </span>
+                            <span v-else class="text-slate-400 text-[12px]">-</span>
                         </td>
+
                         <!-- Unit -->
-                        <td class="border border-outline-variant/40 p-2.5 sm:p-3.5 text-[12px] sm:text-sm text-on-surface-variant whitespace-nowrap">
+                        <td class="py-3.5 px-3 text-[12.5px] font-medium text-slate-700 align-middle whitespace-nowrap">
                             {{ student.unit || '-' }}
                         </td>
+
                         <!-- Angkatan -->
-                        <td class="border border-outline-variant/40 p-2.5 sm:p-3.5 text-[12px] sm:text-sm text-center">
-                            <span class="inline-flex items-center justify-center px-1.5 py-0.5 sm:px-2 sm:py-0.5 bg-primary/10 text-primary rounded-md text-[11px] sm:text-xs font-semibold">
-                                {{ student.angkatan || '-' }}
+                        <td class="py-3.5 px-3 align-middle text-center whitespace-nowrap">
+                            <span
+                                v-if="student.angkatan"
+                                class="inline-flex items-center justify-center px-2 py-0.5 bg-slate-100 text-slate-700 border border-slate-200 rounded-md text-[11px] font-semibold"
+                            >
+                                {{ student.angkatan }}
                             </span>
+                            <span v-else class="text-slate-400 text-[12px]">-</span>
                         </td>
-                        <!-- JK -->
-                        <td class="border border-outline-variant/40 p-2.5 sm:p-3.5 text-[12px] sm:text-sm text-on-surface text-center">
-                            {{ student.jk }}
+
+                        <!-- JK (Warna Badge Dibedakan: L = Biru, P = Pink/Fuchsia) -->
+                        <td class="py-3.5 px-3 align-middle text-center whitespace-nowrap">
+                            <span
+                                v-if="student.jk"
+                                :class="[
+                                    'inline-flex items-center justify-center w-6 h-6 rounded-md text-[11px] font-bold mx-auto',
+                                    student.jk === 'L'
+                                        ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                                        : student.jk === 'P'
+                                            ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                                            : 'bg-slate-100 text-slate-600 border border-slate-200'
+                                ]"
+                                :title="student.jk === 'L' ? 'Laki-laki' : (student.jk === 'P' ? 'Perempuan' : student.jk)"
+                            >
+                                {{ student.jk }}
+                            </span>
+                            <span v-else class="text-slate-400 text-[12px]">-</span>
                         </td>
+
                         <!-- TTL -->
-                        <td class="border border-outline-variant/40 p-2.5 sm:p-3.5 text-[12px] sm:text-sm text-on-surface-variant whitespace-nowrap">
-                            {{ student.ttl }}
+                        <td class="py-3.5 px-3 text-[12.5px] text-slate-600 align-middle whitespace-nowrap">
+                            {{ student.ttl || '-' }}
                         </td>
+
                         <!-- No WA -->
-                        <td class="border border-outline-variant/40 p-2.5 sm:p-3.5 text-[12px] sm:text-sm text-on-surface-variant whitespace-nowrap">
+                        <td class="py-3.5 px-3 text-[12.5px] font-medium text-slate-800 align-middle whitespace-nowrap">
                             {{ student.no_wa || '-' }}
                         </td>
+
                         <!-- Alamat Lengkap -->
-                        <td class="border border-outline-variant/40 p-2.5 sm:p-3.5 text-[12px] sm:text-sm text-on-surface-variant max-w-[150px] sm:max-w-[220px] truncate" :title="getAlamatLengkap(student)">
-                            {{ getAlamatLengkap(student) }}
+                        <td class="py-3.5 pl-3 pr-4 text-[12.5px] text-slate-600 align-middle max-w-[200px] truncate" :title="getAlamatLengkap(student)">
+                            {{ getAlamatLengkap(student) || '-' }}
                         </td>
-                        </slot>
                     </tr>
 
                     <!-- Empty state -->
                     <tr v-if="students.length === 0">
-                        <td colspan="13" class="p-12 text-center">
-                            <span class="material-symbols-outlined text-5xl text-outline-variant mb-4 block">search_off</span>
-                            <p class="font-body-lg text-body-lg text-on-surface-variant">Tidak ada data siswa ditemukan.</p>
-                            <p class="font-body-sm text-body-sm text-outline mt-1">Coba ubah filter atau kata kunci pencarian.</p>
+                        <td colspan="11" class="py-12 text-center">
+                            <span class="material-symbols-outlined text-4xl text-slate-300 mb-2 block">person_search</span>
+                            <p class="text-[13.5px] font-medium text-slate-600">Tidak ada data siswa ditemukan.</p>
+                            <p class="text-[12px] text-slate-400 mt-0.5">Coba sesuaikan kata kunci pencarian atau filter yang dipilih.</p>
                         </td>
                     </tr>
                 </tbody>
             </table>
         </div>
 
-        <!-- Pagination Footer -->
-        <div class="p-3 sm:p-4 border-t border-outline-variant/30 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 bg-surface-container-lowest">
-            <div class="flex flex-wrap items-center gap-3">
-                <span class="text-[12px] sm:text-sm sm:font-body-sm text-on-surface-variant">
-                    <template v-if="perPage === 0">
-                        Menampilkan seluruh <strong class="text-on-surface font-semibold">{{ totalEntries }}</strong> data
-                    </template>
-                    <template v-else-if="totalEntries === 0">
-                        Menampilkan <strong class="text-on-surface font-semibold">0</strong> data
-                    </template>
-                    <template v-else>
-                        Menampilkan <strong class="text-on-surface font-semibold">{{ startEntry }} - {{ endEntry }}</strong> dari <strong class="text-on-surface font-semibold">{{ totalEntries }}</strong> data
-                    </template>
-                </span>
+        <!-- Pagination Footer: Selaras dengan Desain Data Pegawai -->
+        <div class="p-3.5 sm:p-4 border-t-2 border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 bg-white">
+            <div class="text-[12.5px] sm:text-[13px] text-slate-500 font-medium">
+                <template v-if="perPage === 0">
+                    Menampilkan seluruh <strong class="text-slate-900 font-bold">{{ totalEntries }}</strong> data siswa
+                </template>
+                <template v-else-if="totalEntries === 0">
+                    Menampilkan <strong class="text-slate-900 font-bold">0</strong> data siswa
+                </template>
+                <template v-else>
+                    Menampilkan <strong class="text-slate-900 font-bold">{{ startEntry }} - {{ endEntry }}</strong> dari <strong class="text-slate-900 font-bold">{{ totalEntries }}</strong> data siswa
+                </template>
             </div>
 
-            <!-- Page Buttons (Only shown when paginated and multiple pages exist) -->
-            <div v-if="perPage > 0 && totalPages > 1" class="flex items-center gap-1.5 sm:gap-1.5">
+            <!-- Page Buttons -->
+            <div v-if="perPage > 0 && totalPages > 1" class="flex items-center gap-1.5">
                 <button
                     :disabled="currentPage <= 1"
-                    class="p-1.5 sm:p-2 rounded-md sm:rounded-lg border border-outline-variant/60 text-on-surface-variant hover:border-primary hover:text-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                     @click="$emit('page-change', currentPage - 1)"
+                    class="w-8 h-8 rounded-lg border border-slate-200 text-slate-600 hover:border-emerald-600 hover:text-emerald-900 flex items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
                     title="Halaman sebelumnya"
                 >
-                    <span class="material-symbols-outlined text-[18px] sm:text-sm">chevron_left</span>
+                    <span class="material-symbols-outlined text-[16px]">chevron_left</span>
                 </button>
 
-                <template v-for="(page, i) in visiblePages" :key="i">
-                    <span v-if="page === '...'" class="px-2 py-1 text-on-surface-variant text-[12px] sm:text-xs font-bold">...</span>
+                <template v-for="(p, i) in visiblePages" :key="i">
+                    <span v-if="p === '...'" class="w-8 h-8 flex items-center justify-center text-slate-400 text-xs font-bold">...</span>
                     <button
                         v-else
+                        @click="$emit('page-change', p)"
                         :class="[
-                            'px-2.5 py-1 sm:px-3 sm:py-1 rounded-md sm:rounded-lg text-[12px] sm:text-sm font-semibold transition-all cursor-pointer',
-                            page === currentPage
-                                ? 'bg-primary text-on-primary shadow-xs'
-                                : 'border border-outline-variant/60 text-on-surface-variant hover:border-primary hover:text-primary'
+                            'w-8 h-8 rounded-lg text-[12.5px] font-bold transition-all cursor-pointer flex items-center justify-center',
+                            p === currentPage
+                                ? 'bg-emerald-900 text-yellow-200 shadow-xs'
+                                : 'border border-slate-200 text-slate-600 hover:border-emerald-600 hover:text-emerald-900'
                         ]"
-                        @click="$emit('page-change', page)"
                     >
-                        {{ page }}
+                        {{ p }}
                     </button>
                 </template>
 
                 <button
                     :disabled="currentPage >= totalPages"
-                    class="p-1.5 sm:p-2 rounded-md sm:rounded-lg border border-outline-variant/60 text-on-surface-variant hover:border-primary hover:text-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                     @click="$emit('page-change', currentPage + 1)"
+                    class="w-8 h-8 rounded-lg border border-slate-200 text-slate-600 hover:border-emerald-600 hover:text-emerald-900 flex items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
                     title="Halaman berikutnya"
                 >
-                    <span class="material-symbols-outlined text-[18px] sm:text-sm">chevron_right</span>
+                    <span class="material-symbols-outlined text-[16px]">chevron_right</span>
                 </button>
             </div>
         </div>
     </div>
 </template>
+
+<style scoped>
+/* Custom Horizontal Scrollbar without arrow buttons */
+.custom-scrollbar-x {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+}
+
+.custom-scrollbar-x::-webkit-scrollbar {
+    height: 6px;
+}
+
+.custom-scrollbar-x::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
+}
+
+.custom-scrollbar-x::-webkit-scrollbar-track {
+    background: #f8fafc;
+}
+
+.custom-scrollbar-x::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1;
+    border-radius: 9999px;
+}
+
+.custom-scrollbar-x::-webkit-scrollbar-thumb:hover {
+    background-color: #047857;
+}
+</style>
