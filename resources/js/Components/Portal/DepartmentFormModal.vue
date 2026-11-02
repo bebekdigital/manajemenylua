@@ -17,11 +17,12 @@ const emit = defineEmits(['close', 'success']);
 
 const form = useForm({
     name: '',
+    unit_group: 'Yayasan',
     order: 0,
 });
 
 const isEditing = computed(() => !!props.editing);
-const modalTitle = computed(() => isEditing.value ? 'Edit Bidang Yayasan' : 'Tambah Bidang Yayasan');
+const modalTitle = computed(() => isEditing.value ? 'Edit Unit' : 'Tambah Unit');
 
 watch(
     () => props.show,
@@ -29,9 +30,11 @@ watch(
         if (val) {
             if (props.editing) {
                 form.name = props.editing.name;
+                form.unit_group = props.editing.unit_group || 'Yayasan';
                 form.order = props.editing.order ?? 0;
             } else {
                 form.reset();
+                form.unit_group = 'Yayasan';
             }
             form.clearErrors();
         }
@@ -87,17 +90,33 @@ function submit() {
                         <form @submit.prevent="submit" class="px-6 py-5 space-y-5">
                             <div>
                                 <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
-                                    Nama Bidang <span class="text-error">*</span>
+                                    Nama Unit <span class="text-error">*</span>
                                 </label>
                                 <input
                                     v-model="form.name"
                                     type="text"
                                     required
                                     class="w-full px-4 py-2.5 bg-surface-container-low border border-outline-variant/60 rounded-xl text-sm text-on-surface placeholder:text-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-                                    placeholder="Contoh: Bidang Pendidikan, Bidang Keuangan, Bidang SDM"
+                                    placeholder="Contoh: SDIT, SMPIT, Bidang Keuangan, Bidang SDM"
                                     :class="{ 'border-error': form.errors.name }"
                                 />
                                 <div v-if="form.errors.name" class="text-error text-xs mt-1">{{ form.errors.name }}</div>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
+                                    Kelompok Unit <span class="text-error">*</span>
+                                </label>
+                                <select
+                                    v-model="form.unit_group"
+                                    class="w-full px-4 py-2.5 bg-surface-container-low border border-outline-variant/60 rounded-xl text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer font-medium"
+                                    :class="{ 'border-error': form.errors.unit_group }"
+                                >
+                                    <option value="Yayasan">Yayasan</option>
+                                    <option value="Satuan Pendidikan">Satuan Pendidikan</option>
+                                </select>
+                                <div v-if="form.errors.unit_group" class="text-error text-xs mt-1">{{ form.errors.unit_group }}</div>
+                                <p class="text-[11px] text-on-surface-variant mt-1">Pilih apakah unit ini berada langsung di bawah Yayasan atau merupakan Satuan Pendidikan (Sekolah).</p>
                             </div>
 
                             <div>

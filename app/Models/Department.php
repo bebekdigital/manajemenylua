@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Department extends Model
 {
-    protected $fillable = ['name', 'order'];
+    protected $fillable = ['name', 'unit_group', 'order'];
 
     /**
      * @return HasMany<DepartmentPosition, $this>

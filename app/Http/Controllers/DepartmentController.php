@@ -11,53 +11,57 @@ use Illuminate\Support\Facades\Schema;
 class DepartmentController extends Controller
 {
     /**
-     * Store a newly created department.
+     * Store a newly created department / unit.
      */
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255', 'unique:departments,name'],
+            'unit_group' => ['nullable', 'string', 'in:Yayasan,Satuan Pendidikan'],
             'order' => ['nullable', 'integer', 'min:0'],
         ]);
 
         Department::create([
             'name' => $validated['name'],
+            'unit_group' => $validated['unit_group'] ?? 'Yayasan',
             'order' => $validated['order'] ?? 0,
         ]);
 
-        return back()->with('success', 'Bidang berhasil ditambahkan.');
+        return back()->with('success', 'Unit berhasil ditambahkan.');
     }
 
     /**
-     * Update the specified department.
+     * Update the specified department / unit.
      */
     public function update(Request $request, Department $department): RedirectResponse
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255', 'unique:departments,name,'.$department->id],
+            'unit_group' => ['nullable', 'string', 'in:Yayasan,Satuan Pendidikan'],
             'order' => ['nullable', 'integer', 'min:0'],
         ]);
 
         $department->update([
             'name' => $validated['name'],
+            'unit_group' => $validated['unit_group'] ?? ($department->unit_group ?? 'Yayasan'),
             'order' => $validated['order'] ?? $department->order,
         ]);
 
-        return back()->with('success', 'Bidang berhasil diperbarui.');
+        return back()->with('success', 'Unit berhasil diperbarui.');
     }
 
     /**
-     * Remove the specified department.
+     * Remove the specified department / unit.
      */
     public function destroy(Department $department): RedirectResponse
     {
         if ($department->positions()->exists()) {
-            return back()->with('error', 'Tidak dapat menghapus Bidang karena masih memiliki daftar Jabatan.');
+            return back()->with('error', 'Tidak dapat menghapus Unit karena masih memiliki daftar Jabatan.');
         }
 
         $department->delete();
 
-        return back()->with('success', 'Bidang berhasil dihapus.');
+        return back()->with('success', 'Unit berhasil dihapus.');
     }
 
     /**

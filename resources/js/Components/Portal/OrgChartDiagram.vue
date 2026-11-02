@@ -857,7 +857,7 @@ function handleDelete(pos) {
                                 : 'text-on-surface-variant hover:text-on-surface'"
                         >
                             <span class="material-symbols-outlined text-[16px]">domain</span>
-                            <span>Daftar Bidang</span>
+                            <span>Daftar Unit</span>
                         </button>
                     </div>
                 </div>
@@ -1045,13 +1045,13 @@ function handleDelete(pos) {
             </div>
 
             <!-- ======================================================== -->
-            <!-- TAB 2: DAFTAR BIDANG KERJA YAYASAN                        -->
+            <!-- TAB 2: DAFTAR UNIT KERJA YAYASAN                          -->
             <!-- ======================================================== -->
             <div v-else-if="activeTab === 'departments'" class="p-5 sm:p-6 space-y-4">
                 <div class="flex items-center justify-between">
                     <div>
-                        <h4 class="text-base font-bold text-on-surface">Daftar Bidang Kerja Yayasan</h4>
-                        <p class="text-xs text-on-surface-variant">Kelola nama bidang kerja dan grup posisi di bawah yayasan</p>
+                        <h4 class="text-base font-bold text-on-surface">Daftar Unit</h4>
+                        <p class="text-xs text-on-surface-variant">Kelola nama unit dan grup posisi di bawah yayasan</p>
                     </div>
                     <button
                         type="button"
@@ -1059,7 +1059,7 @@ function handleDelete(pos) {
                         class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary text-on-primary text-xs sm:text-sm font-semibold cursor-pointer"
                     >
                         <span class="material-symbols-outlined text-[16px]">add</span>
-                        <span>Tambah Bidang</span>
+                        <span>Tambah Unit</span>
                     </button>
                 </div>
 
@@ -1067,8 +1067,9 @@ function handleDelete(pos) {
                     <table class="w-full text-xs sm:text-sm border-collapse">
                         <thead>
                             <tr class="bg-surface-container-low/70 text-on-surface-variant font-bold text-[10px] sm:text-xs uppercase tracking-wider">
-                                <th class="border-b border-outline-variant/60 px-5 py-3 text-left w-1/3">Bidang Kerja</th>
-                                <th class="border-b border-outline-variant/60 px-5 py-3 text-left">Jabatan Terdaftar di Bidang</th>
+                                <th class="border-b border-outline-variant/60 px-5 py-3 text-left w-1/4">Unit</th>
+                                <th class="border-b border-outline-variant/60 px-4 py-3 text-left w-48">Kelompok Unit</th>
+                                <th class="border-b border-outline-variant/60 px-5 py-3 text-left">Jabatan Terdaftar di Unit</th>
                                 <th class="border-b border-outline-variant/60 px-5 py-3 text-center w-28">Aksi</th>
                             </tr>
                         </thead>
@@ -1080,6 +1081,22 @@ function handleDelete(pos) {
                             >
                                 <td class="px-5 py-3.5 align-top font-bold text-on-surface">
                                     {{ dept.name }}
+                                </td>
+                                <td class="px-4 py-3.5 align-top whitespace-nowrap">
+                                    <span
+                                        :class="[
+                                            'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border',
+                                            dept.unit_group === 'Satuan Pendidikan'
+                                                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                                : 'bg-blue-50 text-blue-800 border-blue-200'
+                                        ]"
+                                    >
+                                        <span
+                                            class="w-1.5 h-1.5 rounded-full"
+                                            :class="dept.unit_group === 'Satuan Pendidikan' ? 'bg-emerald-600' : 'bg-blue-600'"
+                                        ></span>
+                                        <span>{{ dept.unit_group || 'Yayasan' }}</span>
+                                    </span>
                                 </td>
                                 <td class="px-5 py-3.5 align-top">
                                     <div class="flex flex-wrap gap-1.5">
@@ -1097,7 +1114,7 @@ function handleDelete(pos) {
                                             v-if="!positions.some(x => x.department_id === dept.id)"
                                             class="text-xs text-on-surface-variant italic"
                                         >
-                                            Belum ada jabatan di bidang ini
+                                            Belum ada jabatan di unit ini
                                         </span>
                                     </div>
                                 </td>
@@ -1107,7 +1124,7 @@ function handleDelete(pos) {
                                             type="button"
                                             @click="$emit('edit-department', dept)"
                                             class="p-1.5 rounded-lg text-on-surface-variant hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer"
-                                            title="Edit Bidang"
+                                            title="Edit Unit"
                                         >
                                             <span class="material-symbols-outlined text-[16px]">edit</span>
                                         </button>
@@ -1115,7 +1132,7 @@ function handleDelete(pos) {
                                             type="button"
                                             @click="$emit('delete-department', dept)"
                                             class="p-1.5 rounded-lg text-on-surface-variant hover:text-error hover:bg-error/10 transition-colors cursor-pointer"
-                                            title="Hapus Bidang"
+                                            title="Hapus Unit"
                                         >
                                             <span class="material-symbols-outlined text-[16px]">delete</span>
                                         </button>
@@ -1123,8 +1140,8 @@ function handleDelete(pos) {
                                 </td>
                             </tr>
                             <tr v-if="departments.length === 0">
-                                <td colspan="3" class="px-5 py-8 text-center text-on-surface-variant">
-                                    Belum ada bidang terdaftar.
+                                <td colspan="4" class="px-5 py-8 text-center text-on-surface-variant">
+                                    Belum ada unit terdaftar.
                                 </td>
                             </tr>
                         </tbody>

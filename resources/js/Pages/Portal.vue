@@ -285,7 +285,7 @@ function confirmDepartmentDelete(department) {
     if (department.positions && department.positions.length > 0) {
         openConfirmModal({
             title: 'Tidak Dapat Dihapus',
-            message: `Bidang "${department.name}" masih memiliki ${department.positions.length} jabatan terdaftar. Hapus semua jabatan di dalamnya terlebih dahulu.`,
+            message: `Unit "${department.name}" masih memiliki ${department.positions.length} jabatan terdaftar. Hapus semua jabatan di dalamnya terlebih dahulu.`,
             itemName: department.name,
             hideConfirmButton: true,
         });
@@ -293,8 +293,8 @@ function confirmDepartmentDelete(department) {
     }
 
     openConfirmModal({
-        title: 'Hapus Bidang',
-        message: 'Yakin ingin menghapus bidang yayasan ini?',
+        title: 'Hapus Unit',
+        message: 'Yakin ingin menghapus unit yayasan ini?',
         itemName: department.name,
         onConfirm: (done) => {
             router.delete(`/portal/departments/${department.id}`, {
