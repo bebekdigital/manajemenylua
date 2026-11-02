@@ -50,7 +50,7 @@ const jenjangFilter = ref('');
 const sortBy = ref('nama');
 const sortDirection = ref('asc');
 const currentPage = ref(1);
-const perPage = ref(10);
+const perPage = ref(15);
 const showImportModal = ref(false);
 const dismissedFlash = ref(false);
 
@@ -94,7 +94,7 @@ const filteredEmployees = computed(() => {
         }
     }
 
-    // Sorting via table column headers
+    // Sorting via table header
     result.sort((a, b) => {
         const field = sortBy.value;
         const valA = (a[field] || '').toString().toLowerCase();
@@ -170,14 +170,14 @@ function onPageChange(p) {
 
     <div class="flex-1 overflow-y-auto px-4 py-6 md:px-8 md:py-7 bg-[#fafafa] min-h-screen">
         <div class="max-w-[1440px] mx-auto">
-            <!-- Page Header -->
+            <!-- Page Header (Tanpa TA / 2026/2027) -->
             <div class="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                 <div>
-                    <h1 class="text-2xl sm:text-[26px] font-bold text-emerald-950 tracking-tight leading-none">
+                    <h1 class="text-2xl sm:text-[26px] font-bold text-slate-900 tracking-tight leading-none">
                         Database Pegawai
                     </h1>
                     <p class="text-[13.5px] text-slate-500 mt-2 font-medium">
-                        <strong class="text-slate-700 font-semibold">{{ employees.length }}</strong> pegawai terdaftar di <strong class="text-slate-700 font-semibold">{{ uniqueUnitsCount }}</strong> unit kerja
+                        <strong class="text-slate-700 font-semibold">{{ employees.length }}</strong> pegawai di <strong class="text-slate-700 font-semibold">{{ uniqueUnitsCount }}</strong> unit kerja
                     </p>
                 </div>
 
@@ -187,10 +187,10 @@ function onPageChange(p) {
                         v-if="permissions?.can_export"
                         href="/staff/template"
                         download
-                        class="inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl border border-yellow-300 text-yellow-900 bg-yellow-100 hover:bg-yellow-200 font-semibold text-[13px] transition-all shadow-2xs"
+                        class="inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl border border-slate-200 text-slate-700 bg-white hover:bg-slate-50 hover:border-slate-300 font-semibold text-[13px] transition-all shadow-2xs"
                         title="Download template XLSX untuk import data pegawai"
                     >
-                        <span class="material-symbols-outlined text-[18px]">download</span>
+                        <span class="material-symbols-outlined text-[18px] text-emerald-700">download</span>
                         <span>Download Template</span>
                     </a>
 
@@ -275,7 +275,7 @@ function onPageChange(p) {
                 </button>
             </div>
 
-            <!-- Toolbar (Tabs, Search Bar seperti Database Siswa, Filter Chips) -->
+            <!-- Toolbar (Modern layout matching image: Status tabs, Search Bar Database Siswa, Filter chips) -->
             <StaffToolbar
                 :employees="employees"
                 :total-count="employees.length"
@@ -292,7 +292,7 @@ function onPageChange(p) {
                 @reset-filters="onResetFilters"
             />
 
-            <!-- Table -->
+            <!-- Table (Modern design with green header and thick border outline) -->
             <StaffTable
                 :employees="paginatedEmployees"
                 :current-page="currentPage"

@@ -13,7 +13,7 @@ const props = defineProps({
     },
     perPage: {
         type: Number,
-        default: 10,
+        default: 15,
     },
     totalEntries: {
         type: Number,
@@ -183,10 +183,11 @@ function getStatusStyle(status) {
 </script>
 
 <template>
-    <div class="bg-white rounded-2xl border-2 border-emerald-800/30 shadow-[0_4px_20px_rgba(0,40,20,0.08)] overflow-hidden">
+    <!-- Table Container: Tebalkan outline tabel (border-2 border-emerald-800) -->
+    <div class="bg-white rounded-2xl border-2 border-emerald-800 shadow-[0_4px_25px_rgba(0,40,20,0.08)] overflow-hidden">
         <div class="overflow-x-auto custom-scrollbar-x">
             <table class="w-full text-left border-collapse">
-                <!-- Table Header (Warna Hijau Kontras Menarik) -->
+                <!-- Table Header: Warna Hijau Tema Kontras Menarik -->
                 <thead>
                     <tr class="bg-emerald-800 text-white border-b-2 border-emerald-900">
                         <!-- Checkbox Header -->
@@ -198,7 +199,7 @@ function getStatusStyle(status) {
                                     'w-4 h-4 rounded-[5px] flex items-center justify-center transition-colors cursor-pointer mx-auto border',
                                     allSelected || someSelected
                                         ? 'bg-yellow-300 border-yellow-300 text-emerald-950'
-                                        : 'bg-emerald-900/50 border-emerald-300/70 hover:border-yellow-200'
+                                        : 'bg-emerald-900/60 border-emerald-400 hover:border-yellow-200'
                                 ]"
                             >
                                 <span v-if="allSelected" class="material-symbols-outlined text-[13px] font-bold">check</span>
@@ -209,7 +210,7 @@ function getStatusStyle(status) {
                         <!-- Pegawai (Nama & NIPY) -->
                         <th
                             @click="handleSort('nama')"
-                            class="py-3.5 px-3 text-[11.5px] font-bold text-emerald-50 uppercase tracking-wider cursor-pointer hover:text-yellow-200 transition-colors select-none"
+                            class="py-3.5 px-3 text-[11.5px] font-bold text-white uppercase tracking-wider cursor-pointer hover:text-yellow-200 transition-colors select-none"
                         >
                             <div class="inline-flex items-center gap-1">
                                 <span>Pegawai</span>
@@ -222,7 +223,7 @@ function getStatusStyle(status) {
                         <!-- Unit Kerja -->
                         <th
                             @click="handleSort('unit_kerja')"
-                            class="py-3.5 px-3 text-[11.5px] font-bold text-emerald-50 uppercase tracking-wider cursor-pointer hover:text-yellow-200 transition-colors select-none"
+                            class="py-3.5 px-3 text-[11.5px] font-bold text-white uppercase tracking-wider cursor-pointer hover:text-yellow-200 transition-colors select-none"
                         >
                             <div class="inline-flex items-center gap-1">
                                 <span>Unit Kerja</span>
@@ -233,14 +234,14 @@ function getStatusStyle(status) {
                         </th>
 
                         <!-- Jenjang / Kategori -->
-                        <th class="py-3.5 px-3 text-[11.5px] font-bold text-emerald-50 uppercase tracking-wider select-none">
+                        <th class="py-3.5 px-3 text-[11.5px] font-bold text-white uppercase tracking-wider select-none">
                             Kategori
                         </th>
 
                         <!-- Jabatan -->
                         <th
                             @click="handleSort('jabatan')"
-                            class="py-3.5 px-3 text-[11.5px] font-bold text-emerald-50 uppercase tracking-wider cursor-pointer hover:text-yellow-200 transition-colors select-none"
+                            class="py-3.5 px-3 text-[11.5px] font-bold text-white uppercase tracking-wider cursor-pointer hover:text-yellow-200 transition-colors select-none"
                         >
                             <div class="inline-flex items-center gap-1">
                                 <span>Jabatan</span>
@@ -251,12 +252,12 @@ function getStatusStyle(status) {
                         </th>
 
                         <!-- Tempat, Tgl Lahir -->
-                        <th class="py-3.5 px-3 text-[11.5px] font-bold text-emerald-50 uppercase tracking-wider select-none">
+                        <th class="py-3.5 px-3 text-[11.5px] font-bold text-white uppercase tracking-wider select-none">
                             Tempat, Tgl Lahir
                         </th>
 
                         <!-- Status -->
-                        <th class="py-3.5 px-3 text-[11.5px] font-bold text-emerald-50 uppercase tracking-wider select-none">
+                        <th class="py-3.5 px-3 text-[11.5px] font-bold text-white uppercase tracking-wider select-none">
                             Status
                         </th>
 
@@ -275,13 +276,14 @@ function getStatusStyle(status) {
                     </tr>
                 </thead>
 
-                <tbody class="divide-y divide-slate-200">
+                <!-- Table Body: Desain Modern Sesuai Referensi Gambar -->
+                <tbody class="divide-y divide-slate-100">
                     <tr
                         v-for="emp in employees"
                         :key="emp.id"
                         :class="[
                             'transition-colors group',
-                            selectedIds.includes(emp.id) ? 'bg-emerald-50/60 hover:bg-emerald-50/90' : 'hover:bg-emerald-50/30'
+                            selectedIds.includes(emp.id) ? 'bg-emerald-50/50 hover:bg-emerald-50/80' : 'hover:bg-slate-50/80'
                         ]"
                     >
                         <!-- Checkbox Cell -->
@@ -300,7 +302,7 @@ function getStatusStyle(status) {
                             </button>
                         </td>
 
-                        <!-- Pegawai: Nama Lengkap + NIPY Sub-text -->
+                        <!-- Pegawai: Nama Lengkap + NIPY Sub-text (persis layout gambar referensi) -->
                         <td class="py-3.5 px-3 align-middle">
                             <div class="flex items-start justify-between gap-2">
                                 <div class="min-w-0">
@@ -326,7 +328,7 @@ function getStatusStyle(status) {
                             </div>
                         </td>
 
-                        <!-- Unit Kerja (Avatar Circle + Unit Name) -->
+                        <!-- Unit Kerja (Avatar Circle + Unit Name persis kolom Client) -->
                         <td class="py-3.5 px-3 align-middle whitespace-nowrap">
                             <div class="flex items-center gap-2.5">
                                 <div
@@ -343,7 +345,7 @@ function getStatusStyle(status) {
                             </div>
                         </td>
 
-                        <!-- Kategori / Jenjang Kepegawaian (Soft Pill) -->
+                        <!-- Kategori / Jenjang Kepegawaian (Soft Pill persis kolom Category) -->
                         <td class="py-3.5 px-3 align-middle whitespace-nowrap">
                             <span
                                 v-if="emp.jenjang_kepegawaian"
@@ -357,7 +359,7 @@ function getStatusStyle(status) {
                             <span v-else class="text-[13px] text-slate-400">-</span>
                         </td>
 
-                        <!-- Jabatan (Avatar + Jabatan) -->
+                        <!-- Jabatan (Avatar + Jabatan persis kolom Owner) -->
                         <td class="py-3.5 px-3 align-middle whitespace-nowrap">
                             <div class="flex items-center gap-2">
                                 <div
@@ -374,14 +376,14 @@ function getStatusStyle(status) {
                             </div>
                         </td>
 
-                        <!-- Tempat, Tgl Lahir -->
+                        <!-- Tempat, Tgl Lahir (Muted Date persis kolom Date) -->
                         <td class="py-3.5 px-3 align-middle whitespace-nowrap">
                             <span class="text-[13px] text-slate-500">
                                 {{ emp.ttl || '-' }}
                             </span>
                         </td>
 
-                        <!-- Status -->
+                        <!-- Status (Colored Dot + Status persis kolom Status) -->
                         <td class="py-3.5 px-3 align-middle whitespace-nowrap">
                             <span
                                 v-if="emp.status_keaktifan"
@@ -399,7 +401,7 @@ function getStatusStyle(status) {
                             </span>
                         </td>
 
-                        <!-- No WA + Actions -->
+                        <!-- No WA + Actions (Right Aligned persis kolom Amount + ...) -->
                         <td class="py-3.5 pl-3 pr-5 align-middle whitespace-nowrap text-right">
                             <div class="inline-flex items-center justify-end gap-3">
                                 <span class="text-[13.5px] font-semibold text-slate-900 tabular-nums">
@@ -409,7 +411,7 @@ function getStatusStyle(status) {
                                 <div class="inline-flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
                                     <Link
                                         :href="`/staff/${emp.id}`"
-                                        class="p-1.5 rounded-lg text-slate-500 hover:text-emerald-800 hover:bg-emerald-100/70 transition-colors"
+                                        class="p-1.5 rounded-lg text-slate-400 hover:text-emerald-800 hover:bg-emerald-50 transition-colors"
                                         title="Lihat Detail Pegawai"
                                     >
                                         <span class="material-symbols-outlined text-[18px] block">visibility</span>
@@ -417,7 +419,7 @@ function getStatusStyle(status) {
                                     <Link
                                         v-if="canUpdate"
                                         :href="`/staff/${emp.id}?edit=true`"
-                                        class="p-1.5 rounded-lg text-slate-500 hover:text-amber-700 hover:bg-amber-100/70 transition-colors"
+                                        class="p-1.5 rounded-lg text-slate-400 hover:text-amber-700 hover:bg-amber-50 transition-colors"
                                         title="Edit Data Pegawai"
                                     >
                                         <span class="material-symbols-outlined text-[18px] block">more_horiz</span>
@@ -442,7 +444,7 @@ function getStatusStyle(status) {
         </div>
 
         <!-- Pagination Footer -->
-        <div class="px-5 py-3.5 border-t-2 border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50/50">
+        <div class="px-5 py-3.5 border-t border-slate-200/80 flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50/50">
             <div class="flex items-center gap-3">
                 <span class="text-[12.5px] text-slate-500">
                     <template v-if="perPage === 0">
@@ -501,7 +503,7 @@ function getStatusStyle(status) {
 </template>
 
 <style scoped>
-/* Custom Horizontal Scrollbar */
+/* Custom Horizontal Scrollbar without arrow buttons */
 .custom-scrollbar-x {
     scrollbar-width: thin;
     scrollbar-color: #cbd5e1 transparent;
@@ -509,6 +511,12 @@ function getStatusStyle(status) {
 
 .custom-scrollbar-x::-webkit-scrollbar {
     height: 6px;
+}
+
+.custom-scrollbar-x::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
 }
 
 .custom-scrollbar-x::-webkit-scrollbar-track {
@@ -521,6 +529,6 @@ function getStatusStyle(status) {
 }
 
 .custom-scrollbar-x::-webkit-scrollbar-thumb:hover {
-    background-color: #059669;
+    background-color: #047857;
 }
 </style>

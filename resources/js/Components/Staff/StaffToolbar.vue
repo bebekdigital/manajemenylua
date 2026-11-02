@@ -16,7 +16,7 @@ const props = defineProps({
     },
     perPage: {
         type: Number,
-        default: 10,
+        default: 15,
     },
     activeStatus: {
         type: String,
@@ -42,6 +42,7 @@ const emit = defineEmits([
 ]);
 
 const searchQuery = ref('');
+const showFilters = ref(false);
 
 // Compute counts per status tab (Tanpa Cuti)
 const statusCounts = computed(() => {
@@ -75,7 +76,7 @@ const statusTabs = computed(() => [
 const units = computed(() => {
     const uniqueUnits = [...new Set(props.employees.map(e => e.unit_kerja).filter(Boolean))].sort();
     return [
-        { value: '', label: 'Semua Unit' },
+        { value: '', label: 'Semua Unit Kerja' },
         ...uniqueUnits.map(u => ({ value: u, label: u })),
     ];
 });
@@ -87,6 +88,7 @@ const jenjangList = computed(() => {
 
 const perPageOptions = [
     { value: 10, label: '10 Data' },
+    { value: 15, label: '15 Data' },
     { value: 25, label: '25 Data' },
     { value: 50, label: '50 Data' },
     { value: 100, label: '100 Data' },
@@ -135,159 +137,229 @@ function resetAll() {
 </script>
 
 <template>
-    <div class="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-5 mb-4 sm:mb-6 shadow-sm border border-slate-200 flex flex-col gap-3 sm:gap-4">
-        <!-- Main Row: Filters (Left) + Search & Per Page seperti Database Siswa (Right) -->
-        <div class="flex flex-col xl:flex-row gap-3 sm:gap-4 items-start xl:items-center justify-between w-full">
-
-            <!-- Left Side: Segmented Status Tabs & Unit Filter -->
-            <div class="flex flex-wrap items-center gap-2.5 w-full xl:w-auto flex-grow justify-start">
-                <!-- Segmented Status Tabs (Tanpa Cuti + Custom Horizontal Scrollbar) -->
-                <div class="bg-slate-100 p-1 rounded-xl inline-flex items-center gap-1 overflow-x-auto custom-scrollbar-x max-w-full border border-slate-200/80">
-                    <button
-                        v-for="tab in statusTabs"
-                        :key="tab.key"
-                        type="button"
-                        @click="selectStatusTab(tab.key)"
+    <div class="mb-4 space-y-3">
+        <!-- ROW 1: Segmented Status Tabs (Left) + Unit & Per Page Controls (Right) -->
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+            <!-- Segmented Status Tabs (Custom Clean Scrollbar - Tanpa Cuti) -->
+            <div class="bg-slate-200/60 p-1 rounded-full inline-flex items-center gap-0.5 overflow-x-auto custom-tab-scrollbar max-w-full border border-slate-200/80 shrink-0">
+                <button
+                    v-for="tab in statusTabs"
+                    :key="tab.key"
+                    type="button"
+                    @click="selectStatusTab(tab.key)"
+                    :class="[
+                        'inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[13px] transition-all duration-150 cursor-pointer shrink-0',
+                        activeStatus === tab.key
+                            ? 'bg-white text-slate-900 font-bold shadow-2xs'
+                            : 'text-slate-600 hover:text-slate-900 font-medium'
+                    ]"
+                >
+                    <span>{{ tab.label }}</span>
+                    <span
                         :class="[
-                            'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12.5px] sm:text-[13px] transition-all duration-150 cursor-pointer shrink-0',
+                            'px-2 py-0.5 rounded-full text-[11px] leading-none transition-colors',
                             activeStatus === tab.key
-                                ? 'bg-white text-slate-900 font-bold shadow-2xs'
-                                : 'text-slate-600 hover:text-slate-900 font-medium'
+                                ? 'bg-emerald-900 text-yellow-200 font-bold'
+                                : 'bg-slate-200/90 text-slate-600 font-semibold'
                         ]"
                     >
-                        <span>{{ tab.label }}</span>
-                        <span
-                            :class="[
-                                'px-1.5 py-0.5 rounded-full text-[11px] leading-none transition-colors',
-                                activeStatus === tab.key
-                                    ? 'bg-emerald-900 text-yellow-200 font-bold'
-                                    : 'bg-slate-200/90 text-slate-600 font-semibold'
-                            ]"
-                        >
-                            {{ tab.count }}
-                        </span>
-                    </button>
-                </div>
+                        {{ tab.count }}
+                    </span>
+                </button>
+            </div>
 
-                <!-- Unit Kerja Filter (Gaya Database Siswa) -->
-                <div class="relative w-full sm:w-auto sm:min-w-[150px] flex-grow sm:flex-grow-0">
+            <!-- Right Controls: Unit Dropdown + Per Page Selector (Tanpa Sort Nama) -->
+            <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                <!-- Unit Kerja Dropdown -->
+                <div class="relative flex-1 sm:flex-initial">
+                    <span class="material-symbols-outlined text-[16px] text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none">domain</span>
                     <select
                         :value="activeUnit"
-                        class="w-full pl-3 pr-8 py-2 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg sm:rounded-xl text-[12px] sm:text-[13.5px] font-medium text-slate-700 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 cursor-pointer transition-colors"
                         @change="onUnitChange"
+                        class="w-full sm:w-auto pl-9 pr-8 py-2 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl text-[12.5px] sm:text-[13px] font-medium text-slate-700 focus:outline-none focus:border-emerald-500 shadow-2xs cursor-pointer appearance-none transition-colors"
                     >
                         <option v-for="u in units" :key="u.value" :value="u.value">{{ u.label }}</option>
                     </select>
+                    <span class="material-symbols-outlined text-[16px] text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none">expand_more</span>
                 </div>
-            </div>
 
-            <!-- Right Side: Search Bar & Per Page (Kembalikan seperti Database Siswa) -->
-            <div class="flex items-center gap-2 w-full xl:w-auto shrink-0 justify-between flex-nowrap">
-                <!-- Search Bar with Clear Button -->
-                <div class="relative flex-1 min-w-0 sm:flex-none sm:w-64 xl:w-64 2xl:w-72">
-                    <span class="material-symbols-outlined absolute left-2.5 sm:left-3.5 top-1/2 -translate-y-1/2 text-outline text-[18px] sm:text-[20px] pointer-events-none">
-                        search
-                    </span>
-                    <input
-                        v-model="searchQuery"
-                        type="text"
-                        placeholder="Cari nama, NIPY..."
-                        class="w-full pl-8 sm:pl-11 pr-8 sm:pr-10 py-2 sm:py-2.5 bg-white hover:bg-slate-50 focus:bg-white border border-slate-300 rounded-lg sm:rounded-xl text-[12px] sm:text-[13.5px] text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all"
-                        @input="onSearchInput"
-                    />
-                    <button
-                        v-if="searchQuery"
-                        type="button"
-                        @click="clearSearch"
-                        class="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface p-1 rounded-full hover:bg-surface-variant transition-colors cursor-pointer"
-                        title="Hapus pencarian"
-                        aria-label="Hapus kata kunci pencarian"
+                <!-- Per Page Selector -->
+                <div class="relative hidden sm:block">
+                    <select
+                        :value="perPage"
+                        @change="onPerPageChange"
+                        class="pl-3.5 pr-7 py-2 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl text-[12.5px] sm:text-[13px] font-medium text-slate-700 focus:outline-none focus:border-emerald-500 shadow-2xs cursor-pointer appearance-none transition-colors"
                     >
-                        <span class="material-symbols-outlined text-[16px] sm:text-[18px]">close</span>
-                    </button>
-                </div>
-
-                <!-- Tampilkan ... Data Selector Filter -->
-                <div class="relative w-[95px] shrink-0 sm:w-auto sm:min-w-[125px]">
-                    <div class="relative flex items-center">
-                        <select
-                            :value="perPage"
-                            class="w-full pl-6 sm:pl-8 pr-6 sm:pr-8 py-2 sm:py-2.5 bg-white hover:bg-slate-50 border border-slate-300 focus:border-emerald-500 rounded-lg sm:rounded-xl text-[12px] sm:text-[13.5px] font-medium text-slate-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer transition-colors appearance-none"
-                            @change="onPerPageChange"
-                            title="Tampilkan jumlah baris data per halaman"
-                        >
-                            <option v-for="opt in perPageOptions" :key="opt.value" :value="opt.value">
-                                {{ opt.label }}
-                            </option>
-                        </select>
-                        <span class="material-symbols-outlined text-primary text-[15px] sm:text-[18px] pointer-events-none absolute left-1.5 sm:left-2.5">
-                            format_list_numbered
-                        </span>
-                        <span class="material-symbols-outlined text-outline text-[15px] sm:text-[16px] pointer-events-none absolute right-1.5 sm:right-2.5">
-                            expand_more
-                        </span>
-                    </div>
+                        <option v-for="opt in perPageOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                    </select>
+                    <span class="material-symbols-outlined text-[15px] text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none">expand_more</span>
                 </div>
             </div>
         </div>
 
-        <!-- Sub-row: Quick Filter Jenjang Pills & Active Filter Summary -->
-        <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100">
-            <div class="flex flex-wrap items-center gap-1.5">
-                <span class="text-[11.5px] font-semibold text-slate-400 uppercase tracking-wider mr-1">Kategori:</span>
+        <!-- ROW 2: Search Bar (Gaya Database Siswa: rounded-xl, border-slate-300) + Filter Button -->
+        <div class="flex items-center gap-2.5">
+            <!-- Search Bar bergaya Database Siswa -->
+            <div class="relative flex-1 min-w-0">
+                <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-[19px] pointer-events-none">
+                    search
+                </span>
+                <input
+                    v-model="searchQuery"
+                    type="text"
+                    placeholder="Cari nama, NIPY, jabatan, unit, atau nomor WA..."
+                    class="w-full pl-11 pr-10 py-2.5 bg-white hover:bg-slate-50 focus:bg-white border border-slate-300 rounded-xl text-[13px] sm:text-[13.5px] text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all shadow-2xs"
+                    @input="onSearchInput"
+                />
                 <button
-                    v-for="j in jenjangList"
-                    :key="j"
+                    v-if="searchQuery"
                     type="button"
-                    @click="selectJenjang(j)"
-                    :class="[
-                        'inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[12px] font-semibold transition-all cursor-pointer',
-                        activeJenjang === j
-                            ? 'bg-emerald-900 border-emerald-900 text-yellow-200 shadow-2xs'
-                            : 'border-slate-200 text-slate-600 hover:border-emerald-600/50 hover:text-emerald-900 bg-slate-50/70'
-                    ]"
+                    @click="clearSearch"
+                    class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1 rounded-full hover:bg-slate-100 transition-colors cursor-pointer"
+                    title="Hapus pencarian"
                 >
-                    <span>{{ j }}</span>
+                    <span class="material-symbols-outlined text-[17px]">close</span>
                 </button>
+            </div>
 
+            <!-- Filters Button dengan Badge -->
+            <button
+                type="button"
+                @click="showFilters = !showFilters"
+                :class="[
+                    'inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border text-[13px] font-semibold transition-all shadow-2xs cursor-pointer shrink-0',
+                    showFilters || activeFiltersCount > 0
+                        ? 'bg-emerald-50 border-emerald-600 text-emerald-950'
+                        : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
+                ]"
+            >
+                <span class="material-symbols-outlined text-[18px]">tune</span>
+                <span>Filter</span>
+                <span
+                    v-if="activeFiltersCount > 0"
+                    class="px-1.5 py-0.5 rounded-full bg-emerald-900 text-yellow-200 text-[11px] font-bold leading-none"
+                >
+                    {{ activeFiltersCount }}
+                </span>
+            </button>
+        </div>
+
+        <!-- ROW 3: Active Filter Chips (Left) + Entry Counter (Right) -->
+        <div class="flex flex-wrap items-center justify-between gap-2 pt-0.5">
+            <div class="flex flex-wrap items-center gap-1.5">
+                <!-- Status Chip -->
+                <div
+                    v-if="activeStatus && activeStatus !== 'semua'"
+                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white border border-slate-200 text-[12.5px] shadow-2xs"
+                >
+                    <span class="text-slate-400">Status:</span>
+                    <strong class="text-slate-800 font-semibold capitalize">{{ activeStatus }}</strong>
+                    <button
+                        type="button"
+                        @click="selectStatusTab('semua')"
+                        class="text-slate-400 hover:text-slate-700 ml-0.5 flex items-center cursor-pointer"
+                    >
+                        <span class="material-symbols-outlined text-[15px]">close</span>
+                    </button>
+                </div>
+
+                <!-- Unit Chip -->
+                <div
+                    v-if="activeUnit"
+                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white border border-slate-200 text-[12.5px] shadow-2xs"
+                >
+                    <span class="text-slate-400">Unit:</span>
+                    <strong class="text-slate-800 font-semibold">{{ activeUnit }}</strong>
+                    <button
+                        type="button"
+                        @click="emit('filter-unit', '')"
+                        class="text-slate-400 hover:text-slate-700 ml-0.5 flex items-center cursor-pointer"
+                    >
+                        <span class="material-symbols-outlined text-[15px]">close</span>
+                    </button>
+                </div>
+
+                <!-- Jenjang Chip -->
+                <div
+                    v-if="activeJenjang"
+                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white border border-slate-200 text-[12.5px] shadow-2xs"
+                >
+                    <span class="text-slate-400">Kategori:</span>
+                    <strong class="text-slate-800 font-semibold">{{ activeJenjang }}</strong>
+                    <button
+                        type="button"
+                        @click="emit('filter-jenjang', '')"
+                        class="text-slate-400 hover:text-slate-700 ml-0.5 flex items-center cursor-pointer"
+                    >
+                        <span class="material-symbols-outlined text-[15px]">close</span>
+                    </button>
+                </div>
+
+                <!-- Quick Filter Jenjang Pills -->
+                <div class="inline-flex items-center gap-1 flex-wrap">
+                    <button
+                        v-for="j in jenjangList"
+                        :key="j"
+                        type="button"
+                        @click="selectJenjang(j)"
+                        :class="[
+                            'inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[12px] font-medium transition-all cursor-pointer',
+                            activeJenjang === j
+                                ? 'bg-emerald-900 border-emerald-900 text-yellow-200 font-bold shadow-2xs'
+                                : 'border-dashed border-slate-300 text-slate-600 hover:border-slate-400 hover:text-slate-900 bg-white'
+                        ]"
+                    >
+                        <span v-if="activeJenjang !== j" class="text-slate-400">+</span>
+                        <span>{{ j }}</span>
+                    </button>
+                </div>
+
+                <!-- Reset Filter Link -->
                 <button
                     v-if="activeFiltersCount > 0"
                     type="button"
                     @click="resetAll"
-                    class="text-[12px] font-semibold text-emerald-700 hover:text-emerald-950 ml-2 cursor-pointer transition-colors underline underline-offset-2"
+                    class="text-[12.5px] font-semibold text-emerald-800 hover:text-emerald-950 ml-1 cursor-pointer transition-colors underline underline-offset-2"
                 >
-                    Reset filter
+                    Reset semua
                 </button>
             </div>
 
+            <!-- Right Entry Counter (Sesuai Referensi Gambar) -->
             <div class="text-[12.5px] text-slate-500 ml-auto shrink-0">
-                Menampilkan <strong class="text-slate-900 font-bold">{{ filteredCount }}</strong> dari <strong class="text-slate-800 font-semibold">{{ totalCount }}</strong> pegawai
+                <strong class="text-slate-900 font-bold">{{ filteredCount }}</strong> dari {{ totalCount }} pegawai
             </div>
         </div>
     </div>
 </template>
 
 <style scoped>
-/* Custom Horizontal Scrollbar */
-.custom-scrollbar-x {
+/* Custom Tab Scrollbar without arrows and minimal height */
+.custom-tab-scrollbar {
     scrollbar-width: thin;
-    scrollbar-color: #10b981 transparent;
+    scrollbar-color: #cbd5e1 transparent;
 }
 
-.custom-scrollbar-x::-webkit-scrollbar {
+.custom-tab-scrollbar::-webkit-scrollbar {
     height: 4px;
 }
 
-.custom-scrollbar-x::-webkit-scrollbar-track {
+.custom-tab-scrollbar::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
+}
+
+.custom-tab-scrollbar::-webkit-scrollbar-track {
     background: transparent;
 }
 
-.custom-scrollbar-x::-webkit-scrollbar-thumb {
+.custom-tab-scrollbar::-webkit-scrollbar-thumb {
     background-color: #cbd5e1;
     border-radius: 9999px;
 }
 
-.custom-scrollbar-x::-webkit-scrollbar-thumb:hover {
-    background-color: #059669;
+.custom-tab-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: #047857;
 }
 </style>
