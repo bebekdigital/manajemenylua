@@ -187,7 +187,10 @@ function getStatusStyle(status) {
                         <!-- Pegawai (Nama & NIPY) -->
                         <th
                             @click="handleSort('nama')"
-                            class="py-3.5 px-3 text-[11.5px] font-bold text-white uppercase tracking-wider cursor-pointer hover:text-yellow-200 transition-colors select-none"
+                            :class="[
+                                'py-3.5 px-3 text-[11.5px] font-bold uppercase tracking-wider cursor-pointer transition-colors select-none',
+                                sortBy === 'nama' ? 'text-yellow-200' : 'text-white hover:text-yellow-200'
+                            ]"
                         >
                             <div class="inline-flex items-center gap-1">
                                 <span>Pegawai</span>
@@ -200,7 +203,10 @@ function getStatusStyle(status) {
                         <!-- Unit Kerja -->
                         <th
                             @click="handleSort('unit_kerja')"
-                            class="py-3.5 px-3 text-[11.5px] font-bold text-white uppercase tracking-wider cursor-pointer hover:text-yellow-200 transition-colors select-none"
+                            :class="[
+                                'py-3.5 px-3 text-[11.5px] font-bold uppercase tracking-wider cursor-pointer transition-colors select-none',
+                                sortBy === 'unit_kerja' ? 'text-yellow-200' : 'text-white hover:text-yellow-200'
+                            ]"
                         >
                             <div class="inline-flex items-center gap-1">
                                 <span>Unit Kerja</span>
@@ -213,7 +219,10 @@ function getStatusStyle(status) {
                         <!-- Kolom Jenjang -->
                         <th
                             @click="handleSort('jenjang_kepegawaian')"
-                            class="py-3.5 px-3 text-[11.5px] font-bold text-white uppercase tracking-wider cursor-pointer hover:text-yellow-200 transition-colors select-none"
+                            :class="[
+                                'py-3.5 px-3 text-[11.5px] font-bold uppercase tracking-wider cursor-pointer transition-colors select-none',
+                                sortBy === 'jenjang_kepegawaian' ? 'text-yellow-200' : 'text-white hover:text-yellow-200'
+                            ]"
                         >
                             <div class="inline-flex items-center gap-1">
                                 <span>Jenjang</span>
@@ -226,7 +235,10 @@ function getStatusStyle(status) {
                         <!-- Jabatan -->
                         <th
                             @click="handleSort('jabatan')"
-                            class="py-3.5 px-3 text-[11.5px] font-bold text-white uppercase tracking-wider cursor-pointer hover:text-yellow-200 transition-colors select-none"
+                            :class="[
+                                'py-3.5 px-3 text-[11.5px] font-bold uppercase tracking-wider cursor-pointer transition-colors select-none',
+                                sortBy === 'jabatan' ? 'text-yellow-200' : 'text-white hover:text-yellow-200'
+                            ]"
                         >
                             <div class="inline-flex items-center gap-1">
                                 <span>Jabatan</span>
@@ -249,12 +261,15 @@ function getStatusStyle(status) {
                         <!-- Kontak WhatsApp -->
                         <th
                             @click="handleSort('no_wa')"
-                            class="py-3.5 pl-3 pr-5 text-[11.5px] font-bold text-yellow-200 uppercase tracking-wider text-right cursor-pointer hover:text-white transition-colors select-none"
+                            :class="[
+                                'py-3.5 pl-3 pr-5 text-[11.5px] font-bold uppercase tracking-wider text-right cursor-pointer transition-colors select-none',
+                                sortBy === 'no_wa' ? 'text-yellow-200' : 'text-white hover:text-yellow-200'
+                            ]"
                         >
                             <div class="inline-flex items-center justify-end gap-1">
                                 <span>No. WhatsApp</span>
-                                <span class="material-symbols-outlined text-[14px] text-yellow-300">
-                                    {{ sortBy === 'no_wa' && sortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
+                                <span class="material-symbols-outlined text-[14px]" :class="sortBy === 'no_wa' ? 'text-yellow-300' : 'text-emerald-300/60'">
+                                    {{ sortBy === 'no_wa' ? (sortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward') : 'unfold_more' }}
                                 </span>
                             </div>
                         </th>
