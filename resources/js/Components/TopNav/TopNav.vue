@@ -235,10 +235,10 @@ onUnmounted(() => {
                             <span class="material-symbols-outlined text-[17px] text-emerald-700">task_alt</span>
                             <span>Persetujuan</span>
 
-                            <!-- Badge Realtime jika ada pengajuan pending -->
+                            <!-- Badge Realtime jika ada pengajuan pending (Bulat Sempurna) -->
                             <span
                                 v-if="pendingApprovalsCount > 0"
-                                class="inline-flex items-center justify-center px-1.5 py-0.2 rounded-full text-[10.5px] font-bold bg-rose-600 text-white leading-none shadow-2xs animate-pulse"
+                                class="w-[18px] h-[18px] min-w-[18px] min-h-[18px] aspect-square rounded-full flex items-center justify-center text-[10px] font-bold bg-rose-600 text-white leading-none shadow-2xs animate-pulse shrink-0 ml-0.5"
                             >
                                 {{ pendingApprovalsCount }}
                             </span>

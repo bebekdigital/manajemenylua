@@ -509,10 +509,10 @@ onUnmounted(() => {
                         task_alt
                     </span>
 
-                    <!-- Badge Realtime Pengajuan Pending -->
+                    <!-- Badge Realtime Pengajuan Pending (Bulat Sempurna) -->
                     <span
                         v-if="pendingApprovalsCount > 0"
-                        class="absolute -top-1 -right-0.5 min-w-[17px] h-[17px] px-1 rounded-full text-[10px] font-bold bg-rose-600 text-white flex items-center justify-center shadow-xs animate-pulse ring-2 ring-white"
+                        class="absolute -top-1 -right-0.5 w-[18px] h-[18px] min-w-[18px] min-h-[18px] aspect-square rounded-full text-[10px] font-bold bg-rose-600 text-white flex items-center justify-center shadow-xs animate-pulse ring-2 ring-white"
                     >
                         {{ pendingApprovalsCount }}
                     </span>
