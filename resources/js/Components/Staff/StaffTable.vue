@@ -184,6 +184,11 @@ function getStatusStyle(status) {
                             </button>
                         </th>
 
+                        <!-- No -->
+                        <th class="py-3.5 px-2.5 w-12 text-center text-[11.5px] font-bold uppercase tracking-wider select-none text-white">
+                            No
+                        </th>
+
                         <!-- Pegawai (Nama & NIPY) -->
                         <th
                             @click="handleSort('nama')"
@@ -279,7 +284,7 @@ function getStatusStyle(status) {
                 <!-- Table Body: Garis kisi horizontal ditebalkan (divide-y-2 divide-slate-200) -->
                 <tbody class="divide-y-2 divide-slate-200">
                     <tr
-                        v-for="emp in employees"
+                        v-for="(emp, index) in employees"
                         :key="emp.id"
                         :class="[
                             'transition-colors group',
@@ -300,6 +305,11 @@ function getStatusStyle(status) {
                             >
                                 <span v-if="selectedIds.includes(emp.id)" class="material-symbols-outlined text-[13px] font-bold">check</span>
                             </button>
+                        </td>
+
+                        <!-- No -->
+                        <td class="py-3.5 px-2.5 text-[12px] text-slate-500 font-medium text-center align-middle whitespace-nowrap">
+                            {{ startEntry + index }}
                         </td>
 
                         <!-- Pegawai: Nama Lengkap + NIPY Sub-text (Font NIPY lebih jelas & kontras) -->
@@ -396,7 +406,7 @@ function getStatusStyle(status) {
 
                     <!-- Empty state -->
                     <tr v-if="employees.length === 0">
-                        <td colspan="8" class="py-14 px-6 text-center">
+                        <td colspan="9" class="py-14 px-6 text-center">
                             <div class="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center mx-auto mb-3 text-slate-400">
                                 <span class="material-symbols-outlined text-2xl">search_off</span>
                             </div>
