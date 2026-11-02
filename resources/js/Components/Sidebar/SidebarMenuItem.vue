@@ -40,44 +40,44 @@ defineProps({
             :class="[
                 'w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-150 cursor-pointer group',
                 active
-                    ? 'bg-slate-100 text-slate-900 font-bold'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70 font-medium'
+                    ? 'bg-emerald-800 text-yellow-200 font-bold shadow-sm'
+                    : 'text-emerald-100/90 hover:text-white hover:bg-emerald-800/60 font-medium'
             ]"
         >
             <div class="flex items-center space-x-3 min-w-0">
                 <span
                     class="material-symbols-outlined text-[20px] transition-colors duration-150 shrink-0"
-                    :class="active ? 'text-slate-900 filled-icon' : 'text-slate-400 group-hover:text-slate-700'"
+                    :class="active ? 'text-yellow-200 filled-icon' : 'text-emerald-300 group-hover:text-white'"
                 >{{ icon }}</span>
                 <span class="text-[13.5px] truncate leading-none">{{ label }}</span>
             </div>
-            <span v-if="badge" class="ml-2 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-200/70 text-slate-600 shrink-0">
+            <span v-if="badge" class="ml-2 text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-800 text-yellow-200 shrink-0">
                 {{ badge }}
             </span>
-            <span v-else class="material-symbols-outlined text-[15px] text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">
+            <span v-else class="material-symbols-outlined text-[15px] text-emerald-300/70 opacity-0 group-hover:opacity-100 transition-opacity">
                 open_in_new
             </span>
         </a>
 
-        <!-- Normal Inertia Route -->
+        <!-- Normal Internal Link -->
         <Link
             v-else-if="href !== '#'"
             :href="href"
             :class="[
                 'w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-150 cursor-pointer group active:scale-[0.98]',
                 active
-                    ? 'bg-slate-100 text-slate-900 font-bold'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70 font-medium'
+                    ? 'bg-emerald-800 text-yellow-200 font-bold shadow-sm'
+                    : 'text-emerald-100/90 hover:text-white hover:bg-emerald-800/60 font-medium'
             ]"
         >
             <div class="flex items-center space-x-3 min-w-0">
                 <span
                     class="material-symbols-outlined text-[20px] transition-colors duration-150 shrink-0"
-                    :class="active ? 'text-slate-900 filled-icon' : 'text-slate-400 group-hover:text-slate-700'"
+                    :class="active ? 'text-yellow-200 filled-icon' : 'text-emerald-300 group-hover:text-white'"
                 >{{ icon }}</span>
                 <span class="text-[13.5px] truncate leading-none">{{ label }}</span>
             </div>
-            <span v-if="badge" class="ml-2 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-200/70 text-slate-600 shrink-0">
+            <span v-if="badge" class="ml-2 text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-800 text-yellow-200 shrink-0">
                 {{ badge }}
             </span>
         </Link>
@@ -87,20 +87,20 @@ defineProps({
             v-else
             href="#"
             :class="[
-                'w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-150 cursor-pointer group hover:bg-slate-100/70 active:scale-[0.98]',
+                'w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-150 cursor-pointer group hover:bg-emerald-800/60 active:scale-[0.98]',
                 active
-                    ? 'bg-slate-100 text-slate-900 font-bold'
-                    : 'text-slate-600 hover:text-slate-900 font-medium'
+                    ? 'bg-emerald-800 text-yellow-200 font-bold shadow-sm'
+                    : 'text-emerald-100/90 hover:text-white font-medium'
             ]"
         >
             <div class="flex items-center space-x-3 min-w-0">
                 <span
                     class="material-symbols-outlined text-[20px] transition-colors duration-150 shrink-0"
-                    :class="active ? 'text-slate-900 filled-icon' : 'text-slate-400 group-hover:text-slate-700'"
+                    :class="active ? 'text-yellow-200 filled-icon' : 'text-emerald-300 group-hover:text-white'"
                 >{{ icon }}</span>
                 <span class="text-[13.5px] truncate leading-none">{{ label }}</span>
             </div>
-            <span v-if="badge" class="ml-2 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-200/70 text-slate-600 shrink-0">
+            <span v-if="badge" class="ml-2 text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-800 text-yellow-200 shrink-0">
                 {{ badge }}
             </span>
         </a>
