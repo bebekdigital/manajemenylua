@@ -38,15 +38,23 @@ class HandleInertiaRequests extends Middleware
     {
         $user = $request->user();
         $canViewEmployee = $user ? RolePermission::canAccess($user, 'employee_detail_history', 'view') : false;
+        $emp = $user ? $user->employeeProfile() : null;
+        $currentPos = $emp ? ($emp->currentPosition ?? $emp->positions()->orderByDesc('tmt_jabatan')->first()) : null;
+        $unitKerja = $currentPos?->unit_kerja ?: ($emp?->unit_keaktifan_dapodik ?: ($user?->unit ?? ''));
+        $rawJk = strtoupper(trim((string) ($emp?->jk ?: ($user?->jk ?: 'L'))));
+        $normalizedJk = (str_starts_with($rawJk, 'P') || str_starts_with($rawJk, 'W')) ? 'P' : 'L';
 
         return [
             ...parent::share($request),
             'auth' => [
                 'user' => $user ? [
                     'id' => $user->id,
-                    'name' => $user->employeeProfile()?->nama ?: $user->name,
+                    'name' => $emp?->nama ?: $user->name,
                     'username' => $user->username,
                     'role' => $user->role,
+                    'unit' => $unitKerja,
+                    'jk' => $normalizedJk,
+                    'jabatan' => $currentPos?->jabatan ?: ($user->jabatan ?? ''),
                     'must_change_password' => (bool) ($user->must_change_password ?? false),
                     'can_view_employee' => $canViewEmployee,
                 ] : null,

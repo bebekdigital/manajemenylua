@@ -8,6 +8,10 @@ defineProps({
         type: String,
         default: 'Overview',
     },
+    isHomeOverlay: {
+        type: Boolean,
+        default: false,
+    },
 });
 
 defineEmits(['toggle-sidebar']);
@@ -78,17 +82,31 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <header class="bg-white shadow-2xs docked full-width top-0 sticky z-30 border-b border-slate-200 transition-all duration-300">
+    <header
+        :class="[
+            'docked full-width top-0 z-30 transition-all duration-300',
+            isHomeOverlay
+                ? 'max-md:absolute max-md:inset-x-0 max-md:bg-transparent max-md:border-none max-md:shadow-none md:sticky md:bg-white md:border-b md:border-slate-200 md:shadow-2xs'
+                : 'bg-white shadow-2xs sticky border-b border-slate-200'
+        ]"
+    >
         <div class="flex items-center justify-between h-16 px-4 md:px-gutter max-w-container-max mx-auto gap-2 md:gap-4 w-full">
             
             <!-- Left: Title & Topbar Navigation Menus -->
             <div class="flex items-center gap-3 sm:gap-6 shrink-0">
-                <!-- Page Title / Brand (Khusus Mobile: di desktop nama menu aktif sudah ditandai di sidebar) -->
+                <!-- Page Title / Brand (Khusus Mobile: di halaman Beranda dihapus tulisan (Menu) Yayasan Li Ulil Albab karena overlay ilustrasi) -->
                 <div class="md:hidden flex items-center gap-2.5 shrink-0">
-                    <div class="w-8 h-8 rounded-xl bg-yellow-200 flex items-center justify-center text-emerald-950 shadow-2xs shrink-0">
+                    <div
+                        :class="[
+                            'flex items-center justify-center shrink-0 transition-all',
+                            isHomeOverlay
+                                ? 'w-9 h-9 rounded-full bg-white/85 backdrop-blur-md text-emerald-900 shadow-xs border border-white/70'
+                                : 'w-8 h-8 rounded-xl bg-yellow-200 text-emerald-950 shadow-2xs'
+                        ]"
+                    >
                         <span class="material-symbols-outlined filled-icon text-[18px]">school</span>
                     </div>
-                    <div class="flex flex-col">
+                    <div v-if="!isHomeOverlay" class="flex flex-col">
                         <h1 class="text-sm font-bold text-slate-800 leading-tight">{{ pageTitle }}</h1>
                         <span class="text-[10px] text-slate-500 font-medium leading-tight">Yayasan Li Ulil Albab</span>
                     </div>
@@ -152,13 +170,18 @@ onUnmounted(() => {
             </div>
 
             <!-- Right Actions: Role, Notifications & Profile -->
-            <div class="flex items-center space-x-1 sm:space-x-3 shrink-0">
+            <div class="flex items-center space-x-1.5 sm:space-x-3 shrink-0">
                 <button
                     type="button"
                     aria-label="Notifications"
-                    class="text-on-surface-variant hover:text-primary transition-colors duration-200 cursor-pointer p-2 rounded-full hover:bg-surface-variant flex items-center justify-center"
+                    :class="[
+                        'transition-colors duration-200 cursor-pointer flex items-center justify-center rounded-full',
+                        isHomeOverlay
+                            ? 'max-md:w-9 max-md:h-9 max-md:bg-white/85 max-md:backdrop-blur-md max-md:text-slate-800 max-md:shadow-xs max-md:border max-md:border-white/70 md:p-2 md:text-on-surface-variant md:hover:text-primary md:hover:bg-surface-variant'
+                            : 'p-2 text-on-surface-variant hover:text-primary hover:bg-surface-variant'
+                    ]"
                 >
-                    <span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+                    <span class="material-symbols-outlined text-[20px]" data-icon="notifications">notifications</span>
                 </button>
 
                 <!-- Desktop Profile Link (Hidden on mobile) -->
@@ -181,10 +204,15 @@ onUnmounted(() => {
                         type="button"
                         @click="toggleProfileMenu"
                         aria-label="Account profile"
-                        class="text-on-surface-variant hover:text-primary transition-colors duration-200 cursor-pointer p-2 rounded-full hover:bg-surface-variant flex items-center justify-center"
-                        :class="{ 'bg-surface-variant text-primary': isProfileMenuOpen }"
+                        :class="[
+                            'transition-colors duration-200 cursor-pointer flex items-center justify-center rounded-full',
+                            isHomeOverlay
+                                ? 'max-md:w-9 max-md:h-9 max-md:bg-white/85 max-md:backdrop-blur-md max-md:text-slate-800 max-md:shadow-xs max-md:border max-md:border-white/70 md:p-2'
+                                : 'p-2 text-on-surface-variant hover:text-primary hover:bg-surface-variant',
+                            isProfileMenuOpen ? 'bg-surface-variant text-primary' : ''
+                        ]"
                     >
-                        <span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+                        <span class="material-symbols-outlined text-[20px]" data-icon="account_circle">account_circle</span>
                     </button>
 
                     <!-- Profile Dropdown -->
