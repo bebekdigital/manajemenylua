@@ -114,14 +114,14 @@ onUnmounted(() => {
             
             <!-- Left: Title & Topbar Navigation Menus -->
             <div class="flex items-center gap-3 sm:gap-6 shrink-0">
-                <!-- Page Title -->
-                <div class="flex items-center gap-2.5 shrink-0">
-                    <div class="w-8 h-8 rounded-xl bg-yellow-200 md:hidden flex items-center justify-center text-emerald-950 shadow-2xs shrink-0">
+                <!-- Page Title / Brand (Khusus Mobile: di desktop nama menu aktif sudah ditandai di sidebar) -->
+                <div class="md:hidden flex items-center gap-2.5 shrink-0">
+                    <div class="w-8 h-8 rounded-xl bg-yellow-200 flex items-center justify-center text-emerald-950 shadow-2xs shrink-0">
                         <span class="material-symbols-outlined filled-icon text-[18px]">school</span>
                     </div>
-                    <div class="flex flex-col md:block">
+                    <div class="flex flex-col">
                         <h1 class="text-sm font-bold text-slate-800 leading-tight">{{ pageTitle }}</h1>
-                        <span class="text-[10px] text-slate-400 font-medium md:hidden leading-tight">Yayasan Li Ulil Albab</span>
+                        <span class="text-[10px] text-slate-400 font-medium leading-tight">Yayasan Li Ulil Albab</span>
                     </div>
                 </div>
 
@@ -235,10 +235,10 @@ onUnmounted(() => {
                             <span class="material-symbols-outlined text-[17px] text-emerald-700">task_alt</span>
                             <span>Persetujuan</span>
 
-                            <!-- Badge Realtime jika ada pengajuan pending (Bulat Sempurna) -->
+                            <!-- Badge Realtime jika ada pengajuan pending (Bulat Sempurna tanpa kedap-kedip) -->
                             <span
                                 v-if="pendingApprovalsCount > 0"
-                                class="w-[18px] h-[18px] min-w-[18px] min-h-[18px] aspect-square rounded-full flex items-center justify-center text-[10px] font-bold bg-rose-600 text-white leading-none shadow-2xs animate-pulse shrink-0 ml-0.5"
+                                class="w-[18px] h-[18px] min-w-[18px] min-h-[18px] aspect-square rounded-full flex items-center justify-center text-[10px] font-bold bg-rose-600 text-white leading-none shadow-2xs shrink-0 ml-0.5"
                             >
                                 {{ pendingApprovalsCount }}
                             </span>

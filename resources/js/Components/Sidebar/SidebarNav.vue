@@ -354,7 +354,7 @@ onUnmounted(() => {
                             :class="[
                                 'text-[10.5px] font-bold px-2 py-0.5 rounded-full border',
                                 pendingApprovalsCount > 0
-                                    ? 'bg-rose-50 text-rose-700 border-rose-200 animate-pulse'
+                                    ? 'bg-rose-50 text-rose-700 border-rose-200'
                                     : 'bg-emerald-50 text-emerald-700 border-emerald-200'
                             ]"
                         >
@@ -509,10 +509,10 @@ onUnmounted(() => {
                         task_alt
                     </span>
 
-                    <!-- Badge Realtime Pengajuan Pending (Bulat Sempurna) -->
+                    <!-- Badge Realtime Pengajuan Pending (Bulat Sempurna tanpa kedap-kedip) -->
                     <span
                         v-if="pendingApprovalsCount > 0"
-                        class="absolute -top-1 -right-0.5 w-[18px] h-[18px] min-w-[18px] min-h-[18px] aspect-square rounded-full text-[10px] font-bold bg-rose-600 text-white flex items-center justify-center shadow-xs animate-pulse ring-2 ring-white"
+                        class="absolute -top-1 -right-0.5 w-[18px] h-[18px] min-w-[18px] min-h-[18px] aspect-square rounded-full text-[10px] font-bold bg-rose-600 text-white flex items-center justify-center shadow-xs ring-2 ring-white"
                     >
                         {{ pendingApprovalsCount }}
                     </span>

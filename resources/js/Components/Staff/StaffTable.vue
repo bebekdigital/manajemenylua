@@ -160,13 +160,13 @@ function getStatusStyle(status) {
 </script>
 
 <template>
-    <!-- Table Container: Radius diperkecil (rounded-lg) & Outline dipertebal (border-2 border-emerald-800) -->
-    <div class="bg-white rounded-lg border-2 border-emerald-800 shadow-[0_4px_25px_rgba(0,40,20,0.08)] overflow-hidden">
+    <!-- Table Container: Radius diperkecil (rounded-lg) & Outline presisi (border border-emerald-800) -->
+    <div class="bg-white rounded-lg border border-emerald-800 shadow-[0_4px_25px_rgba(0,40,20,0.08)] overflow-hidden">
         <div class="overflow-x-auto custom-scrollbar-x">
             <table class="w-full text-left border-collapse">
                 <!-- Table Header: Warna Hijau Tema Kontras Menarik -->
                 <thead>
-                    <tr class="bg-emerald-800 text-white border-b-2 border-emerald-900">
+                    <tr class="bg-emerald-800 text-white border-b border-emerald-900">
                         <!-- Checkbox Header -->
                         <th class="py-3.5 pl-4 pr-2 w-10 text-center">
                             <button
@@ -419,7 +419,7 @@ function getStatusStyle(status) {
         </div>
 
         <!-- Pagination Footer -->
-        <div class="px-5 py-3.5 border-t-2 border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50/50">
+        <div class="px-5 py-3.5 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50/50">
             <div class="flex items-center gap-3">
                 <span class="text-[12.5px] text-slate-500">
                     <template v-if="perPage === 0">

@@ -92,13 +92,13 @@ function getAlamatLengkap(s) {
 </script>
 
 <template>
-    <!-- Table Container: Radius diperkecil (rounded-lg) & Outline dipertebal (border-2 border-emerald-800) -->
-    <div class="bg-white rounded-lg border-2 border-emerald-800 shadow-[0_4px_25px_rgba(0,40,20,0.08)] overflow-hidden">
+    <!-- Table Container: Radius diperkecil (rounded-lg) & Outline presisi (border border-emerald-800) -->
+    <div class="bg-white rounded-lg border border-emerald-800 shadow-[0_4px_25px_rgba(0,40,20,0.08)] overflow-hidden">
         <div class="overflow-x-auto custom-scrollbar-x">
             <table class="w-full text-left border-collapse">
                 <!-- Table Header: Warna Hijau Tema Kontras Menarik -->
                 <thead>
-                    <tr class="bg-emerald-800 text-white border-b-2 border-emerald-900">
+                    <tr class="bg-emerald-800 text-white border-b border-emerald-900">
                         <!-- No -->
                         <th class="py-3.5 px-3 w-12 text-center text-[11.5px] font-bold uppercase tracking-wider select-none">
                             No
@@ -341,7 +341,7 @@ function getAlamatLengkap(s) {
         </div>
 
         <!-- Pagination Footer: Selaras dengan Desain Data Pegawai -->
-        <div class="p-3.5 sm:p-4 border-t-2 border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 bg-white">
+        <div class="p-3.5 sm:p-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 bg-white">
             <div class="text-[12.5px] sm:text-[13px] text-slate-500 font-medium">
                 <template v-if="perPage === 0">
                     Menampilkan seluruh <strong class="text-slate-900 font-bold">{{ totalEntries }}</strong> data siswa
