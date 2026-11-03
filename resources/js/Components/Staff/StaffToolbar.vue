@@ -271,27 +271,28 @@ onUnmounted(() => {
                 </button>
             </div>
 
-            <!-- Filters Button dengan Dropdown Checklist Multi-select -->
+            <!-- Filters Button dengan Dropdown Checklist Multi-select (Di mobile hanya icon corong + counter) -->
             <div class="relative" ref="filterDropdownRef">
                 <button
                     type="button"
                     @click="isFilterOpen = !isFilterOpen"
                     :class="[
-                        'inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border text-[13px] font-semibold transition-all shadow-2xs cursor-pointer shrink-0',
+                        'inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 rounded-xl border text-[13px] font-semibold transition-all shadow-2xs cursor-pointer shrink-0',
                         isFilterOpen || activeFiltersCount > 0
                             ? 'bg-emerald-50 border-emerald-600 text-emerald-950 ring-2 ring-emerald-600/10'
                             : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
                     ]"
+                    title="Filter data pegawai"
                 >
-                    <span class="material-symbols-outlined text-[18px]">tune</span>
-                    <span>Filter</span>
+                    <span class="material-symbols-outlined text-[19px] text-emerald-800">filter_alt</span>
+                    <span class="hidden sm:inline">Filter</span>
                     <span
                         v-if="activeFiltersCount > 0"
                         class="px-1.5 py-0.5 rounded-full bg-emerald-900 text-yellow-200 text-[11px] font-bold leading-none"
                     >
                         {{ activeFiltersCount }}
                     </span>
-                    <span class="material-symbols-outlined text-[16px] text-slate-400 transition-transform duration-200" :class="{ 'rotate-180': isFilterOpen }">
+                    <span class="hidden sm:inline-block material-symbols-outlined text-[16px] text-slate-400 transition-transform duration-200" :class="{ 'rotate-180': isFilterOpen }">
                         expand_more
                     </span>
                 </button>
@@ -367,13 +368,14 @@ onUnmounted(() => {
             </div>
         </div>
 
-        <!-- ROW 3: Active Filter Chips Muncul Di Atas Tabel (Sesuai Referensi Gambar) -->
-        <div class="flex flex-wrap items-center justify-between gap-2 pt-0.5">
-            <div class="flex flex-wrap items-center gap-1.5 min-h-[30px]">
+        <!-- ROW 3: Active Filter Chips & Counter (Di mobile: Reset Semua & counter/perPage menjadi 1 baris) -->
+        <div class="space-y-2 pt-0.5 sm:space-y-0 sm:flex sm:items-center sm:justify-between sm:gap-3">
+            <!-- Chips Container (Status, Unit, Jenjang) -->
+            <div class="flex flex-wrap items-center gap-1.5">
                 <!-- Status Chip (Muncul jika status bukan Aktif atau jika ada pilihan) -->
                 <div
                     v-if="activeStatus && activeStatus !== 'semua'"
-                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-50 border border-slate-300 text-[12.5px] shadow-2xs"
+                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-50 border border-slate-300 text-[12px] sm:text-[12.5px] shadow-2xs"
                 >
                     <span class="text-slate-500">Status:</span>
                     <strong class="text-slate-800 font-semibold capitalize">{{ activeStatus }}</strong>
@@ -390,7 +392,7 @@ onUnmounted(() => {
                 <!-- Unit Chip (Muncul saat unit dipilih) -->
                 <div
                     v-if="activeUnit"
-                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-50 border border-slate-300 text-[12.5px] shadow-2xs"
+                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-50 border border-slate-300 text-[12px] sm:text-[12.5px] shadow-2xs"
                 >
                     <span class="text-slate-500">Unit:</span>
                     <strong class="text-slate-800 font-semibold">{{ activeUnit }}</strong>
@@ -409,7 +411,7 @@ onUnmounted(() => {
                     <div
                         v-for="j in activeJenjang"
                         :key="j"
-                        class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-50 border border-slate-300 text-[12.5px] shadow-2xs"
+                        class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-50 border border-slate-300 text-[12px] sm:text-[12.5px] shadow-2xs"
                     >
                         <span class="text-slate-500">Jenjang:</span>
                         <strong class="text-slate-800 font-semibold">{{ j }}</strong>
@@ -424,20 +426,49 @@ onUnmounted(() => {
                     </div>
                 </template>
 
-                <!-- Tombol Reset Filter jika ada filter aktif -->
+                <!-- Tombol Reset Filter jika ada filter aktif (Desktop) -->
                 <button
                     v-if="activeFiltersCount > 0"
                     type="button"
                     @click="resetAll"
-                    class="text-[12.5px] font-semibold text-emerald-800 hover:text-emerald-950 ml-1 cursor-pointer transition-colors underline underline-offset-2"
+                    class="hidden sm:inline text-[12.5px] font-semibold text-emerald-800 hover:text-emerald-950 ml-1 cursor-pointer transition-colors underline underline-offset-2"
                 >
                     Reset semua
                 </button>
             </div>
 
-            <!-- Right Entry Counter (Sesuai Referensi Gambar) -->
-            <div class="text-[12.5px] text-slate-500 ml-auto shrink-0">
-                <strong class="text-slate-900 font-bold">{{ filteredCount }}</strong> dari {{ displayTotalCount }} pegawai
+            <!-- Sub-Baris di Mobile: Reset Semua (kiri) & Dropdown Per Page + Counter (kanan) sejajar 1 baris -->
+            <div class="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto pt-1 sm:pt-0">
+                <!-- Tombol Reset Filter di Mobile (Kiri) -->
+                <button
+                    v-if="activeFiltersCount > 0"
+                    type="button"
+                    @click="resetAll"
+                    class="sm:hidden text-[12px] font-semibold text-emerald-800 hover:text-emerald-950 cursor-pointer transition-colors underline underline-offset-2 shrink-0"
+                >
+                    Reset semua
+                </button>
+                <div v-else class="sm:hidden"></div>
+
+                <!-- Sisi Kanan: Dropdown Per Page Mobile + Counter -->
+                <div class="flex items-center gap-2 text-[12px] sm:text-[12.5px] text-slate-500 shrink-0 ml-auto sm:ml-0">
+                    <!-- Dropdown Jumlah Data di Mobile (Tombol kecil di samping counter) -->
+                    <div class="relative sm:hidden">
+                        <select
+                            :value="perPage"
+                            @change="onPerPageChange"
+                            class="pl-2 pr-5 py-1 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg text-[11px] font-medium text-slate-700 focus:outline-none focus:border-emerald-500 shadow-2xs cursor-pointer appearance-none"
+                        >
+                            <option v-for="opt in perPageOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                        </select>
+                        <span class="material-symbols-outlined text-[13px] text-slate-400 absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none">expand_more</span>
+                    </div>
+
+                    <!-- Counter Teks -->
+                    <span>
+                        <strong class="text-slate-900 font-bold">{{ filteredCount }}</strong> dari {{ displayTotalCount }} pegawai
+                    </span>
+                </div>
             </div>
         </div>
     </div>
