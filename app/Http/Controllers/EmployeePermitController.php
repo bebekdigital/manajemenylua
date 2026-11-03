@@ -9,11 +9,54 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Inertia\Inertia;
+use Inertia\Response as InertiaResponse;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class EmployeePermitController extends Controller
 {
+    /**
+     * Tampilkan halaman daftar persetujuan perizinan yang menunggu tindakan atasan.
+     */
+    public function approvalsPage(Request $request): InertiaResponse
+    {
+        $user = $request->user();
+        $pending = $user ? $user->getPendingPermitApprovals() : collect();
+
+        $items = $pending->map(function (EmployeePermit $p) {
+            $emp = $p->employee;
+            $pos = $emp?->currentPosition ?? $emp?->positions()->orderByDesc('tmt_jabatan')->first();
+
+            return [
+                'id' => $p->id,
+                'employee_id' => $p->employee_id,
+                'employee_nama' => $emp?->nama ?? 'Pegawai',
+                'employee_nipy' => $emp?->nipy ?? '-',
+                'employee_unit' => $emp?->unit_kerja ?? $pos?->unit_kerja ?? '-',
+                'employee_jabatan' => $emp?->jabatan ?? $pos?->jabatan ?? '-',
+                'jenis' => $p->jenis,
+                'detail' => $p->detail,
+                'keterangan' => $p->keterangan,
+                'tanggal' => $p->formatted_tanggal,
+                'tanggal_mulai' => $p->tanggal?->format('Y-m-d'),
+                'tanggal_selesai' => $p->tanggal_selesai?->format('Y-m-d'),
+                'created_at_human' => $p->created_at?->diffForHumans(),
+                'created_at_formatted' => $p->created_at?->translatedFormat('d M Y H:i'),
+                'status' => $p->status,
+                'lampiran_nama' => $p->lampiran_nama,
+                'preview_url' => $p->preview_url,
+                'download_url' => $p->download_url,
+                'catatan' => $p->catatan,
+                'url' => route('staff.show', $p->employee_id).'?tab=perizinan',
+            ];
+        })->values();
+
+        return Inertia::render('Persetujuan', [
+            'approvals' => $items,
+        ]);
+    }
+
     /**
      * Dapatkan daftar perizinan yang menunggu persetujuan oleh user login secara realtime.
      */

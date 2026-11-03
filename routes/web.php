@@ -101,6 +101,17 @@ Route::middleware('auth')->group(function () {
         return Inertia::render('Dashboard');
     })->name('dashboard');
 
+    // Menu Topbar Utama (Agenda, Info, Persetujuan)
+    Route::get('/agenda', function () {
+        return Inertia::render('Agenda');
+    })->name('agenda');
+
+    Route::get('/info', function () {
+        return Inertia::render('Info');
+    })->name('info');
+
+    Route::get('/persetujuan', [EmployeePermitController::class, 'approvalsPage'])->name('persetujuan');
+
     // Profile
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');

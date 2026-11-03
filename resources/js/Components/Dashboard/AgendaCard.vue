@@ -1,4 +1,6 @@
 <script setup>
+import { Link } from '@inertiajs/vue3';
+
 const agendas = [
     {
         id: 1,
@@ -47,7 +49,7 @@ const agendas = [
                     <p class="text-[10px] sm:text-[11px] text-slate-500 hidden sm:block">Jadwal kegiatan akademik & yayasan</p>
                 </div>
             </div>
-            <button class="text-[10px] sm:text-[11px] font-bold text-slate-700 hover:text-slate-900 transition-colors bg-slate-100/80 hover:bg-slate-100 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg border border-slate-200/60">Lihat Semua</button>
+            <Link href="/agenda" class="text-[10px] sm:text-[11px] font-bold text-slate-700 hover:text-slate-900 transition-colors bg-slate-100/80 hover:bg-slate-100 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg border border-slate-200/60">Lihat Semua</Link>
         </div>
         
         <!-- List -->

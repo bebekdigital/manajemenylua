@@ -10,6 +10,9 @@ const page = usePage();
 const activeRoute = computed(() => {
     const url = page.url;
     if (url === '/' || url === '' || url.startsWith('/beranda')) return 'overview';
+    if (url.startsWith('/agenda')) return 'agenda';
+    if (url.startsWith('/info')) return 'info';
+    if (url.startsWith('/persetujuan')) return 'persetujuan';
     if (url.startsWith('/students')) return 'students';
     if (url.startsWith('/administration')) return 'administration';
     if (url.startsWith('/staff')) return 'staff';
@@ -24,6 +27,9 @@ const activeRoute = computed(() => {
 const activeRouteLabel = computed(() => {
     const route = activeRoute.value;
     if (route === 'overview') return 'Beranda';
+    if (route === 'agenda') return 'Agenda Kegiatan';
+    if (route === 'info') return 'Pusat Informasi';
+    if (route === 'persetujuan') return 'Persetujuan Perizinan';
     if (route === 'students') return 'Data Siswa';
     if (route === 'administration') return 'Administrasi & Cetak Dokumen';
     if (route === 'staff') return 'Data Pegawai';

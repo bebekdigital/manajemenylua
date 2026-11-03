@@ -20,43 +20,16 @@ const canViewEmployee = computed(() => {
     return Boolean(page.props.auth?.permissions?.can_view_employee ?? user.can_view_employee ?? false);
 });
 
-// Mobile Bottom Navigation Sheets: 'agenda' | 'info' | 'persetujuan' | null
-const mobileActiveSheet = ref(null);
-
 const {
     pendingApprovalsCount,
-    pendingApprovalsList,
-    fetchPendingApprovals,
 } = usePendingApprovals();
 
-function toggleMobileSheet(sheet) {
-    if (mobileActiveSheet.value === sheet) {
-        mobileActiveSheet.value = null;
-    } else {
-        mobileActiveSheet.value = sheet;
-        if (sheet === 'persetujuan') {
-            fetchPendingApprovals();
-        }
+function isRouteActive(prefix) {
+    if (prefix === '/beranda') {
+        return page.url === '/' || page.url.startsWith('/beranda');
     }
+    return page.url.startsWith(prefix);
 }
-
-function closeMobileSheet() {
-    mobileActiveSheet.value = null;
-}
-
-function handleKeydown(event) {
-    if (event.key === 'Escape' && mobileActiveSheet.value) {
-        closeMobileSheet();
-    }
-}
-
-onMounted(() => {
-    document.addEventListener('keydown', handleKeydown);
-});
-
-onUnmounted(() => {
-    document.removeEventListener('keydown', handleKeydown);
-});
 </script>
 
 <template>
@@ -191,238 +164,9 @@ onUnmounted(() => {
         </div>
     </nav>
 
-    <!-- Mobile Bottom Navigation Backdrop Overlay -->
-    <Transition
-        enter-active-class="transition-opacity duration-200 ease-out"
-        enter-from-class="opacity-0"
-        enter-to-class="opacity-100"
-        leave-active-class="transition-opacity duration-150 ease-in"
-        leave-from-class="opacity-100"
-        leave-to-class="opacity-0"
-    >
-        <div
-            v-if="mobileActiveSheet"
-            @click="closeMobileSheet"
-            class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 md:hidden"
-        ></div>
-    </Transition>
 
-    <!-- Mobile Drawer / Bottom Sheet (Agenda, Info, Persetujuan) -->
-    <Transition
-        enter-active-class="transition-all duration-250 ease-out"
-        enter-from-class="translate-y-full opacity-0"
-        enter-to-class="translate-y-0 opacity-100"
-        leave-active-class="transition-all duration-200 ease-in"
-        leave-from-class="translate-y-0 opacity-100"
-        leave-to-class="translate-y-full opacity-0"
-    >
-        <div
-            v-if="mobileActiveSheet"
-            class="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-3xl border-t border-slate-200/90 shadow-2xl overflow-hidden flex flex-col md:hidden max-h-[82vh] safe-area-bottom pb-4"
-        >
-            <!-- Pull bar indicator -->
-            <div class="w-12 h-1 bg-slate-200 rounded-full mx-auto my-2.5 shrink-0"></div>
 
-            <!-- Sheet Content: AGENDA -->
-            <div v-if="mobileActiveSheet === 'agenda'" class="flex flex-col h-full overflow-hidden">
-                <div class="flex items-center justify-between px-5 pb-3 border-b border-slate-100 shrink-0">
-                    <div class="flex items-center gap-2.5">
-                        <div class="w-8 h-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0 border border-amber-200/60">
-                            <span class="material-symbols-outlined text-[19px]">calendar_month</span>
-                        </div>
-                        <div>
-                            <h4 class="text-sm font-bold text-slate-900 leading-tight">Agenda Kegiatan</h4>
-                            <p class="text-[11px] text-slate-400">Jadwal kegiatan akademik & yayasan</p>
-                        </div>
-                    </div>
-                    <button
-                        type="button"
-                        @click="closeMobileSheet"
-                        class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:text-slate-800 flex items-center justify-center cursor-pointer transition-colors"
-                    >
-                        <span class="material-symbols-outlined text-[18px]">close</span>
-                    </button>
-                </div>
 
-                <div class="p-4 overflow-y-auto space-y-2.5">
-                    <div class="p-3 rounded-2xl bg-gradient-to-br from-emerald-50/60 to-amber-50/40 border border-emerald-100 flex items-start gap-3">
-                        <div class="flex flex-col items-center justify-center w-10 h-10 rounded-xl bg-white border border-emerald-200/60 shadow-2xs shrink-0">
-                            <span class="text-[8px] font-bold text-amber-600 uppercase">Nov</span>
-                            <span class="text-sm font-extrabold text-slate-900 leading-none">10</span>
-                        </div>
-                        <div class="min-w-0 flex-1">
-                            <div class="flex items-center justify-between gap-1 mb-1">
-                                <h5 class="font-bold text-slate-900 text-xs truncate">Rapat Koordinasi Awal Bulan</h5>
-                                <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-blue-100 text-blue-700 border border-blue-200 shrink-0">Rapat</span>
-                            </div>
-                            <p class="text-[11px] text-slate-500 flex items-center gap-1.5">
-                                <span>08:00 - 10:00 WIB</span> • <span class="truncate">Ruang Rapat Utama</span>
-                            </p>
-                        </div>
-                    </div>
-
-                    <div class="p-3 rounded-2xl bg-gradient-to-br from-emerald-50/60 to-amber-50/40 border border-emerald-100 flex items-start gap-3">
-                        <div class="flex flex-col items-center justify-center w-10 h-10 rounded-xl bg-white border border-emerald-200/60 shadow-2xs shrink-0">
-                            <span class="text-[8px] font-bold text-amber-600 uppercase">Nov</span>
-                            <span class="text-sm font-extrabold text-slate-900 leading-none">15</span>
-                        </div>
-                        <div class="min-w-0 flex-1">
-                            <div class="flex items-center justify-between gap-1 mb-1">
-                                <h5 class="font-bold text-slate-900 text-xs truncate">Pelaksanaan UTS Gasal</h5>
-                                <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-700 border border-emerald-200 shrink-0">Akademik</span>
-                            </div>
-                            <p class="text-[11px] text-slate-500 flex items-center gap-1.5">
-                                <span>15 - 20 Nov 2023</span> • <span class="truncate">Seluruh Unit Kelas</span>
-                            </p>
-                        </div>
-                    </div>
-
-                    <div class="p-3 rounded-2xl bg-gradient-to-br from-emerald-50/60 to-amber-50/40 border border-emerald-100 flex items-start gap-3">
-                        <div class="flex flex-col items-center justify-center w-10 h-10 rounded-xl bg-white border border-emerald-200/60 shadow-2xs shrink-0">
-                            <span class="text-[8px] font-bold text-amber-600 uppercase">Nov</span>
-                            <span class="text-sm font-extrabold text-slate-900 leading-none">25</span>
-                        </div>
-                        <div class="min-w-0 flex-1">
-                            <div class="flex items-center justify-between gap-1 mb-1">
-                                <h5 class="font-bold text-slate-900 text-xs truncate">Batas Akhir Input Nilai UTS</h5>
-                                <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-orange-100 text-orange-700 border border-orange-200 shrink-0">Deadline</span>
-                            </div>
-                            <p class="text-[11px] text-slate-500 flex items-center gap-1.5">
-                                <span>23:59 WIB</span> • <span class="truncate">Sistem Akademik Online</span>
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Sheet Content: INFO -->
-            <div v-if="mobileActiveSheet === 'info'" class="flex flex-col h-full overflow-hidden">
-                <div class="flex items-center justify-between px-5 pb-3 border-b border-slate-100 shrink-0">
-                    <div class="flex items-center gap-2.5">
-                        <div class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-200/60">
-                            <span class="material-symbols-outlined text-[19px]">campaign</span>
-                        </div>
-                        <div>
-                            <h4 class="text-sm font-bold text-slate-900 leading-tight">Pusat Informasi</h4>
-                            <p class="text-[11px] text-slate-400">Pengumuman & berita resmi sekolah</p>
-                        </div>
-                    </div>
-                    <button
-                        type="button"
-                        @click="closeMobileSheet"
-                        class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:text-slate-800 flex items-center justify-center cursor-pointer transition-colors"
-                    >
-                        <span class="material-symbols-outlined text-[18px]">close</span>
-                    </button>
-                </div>
-
-                <div class="p-4 overflow-y-auto space-y-2.5">
-                    <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/70">
-                        <div class="flex items-center justify-between gap-2 mb-1">
-                            <span class="text-[10px] font-bold text-emerald-800 px-2 py-0.5 rounded-full bg-emerald-100/80">Yayasan</span>
-                            <span class="text-[10.5px] text-slate-400">Hari ini</span>
-                        </div>
-                        <h5 class="text-xs font-bold text-slate-900 leading-snug">Pemberitahuan Libur Nasional & Cuti Bersama</h5>
-                        <p class="text-[11px] text-slate-500 mt-1 line-clamp-2">Segenap civitas yayasan diharap memperhatikan jadwal operasional sekolah selama masa cuti bersama.</p>
-                    </div>
-
-                    <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/70">
-                        <div class="flex items-center justify-between gap-2 mb-1">
-                            <span class="text-[10px] font-bold text-blue-800 px-2 py-0.5 rounded-full bg-blue-100/80">IT Support</span>
-                            <span class="text-[10.5px] text-slate-400">Kemarin</span>
-                        </div>
-                        <h5 class="text-xs font-bold text-slate-900 leading-snug">Pembaruan Sistem Manajemen Sekolah v2.4</h5>
-                        <p class="text-[11px] text-slate-500 mt-1 line-clamp-2">Fitur perizinan online dan persetujuan atasan realtime telah aktif di dashboard.</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Sheet Content: PERSETUJUAN -->
-            <div v-if="mobileActiveSheet === 'persetujuan'" class="flex flex-col h-full overflow-hidden">
-                <div class="flex items-center justify-between px-5 pb-3 border-b border-slate-100 shrink-0">
-                    <div class="flex items-center gap-2.5">
-                        <div class="w-8 h-8 rounded-xl bg-rose-50 text-rose-700 flex items-center justify-center shrink-0 border border-rose-200/60">
-                            <span class="material-symbols-outlined text-[19px]">task_alt</span>
-                        </div>
-                        <div>
-                            <h4 class="text-sm font-bold text-slate-900 leading-tight">Persetujuan Perizinan</h4>
-                            <p class="text-[11px] text-slate-400">Pengajuan izin bawahan menunggu verifikasi</p>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <span
-                            :class="[
-                                'text-[10.5px] font-bold px-2 py-0.5 rounded-full border',
-                                pendingApprovalsCount > 0
-                                    ? 'bg-rose-50 text-rose-700 border-rose-200'
-                                    : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                            ]"
-                        >
-                            {{ pendingApprovalsCount }} Menunggu
-                        </span>
-                        <button
-                            type="button"
-                            @click="closeMobileSheet"
-                            class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:text-slate-800 flex items-center justify-center cursor-pointer transition-colors"
-                        >
-                            <span class="material-symbols-outlined text-[18px]">close</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- List Item Pengajuan Perizinan -->
-                <div v-if="pendingApprovalsList.length > 0" class="p-4 overflow-y-auto space-y-2 max-h-[60vh]">
-                    <Link
-                        v-for="item in pendingApprovalsList"
-                        :key="item.id"
-                        :href="item.url"
-                        @click="closeMobileSheet"
-                        class="p-3 rounded-2xl border border-slate-200/90 hover:border-emerald-500 hover:bg-emerald-50/50 transition-all flex items-start justify-between gap-2.5 group cursor-pointer block bg-white shadow-2xs"
-                    >
-                        <div class="flex items-start gap-2.5 min-w-0">
-                            <div class="w-9 h-9 rounded-full bg-emerald-100 text-emerald-900 flex items-center justify-center shrink-0 mt-0.5 font-bold text-xs">
-                                {{ item.employee_nama ? item.employee_nama.substring(0, 2).toUpperCase() : 'PG' }}
-                            </div>
-                            <div class="min-w-0">
-                                <div class="flex items-center gap-1.5 flex-wrap">
-                                    <span class="text-xs font-bold text-slate-900 group-hover:text-emerald-950 truncate">
-                                        {{ item.employee_nama }}
-                                    </span>
-                                    <span class="text-[10px] px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 font-medium">
-                                        {{ item.employee_unit }}
-                                    </span>
-                                </div>
-                                <div class="text-[11.5px] font-semibold text-emerald-800 mt-0.5">
-                                    {{ item.jenis }}
-                                    <span v-if="item.detail" class="font-normal text-slate-500">({{ item.detail }})</span>
-                                </div>
-                                <div class="text-[10.5px] text-slate-400 mt-0.5 flex items-center gap-1">
-                                    <span class="material-symbols-outlined text-[13px]">calendar_today</span>
-                                    <span>{{ item.tanggal }}</span>
-                                    <span v-if="item.created_at_human" class="text-slate-400">• {{ item.created_at_human }}</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 shrink-0">
-                            Diajukan
-                        </span>
-                    </Link>
-
-                    <p class="text-[10.5px] text-slate-400 text-center pt-2">
-                        Ketuk pengajuan untuk membuka tab perizinan pegawai dan memberikan persetujuan.
-                    </p>
-                </div>
-
-                <!-- Empty State jika tidak ada pengajuan -->
-                <div v-else class="py-10 text-center px-4">
-                    <span class="material-symbols-outlined text-5xl text-slate-300 mb-2 block">fact_check</span>
-                    <p class="text-sm font-semibold text-slate-700">Tidak ada persetujuan tertunda</p>
-                    <p class="text-xs text-slate-400 mt-0.5">Semua pengajuan perizinan pegawai telah diproses.</p>
-                </div>
-            </div>
-        </div>
-    </Transition>
 
     <!-- Mobile Bottom Navigation Bar (Beranda, Agenda, Info, Persetujuan) -->
     <nav class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-200/90 safe-area-bottom shadow-lg">
@@ -431,17 +175,16 @@ onUnmounted(() => {
             <!-- Beranda -->
             <Link
                 href="/beranda"
-                @click="closeMobileSheet"
                 class="flex flex-col items-center justify-center flex-1 py-1 transition-all duration-200 relative group"
-                :class="currentRoute === 'overview' && !mobileActiveSheet ? 'text-emerald-950 font-bold' : 'text-slate-500 hover:text-emerald-900'"
+                :class="isRouteActive('/beranda') ? 'text-emerald-950 font-bold' : 'text-slate-500 hover:text-emerald-900'"
             >
                 <div
                     class="flex items-center justify-center px-4 py-1 rounded-full transition-all duration-200"
-                    :class="currentRoute === 'overview' && !mobileActiveSheet ? 'bg-emerald-100' : 'bg-transparent'"
+                    :class="isRouteActive('/beranda') ? 'bg-emerald-100' : 'bg-transparent'"
                 >
                     <span
                         class="material-symbols-outlined text-[22px] transition-transform duration-200 group-active:scale-90"
-                        :class="{ 'filled-icon': currentRoute === 'overview' && !mobileActiveSheet }"
+                        :class="{ 'filled-icon': isRouteActive('/beranda') }"
                     >
                         grid_view
                     </span>
@@ -450,61 +193,58 @@ onUnmounted(() => {
             </Link>
 
             <!-- Agenda -->
-            <button
-                type="button"
-                @click="toggleMobileSheet('agenda')"
+            <Link
+                href="/agenda"
                 class="flex flex-col items-center justify-center flex-1 py-1 transition-all duration-200 relative group cursor-pointer"
-                :class="mobileActiveSheet === 'agenda' ? 'text-emerald-950 font-bold' : 'text-slate-500 hover:text-emerald-900'"
+                :class="isRouteActive('/agenda') ? 'text-emerald-950 font-bold' : 'text-slate-500 hover:text-emerald-900'"
             >
                 <div
                     class="flex items-center justify-center px-4 py-1 rounded-full transition-all duration-200"
-                    :class="mobileActiveSheet === 'agenda' ? 'bg-emerald-100' : 'bg-transparent'"
+                    :class="isRouteActive('/agenda') ? 'bg-emerald-100' : 'bg-transparent'"
                 >
                     <span
                         class="material-symbols-outlined text-[22px] transition-transform duration-200 group-active:scale-90"
-                        :class="{ 'filled-icon': mobileActiveSheet === 'agenda' }"
+                        :class="{ 'filled-icon': isRouteActive('/agenda') }"
                     >
                         calendar_month
                     </span>
                 </div>
                 <span class="text-[10.5px] mt-0.5 leading-tight">Agenda</span>
-            </button>
+            </Link>
 
             <!-- Info -->
-            <button
-                type="button"
-                @click="toggleMobileSheet('info')"
+            <Link
+                href="/info"
                 class="flex flex-col items-center justify-center flex-1 py-1 transition-all duration-200 relative group cursor-pointer"
-                :class="mobileActiveSheet === 'info' ? 'text-emerald-950 font-bold' : 'text-slate-500 hover:text-emerald-900'"
+                :class="isRouteActive('/info') ? 'text-emerald-950 font-bold' : 'text-slate-500 hover:text-emerald-900'"
             >
                 <div
                     class="flex items-center justify-center px-4 py-1 rounded-full transition-all duration-200"
-                    :class="mobileActiveSheet === 'info' ? 'bg-emerald-100' : 'bg-transparent'"
+                    :class="isRouteActive('/info') ? 'bg-emerald-100' : 'bg-transparent'"
                 >
                     <span
                         class="material-symbols-outlined text-[22px] transition-transform duration-200 group-active:scale-90"
-                        :class="{ 'filled-icon': mobileActiveSheet === 'info' }"
+                        :class="{ 'filled-icon': isRouteActive('/info') }"
                     >
                         campaign
                     </span>
                 </div>
                 <span class="text-[10.5px] mt-0.5 leading-tight">Info</span>
-            </button>
+            </Link>
 
             <!-- Persetujuan -->
-            <button
-                type="button"
-                @click="toggleMobileSheet('persetujuan')"
+            <Link
+                href="/persetujuan"
                 class="flex flex-col items-center justify-center flex-1 py-1 transition-all duration-200 relative group cursor-pointer"
-                :class="mobileActiveSheet === 'persetujuan' ? 'text-emerald-950 font-bold' : 'text-slate-500 hover:text-emerald-900'"
+                :class="isRouteActive('/persetujuan') ? 'text-emerald-950 font-bold' : 'text-slate-500 hover:text-emerald-900'"
             >
                 <div
                     class="flex items-center justify-center px-4 py-1 rounded-full transition-all duration-200 relative"
-                    :class="mobileActiveSheet === 'persetujuan' ? 'bg-emerald-100' : 'bg-transparent'"
+                    :class="isRouteActive('/persetujuan') ? 'bg-emerald-100' : 'bg-transparent'"
                 >
                     <span
                         class="material-symbols-outlined text-[22px] transition-transform duration-200 group-active:scale-90"
-                        :class="{ 'filled-icon': mobileActiveSheet === 'persetujuan' }"
+                        :class="{ 'filled-icon': isRouteActive('/persetujuan') }"
                     >
                         task_alt
                     </span>
@@ -518,7 +258,7 @@ onUnmounted(() => {
                     </span>
                 </div>
                 <span class="text-[10.5px] mt-0.5 leading-tight">Persetujuan</span>
-            </button>
+            </Link>
 
         </div>
     </nav>

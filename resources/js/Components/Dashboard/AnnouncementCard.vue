@@ -1,4 +1,6 @@
 <script setup>
+import { Link } from '@inertiajs/vue3';
+
 const announcements = [
     {
         id: 1,
@@ -29,6 +31,12 @@ const announcements = [
                     <p class="text-xs text-on-surface-variant">Informasi penting terbaru</p>
                 </div>
             </div>
+            <Link
+                href="/info"
+                class="text-[10px] sm:text-[11px] font-bold text-slate-700 hover:text-slate-900 transition-colors bg-slate-100/80 hover:bg-slate-100 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg border border-slate-200/60"
+            >
+                Lihat Semua
+            </Link>
         </div>
         <div class="flex-grow p-5 space-y-4">
             <div
