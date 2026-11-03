@@ -4008,10 +4008,10 @@ function deleteDocument(doc) {
                                                     type="button"
                                                     @click="openPermitNoteModal(item)"
                                                     class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-primary/5 hover:bg-primary/10 text-primary border border-primary/20 transition-colors cursor-pointer"
-                                                    :title="item.catatan ? 'Lihat Catatan: ' + item.catatan : 'Buka Catatan Perizinan'"
+                                                    :title="item.catatan ? 'Lihat Catatan: ' + item.catatan : 'Buka Persetujuan Perizinan'"
                                                 >
                                                     <span class="material-symbols-outlined text-[15px]">sticky_note_2</span>
-                                                    <span>Catatan</span>
+                                                    <span>Persetujuan</span>
                                                     <span v-if="item.catatan" class="w-1.5 h-1.5 rounded-full bg-primary" title="Ada catatan"></span>
                                                 </button>
                                             </td>
@@ -5042,7 +5042,7 @@ function deleteDocument(doc) {
             </div>
         </Transition>
 
-        <!-- MODAL CATATAN PERIZINAN -->
+        <!-- MODAL PERSETUJUAN PERIZINAN -->
         <Transition
             enter-active-class="transition duration-200 ease-out"
             enter-from-class="opacity-0"
@@ -5060,7 +5060,7 @@ function deleteDocument(doc) {
                     <div class="px-6 py-4 border-b border-outline-variant/60 flex items-center justify-between bg-surface-container-low">
                         <div class="flex items-center gap-2 text-primary font-bold text-sm sm:text-base">
                             <span class="material-symbols-outlined text-[20px]">sticky_note_2</span>
-                            <span>Catatan Perizinan</span>
+                            <span>Persetujuan Perizinan</span>
                         </div>
                         <button
                             type="button"
@@ -5160,7 +5160,7 @@ function deleteDocument(doc) {
                                 class="px-5 py-2 rounded-xl bg-primary text-white text-xs sm:text-sm font-bold hover:bg-primary/90 transition-all shadow-2xs active:scale-95 disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
                             >
                                 <span v-if="permitNoteForm.processing" class="material-symbols-outlined text-[16px] animate-spin">sync</span>
-                                <span>Simpan Catatan</span>
+                                <span>Simpan Persetujuan</span>
                             </button>
                         </div>
                     </form>
