@@ -100,7 +100,7 @@ onUnmounted(() => {
                         :class="[
                             'flex items-center justify-center shrink-0 transition-all',
                             isHomeOverlay
-                                ? 'w-9 h-9 rounded-full bg-white/85 backdrop-blur-md text-emerald-900 shadow-xs border border-white/70'
+                                ? 'w-9 h-9 rounded-[9999px] bg-white/85 backdrop-blur-md text-emerald-900 shadow-sm border border-white/80'
                                 : 'w-8 h-8 rounded-xl bg-yellow-200 text-emerald-950 shadow-2xs'
                         ]"
                     >
@@ -177,7 +177,7 @@ onUnmounted(() => {
                     :class="[
                         'transition-colors duration-200 cursor-pointer flex items-center justify-center rounded-full',
                         isHomeOverlay
-                            ? 'max-md:w-9 max-md:h-9 max-md:bg-white/85 max-md:backdrop-blur-md max-md:text-slate-800 max-md:shadow-xs max-md:border max-md:border-white/70 md:p-2 md:text-on-surface-variant md:hover:text-primary md:hover:bg-surface-variant'
+                            ? 'max-md:w-9 max-md:h-9 max-md:rounded-[9999px] max-md:bg-white/85 max-md:backdrop-blur-md max-md:text-slate-800 max-md:shadow-sm max-md:border max-md:border-white/80 md:p-2 md:text-on-surface-variant md:hover:text-primary md:hover:bg-surface-variant'
                             : 'p-2 text-on-surface-variant hover:text-primary hover:bg-surface-variant'
                     ]"
                 >
@@ -207,7 +207,7 @@ onUnmounted(() => {
                         :class="[
                             'transition-colors duration-200 cursor-pointer flex items-center justify-center rounded-full',
                             isHomeOverlay
-                                ? 'max-md:w-9 max-md:h-9 max-md:bg-white/85 max-md:backdrop-blur-md max-md:text-slate-800 max-md:shadow-xs max-md:border max-md:border-white/70 md:p-2'
+                                ? 'max-md:w-9 max-md:h-9 max-md:rounded-[9999px] max-md:bg-white/85 max-md:backdrop-blur-md max-md:text-slate-800 max-md:shadow-sm max-md:border max-md:border-white/80 md:p-2'
                                 : 'p-2 text-on-surface-variant hover:text-primary hover:bg-surface-variant',
                             isProfileMenuOpen ? 'bg-surface-variant text-primary' : ''
                         ]"
