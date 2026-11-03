@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
+import AppSelect from '@/Components/Shared/AppSelect.vue';
 
 const props = defineProps({
     employees: {
@@ -139,8 +140,9 @@ function clearSearch() {
     emit('search', '');
 }
 
-function onUnitChange(event) {
-    emit('filter-unit', event.target.value);
+function onUnitChange(val) {
+    const value = typeof val === 'object' && val !== null && 'target' in val ? val.target.value : val;
+    emit('filter-unit', value);
 }
 
 // Multi-select toggle for Jenjang
@@ -160,8 +162,9 @@ function removeJenjang(j) {
     emit('filter-jenjang', current);
 }
 
-function onPerPageChange(event) {
-    emit('update:per-page', Number(event.target.value));
+function onPerPageChange(val) {
+    const value = typeof val === 'object' && val !== null && 'target' in val ? val.target.value : val;
+    emit('update:per-page', Number(value));
 }
 
 function resetAll() {
@@ -219,29 +222,25 @@ onUnmounted(() => {
 
             <!-- Right Controls: Unit Dropdown + Per Page Selector -->
             <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-                <!-- Unit Kerja Dropdown -->
-                <div class="relative flex-1 sm:flex-initial">
-                    <span class="material-symbols-outlined text-[16px] text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none">domain</span>
-                    <select
-                        :value="activeUnit"
-                        @change="onUnitChange"
-                        class="w-full sm:w-auto pl-9 pr-8 py-2 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl text-[12.5px] sm:text-[13px] font-medium text-slate-700 focus:outline-none focus:border-emerald-500 shadow-2xs cursor-pointer appearance-none transition-colors"
-                    >
-                        <option v-for="u in units" :key="u.value" :value="u.value">{{ u.label }}</option>
-                    </select>
-                    <span class="material-symbols-outlined text-[16px] text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none">expand_more</span>
-                </div>
+                <!-- Unit Kerja Dropdown (Custom, sederhana) -->
+                <AppSelect
+                    :model-value="activeUnit"
+                    :options="units"
+                    icon="domain"
+                    title="Unit Kerja"
+                    placement="right"
+                    @update:model-value="onUnitChange"
+                />
 
-                <!-- Per Page Selector -->
-                <div class="relative hidden sm:block">
-                    <select
-                        :value="perPage"
-                        @change="onPerPageChange"
-                        class="pl-3.5 pr-7 py-2 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl text-[12.5px] sm:text-[13px] font-medium text-slate-700 focus:outline-none focus:border-emerald-500 shadow-2xs cursor-pointer appearance-none transition-colors"
-                    >
-                        <option v-for="opt in perPageOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-                    </select>
-                    <span class="material-symbols-outlined text-[15px] text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none">expand_more</span>
+                <!-- Per Page Selector (Desktop - Custom, sederhana) -->
+                <div class="hidden sm:block">
+                    <AppSelect
+                        :model-value="perPage"
+                        :options="perPageOptions"
+                        title="Tampilkan jumlah baris data per halaman"
+                        placement="right"
+                        @update:model-value="onPerPageChange"
+                    />
                 </div>
             </div>
         </div>
@@ -452,16 +451,16 @@ onUnmounted(() => {
 
                 <!-- Sisi Kanan: Dropdown Per Page Mobile + Counter -->
                 <div class="flex items-center gap-2 text-[12px] sm:text-[12.5px] text-slate-500 shrink-0 ml-auto sm:ml-0">
-                    <!-- Dropdown Jumlah Data di Mobile (Tombol kecil di samping counter) -->
-                    <div class="relative sm:hidden">
-                        <select
-                            :value="perPage"
-                            @change="onPerPageChange"
-                            class="pl-2 pr-5 py-1 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg text-[11px] font-medium text-slate-700 focus:outline-none focus:border-emerald-500 shadow-2xs cursor-pointer appearance-none"
-                        >
-                            <option v-for="opt in perPageOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-                        </select>
-                        <span class="material-symbols-outlined text-[13px] text-slate-400 absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none">expand_more</span>
+                    <!-- Dropdown Jumlah Data di Mobile (Tombol kecil di samping counter - Custom, sederhana) -->
+                    <div class="sm:hidden">
+                        <AppSelect
+                            :model-value="perPage"
+                            :options="perPageOptions"
+                            size="sm"
+                            placement="right"
+                            title="Tampilkan jumlah baris data per halaman"
+                            @update:model-value="onPerPageChange"
+                        />
                     </div>
 
                     <!-- Counter Teks -->

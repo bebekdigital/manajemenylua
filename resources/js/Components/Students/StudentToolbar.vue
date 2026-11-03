@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
+import AppSelect from '@/Components/Shared/AppSelect.vue';
 
 const props = defineProps({
     students: {
@@ -117,8 +118,9 @@ const effectiveUnitOptions = computed(() => {
     ];
 });
 
-function onUnitChange(e) {
-    emit('filter-unit', e.target.value);
+function onUnitChange(val) {
+    const value = typeof val === 'object' && val !== null && 'target' in val ? val.target.value : val;
+    emit('filter-unit', value);
 }
 
 const activeFiltersCount = computed(() => {
@@ -182,8 +184,9 @@ function selectJk(jk) {
     emit('filter-jk', jk);
 }
 
-function onPerPageChange(event) {
-    emit('update:per-page', Number(event.target.value));
+function onPerPageChange(val) {
+    const value = typeof val === 'object' && val !== null && 'target' in val ? val.target.value : val;
+    emit('update:per-page', Number(value));
 }
 
 function resetAll() {
@@ -241,40 +244,24 @@ onUnmounted(() => {
 
             <!-- Right Controls: Dropdown Jenjang Pendidikan (Left) + Per Page Selector (Right) -->
             <div class="flex items-center gap-2 self-end sm:self-auto shrink-0">
-                <!-- Dropdown Jenjang Pendidikan -->
-                <div class="relative">
-                    <span class="material-symbols-outlined text-[16px] text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">school</span>
-                    <select
-                        :value="activeUnit"
-                        @change="onUnitChange"
-                        class="pl-8.5 pr-8 py-2 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl text-[12.5px] sm:text-[13px] font-medium text-slate-700 focus:outline-none focus:border-emerald-500 shadow-2xs cursor-pointer appearance-none transition-colors"
-                        title="Jenjang Pendidikan"
-                    >
-                        <option v-for="opt in effectiveUnitOptions" :key="opt.value" :value="opt.value">
-                            {{ opt.label }}
-                        </option>
-                    </select>
-                    <span class="material-symbols-outlined text-[15px] text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none">
-                        expand_more
-                    </span>
-                </div>
+                <!-- Dropdown Jenjang Pendidikan (Custom, sederhana) -->
+                <AppSelect
+                    :model-value="activeUnit"
+                    :options="effectiveUnitOptions"
+                    icon="school"
+                    title="Jenjang Pendidikan"
+                    placement="right"
+                    @update:model-value="onUnitChange"
+                />
 
-                <!-- Per Page Selector (filter jumlah data) -->
-                <div class="relative">
-                    <select
-                        :value="perPage"
-                        @change="onPerPageChange"
-                        class="pl-3.5 pr-8 py-2 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl text-[12.5px] sm:text-[13px] font-medium text-slate-700 focus:outline-none focus:border-emerald-500 shadow-2xs cursor-pointer appearance-none transition-colors"
-                        title="Tampilkan jumlah baris data per halaman"
-                    >
-                        <option v-for="opt in perPageOptions" :key="opt.value" :value="opt.value">
-                            {{ opt.label }}
-                        </option>
-                    </select>
-                    <span class="material-symbols-outlined text-[15px] text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none">
-                        expand_more
-                    </span>
-                </div>
+                <!-- Per Page Selector (filter jumlah data - Custom, sederhana) -->
+                <AppSelect
+                    :model-value="perPage"
+                    :options="perPageOptions"
+                    title="Tampilkan jumlah baris data per halaman"
+                    placement="right"
+                    @update:model-value="onPerPageChange"
+                />
             </div>
         </div>
 
