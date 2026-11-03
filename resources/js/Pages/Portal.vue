@@ -1197,6 +1197,8 @@ function formatDate(dateStr) {
         :show="showUnitModal"
         :editing="editingUnit"
         :school-level="selectedLevelForUnit"
+        :departments="departments"
+        :school-levels="schoolLevels"
         @close="closeUnitModal"
         @success="onUnitSuccess"
     />
