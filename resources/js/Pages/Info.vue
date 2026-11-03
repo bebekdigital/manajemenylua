@@ -314,3 +314,4 @@ function closeDetail() {
         </Transition>
     </div>
 </template>
+

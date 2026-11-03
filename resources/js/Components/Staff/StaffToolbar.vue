@@ -169,7 +169,7 @@ onUnmounted(() => {
         <!-- ROW 1: Segmented Status Tabs (Left) + Unit & Per Page Controls (Right) -->
         <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
             <!-- Segmented Status Tabs (Default: Aktif) -->
-            <div class="bg-slate-200/60 p-1 rounded-full inline-flex items-center gap-0.5 overflow-x-auto custom-tab-scrollbar max-w-full border border-slate-200/80 shrink-0">
+            <div class="bg-slate-200/60 p-1 rounded-full inline-flex items-center gap-0.5 overflow-x-auto no-scrollbar max-w-full border border-slate-200/80 shrink-0">
                 <button
                     v-for="tab in statusTabs"
                     :key="tab.key"
@@ -423,32 +423,13 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-/* Custom Tab Scrollbar without arrows and minimal height */
-.custom-tab-scrollbar {
-    scrollbar-width: thin;
-    scrollbar-color: #cbd5e1 transparent;
+/* Hilangkan scrollbar horizontal pada filter namun tetap bisa di-scroll / swipe pada perangkat mobile */
+.no-scrollbar {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
 }
 
-.custom-tab-scrollbar::-webkit-scrollbar {
-    height: 4px;
-}
-
-.custom-tab-scrollbar::-webkit-scrollbar-button {
-    display: none;
-    width: 0;
-    height: 0;
-}
-
-.custom-tab-scrollbar::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.custom-tab-scrollbar::-webkit-scrollbar-thumb {
-    background-color: #cbd5e1;
-    border-radius: 9999px;
-}
-
-.custom-tab-scrollbar::-webkit-scrollbar-thumb:hover {
-    background-color: #047857;
+.no-scrollbar::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
 }
 </style>

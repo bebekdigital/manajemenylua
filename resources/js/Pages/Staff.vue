@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import StaffToolbar from '@/Components/Staff/StaffToolbar.vue';
@@ -53,6 +53,22 @@ const currentPage = ref(1);
 const perPage = ref(15);
 const showImportModal = ref(false);
 const dismissedFlash = ref(false);
+const isKelolaOpen = ref(false);
+const kelolaDropdownRef = ref(null);
+
+function handleClickOutside(event) {
+    if (kelolaDropdownRef.value && !kelolaDropdownRef.value.contains(event.target)) {
+        isKelolaOpen.value = false;
+    }
+}
+
+onMounted(() => {
+    document.addEventListener('click', handleClickOutside);
+});
+
+onUnmounted(() => {
+    document.removeEventListener('click', handleClickOutside);
+});
 
 const flashSuccess = computed(() => !dismissedFlash.value ? page.props.flash?.success : null);
 const flashError = computed(() => !dismissedFlash.value ? page.props.flash?.error : null);
@@ -172,19 +188,71 @@ function onPageChange(p) {
 
     <div class="flex-1 overflow-y-auto px-4 py-6 md:px-8 md:py-7 bg-[#fafafa] min-h-screen">
         <div class="max-w-[1440px] mx-auto">
-            <!-- Page Header (Tanpa TA / 2026/2027) -->
-            <div class="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-                <div>
-                    <h1 class="text-2xl sm:text-[26px] font-bold text-slate-900 tracking-tight leading-none">
+            <!-- Page Header (Di mobile: judul dikecilkan, tombol Download & Import dirangkum di tombol Kelola sebelah kanan judul) -->
+            <div class="mb-5 sm:mb-6 flex flex-row items-center justify-between gap-3">
+                <div class="min-w-0">
+                    <h1 class="text-xl sm:text-2xl md:text-[26px] font-bold text-slate-900 tracking-tight leading-tight">
                         Database Pegawai
                     </h1>
-                    <p class="text-[13.5px] text-slate-500 mt-2 font-medium">
+                    <p class="text-xs sm:text-[13.5px] text-slate-500 mt-1 sm:mt-1.5 font-medium truncate">
                         <strong class="text-slate-700 font-semibold">{{ employees.length }}</strong> pegawai di <strong class="text-slate-700 font-semibold">{{ uniqueUnitsCount }}</strong> unit kerja
                     </p>
                 </div>
 
-                <!-- Action Buttons (Khusus Non-Guru & memiliki izin) -->
-                <div v-if="!isTeacher" class="flex items-center gap-2.5 shrink-0 flex-wrap sm:flex-nowrap">
+                <!-- Mobile Action: Tombol Kelola dengan Dropdown (Rangkuman Download Template & Import) -->
+                <div
+                    v-if="!isTeacher && (permissions?.can_export || permissions?.can_import)"
+                    class="sm:hidden relative shrink-0"
+                    ref="kelolaDropdownRef"
+                >
+                    <button
+                        type="button"
+                        @click="isKelolaOpen = !isKelolaOpen"
+                        class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-bold text-xs shadow-xs transition-all cursor-pointer active:scale-95 border border-emerald-950/30"
+                    >
+                        <span class="material-symbols-outlined text-[17px]">tune</span>
+                        <span>Kelola</span>
+                        <span class="material-symbols-outlined text-[16px] transition-transform duration-200" :class="{ 'rotate-180': isKelolaOpen }">expand_more</span>
+                    </button>
+
+                    <!-- Dropdown Menu Mobile -->
+                    <Transition
+                        enter-active-class="transition duration-150 ease-out"
+                        enter-from-class="transform scale-95 opacity-0 -translate-y-1"
+                        enter-to-class="transform scale-100 opacity-100 translate-y-0"
+                        leave-active-class="transition duration-100 ease-in"
+                        leave-from-class="transform scale-100 opacity-100 translate-y-0"
+                        leave-to-class="transform scale-95 opacity-0 -translate-y-1"
+                    >
+                        <div
+                            v-if="isKelolaOpen"
+                            class="absolute right-0 mt-2 w-52 bg-white rounded-2xl shadow-xl border border-slate-200 py-1.5 z-50 animate-in fade-in"
+                        >
+                            <a
+                                v-if="permissions?.can_export"
+                                href="/staff/template"
+                                download
+                                @click="isKelolaOpen = false"
+                                class="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-emerald-900 transition-colors"
+                            >
+                                <span class="material-symbols-outlined text-[18px] text-emerald-700">download</span>
+                                <span>Download Template</span>
+                            </a>
+                            <button
+                                v-if="permissions?.can_import"
+                                type="button"
+                                @click="isKelolaOpen = false; showImportModal = true"
+                                class="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-xs font-semibold text-emerald-950 hover:bg-emerald-50 transition-colors cursor-pointer text-left border-t border-slate-100"
+                            >
+                                <span class="material-symbols-outlined text-[18px] text-emerald-800">upload_file</span>
+                                <span>Import Data Pegawai</span>
+                            </button>
+                        </div>
+                    </Transition>
+                </div>
+
+                <!-- Desktop Action Buttons (sm and up) -->
+                <div v-if="!isTeacher" class="hidden sm:flex items-center gap-2.5 shrink-0">
                     <a
                         v-if="permissions?.can_export"
                         href="/staff/template"
@@ -210,9 +278,9 @@ function onPageChange(p) {
                 <div v-else-if="teacherEmployee" class="flex items-center gap-2 shrink-0">
                     <Link
                         :href="`/staff/${teacherEmployee.id}`"
-                        class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-semibold text-[13px] transition-all shadow-xs"
+                        class="inline-flex items-center justify-center gap-2 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-semibold text-xs sm:text-[13px] transition-all shadow-xs"
                     >
-                        <span class="material-symbols-outlined text-[18px]">person</span>
+                        <span class="material-symbols-outlined text-[17px] sm:text-[18px]">person</span>
                         <span>Buka Profil Saya</span>
                     </Link>
                 </div>

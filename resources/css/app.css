@@ -19,3 +19,11 @@
 [data-weight="fill"] {
     font-variation-settings: 'FILL' 1;
 }
+
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
