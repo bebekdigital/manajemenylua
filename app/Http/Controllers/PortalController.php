@@ -75,6 +75,18 @@ class PortalController extends Controller
             ? Department::with('positions')->orderBy('order')->orderBy('name')->get()
             : collect([]);
 
+        if (Schema::hasTable('department_positions')) {
+            // Pastikan pimpinan unit (Kepala Sekolah, Mudir) yang langsung di bawah yayasan/bidang setara di Level 3 (Manajemen Unit)
+            DepartmentPosition::where(function ($query) {
+                $query->where('name', 'like', '%Kepala Sekolah%')
+                    ->orWhere('name', 'like', '%Mudir%')
+                    ->orWhere('name', 'like', '%Kepala Madrasah%')
+                    ->orWhere('name', 'like', '%Kepala Unit%');
+            })
+                ->where('level', '!=', 3)
+                ->update(['level' => 3]);
+        }
+
         $organizationPositions = Schema::hasTable('department_positions')
             ? DepartmentPosition::with(['department', 'parent'])
                 ->withCount('children')

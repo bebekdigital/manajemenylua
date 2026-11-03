@@ -33,11 +33,25 @@ const activeTab = ref('diagram'); // 'diagram' | 'departments'
 const hoveredPosId = ref(null);
 
 const diagramContainerRef = ref(null);
+const canvasWrapperRef = ref(null);
 const tableRef = ref(null);
 const connectionLines = ref([]);
 const junctionDots = ref([]);
-const svgWidth = ref(1200);
-const svgHeight = ref(800);
+const svgWidth = ref(800);
+const svgHeight = ref(600);
+const zoomScale = ref(1);
+const isAutoFit = ref(true);
+
+function setZoom(val) {
+    isAutoFit.value = false;
+    zoomScale.value = Math.min(1.2, Math.max(0.5, Number(val.toFixed(2))));
+    nextTick(updateConnectionLines);
+}
+
+function toggleAutoFit() {
+    isAutoFit.value = true;
+    nextTick(updateConnectionLines);
+}
 
 const levelDefinitions = [
     {
@@ -205,8 +219,8 @@ function saveLevelEdit() {
     });
 }
 
-// Map lookup by ID
-const positionsMap = computed(() => {
+// Raw map lookup by ID
+const rawPositionsMap = computed(() => {
     const map = new Map();
     props.positions.forEach(p => map.set(p.id, p));
     return map;
@@ -229,14 +243,24 @@ const childrenByParent = computed(() => {
 // Enriched positions with parent info and direct children info
 const enrichedPositions = computed(() => {
     return props.positions.map(p => {
-        const parent = p.parent_id ? positionsMap.value.get(p.parent_id) : null;
+        const parent = p.parent_id ? rawPositionsMap.value.get(p.parent_id) : null;
         const children = childrenByParent.value.get(p.id) || [];
         const hasLower = props.positions.some(child =>
             child.parent_id === p.id && Number(child.level) > Number(p.level)
         );
+
+        let posLevel = Number(p.level) || 3;
+        // Pimpinan unit (Kepala Sekolah, Mudir, Kepala Madrasah, Kepala Unit) yang langsung di bawah yayasan/bidang (Level 2)
+        // posisinya sejajar/setara di Level 3 (Manajemen Unit)
+        const nameLower = (p.name || '').toLowerCase();
+        const isUnitLeader = nameLower.includes('kepala sekolah') || nameLower.includes('mudir') || nameLower.includes('kepala madrasah') || nameLower.includes('kepala unit');
+        if (isUnitLeader && (!p.parent_id || (parent && Number(parent.level) === 2))) {
+            posLevel = 3;
+        }
+
         return {
             ...p,
-            level: Number(p.level) || 3,
+            level: posLevel,
             order: Number(p.order) || 0,
             parent_name: parent ? parent.name : p.parent_name || null,
             parent_level: parent ? (Number(parent.level) || null) : null,
@@ -244,6 +268,13 @@ const enrichedPositions = computed(() => {
             has_lower_children: hasLower,
         };
     });
+});
+
+// Map lookup by ID using synchronized enriched positions
+const positionsMap = computed(() => {
+    const map = new Map();
+    enrichedPositions.value.forEach(p => map.set(p.id, p));
+    return map;
 });
 
 // Filtered positions based on search and department filter
@@ -391,12 +422,32 @@ const intraRootsByLevel = computed(() => {
 // GARIS HIERARKI SVG DINAMIS (ANTAR ATASAN DAN BAWAHAN / SEJAJAR)
 // ========================================================
 function updateConnectionLines() {
-    if (!diagramContainerRef.value || !tableRef.value) return;
+    if (!diagramContainerRef.value || !tableRef.value || !canvasWrapperRef.value) return;
 
     const containerEl = diagramContainerRef.value;
-    const containerRect = containerEl.getBoundingClientRect();
-    const scrollLeft = containerEl.scrollLeft || 0;
-    const scrollTop = containerEl.scrollTop || 0;
+    const wrapperEl = canvasWrapperRef.value;
+    const tableEl = tableRef.value;
+
+    // Hitung ukuran asli tabel (unscaled) dan sesuaikan Auto-Fit jika aktif
+    const rawTableWidth = tableEl.offsetWidth || 600;
+    const rawTableHeight = tableEl.offsetHeight || 400;
+    const availableWidth = containerEl.clientWidth || rawTableWidth;
+
+    if (isAutoFit.value) {
+        if (rawTableWidth > availableWidth && availableWidth > 240) {
+            const fitRatio = Math.max(0.55, Math.min(1, (availableWidth - 8) / rawTableWidth));
+            zoomScale.value = Number(fitRatio.toFixed(2));
+        } else {
+            zoomScale.value = 1;
+        }
+    }
+
+    const wrapperRect = wrapperEl.getBoundingClientRect();
+    const scale = (wrapperEl.offsetWidth > 0 ? wrapperRect.width / wrapperEl.offsetWidth : zoomScale.value) || 1;
+
+    // Helper konversi koordinat layar ke koordinat internal canvas (unscaled)
+    const toX = (screenX) => Math.round((screenX - wrapperRect.left) / scale);
+    const toY = (screenY) => Math.round((screenY - wrapperRect.top) / scale);
 
     // Cari koordinat paling kanan dari seluruh kartu untuk jalur koridor kanan (garis lompat level)
     let maxCardRight = 0;
@@ -404,16 +455,15 @@ function updateConnectionLines() {
         const el = document.getElementById(`pos-card-${pos.id}`);
         if (el) {
             const r = el.getBoundingClientRect();
-            const rightCoord = (r.right - containerRect.left + scrollLeft);
+            const rightCoord = toX(r.right);
             if (rightCoord > maxCardRight) {
                 maxCardRight = rightCoord;
             }
         }
     });
 
-    const tableWidth = tableRef.value ? tableRef.value.offsetWidth : 960;
-    svgWidth.value = Math.max(containerEl.clientWidth, tableWidth, maxCardRight + 80);
-    svgHeight.value = tableRef.value ? tableRef.value.offsetHeight : 0;
+    svgWidth.value = Math.max(rawTableWidth, maxCardRight + 48);
+    svgHeight.value = rawTableHeight;
 
     const lines = [];
     const dotsMap = new Map();
@@ -430,12 +480,12 @@ function updateConnectionLines() {
                 name: p.name,
                 level: Number(p.level),
                 parent_id: p.parent_id,
-                left: Math.round(r.left - containerRect.left + scrollLeft),
-                right: Math.round(r.right - containerRect.left + scrollLeft),
-                top: Math.round(r.top - containerRect.top + scrollTop),
-                bottom: Math.round(r.bottom - containerRect.top + scrollTop),
-                centerX: Math.round((r.left + r.width / 2) - containerRect.left + scrollLeft),
-                centerY: Math.round((r.top + r.height / 2) - containerRect.top + scrollTop),
+                left: toX(r.left),
+                right: toX(r.right),
+                top: toY(r.top),
+                bottom: toY(r.bottom),
+                centerX: toX(r.left + r.width / 2),
+                centerY: toY(r.top + r.height / 2),
             });
         }
     });
@@ -445,12 +495,36 @@ function updateConnectionLines() {
         const maxY = Math.max(yA, yB);
         return allCardRects.find(c => {
             if (ignoreIds.includes(c.id)) return false;
-            // Kartu berada di antara rentang vertikal yA dan yB
-            const inY = c.top < maxY - 6 && c.bottom > minY + 6;
+            const inY = c.top < maxY - 5 && c.bottom > minY + 5;
             if (!inY) return false;
-            // Garis vertikal pada sumbu x melewati rentang horizontal kartu
-            return x >= c.left - 6 && x <= c.right + 6;
+            return x >= c.left - 5 && x <= c.right + 5;
         });
+    }
+
+    function computeDetourX(obstacle, targetX, parentId, childId) {
+        const rightNeighbor = allCardRects.find(o =>
+            o.id !== obstacle.id &&
+            o.id !== parentId &&
+            o.id !== childId &&
+            Math.abs(o.top - obstacle.top) < 30 &&
+            o.left >= obstacle.right - 8
+        );
+        const leftNeighbor = allCardRects.find(o =>
+            o.id !== obstacle.id &&
+            o.id !== parentId &&
+            o.id !== childId &&
+            Math.abs(o.top - obstacle.top) < 30 &&
+            o.right <= obstacle.left + 8
+        );
+
+        if (targetX < obstacle.centerX - 8 && leftNeighbor) {
+            return Math.round((leftNeighbor.right + obstacle.left) / 2);
+        } else if (rightNeighbor) {
+            return Math.round((obstacle.right + rightNeighbor.left) / 2);
+        } else if (leftNeighbor) {
+            return Math.round((leftNeighbor.right + obstacle.left) / 2);
+        }
+        return targetX < obstacle.centerX ? Math.round(obstacle.left - 16) : Math.round(obstacle.right + 16);
     }
 
     // Hitung bawahan langsung di level bawahnya untuk percabangan T-junction
@@ -483,13 +557,12 @@ function updateConnectionLines() {
 
             // 1. KASUS SATU LEVEL (childLevel === parentLevel)
             if (childLevel === parentLevel) {
-                // Cek apakah posisi ini adalah ATAS-BAWAH di container yang sama (childEl berada di bawah parentEl)
-                if (childRect.top > parentRect.bottom - 10) {
+                if (toY(childRect.top) > toY(parentRect.bottom) - 8) {
                     // ATAS-BAWAH DI DALAM 1 CONTAINER LEVEL
-                    const x1 = Math.round((parentRect.left + parentRect.width / 2) - containerRect.left + scrollLeft);
-                    const y1 = Math.round(parentRect.bottom - containerRect.top + scrollTop);
-                    const x2 = Math.round((childRect.left + childRect.width / 2) - containerRect.left + scrollLeft);
-                    const y2 = Math.round(childRect.top - containerRect.top + scrollTop);
+                    const x1 = toX(parentRect.left + parentRect.width / 2);
+                    const y1 = toY(parentRect.bottom);
+                    const x2 = toX(childRect.left + childRect.width / 2);
+                    const y2 = toY(childRect.top);
 
                     if (Math.abs(x1 - x2) < 4) {
                         path = `M ${x1} ${y1} L ${x2} ${y2}`;
@@ -497,7 +570,6 @@ function updateConnectionLines() {
                         const midY = Math.round(y1 + (y2 - y1) * 0.5);
                         path = `M ${x1} ${y1} L ${x1} ${midY} L ${x2} ${midY} L ${x2} ${y2}`;
 
-                        // Junction dot jika atasan memiliki beberapa bawahan intra-level
                         const siblings = (intraChildrenMapByLevel.value[pos.parent_id] || []);
                         if (siblings.length > 1) {
                             const dotKey = `${pos.parent_id}-${midY}`;
@@ -510,14 +582,13 @@ function updateConnectionLines() {
                                 });
                             }
 
-                            // Jika ada sibling lain yang lebih jauh di sisi yang sama, pasang branch dot di titik percabangan kartu ini
                             const hasFurtherSibling = siblings.some(s => {
                                 if (s.id === pos.id) return false;
                                 const sEl = document.getElementById(`pos-card-${s.id}`);
                                 if (!sEl) return false;
                                 const sRect = sEl.getBoundingClientRect();
-                                const sX = Math.round((sRect.left + sRect.width / 2) - containerRect.left + scrollLeft);
-                                return (x2 > x1 && sX > x2 + 10) || (x2 < x1 && sX < x2 - 10);
+                                const sX = toX(sRect.left + sRect.width / 2);
+                                return (x2 > x1 && sX > x2 + 8) || (x2 < x1 && sX < x2 - 8);
                             });
                             if (hasFurtherSibling) {
                                 const branchDotKey = `branch-${pos.id}-${midY}`;
@@ -551,10 +622,10 @@ function updateConnectionLines() {
                     // SEJAJAR HORIZONTAL DI LEVEL YANG SAMA
                     isPeer = true;
                     const parentIsLeft = parentRect.left < childRect.left;
-                    const x1 = Math.round((parentIsLeft ? parentRect.right : parentRect.left) - containerRect.left + scrollLeft);
-                    const y1 = Math.round((parentRect.top + parentRect.height / 2) - containerRect.top + scrollTop);
-                    const x2 = Math.round((parentIsLeft ? childRect.left : childRect.right) - containerRect.left + scrollLeft);
-                    const y2 = Math.round((childRect.top + childRect.height / 2) - containerRect.top + scrollTop);
+                    const x1 = toX(parentIsLeft ? parentRect.right : parentRect.left);
+                    const y1 = toY(parentRect.top + parentRect.height / 2);
+                    const x2 = toX(parentIsLeft ? childRect.left : childRect.right);
+                    const y2 = toY(childRect.top + childRect.height / 2);
 
                     if (Math.abs(y1 - y2) < 6) {
                         path = `M ${x1} ${y1} L ${x2} ${y2}`;
@@ -577,85 +648,57 @@ function updateConnectionLines() {
             }
 
             // Coordinate from bottom center of parent card
-            const x1 = Math.round((parentRect.left + parentRect.width / 2) - containerRect.left + scrollLeft);
-            const y1 = Math.round(parentRect.bottom - containerRect.top + scrollTop);
+            const x1 = toX(parentRect.left + parentRect.width / 2);
+            const y1 = toY(parentRect.bottom);
 
             // Coordinate to top center of child card
-            const x2 = Math.round((childRect.left + childRect.width / 2) - containerRect.left + scrollLeft);
-            const y2 = Math.round(childRect.top - containerRect.top + scrollTop);
+            const x2 = toX(childRect.left + childRect.width / 2);
+            const y2 = toY(childRect.top);
 
             // 2. KASUS LOMPAT LEVEL (childLevel > parentLevel + 1)
-            // Jalur lewat kanan luar container agar tidak memotong card di level tengah
             if (childLevel > parentLevel + 1) {
-                const rightCorridorBase = Math.max(maxCardRight + 36, tableWidth - 70);
-                const x_right = Math.round(rightCorridorBase + (jumpCount * 16));
+                const rightCorridorBase = Math.max(maxCardRight + 24, rawTableWidth - 48);
+                const x_right = Math.round(rightCorridorBase + (jumpCount * 12));
                 jumpCount++;
 
-                const y_exit = y1 + 16;
-                const y_entry = y2 - 16;
+                const y_exit = y1 + 12;
+                const y_entry = y2 - 12;
 
-                // Garis orthogonal 90 derajat: keluar dari bawah -> belok kanan -> turun di koridor kanan -> belok kiri -> masuk dari atas
                 path = `M ${x1} ${y1} L ${x1} ${y_exit} L ${x_right} ${y_exit} L ${x_right} ${y_entry} L ${x2} ${y_entry} L ${x2} ${y2}`;
             }
             // 3. KASUS LEVEL DI BAWAHNYA LANGSUNG (childLevel === parentLevel + 1)
-            // Keluar container level dari tengah, masuk container level baru dari tengah (bersudut 90 derajat)
             else {
                 const parentRowEl = document.getElementById(`level-row-${parentLevel}`);
                 let midY;
                 if (parentRowEl) {
                     const rowRect = parentRowEl.getBoundingClientRect();
-                    midY = Math.round(rowRect.bottom - containerRect.top + scrollTop);
+                    midY = toY(rowRect.bottom);
                 } else {
                     midY = Math.round(y1 + (y2 - y1) * 0.5);
                 }
 
-                // Cek apakah jalur vertikal awal dari parent (x1) ke midY / y2 menabrak kartu lain di level ini
-                const obstacle = findObstacleCard(x1, y1, y2, [pos.parent_id, pos.id]);
+                // Pisahkan pengecekan rintangan di level atasan (y1..midY) dan di level bawahan (midY..y2)
+                const obstacleInParent = findObstacleCard(x1, y1, midY, [pos.parent_id, pos.id]);
+                const obstacleInChild = findObstacleCard(x2, midY, y2, [pos.parent_id, pos.id]);
 
-                if (obstacle) {
-                    // DETOUR PINTAR: Hindari menabrak kartu (misal: jika ada kartu tepat di bawah garis tengah)
-                    // Cari celah koridor terdekat di kanan atau kiri kartu penghalang
-                    const rightNeighbor = allCardRects.find(o =>
-                        o.id !== obstacle.id &&
-                        o.id !== pos.parent_id &&
-                        o.id !== pos.id &&
-                        Math.abs(o.top - obstacle.top) < 35 &&
-                        o.left >= obstacle.right - 10
-                    );
-                    const leftNeighbor = allCardRects.find(o =>
-                        o.id !== obstacle.id &&
-                        o.id !== pos.parent_id &&
-                        o.id !== pos.id &&
-                        Math.abs(o.top - obstacle.top) < 35 &&
-                        o.right <= obstacle.left + 10
-                    );
-
-                    let x_detour;
-                    if (x2 < obstacle.centerX - 10 && leftNeighbor) {
-                        x_detour = Math.round((leftNeighbor.right + obstacle.left) / 2);
-                    } else if (rightNeighbor) {
-                        x_detour = Math.round((obstacle.right + rightNeighbor.left) / 2);
-                    } else if (leftNeighbor) {
-                        x_detour = Math.round((leftNeighbor.right + obstacle.left) / 2);
-                    } else {
-                        x_detour = Math.round(obstacle.right + 24);
-                    }
-
-                    const y_above = Math.round(y1 + Math.max(10, (obstacle.top - y1) * 0.5));
-                    const y_below = Math.max(Math.round(obstacle.bottom + 12), midY);
-
-                    // Jalur memutar 90 derajat yang elegan melewati sela kartu tanpa menabrak
+                if (obstacleInParent) {
+                    const x_detour = computeDetourX(obstacleInParent, x2, pos.parent_id, pos.id);
+                    const y_above = Math.round(y1 + Math.max(8, (obstacleInParent.top - y1) * 0.5));
+                    const y_below = Math.max(Math.round(obstacleInParent.bottom + 10), midY);
                     path = `M ${x1} ${y1} L ${x1} ${y_above} L ${x_detour} ${y_above} L ${x_detour} ${y_below} L ${x2} ${y_below} L ${x2} ${y2}`;
-                } else if (Math.abs(x1 - x2) <= 8) {
-                    // Lurus vertikal langsung dari tengah jika posisi tengah sejajar dan tanpa rintangan
+                } else if (obstacleInChild) {
+                    // Belok di garis batas antar level (midY) agar tidak pernah memotong kartu di level atas maupun bawah
+                    const x_detour = computeDetourX(obstacleInChild, x2, pos.parent_id, pos.id);
+                    const y_below = Math.round(obstacleInChild.bottom + Math.max(8, (y2 - obstacleInChild.bottom) * 0.5));
+                    path = `M ${x1} ${y1} L ${x1} ${midY} L ${x_detour} ${midY} L ${x_detour} ${y_below} L ${x2} ${y_below} L ${x2} ${y2}`;
+                } else if (Math.abs(x1 - x2) <= 6) {
                     path = `M ${x1} ${y1} L ${x1} ${y2}`;
                 } else {
-                    // Bersudut 90 derajat di pembatas antar level
                     path = `M ${x1} ${y1} L ${x1} ${midY} L ${x2} ${midY} L ${x2} ${y2}`;
                 }
 
-                // Jika atasan memiliki lebih dari 1 bawahan di level ini, pasang junction dot di titik percabangan horizontal
-                if (!obstacle && (directChildrenByParent.get(pos.parent_id) || 0) > 1) {
+                // Junction dot pada titik percabangan horizontal di batas level
+                if (!obstacleInParent && (directChildrenByParent.get(pos.parent_id) || 0) > 1) {
                     const dotKey = `${pos.parent_id}-${midY}`;
                     if (!dotsMap.has(dotKey)) {
                         dotsMap.set(dotKey, {
@@ -834,31 +877,70 @@ function handleDelete(pos) {
                         </select>
                     </div>
 
-                    <!-- View Switcher -->
-                    <div class="inline-flex items-center p-1 bg-surface-container-low border border-outline-variant/60 rounded-xl shrink-0 self-start md:self-auto">
-                        <button
-                            type="button"
-                            @click="activeTab = 'diagram'"
-                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer"
-                            :class="activeTab === 'diagram'
-                                ? 'bg-primary text-on-primary shadow-xs'
-                                : 'text-on-surface-variant hover:text-on-surface'"
+                    <!-- View Switcher & Zoom Controls -->
+                    <div class="flex items-center gap-2 flex-wrap self-start md:self-auto">
+                        <!-- Zoom Controls (Hanya saat tab diagram aktif) -->
+                        <div
+                            v-if="activeTab === 'diagram'"
+                            class="inline-flex items-center gap-1 p-1 bg-slate-100 border border-slate-200 rounded-xl shrink-0"
                         >
-                            <span class="material-symbols-outlined text-[16px]">view_agenda</span>
-                            <span>Tabel 5 Level Hierarki</span>
-                        </button>
+                            <button
+                                type="button"
+                                @click="setZoom(zoomScale - 0.1)"
+                                class="w-6 h-6 rounded-lg flex items-center justify-center text-slate-600 hover:bg-white hover:text-slate-900 transition-colors cursor-pointer"
+                                title="Perkecil diagram"
+                            >
+                                <span class="material-symbols-outlined text-[15px]">remove</span>
+                            </button>
+                            <button
+                                type="button"
+                                @click="toggleAutoFit"
+                                :class="[
+                                    'px-2 py-0.5 rounded-lg text-[11px] font-bold transition-colors cursor-pointer',
+                                    isAutoFit
+                                        ? 'bg-emerald-900 text-yellow-200 shadow-2xs'
+                                        : 'bg-white text-slate-700 hover:bg-slate-50'
+                                ]"
+                                title="Otomatis sesuaikan lebar layar (Auto Fit)"
+                            >
+                                {{ Math.round(zoomScale * 100) }}%
+                            </button>
+                            <button
+                                type="button"
+                                @click="setZoom(zoomScale + 0.1)"
+                                class="w-6 h-6 rounded-lg flex items-center justify-center text-slate-600 hover:bg-white hover:text-slate-900 transition-colors cursor-pointer"
+                                title="Perbesar diagram"
+                            >
+                                <span class="material-symbols-outlined text-[15px]">add</span>
+                            </button>
+                        </div>
 
-                        <button
-                            type="button"
-                            @click="activeTab = 'departments'"
-                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer"
-                            :class="activeTab === 'departments'
-                                ? 'bg-primary text-on-primary shadow-xs'
-                                : 'text-on-surface-variant hover:text-on-surface'"
-                        >
-                            <span class="material-symbols-outlined text-[16px]">domain</span>
-                            <span>Daftar Unit</span>
-                        </button>
+                        <!-- View Switcher -->
+                        <div class="inline-flex items-center p-1 bg-slate-100 border border-slate-200 rounded-xl shrink-0">
+                            <button
+                                type="button"
+                                @click="activeTab = 'diagram'"
+                                class="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer"
+                                :class="activeTab === 'diagram'
+                                    ? 'bg-primary text-on-primary shadow-xs'
+                                    : 'text-on-surface-variant hover:text-on-surface'"
+                            >
+                                <span class="material-symbols-outlined text-[16px]">view_agenda</span>
+                                <span>Diagram Hierarki</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                @click="activeTab = 'departments'"
+                                class="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer"
+                                :class="activeTab === 'departments'
+                                    ? 'bg-primary text-on-primary shadow-xs'
+                                    : 'text-on-surface-variant hover:text-on-surface'"
+                            >
+                                <span class="material-symbols-outlined text-[16px]">domain</span>
+                                <span>Daftar Unit</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -869,9 +951,19 @@ function handleDelete(pos) {
             <div
                 v-if="activeTab === 'diagram'"
                 ref="diagramContainerRef"
-                class="relative overflow-x-auto overflow-y-hidden min-w-full"
+                class="relative overflow-x-auto overflow-y-hidden w-full"
                 @scroll="updateConnectionLines"
             >
+                <div
+                    :style="zoomScale !== 1 && svgHeight > 0
+                        ? { width: `${Math.ceil(svgWidth * zoomScale)}px`, height: `${Math.ceil(svgHeight * zoomScale) + 4}px`, minWidth: '100%' }
+                        : { minWidth: '100%' }"
+                >
+                <div
+                    ref="canvasWrapperRef"
+                    class="relative w-max min-w-full origin-top-left transition-transform duration-150"
+                    :style="zoomScale !== 1 ? { transform: `scale(${zoomScale})` } : {}"
+                >
                 <!-- KANVAS SVG GARIS HIERARKI PENGHUBUNG ANTARA ATASAN DAN BAWAHAN -->
                 <svg
                     class="absolute inset-0 pointer-events-none z-10 overflow-visible transition-all"
@@ -891,8 +983,8 @@ function handleDelete(pos) {
                             viewBox="0 0 10 10"
                             refX="7"
                             refY="5"
-                            markerWidth="6"
-                            markerHeight="6"
+                            markerWidth="5.5"
+                            markerHeight="5.5"
                             orient="auto-start-reverse"
                         >
                             <path d="M 0 1.5 L 8 5 L 0 8.5 z" :fill="d.strokeColor" />
@@ -905,7 +997,7 @@ function handleDelete(pos) {
                         <path
                             :d="line.path"
                             stroke="rgba(5, 150, 105, 0.2)"
-                            :stroke-width="hoveredPosId === line.parentId || hoveredPosId === line.childId ? 7 : 3.5"
+                            :stroke-width="hoveredPosId === line.parentId || hoveredPosId === line.childId ? 6 : 3"
                             fill="none"
                             stroke-linejoin="miter"
                             class="transition-all duration-150"
@@ -914,7 +1006,7 @@ function handleDelete(pos) {
                         <path
                             :d="line.path"
                             :stroke="hoveredPosId === line.parentId || hoveredPosId === line.childId ? '#059669' : line.color"
-                            :stroke-width="hoveredPosId === line.parentId || hoveredPosId === line.childId ? 3 : 2"
+                            :stroke-width="hoveredPosId === line.parentId || hoveredPosId === line.childId ? 2.5 : 1.75"
                             :stroke-opacity="hoveredPosId && hoveredPosId !== line.parentId && hoveredPosId !== line.childId ? 0.25 : 0.9"
                             fill="none"
                             stroke-linejoin="miter"
@@ -923,68 +1015,68 @@ function handleDelete(pos) {
                         />
                     </g>
 
-                    <!-- Junction Dots pada percabangan garis horizontal hierarki bawahan (seperti media_1793169568066.png) -->
+                    <!-- Junction Dots pada percabangan garis horizontal hierarki bawahan -->
                     <circle
                         v-for="dot in junctionDots"
                         :key="dot.id"
                         :cx="dot.cx"
                         :cy="dot.cy"
-                        r="4.5"
+                        r="3.8"
                         :fill="dot.color"
                         stroke="#ffffff"
-                        stroke-width="2"
+                        stroke-width="1.75"
                         class="transition-all duration-150 shadow-xs"
                     />
                 </svg>
 
                 <!-- TABEL / CONTAINER BARIS LEVEL YANG MENYATU SECARA VERTIKAL -->
-                <table ref="tableRef" class="w-full border-collapse min-w-[960px] text-left">
+                <table ref="tableRef" class="w-full border-collapse text-left">
                     <tbody>
                         <tr
                             v-for="(def, idx) in visibleLevelDefinitions"
                             :key="def.level"
                             :id="`level-row-${def.level}`"
-                            class="border-b border-outline-variant/40 last:border-b-0 hover:bg-slate-50/15 transition-colors relative"
+                            class="border-b border-slate-200/80 last:border-b-0 hover:bg-slate-50/15 transition-colors relative"
                         >
-                            <!-- CONTAINER LEVEL: POSISI LEVEL DI POJOK KIRI ATAS CONTAINER (BUKAN BARIS BARU) -->
-                            <td class="px-3.5 pt-7 pb-3 sm:px-5 sm:pt-7 sm:pb-3.5 align-top relative" :class="def.rowHeaderBg">
-                                <!-- POJOK KIRI ATAS: Tulisan ringkas & kecil di baris yang sama dengan container -->
-                                <div class="absolute top-2 left-3 sm:left-4 z-20 inline-flex items-center gap-1.5 flex-wrap select-none bg-surface-container-lowest/80 backdrop-blur-2xs px-2 py-0.5 rounded-lg border border-outline-variant/30 shadow-2xs">
-                                    <span :class="['text-[10px] font-bold px-1.5 py-0.5 rounded border shadow-2xs', def.badgeClass]">
+                            <!-- CONTAINER LEVEL: POSISI LEVEL DI POJOK KIRI ATAS CONTAINER -->
+                            <td class="px-2.5 pt-2 pb-2.5 sm:px-4 sm:pt-2.5 sm:pb-3 align-top relative" :class="def.rowHeaderBg">
+                                <!-- BARIS LABEL LEVEL DI KIRI ATAS (RAPI & TIDAK MENABRAK CARD) -->
+                                <div class="mb-2 inline-flex items-center gap-1.5 flex-wrap select-none bg-white/90 backdrop-blur-2xs px-2 py-0.5 rounded-lg border border-slate-200/80 shadow-2xs relative z-20">
+                                    <span :class="['text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded border shadow-2xs', def.badgeClass]">
                                         Level {{ def.level }}
                                     </span>
-                                    <span class="text-xs font-bold text-on-surface">
+                                    <span class="text-[11px] sm:text-xs font-bold text-slate-800">
                                         {{ getLevelName(def.level) }}
                                     </span>
-                                    <span class="text-[10px] text-on-surface-variant/70 font-medium">
+                                    <span class="text-[9.5px] sm:text-[10px] text-slate-500 font-medium">
                                         ({{ positionsByLevel[def.level]?.length || 0 }})
                                     </span>
                                     <!-- Tombol Edit Ringkas -->
                                     <button
                                         type="button"
                                         @click="openEditLevelModal(def.level)"
-                                        class="inline-flex items-center p-0.5 text-on-surface-variant hover:text-primary rounded hover:bg-surface-container-high transition-colors cursor-pointer"
+                                        class="inline-flex items-center p-0.5 text-slate-500 hover:text-primary rounded hover:bg-slate-100 transition-colors cursor-pointer"
                                         :title="`Edit Nama Level ${def.level}`"
                                     >
-                                        <span class="material-symbols-outlined text-[13px]">edit</span>
+                                        <span class="material-symbols-outlined text-[12px] sm:text-[13px]">edit</span>
                                     </button>
                                     <!-- Tombol Tambah Ringkas -->
                                     <button
                                         type="button"
                                         @click="handleAddAtLevel(def.level)"
-                                        class="ml-0.5 inline-flex items-center gap-0.5 px-2 py-0.5 rounded text-[11px] font-semibold text-white transition-all shadow-2xs hover:shadow cursor-pointer"
+                                        class="ml-0.5 inline-flex items-center gap-0.5 px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-semibold text-white transition-all shadow-2xs hover:shadow cursor-pointer"
                                         :class="def.btnClass"
                                         :title="`Tambah Jabatan di Level ${def.level}`"
                                     >
-                                        <span class="material-symbols-outlined text-[13px]">add</span>
+                                        <span class="material-symbols-outlined text-[12px]">add</span>
                                         <span>Tambah</span>
                                     </button>
                                 </div>
 
-                                <!-- SETIAP CARD JABATAN DIMULAI DARI TENGAH (justify-center) -->
+                                <!-- SETIAP CARD JABATAN DIMULAI DARI TENGAH & SEJAJAR HORIZONTAL (flex-nowrap) -->
                                 <div
                                     v-if="intraRootsByLevel[def.level] && intraRootsByLevel[def.level].length > 0"
-                                    class="flex items-start justify-center gap-6 sm:gap-7 flex-wrap py-1.5 w-full"
+                                    class="flex items-start justify-center gap-3.5 sm:gap-5 flex-nowrap py-1 w-max min-w-full mx-auto"
                                 >
                                     <OrgPositionNode
                                         v-for="rootPos in intraRootsByLevel[def.level]"
@@ -1002,21 +1094,21 @@ function handleDelete(pos) {
                                     />
                                 </div>
 
-                                <!-- EMPTY STATE SAAT BARIS LEVEL BELUM MEMILIKI JABATAN (TERPUSAT DI TENGAH) -->
+                                <!-- EMPTY STATE SAAT BARIS LEVEL BELUM MEMILIKI JABATAN -->
                                 <div
                                     v-else
-                                    class="py-3 px-4 border border-dashed border-outline-variant/40 rounded-xl bg-surface-container-lowest/50 flex items-center justify-between gap-3 max-w-sm mx-auto"
+                                    class="py-2.5 px-3.5 border border-dashed border-slate-300 rounded-xl bg-white/60 flex items-center justify-between gap-3 max-w-sm mx-auto"
                                 >
-                                    <p class="text-xs font-medium text-on-surface-variant">
+                                    <p class="text-[11px] sm:text-xs font-medium text-slate-500">
                                         Belum ada jabatan di Level {{ def.level }}.
                                     </p>
                                     <button
                                         type="button"
                                         @click="handleAddAtLevel(def.level)"
-                                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold transition-all shadow-xs cursor-pointer shrink-0"
+                                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold transition-all shadow-xs cursor-pointer shrink-0"
                                         :class="def.btnClass"
                                     >
-                                        <span class="material-symbols-outlined text-[13px]">add</span>
+                                        <span class="material-symbols-outlined text-[12px]">add</span>
                                         <span>Tambah</span>
                                     </button>
                                 </div>
@@ -1024,24 +1116,26 @@ function handleDelete(pos) {
                         </tr>
                     </tbody>
                 </table>
-
-                <!-- Baris Tambah Level Selanjutnya (Jika belum sampai Level 5) -->
-                <div
-                    v-if="maxActiveLevel < 5"
-                    class="px-5 py-2.5 bg-surface-container-low/20 border-t border-outline-variant/30 flex items-center justify-between text-xs"
-                >
-                    <span class="text-on-surface-variant font-medium">
-                        Tingkat organisasi aktif: Level 1 s/d Level {{ maxActiveLevel }}
-                    </span>
-                    <button
-                        type="button"
-                        @click="handleAddAtLevel(maxActiveLevel + 1)"
-                        class="inline-flex items-center gap-1 text-primary font-semibold hover:underline cursor-pointer"
-                    >
-                        <span class="material-symbols-outlined text-[15px]">add_circle</span>
-                        <span>Tambah Jabatan di Level {{ maxActiveLevel + 1 }}</span>
-                    </button>
                 </div>
+                </div>
+            </div>
+
+            <!-- Baris Tambah Level Selanjutnya (Jika belum sampai Level 5) -->
+            <div
+                v-if="activeTab === 'diagram' && maxActiveLevel < 5"
+                class="px-5 py-2.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs"
+            >
+                <span class="text-slate-600 font-medium">
+                    Tingkat organisasi aktif: Level 1 s/d Level {{ maxActiveLevel }}
+                </span>
+                <button
+                    type="button"
+                    @click="handleAddAtLevel(maxActiveLevel + 1)"
+                    class="inline-flex items-center gap-1 text-primary font-semibold hover:underline cursor-pointer"
+                >
+                    <span class="material-symbols-outlined text-[15px]">add_circle</span>
+                    <span>Tambah Jabatan di Level {{ maxActiveLevel + 1 }}</span>
+                </button>
             </div>
 
             <!-- ======================================================== -->

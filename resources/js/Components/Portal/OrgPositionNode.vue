@@ -61,14 +61,14 @@ const hasSubordinates = computed(() => {
 </script>
 
 <template>
-    <div class="flex flex-col items-center">
-        <!-- KARTU JABATAN: OUTLINE LEBIH TEBAL, EFEK TIMBUL SISI DALAM, UKURAN MENYESUAIKAN KONTEN -->
+    <div class="flex flex-col items-center shrink-0">
+        <!-- KARTU JABATAN: COMPACT & RESPONSIVE UNTUK LAPTOP DAN MOBILE -->
         <div
             :id="`pos-card-${pos.id}`"
             :data-level="pos.level"
             @mouseenter="$emit('hover', pos.id)"
             @mouseleave="$emit('leave')"
-            class="w-auto min-w-[130px] max-w-[210px] sm:max-w-[230px] bg-linear-to-b from-white to-slate-50/70 dark:from-surface-container-low dark:to-surface-container rounded-xl border-2 border-slate-300 dark:border-slate-600 px-3 py-2.5 sm:px-3.5 sm:py-2.5 transition-all duration-200 flex flex-col justify-center group relative select-none shadow-[inset_0_2px_4px_rgba(0,0,0,0.06),inset_0_-2px_4px_rgba(0,0,0,0.03),0_2px_5px_rgba(0,0,0,0.06)] hover:shadow-[inset_0_2px_4px_rgba(0,0,0,0.08),inset_0_-2px_4px_rgba(0,0,0,0.04),0_6px_14px_rgba(0,0,0,0.1)]"
+            class="w-auto min-w-[96px] sm:min-w-[112px] max-w-[140px] sm:max-w-[165px] md:max-w-[180px] bg-linear-to-b from-white to-slate-50/80 rounded-lg sm:rounded-xl border sm:border-2 border-slate-300 px-2 py-1.5 sm:px-2.5 sm:py-2 transition-all duration-200 flex flex-col justify-center group relative select-none shadow-[inset_0_1px_2px_rgba(0,0,0,0.04),0_1px_4px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.1)]"
             :class="[
                 levelDef.cardBorder,
                 hoveredPosId === pos.id ? 'ring-2 ring-primary border-primary' : ''
@@ -77,7 +77,7 @@ const hasSubordinates = computed(() => {
             <!-- TITIK ANCHOR KONEKTOR ATAS (TITIK HUBUNG DARI ATASAN) -->
             <div
                 v-if="pos.parent_id"
-                class="absolute -top-1.5 left-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full border-2 border-white shadow-xs z-20 pointer-events-none"
+                class="absolute -top-1.5 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full border border-white shadow-2xs z-20 pointer-events-none"
                 :class="levelDef.dotColor || 'bg-primary'"
                 title="Titik hubung hierarki dari atasan"
             ></div>
@@ -86,37 +86,37 @@ const hasSubordinates = computed(() => {
             <button
                 type="button"
                 @click.stop="$emit('add-subordinate', pos)"
-                class="absolute -bottom-2.5 left-1/2 -translate-x-1/2 w-5 h-5 rounded-full border-2 border-white shadow-sm flex items-center justify-center transition-all duration-150 hover:scale-125 z-30 cursor-pointer"
+                class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 sm:w-4.5 sm:h-4.5 rounded-full border border-white shadow-xs flex items-center justify-center transition-all duration-150 hover:scale-125 z-30 cursor-pointer"
                 :class="levelDef.btnClass"
                 title="Tambah bawahan untuk jabatan ini"
             >
-                <span class="material-symbols-outlined text-[12px] font-bold leading-none select-none">add</span>
+                <span class="material-symbols-outlined text-[10px] sm:text-[11px] font-bold leading-none select-none">add</span>
             </button>
 
             <!-- NODE + DI SAMPING KANAN KARTU (TAMBAH HIERARKI SEJAJAR) -->
             <button
                 type="button"
                 @click.stop="$emit('add-peer', pos)"
-                class="absolute -right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full border-2 border-white shadow-sm flex items-center justify-center transition-all duration-150 hover:scale-125 z-30 cursor-pointer"
+                class="absolute -right-2 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-4.5 sm:h-4.5 rounded-full border border-white shadow-xs flex items-center justify-center transition-all duration-150 hover:scale-125 z-30 cursor-pointer"
                 :class="levelDef.btnClass"
                 :title="`Tambah jabatan sejajar di Level ${pos.level}`"
             >
-                <span class="material-symbols-outlined text-[12px] font-bold leading-none select-none">add</span>
+                <span class="material-symbols-outlined text-[10px] sm:text-[11px] font-bold leading-none select-none">add</span>
             </button>
 
             <!-- KONTEN KARTU: HEADER (BADGE BIDANG & TOMBOL EDIT/HAPUS DI POJOK KANAN ATAS) -->
-            <div class="flex items-center justify-between gap-1.5 mb-1.5">
+            <div class="flex items-center justify-between gap-1 mb-1">
                 <!-- Badge Bidang Kerja / Yayasan -->
                 <span
                     v-if="pos.department_name"
-                    class="text-[9px] sm:text-[10px] font-semibold px-1.5 py-0.5 rounded bg-surface-container-high text-on-surface-variant border border-outline-variant/40 truncate max-w-[110px] sm:max-w-[130px]"
+                    class="text-[8px] sm:text-[9px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200 truncate max-w-[78px] sm:max-w-[98px]"
                     :title="pos.department_name"
                 >
                     {{ pos.department_name }}
                 </span>
                 <span
                     v-else
-                    class="text-[9px] sm:text-[10px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20 shrink-0"
+                    class="text-[8px] sm:text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20 shrink-0"
                 >
                     Yayasan
                 </span>
@@ -126,34 +126,34 @@ const hasSubordinates = computed(() => {
                     <button
                         type="button"
                         @click.stop="$emit('edit', pos)"
-                        class="w-5 h-5 rounded flex items-center justify-center text-on-surface-variant hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer"
+                        class="w-4 h-4 sm:w-4.5 sm:h-4.5 rounded flex items-center justify-center text-slate-500 hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer"
                         title="Edit Jabatan"
                     >
-                        <span class="material-symbols-outlined text-[13px] sm:text-[14px]">edit</span>
+                        <span class="material-symbols-outlined text-[11px] sm:text-[12.5px]">edit</span>
                     </button>
                     <button
                         type="button"
                         @click.stop="$emit('delete', pos)"
-                        class="w-5 h-5 rounded flex items-center justify-center text-on-surface-variant hover:text-error hover:bg-error/10 transition-colors cursor-pointer"
+                        class="w-4 h-4 sm:w-4.5 sm:h-4.5 rounded flex items-center justify-center text-slate-500 hover:text-error hover:bg-error/10 transition-colors cursor-pointer"
                         title="Hapus Jabatan"
                     >
-                        <span class="material-symbols-outlined text-[13px] sm:text-[14px]">delete</span>
+                        <span class="material-symbols-outlined text-[11px] sm:text-[12.5px]">delete</span>
                     </button>
                 </div>
             </div>
 
             <!-- Nama Jabatan -->
-            <h5 class="text-xs sm:text-sm font-bold text-on-surface group-hover:text-primary transition-colors leading-snug break-words text-left">
+            <h5 class="text-[10.5px] sm:text-xs font-bold text-slate-800 group-hover:text-primary transition-colors leading-tight break-words text-left">
                 {{ pos.name }}
             </h5>
         </div>
 
         <!-- BAWAHAN DI LEVEL YANG SAMA (TAMPIL DI BAWAH KARTU ATASANNYA DI CONTAINER INI) -->
-        <div v-if="intraChildren.length > 0" class="flex flex-col items-center mt-4 sm:mt-5 w-full">
-            <!-- Jika memiliki garis komando lurus ke level bawah, bagi ke sayap kiri dan sayap kanan dengan koridor tengah terbuka dan tanpa wrapping agar card selalu sejajar berdampingan secara horizontal -->
+        <div v-if="intraChildren.length > 0" class="flex flex-col items-center mt-3.5 sm:mt-4 w-max">
+            <!-- Jika memiliki garis komando lurus ke level bawah, bagi ke sayap kiri dan sayap kanan dengan koridor tengah terbuka -->
             <div v-if="hasCenterTrunkLine" class="grid grid-cols-2 w-max mx-auto">
-                <!-- SAYAP KIRI (50% lebar simetris, align ke kanan mendekati koridor tengah, sejajar horizontal tanpa wrap) -->
-                <div class="flex items-start gap-4 sm:gap-5 justify-end flex-nowrap shrink-0 pr-6 sm:pr-8">
+                <!-- SAYAP KIRI -->
+                <div class="flex items-start gap-2.5 sm:gap-3.5 justify-end flex-nowrap shrink-0 pr-3.5 sm:pr-5">
                     <OrgPositionNode
                         v-for="child in intraLeftChildren"
                         :key="child.id"
@@ -171,8 +171,8 @@ const hasSubordinates = computed(() => {
                     />
                 </div>
 
-                <!-- SAYAP KANAN (50% lebar simetris, align ke kiri mendekati koridor tengah, sejajar horizontal tanpa wrap) -->
-                <div class="flex items-start gap-4 sm:gap-5 justify-start flex-nowrap shrink-0 pl-6 sm:pl-8">
+                <!-- SAYAP KANAN -->
+                <div class="flex items-start gap-2.5 sm:gap-3.5 justify-start flex-nowrap shrink-0 pl-3.5 sm:pl-5">
                     <OrgPositionNode
                         v-for="child in intraRightChildren"
                         :key="child.id"
@@ -191,8 +191,8 @@ const hasSubordinates = computed(() => {
                 </div>
             </div>
 
-            <!-- Jika tidak ada garis komando ke level bawah, tampilkan terpusat normal -->
-            <div v-else class="flex items-start gap-4 sm:gap-5 justify-center flex-wrap">
+            <!-- Jika tidak ada garis komando ke level bawah, tampilkan sejajar terpusat tanpa wrap vertikal -->
+            <div v-else class="flex items-start gap-2.5 sm:gap-3.5 justify-center flex-nowrap">
                 <OrgPositionNode
                     v-for="child in intraChildren"
                     :key="child.id"
