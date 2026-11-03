@@ -105,6 +105,27 @@ const activeFiltersCount = computed(() => {
     return count;
 });
 
+// Cek apakah ada filter tambahan di luar filter status keaktifan (Unit, Jenjang, atau Pencarian)
+const hasAdditionalFilters = computed(() => {
+    return Boolean(
+        (props.activeUnit && props.activeUnit.trim()) ||
+        (props.activeJenjang && props.activeJenjang.length > 0) ||
+        (searchQuery.value && searchQuery.value.trim())
+    );
+});
+
+// Angka penyebut ("dari ... pegawai")
+// Jika hanya filter keaktifan, diambil dari total semua pegawai (misal: 80 dari 102).
+// Jika ada tambahan filter lain, diambil dari total keaktifan yang dipilih (misal: 25 dari 80).
+const displayTotalCount = computed(() => {
+    if (hasAdditionalFilters.value) {
+        if (props.activeStatus && statusCounts.value[props.activeStatus] !== undefined) {
+            return statusCounts.value[props.activeStatus];
+        }
+    }
+    return props.totalCount;
+});
+
 function selectStatusTab(key) {
     emit('filter-status', key);
 }
@@ -416,7 +437,7 @@ onUnmounted(() => {
 
             <!-- Right Entry Counter (Sesuai Referensi Gambar) -->
             <div class="text-[12.5px] text-slate-500 ml-auto shrink-0">
-                <strong class="text-slate-900 font-bold">{{ filteredCount }}</strong> dari {{ totalCount }} pegawai
+                <strong class="text-slate-900 font-bold">{{ filteredCount }}</strong> dari {{ displayTotalCount }} pegawai
             </div>
         </div>
     </div>
