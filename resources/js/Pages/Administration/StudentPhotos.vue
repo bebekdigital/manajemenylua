@@ -164,17 +164,18 @@ function handlePrint(settings) {
 </script>
 
 <template>
-    <Head title="Cetak Foto Siswa" />
+    <div class="flex-1 flex flex-col bg-white">
+        <Head title="Cetak Foto Siswa" />
 
-    <!-- LAYOUT PRINT (Hanya tampil saat isPrinting = true) -->
-    <Teleport to="body">
-        <div v-if="isPrinting" class="print-only-container bg-white w-screen">
-            <PrintPhotoLayout :students="studentsToPrint" :settings="printSettings" />
-        </div>
-    </Teleport>
+        <!-- LAYOUT PRINT (Hanya tampil saat isPrinting = true) -->
+        <Teleport to="body">
+            <div v-if="isPrinting" class="print-only-container bg-white w-screen">
+                <PrintPhotoLayout :students="studentsToPrint" :settings="printSettings" />
+            </div>
+        </Teleport>
 
-    <!-- LAYOUT APLIKASI (Sembunyi saat isPrinting = true) -->
-    <div v-show="!isPrinting" class="flex-1 overflow-y-auto p-4 md:p-margin-desktop bg-surface-container-lowest relative pb-24">
+        <!-- LAYOUT APLIKASI (Sembunyi saat isPrinting = true) -->
+        <div v-show="!isPrinting" class="flex-1 overflow-y-auto p-4 md:p-margin-desktop bg-white relative pb-24">
         <!-- Back + Header -->
         <div class="mb-6">
             <Link
@@ -361,6 +362,7 @@ function handlePrint(settings) {
         @close="showPrintModal = false"
         @print="handlePrint"
     />
+    </div>
 </template>
 
 <style>

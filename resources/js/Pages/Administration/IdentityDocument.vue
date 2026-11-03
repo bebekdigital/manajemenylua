@@ -149,10 +149,10 @@ const clearSelection = () => { selectedStudentIds.value = []; };
         <Head title="Cetak Berkas Identitas Siswa" />
 
         <!-- ===== SCREEN UI ===== -->
-        <div class="print:hidden flex-grow min-h-screen bg-background">
+        <div class="print:hidden flex-grow min-h-screen bg-white">
 
             <!-- Sticky top bar -->
-            <div class="sticky top-0 z-20 bg-surface/95 backdrop-blur-md border-b border-outline-variant shadow-xs">
+            <div class="sticky top-0 z-20 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-2xs">
                 <div class="max-w-7xl mx-auto px-6 py-3 flex flex-wrap items-center justify-between gap-3">
                     <!-- Left: Back + Title -->
                     <div class="flex items-center space-x-3">

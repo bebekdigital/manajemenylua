@@ -78,7 +78,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <header class="bg-surface-container-lowest shadow-sm docked full-width top-0 sticky z-30 border-b border-outline-variant/30 transition-all duration-300">
+    <header class="bg-white shadow-2xs docked full-width top-0 sticky z-30 border-b border-slate-200 transition-all duration-300">
         <div class="flex items-center justify-between h-16 px-4 md:px-gutter max-w-container-max mx-auto gap-2 md:gap-4 w-full">
             
             <!-- Left: Title & Topbar Navigation Menus -->
@@ -90,7 +90,7 @@ onUnmounted(() => {
                     </div>
                     <div class="flex flex-col">
                         <h1 class="text-sm font-bold text-slate-800 leading-tight">{{ pageTitle }}</h1>
-                        <span class="text-[10px] text-slate-400 font-medium leading-tight">Yayasan Li Ulil Albab</span>
+                        <span class="text-[10px] text-slate-500 font-medium leading-tight">Yayasan Li Ulil Albab</span>
                     </div>
                 </div>
 
@@ -103,7 +103,7 @@ onUnmounted(() => {
                             'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12.5px] sm:text-[13px] font-semibold transition-all cursor-pointer border',
                             isRouteActive('/agenda')
                                 ? 'bg-emerald-50 text-emerald-950 border-emerald-600 shadow-2xs'
-                                : 'bg-white text-slate-700 border-slate-200/90 hover:bg-slate-50 hover:text-emerald-900 shadow-2xs'
+                                : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50 hover:border-slate-400 hover:text-emerald-900 shadow-2xs'
                         ]"
                         title="Halaman Agenda Kegiatan"
                     >
@@ -118,7 +118,7 @@ onUnmounted(() => {
                             'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12.5px] sm:text-[13px] font-semibold transition-all cursor-pointer border',
                             isRouteActive('/info')
                                 ? 'bg-emerald-50 text-emerald-950 border-emerald-600 shadow-2xs'
-                                : 'bg-white text-slate-700 border-slate-200/90 hover:bg-slate-50 hover:text-emerald-900 shadow-2xs'
+                                : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50 hover:border-slate-400 hover:text-emerald-900 shadow-2xs'
                         ]"
                         title="Halaman Pusat Informasi"
                     >
@@ -133,7 +133,7 @@ onUnmounted(() => {
                             'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12.5px] sm:text-[13px] font-semibold transition-all cursor-pointer border relative',
                             isRouteActive('/persetujuan')
                                 ? 'bg-emerald-50 text-emerald-950 border-emerald-600 shadow-2xs'
-                                : 'bg-white text-slate-700 border-slate-200/90 hover:bg-slate-50 hover:text-emerald-900 shadow-2xs'
+                                : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50 hover:border-slate-400 hover:text-emerald-900 shadow-2xs'
                         ]"
                         title="Halaman Persetujuan Perizinan"
                     >

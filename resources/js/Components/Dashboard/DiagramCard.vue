@@ -10,8 +10,8 @@ const chartData = [
 </script>
 
 <template>
-    <div class="bg-surface-container-lowest rounded-2xl border border-primary/10 shadow-[0px_4px_20px_rgba(0,40,20,0.06)] overflow-hidden h-full flex flex-col">
-        <div class="px-5 py-4 border-b border-outline-variant/30 flex items-center justify-between">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden h-full flex flex-col">
+        <div class="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center">
                     <span class="material-symbols-outlined text-orange-600 text-xl">bar_chart</span>

@@ -615,9 +615,9 @@ function formatDate(dateStr) {
 </script>
 
 <template>
-    <Head title="Manajemen Portal - Foundation Data Center" />
+    <div class="w-full p-4 md:px-6 md:py-5 bg-white">
+        <Head title="Manajemen Portal - Foundation Data Center" />
 
-    <div class="w-full p-4 md:px-6 md:py-5">
         <!-- Page Header -->
         <div class="mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
@@ -671,9 +671,9 @@ function formatDate(dateStr) {
         <!-- Tab Content: Akademik -->
         <div v-show="activeTab === 'akademik'" class="space-y-6">
             <!-- Academic Year Section -->
-            <div class="bg-surface-container-lowest rounded-2xl border border-primary/10 shadow-[0px_4px_20px_rgba(0,40,20,0.06)] overflow-hidden">
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
             <!-- Section Header -->
-            <div class="flex items-center justify-between px-5 py-4 border-b border-outline-variant/30">
+            <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
                         <span class="material-symbols-outlined text-primary text-xl">calendar_month</span>
@@ -785,9 +785,9 @@ function formatDate(dateStr) {
             </div>
         </div>
         <!-- School Levels & Units Section -->
-        <div class="bg-surface-container-lowest rounded-2xl border border-primary/10 shadow-[0px_4px_20px_rgba(0,40,20,0.06)] overflow-hidden">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
                 <!-- Section Header -->
-                <div class="flex items-center justify-between px-5 py-4 border-b border-outline-variant/30">
+                <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
                             <span class="material-symbols-outlined text-primary text-xl">apartment</span>
@@ -962,9 +962,9 @@ function formatDate(dateStr) {
         <!-- Tab Content: Pengguna -->
         <div v-show="activeTab === 'pengguna'" class="space-y-6">
             <!-- User Management Section (Superadmin Only) -->
-            <div v-if="$page.props.auth?.user?.role === 'superadmin'" class="bg-surface-container-lowest rounded-2xl border border-primary/10 shadow-[0px_4px_20px_rgba(0,40,20,0.06)] overflow-hidden">
+            <div v-if="$page.props.auth?.user?.role === 'superadmin'" class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
             <!-- Section Header -->
-            <div class="flex items-center justify-between px-5 py-4 border-b border-outline-variant/30">
+            <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
                         <span class="material-symbols-outlined text-primary text-xl">manage_accounts</span>
@@ -1156,7 +1156,6 @@ function formatDate(dateStr) {
                 @saved="onRolePermissionSaved"
             />
         </div>
-    </div>
 
     <!-- Form Modal -->
     <AcademicYearFormModal
@@ -1262,5 +1261,5 @@ function formatDate(dateStr) {
         @close="closeConfirmModal"
         @confirm="handleConfirmModalAction"
     />
-
-        </template>
+    </div>
+</template>
