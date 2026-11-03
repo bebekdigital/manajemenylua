@@ -157,11 +157,11 @@ watch(activeUnit, () => {
 </script>
 
 <template>
-    <Head title="Statistik Siswa - Foundation Data Center" />
+    <div class="flex-1 overflow-y-auto p-4 md:p-margin-desktop bg-white">
+        <Head title="Statistik Siswa - Foundation Data Center" />
 
-    <div class="flex-1 overflow-y-auto p-4 md:p-margin-desktop">
             <!-- Page Header -->
-            <div class="mb-6 border-b border-outline-variant/30">
+            <div class="mb-6 border-b border-slate-200">
                 <div class="flex flex-col sm:flex-row sm:items-end justify-start gap-4 sm:gap-12">
                     <div class="pb-3 shrink-0">
                         <h2 class="text-xl sm:text-2xl text-primary font-bold leading-tight">
@@ -197,8 +197,8 @@ watch(activeUnit, () => {
                     :class="[
                         'flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer',
                         activeUnit === tab.id
-                            ? 'bg-emerald-700 text-white'
-                            : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
+                            ? 'bg-emerald-700 text-white shadow-2xs'
+                            : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-300 shadow-2xs'
                     ]"
                 >
                     <span class="material-symbols-outlined text-[18px]" :class="{ 'filled-icon': activeUnit === tab.id }">{{ tab.icon }}</span>
@@ -208,7 +208,7 @@ watch(activeUnit, () => {
 
             <!-- Summary Cards -->
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
-                <div class="bg-emerald-50 rounded-2xl border border-emerald-100/50 p-4 sm:p-5">
+                <div class="bg-emerald-50 rounded-2xl border border-emerald-200/80 p-4 sm:p-5">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center">
                             <span class="material-symbols-outlined text-emerald-700 text-[22px] filled-icon">groups</span>
@@ -219,7 +219,7 @@ watch(activeUnit, () => {
                         </div>
                     </div>
                 </div>
-                <div class="bg-blue-50 rounded-2xl border border-blue-100/50 p-4 sm:p-5">
+                <div class="bg-blue-50 rounded-2xl border border-blue-200/80 p-4 sm:p-5">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
                             <span class="material-symbols-outlined text-blue-700 text-[22px] filled-icon">meeting_room</span>
@@ -230,7 +230,7 @@ watch(activeUnit, () => {
                         </div>
                     </div>
                 </div>
-                <div class="bg-amber-50 rounded-2xl border border-amber-100/50 p-4 sm:p-5 col-span-2 sm:col-span-1">
+                <div class="bg-amber-50 rounded-2xl border border-amber-200/80 p-4 sm:p-5 col-span-2 sm:col-span-1">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center">
                             <span class="material-symbols-outlined text-amber-700 text-[22px] filled-icon">calculate</span>
@@ -247,8 +247,8 @@ watch(activeUnit, () => {
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 
                 <!-- Chart 1: Jumlah Siswa per Kelas -->
-                <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col h-full">
-                    <div class="px-5 sm:px-6 py-4 sm:py-5 border-b border-slate-100 shrink-0">
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden flex flex-col h-full">
+                    <div class="px-5 sm:px-6 py-4 sm:py-5 border-b border-slate-200 shrink-0">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-2.5">
                                 <span class="material-symbols-outlined text-emerald-700 text-[22px] filled-icon">bar_chart</span>

@@ -85,9 +85,9 @@ function hitungUsia(tanggalLahir) {
 </script>
 
 <template>
-    <Head :title="`Detail Siswa - ${student.nama}`" />
+    <div class="flex-1 overflow-y-auto p-4 md:p-margin-desktop bg-white">
+        <Head :title="`Detail Siswa - ${student.nama}`" />
 
-    <div class="flex-1 overflow-y-auto p-4 md:p-margin-desktop bg-surface-container-lowest">
         <!-- Back Button -->
         <div class="mb-4">
             <Link href="/students" class="inline-flex items-center gap-1 text-sm font-medium text-on-surface-variant hover:text-primary transition-colors">
@@ -96,9 +96,9 @@ function hitungUsia(tanggalLahir) {
             </Link>
         </div>
 
-        <div class="bg-surface-container-lowest rounded-2xl shadow-sm border border-outline-variant/30 flex flex-col overflow-hidden">
+        <div class="bg-white rounded-2xl shadow-xs border border-slate-200 flex flex-col overflow-hidden">
             <!-- Header -->
-            <div class="flex items-center justify-between px-6 py-5 border-b border-outline-variant/30 bg-surface-container-low">
+            <div class="flex items-center justify-between px-6 py-5 border-b border-slate-200 bg-slate-50/70">
                 <div class="flex items-center gap-5">
                     <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-primary/10 flex items-center justify-center overflow-hidden border-2 border-outline-variant/20 shadow-sm shrink-0">
                         <img

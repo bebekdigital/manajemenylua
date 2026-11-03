@@ -184,9 +184,8 @@ function onPageChange(p) {
 </script>
 
 <template>
-    <Head title="Database Pegawai - Foundation Data Center" />
-
-    <div class="flex-1 overflow-y-auto px-4 py-6 md:px-8 md:py-7 bg-[#fafafa] min-h-screen">
+    <div class="flex-1 overflow-y-auto px-4 py-6 md:px-8 md:py-7 bg-white min-h-screen">
+        <Head title="Database Pegawai - Foundation Data Center" />
         <div class="max-w-[1440px] mx-auto">
             <!-- Page Header (Di mobile: judul dikecilkan, tombol Download & Import dirangkum di tombol Kelola sebelah kanan judul) -->
             <div class="mb-5 sm:mb-6 flex flex-row items-center justify-between gap-3">
@@ -257,7 +256,7 @@ function onPageChange(p) {
                         v-if="permissions?.can_export"
                         href="/staff/template"
                         download
-                        class="inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl border border-slate-200 text-slate-700 bg-white hover:bg-slate-50 hover:border-slate-300 font-semibold text-[13px] transition-all shadow-2xs"
+                        class="inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl border border-slate-300 text-slate-700 bg-white hover:bg-slate-50 hover:border-slate-400 font-semibold text-[13px] transition-all shadow-2xs"
                         title="Download template XLSX untuk import data pegawai"
                     >
                         <span class="material-symbols-outlined text-[18px] text-emerald-700">download</span>
@@ -376,12 +375,12 @@ function onPageChange(p) {
                 @sort-change="onSortChange"
             />
         </div>
-    </div>
 
-    <!-- Import Modal -->
-    <StaffImportModal
-        :show="showImportModal"
-        @close="showImportModal = false"
-        @success="dismissedFlash = false"
-    />
+        <!-- Import Modal -->
+        <StaffImportModal
+            :show="showImportModal"
+            @close="showImportModal = false"
+            @success="dismissedFlash = false"
+        />
+    </div>
 </template>

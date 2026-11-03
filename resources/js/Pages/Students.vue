@@ -272,9 +272,9 @@ const downloadTemplate = async () => {
 </script>
 
 <template>
-    <Head title="Database Siswa - Foundation Data Center" />
+    <div class="flex-1 overflow-y-auto px-4 py-6 md:px-8 md:py-7 bg-white min-h-screen">
+        <Head title="Database Siswa - Foundation Data Center" />
 
-    <div class="flex-1 overflow-y-auto px-4 py-6 md:px-8 md:py-7 bg-[#fafafa] min-h-screen">
         <div class="max-w-[1440px] mx-auto">
             <!-- Page Header: Judul, Unit Tabs & Action Buttons -->
             <div class="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
@@ -289,7 +289,7 @@ const downloadTemplate = async () => {
                     </div>
 
                     <!-- Unit Segmented Capsule Tabs (SDIT / SMPIT) -->
-                    <div class="bg-slate-200/60 p-1 rounded-full inline-flex items-center gap-1 border border-slate-200/80 shrink-0">
+                    <div class="bg-slate-100 p-1 rounded-full inline-flex items-center gap-1 border border-slate-200/90 shrink-0">
                         <button
                             v-for="tab in unitTabs"
                             :key="tab.id"
@@ -479,9 +479,8 @@ const downloadTemplate = async () => {
                 @sort-change="onSortChange"
             />
         </div>
-    </div>
 
-    <!-- Import Modal -->
+        <!-- Import Modal -->
     <StudentImportModal
         :show="showImportModal"
         :unit="activeUnitTab"
@@ -507,5 +506,6 @@ const downloadTemplate = async () => {
             <h3 class="text-lg font-bold text-slate-800 mb-2">Menyiapkan Template...</h3>
             <p class="text-slate-600 text-sm">Mohon tunggu sebentar, file Excel sedang dibuat. Waktu pembuatan bergantung pada ukuran data.</p>
         </div>
+    </div>
     </div>
 </template>

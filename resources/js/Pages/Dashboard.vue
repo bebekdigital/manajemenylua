@@ -22,9 +22,9 @@ const canViewEmployee = computed(() => {
 </script>
 
 <template>
-    <Head title="Beranda Utama - Yayasan Li Ulil Albab" />
+    <div class="flex-grow p-gutter md:p-margin-desktop max-w-container-max mx-auto w-full bg-white">
+        <Head title="Beranda Utama - Yayasan Li Ulil Albab" />
 
-    <div class="flex-grow p-gutter md:p-margin-desktop max-w-container-max mx-auto w-full">
         <!-- Row 1: Agenda + KPI (swipeable on mobile) -->
         <div class="flex lg:grid lg:grid-cols-3 gap-4 lg:gap-6 mb-6 overflow-x-auto snap-x snap-mandatory lg:overflow-visible no-scrollbar">
             <div class="lg:col-span-2 w-[85vw] sm:w-auto lg:w-auto snap-start shrink-0 ml-0">
@@ -36,7 +36,7 @@ const canViewEmployee = computed(() => {
         </div>
 
         <!-- Mobile Navigation Menu Icons: Sidebar items moved below Agenda on Mobile -->
-        <div class="md:hidden mb-6 bg-white rounded-2xl border border-slate-200/90 p-4 shadow-2xs">
+        <div class="md:hidden mb-6 bg-white rounded-2xl border border-slate-200 p-4 shadow-xs">
             <div class="flex items-center justify-between mb-3.5 px-1">
                 <div class="flex items-center gap-2">
                     <div class="w-2 h-2 rounded-full bg-emerald-600"></div>

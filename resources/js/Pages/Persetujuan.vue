@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue';
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 
 defineOptions({
@@ -19,12 +19,48 @@ const searchQuery = ref('');
 const selectedUnit = ref('all');
 const selectedJenis = ref('all');
 
-// Quick Action Modal State
-const showActionModal = ref(false);
-const activeItem = ref(null);
-const actionType = ref('disetujui'); // 'disetujui' | 'ditolak'
-const actionCatatan = ref('');
-const isSubmitting = ref(false);
+// Modal Persetujuan Perizinan State (Duplikat dari StaffDetail)
+const showPermitNoteModal = ref(false);
+const permitNoteForm = useForm({
+    id: null,
+    employee_id: null,
+    employee_nama: '',
+    jenis: '',
+    detail: '',
+    keterangan: '',
+    status: 'diajukan',
+    catatan: '',
+    formatted_tanggal: '',
+});
+
+function openPermitNoteModal(item) {
+    if (!item?.id) return;
+    permitNoteForm.id = item.id;
+    permitNoteForm.employee_id = item.employee_id;
+    permitNoteForm.employee_nama = item.employee_nama || '';
+    permitNoteForm.jenis = item.jenis || '';
+    permitNoteForm.detail = item.detail || '';
+    permitNoteForm.keterangan = item.keterangan || '';
+    permitNoteForm.status = item.status || 'diajukan';
+    permitNoteForm.catatan = item.catatan || '';
+    permitNoteForm.formatted_tanggal = item.tanggal || '';
+    showPermitNoteModal.value = true;
+}
+
+function closePermitNoteModal() {
+    showPermitNoteModal.value = false;
+    permitNoteForm.reset();
+}
+
+function submitPermitNote() {
+    if (!permitNoteForm.id || !permitNoteForm.employee_id) return;
+    permitNoteForm.patch(`/staff/${permitNoteForm.employee_id}/permits/${permitNoteForm.id}/note`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            closePermitNoteModal();
+        },
+    });
+}
 
 // Extract available units
 const availableUnits = computed(() => {
@@ -78,48 +114,11 @@ function getJenisBadgeClass(jenis) {
     if (j.includes('dinas') || j.includes('tugas')) return 'bg-purple-50 text-purple-800 border-purple-200';
     return 'bg-emerald-50 text-emerald-800 border-emerald-200';
 }
-
-function openActionModal(item, type) {
-    activeItem.value = item;
-    actionType.value = type;
-    actionCatatan.value = '';
-    showActionModal.value = true;
-}
-
-function closeActionModal() {
-    showActionModal.value = false;
-    activeItem.value = null;
-    actionCatatan.value = '';
-    isSubmitting.value = false;
-}
-
-function submitAction() {
-    if (!activeItem.value) return;
-
-    isSubmitting.value = true;
-    router.patch(
-        route('staff.permits.note', [activeItem.value.employee_id, activeItem.value.id]),
-        {
-            status: actionType.value,
-            catatan: actionCatatan.value,
-        },
-        {
-            preserveScroll: true,
-            onSuccess: () => {
-                closeActionModal();
-            },
-            onFinish: () => {
-                isSubmitting.value = false;
-            },
-        }
-    );
-}
 </script>
 
 <template>
-    <Head title="Persetujuan Perizinan - Yayasan Li Ulil Albab" />
-
     <div class="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+        <Head title="Persetujuan Perizinan - Yayasan Li Ulil Albab" />
         <!-- Header Banner -->
         <div class="bg-gradient-to-r from-emerald-900 via-emerald-800 to-teal-900 rounded-3xl p-6 sm:p-8 text-white shadow-lg relative overflow-hidden">
             <div class="absolute -right-10 -bottom-10 w-64 h-64 bg-emerald-700/30 rounded-full blur-3xl pointer-events-none"></div>
@@ -271,25 +270,16 @@ function submitAction() {
                 </div>
 
                 <!-- Right: Action Buttons -->
-                <div class="flex items-center gap-2 md:flex-col lg:flex-row shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100">
-                    <!-- Quick Approve -->
+                <div class="flex items-center gap-2 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100">
                     <button
                         type="button"
-                        @click="openActionModal(item, 'disetujui')"
-                        class="flex-1 md:flex-none inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-800 hover:bg-emerald-900 text-white transition-all shadow-2xs cursor-pointer active:scale-95"
+                        @click="openPermitNoteModal(item)"
+                        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-primary/5 hover:bg-primary/10 text-primary border border-primary/20 transition-colors cursor-pointer"
+                        :title="item.catatan ? 'Lihat Catatan: ' + item.catatan : 'Buka Persetujuan Perizinan'"
                     >
-                        <span class="material-symbols-outlined text-[17px]">check_circle</span>
-                        <span>Setujui</span>
-                    </button>
-
-                    <!-- Quick Reject -->
-                    <button
-                        type="button"
-                        @click="openActionModal(item, 'ditolak')"
-                        class="flex-1 md:flex-none inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 transition-all cursor-pointer active:scale-95"
-                    >
-                        <span class="material-symbols-outlined text-[17px]">cancel</span>
-                        <span>Tolak</span>
+                        <span class="material-symbols-outlined text-[15px]">sticky_note_2</span>
+                        <span>Persetujuan</span>
+                        <span v-if="item.catatan" class="w-1.5 h-1.5 rounded-full bg-primary" title="Ada catatan"></span>
                     </button>
 
                     <!-- View in Staff Tab -->
@@ -324,95 +314,121 @@ function submitAction() {
             </div>
         </div>
 
-        <!-- Quick Action Modal (Setujui / Tolak) -->
+        <!-- MODAL PERSETUJUAN PERIZINAN -->
         <Transition
             enter-active-class="transition duration-200 ease-out"
-            enter-from-class="opacity-0 scale-95"
-            enter-to-class="opacity-100 scale-100"
+            enter-from-class="opacity-0"
+            enter-to-class="opacity-100"
             leave-active-class="transition duration-150 ease-in"
-            leave-from-class="opacity-100 scale-100"
-            leave-to-class="opacity-0 scale-95"
+            leave-from-class="opacity-100"
+            leave-to-class="opacity-0"
         >
             <div
-                v-if="showActionModal"
-                class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs"
-                @click.self="closeActionModal"
+                v-if="showPermitNoteModal"
+                class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs"
+                @click.self="closePermitNoteModal"
             >
-                <div class="bg-white rounded-3xl max-w-lg w-full p-6 space-y-5 shadow-2xl border border-slate-200">
-                    <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-                        <div class="flex items-center gap-2.5">
-                            <div
-                                :class="[
-                                    'w-9 h-9 rounded-xl flex items-center justify-center shrink-0',
-                                    actionType === 'disetujui' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
-                                ]"
-                            >
-                                <span class="material-symbols-outlined text-[20px]">
-                                    {{ actionType === 'disetujui' ? 'check_circle' : 'cancel' }}
-                                </span>
-                            </div>
-                            <div>
-                                <h3 class="text-sm font-bold text-slate-900">
-                                    {{ actionType === 'disetujui' ? 'Konfirmasi Persetujuan' : 'Tolak Pengajuan' }}
-                                </h3>
-                                <p class="text-xs text-slate-500">
-                                    Pegawai: <strong class="text-slate-700">{{ activeItem?.employee_nama }}</strong>
-                                </p>
-                            </div>
+                <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-outline-variant/60 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                    <div class="px-6 py-4 border-b border-outline-variant/60 flex items-center justify-between bg-surface-container-low">
+                        <div class="flex items-center gap-2 text-primary font-bold text-sm sm:text-base">
+                            <span class="material-symbols-outlined text-[20px]">sticky_note_2</span>
+                            <span>Persetujuan Perizinan</span>
                         </div>
                         <button
                             type="button"
-                            @click="closeActionModal"
-                            class="text-slate-400 hover:text-slate-600 rounded-full p-1 cursor-pointer"
+                            @click="closePermitNoteModal"
+                            class="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-slate-100 transition-colors cursor-pointer"
                         >
                             <span class="material-symbols-outlined text-[20px]">close</span>
                         </button>
                     </div>
 
-                    <div class="space-y-3">
-                        <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-1">
-                            <p><span class="font-semibold text-slate-700">Jenis Perizinan:</span> {{ activeItem?.jenis }} {{ activeItem?.detail ? `(${activeItem.detail})` : '' }}</p>
-                            <p><span class="font-semibold text-slate-700">Tanggal:</span> {{ activeItem?.tanggal }}</p>
-                            <p v-if="activeItem?.keterangan"><span class="font-semibold text-slate-700">Alasan:</span> {{ activeItem.keterangan }}</p>
+                    <form @submit.prevent="submitPermitNote" class="p-6 space-y-4">
+                        <div class="bg-slate-50 p-3.5 rounded-xl border border-outline-variant/40 space-y-2">
+                            <div v-if="permitNoteForm.employee_nama" class="text-xs text-on-surface-variant">
+                                <span class="font-bold text-on-surface">Pegawai:</span> {{ permitNoteForm.employee_nama }}
+                            </div>
+                            <div class="flex items-center justify-between gap-2 flex-wrap">
+                                <div class="text-xs text-on-surface-variant">
+                                    <span class="font-bold text-on-surface">Jenis:</span> {{ permitNoteForm.jenis || '-' }}
+                                </div>
+                                <div class="inline-flex items-center gap-1.5">
+                                    <span class="text-[11px] text-outline font-semibold">Status:</span>
+                                    <span
+                                        :class="[
+                                            'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold border',
+                                            permitNoteForm.status === 'disetujui' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                                            permitNoteForm.status === 'ditolak' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                                            'bg-amber-50 text-amber-700 border-amber-200'
+                                        ]"
+                                    >
+                                        <span
+                                            :class="[
+                                                'w-1.5 h-1.5 rounded-full',
+                                                permitNoteForm.status === 'disetujui' ? 'bg-emerald-500' :
+                                                permitNoteForm.status === 'ditolak' ? 'bg-rose-500' :
+                                                'bg-amber-500'
+                                            ]"
+                                        ></span>
+                                        {{ permitNoteForm.status === 'disetujui' ? 'Disetujui' : permitNoteForm.status === 'ditolak' ? 'Ditolak' : 'Diajukan' }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div v-if="permitNoteForm.detail" class="text-xs text-on-surface-variant">
+                                <span class="font-bold text-on-surface">Detail:</span> {{ permitNoteForm.detail }}
+                            </div>
+                            <div v-if="permitNoteForm.formatted_tanggal" class="text-xs text-on-surface-variant">
+                                <span class="font-bold text-on-surface">Tanggal:</span> {{ permitNoteForm.formatted_tanggal }}
+                            </div>
+                            <div v-if="permitNoteForm.keterangan" class="text-xs text-on-surface-variant">
+                                <span class="font-bold text-on-surface">Keterangan:</span> {{ permitNoteForm.keterangan }}
+                            </div>
                         </div>
 
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1.5">
-                                Catatan Atasan {{ actionType === 'ditolak' ? '(Wajib/Disarankan)' : '(Opsional)' }}
+                        <!-- Update Status Pengajuan -->
+                        <div class="space-y-1.5">
+                            <label class="block text-xs font-bold text-on-surface">Ubah Status Pengajuan</label>
+                            <select
+                                v-model="permitNoteForm.status"
+                                class="w-full px-3 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm font-bold text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                            >
+                                <option value="diajukan">Diajukan</option>
+                                <option value="disetujui">Disetujui</option>
+                                <option value="ditolak">Ditolak</option>
+                            </select>
+                        </div>
+
+                        <!-- Catatan / Feedback -->
+                        <div class="space-y-1.5">
+                            <label class="block text-xs font-bold text-on-surface">
+                                Catatan / Alasan Persetujuan / Penolakan
                             </label>
                             <textarea
-                                v-model="actionCatatan"
-                                rows="3"
-                                :placeholder="actionType === 'disetujui' ? 'Berikan catatan atau instruksi tambahan jika ada...' : 'Alasan penolakan perizinan ini...'"
-                                class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:bg-white resize-none"
+                                v-model="permitNoteForm.catatan"
+                                rows="4"
+                                placeholder="Tuliskan catatan, alasan, atau keterangan tambahan..."
+                                class="w-full px-3.5 py-2.5 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 resize-y"
                             ></textarea>
                         </div>
-                    </div>
 
-                    <div class="flex items-center justify-end gap-2.5 pt-2">
-                        <button
-                            type="button"
-                            @click="closeActionModal"
-                            :disabled="isSubmitting"
-                            class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
-                        >
-                            Batal
-                        </button>
-                        <button
-                            type="button"
-                            @click="submitAction"
-                            :disabled="isSubmitting"
-                            :class="[
-                                'px-4 py-2 rounded-xl text-xs font-bold text-white transition-all shadow-2xs cursor-pointer flex items-center gap-1.5',
-                                actionType === 'disetujui'
-                                    ? 'bg-emerald-800 hover:bg-emerald-900'
-                                    : 'bg-rose-700 hover:bg-rose-800'
-                            ]"
-                        >
-                            <span v-if="isSubmitting" class="material-symbols-outlined animate-spin text-[16px]">sync</span>
-                            <span>{{ actionType === 'disetujui' ? 'Ya, Setujui Sekarang' : 'Tolak Pengajuan' }}</span>
-                        </button>
-                    </div>
+                        <div class="flex items-center justify-end gap-2 pt-2 border-t border-outline-variant/40">
+                            <button
+                                type="button"
+                                @click="closePermitNoteModal"
+                                class="px-4 py-2 rounded-xl border border-outline-variant/60 text-xs sm:text-sm font-semibold text-on-surface hover:bg-slate-50 transition-colors cursor-pointer"
+                            >
+                                Batal
+                            </button>
+                            <button
+                                type="submit"
+                                :disabled="permitNoteForm.processing"
+                                class="px-5 py-2 rounded-xl bg-primary text-white text-xs sm:text-sm font-bold hover:bg-primary/90 transition-all shadow-2xs active:scale-95 disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                            >
+                                <span v-if="permitNoteForm.processing" class="material-symbols-outlined text-[16px] animate-spin">sync</span>
+                                <span>Simpan Persetujuan</span>
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </Transition>

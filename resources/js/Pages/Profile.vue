@@ -120,9 +120,9 @@ function getRoleBadgeClass(role) {
 </script>
 
 <template>
-    <Head title="Profil Saya" />
+    <div class="flex-1 overflow-y-auto p-4 md:p-margin-desktop bg-white">
+        <Head title="Profil Saya" />
 
-    <div class="flex-1 overflow-y-auto p-4 md:p-margin-desktop bg-surface-container-lowest">
         <!-- Back Button -->
         <div class="mb-4">
             <Link href="/beranda" class="inline-flex items-center gap-1 text-sm font-medium text-on-surface-variant hover:text-primary transition-colors">
@@ -152,7 +152,7 @@ function getRoleBadgeClass(role) {
         <div class="max-w-4xl mx-auto space-y-6">
 
             <!-- Profile Header Card -->
-            <div class="bg-surface-container-lowest rounded-2xl shadow-sm border border-outline-variant/30 overflow-hidden">
+            <div class="bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
                 <!-- Cover gradient -->
                 <div class="h-28 sm:h-36 bg-gradient-to-br from-primary via-primary/80 to-emerald-400 relative">
                     <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA4KSIvPjwvc3ZnPg==')] opacity-60"></div>
@@ -231,8 +231,8 @@ function getRoleBadgeClass(role) {
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
                 <!-- Card: Informasi Pribadi -->
-                <div class="bg-surface-container-lowest rounded-2xl shadow-sm border border-outline-variant/30 overflow-hidden">
-                    <div class="px-5 py-3.5 border-b border-outline-variant/30 bg-surface-container-low flex items-center gap-2">
+                <div class="bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
+                    <div class="px-5 py-3.5 border-b border-slate-200 bg-slate-50 flex items-center gap-2">
                         <span class="material-symbols-outlined text-primary text-[20px]">person</span>
                         <h3 class="text-sm font-bold text-on-surface">Informasi Pribadi</h3>
                     </div>
@@ -321,8 +321,8 @@ function getRoleBadgeClass(role) {
                 </div>
 
                 <!-- Card: Informasi Kepegawaian -->
-                <div class="bg-surface-container-lowest rounded-2xl shadow-sm border border-outline-variant/30 overflow-hidden">
-                    <div class="px-5 py-3.5 border-b border-outline-variant/30 bg-surface-container-low flex items-center gap-2">
+                <div class="bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
+                    <div class="px-5 py-3.5 border-b border-slate-200 bg-slate-50 flex items-center gap-2">
                         <span class="material-symbols-outlined text-primary text-[20px]">work</span>
                         <h3 class="text-sm font-bold text-on-surface">Informasi Kepegawaian</h3>
                     </div>
