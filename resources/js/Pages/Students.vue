@@ -26,18 +26,35 @@ const props = defineProps({
 const page = usePage();
 
 // ============================================================
-// Unit Tabs
+// Jenjang Pendidikan / Unit Options
 // ============================================================
 const unitTabs = [
+    { id: 'all', label: 'Semua Jenjang Pendidikan', icon: 'school' },
     { id: 'SDIT', label: 'SDIT', icon: 'school' },
     { id: 'SMPIT', label: 'SMPIT', icon: 'domain' },
 ];
 
-const activeUnitTab = ref(localStorage.getItem('activeUnitTab') || 'SDIT');
+const activeUnitTab = ref(localStorage.getItem('activeUnitTab') || 'all');
 
 watch(activeUnitTab, (newVal) => {
     localStorage.setItem('activeUnitTab', newVal);
 });
+
+function unitStudentCount(unitId) {
+    if (unitId === 'all') return props.students.length;
+
+    return props.students.filter(s => {
+        if (!s.unit) return false;
+        const u = s.unit.toUpperCase();
+        if (unitId === 'SDIT') {
+            return u.includes('SDIT') || u.includes('SD IT') || u === 'SD';
+        }
+        if (unitId === 'SMPIT') {
+            return u.includes('SMPIT') || u.includes('SMP IT') || u === 'SMP';
+        }
+        return false;
+    }).length;
+}
 
 const unitTabStudents = computed(() => {
     if (activeUnitTab.value === 'all') return props.students;
@@ -46,18 +63,25 @@ const unitTabStudents = computed(() => {
         if (!s.unit) return false;
         const u = s.unit.toUpperCase();
         if (activeUnitTab.value === 'SDIT') {
-            return u.includes('SDIT') || u.includes('SD IT');
+            return u.includes('SDIT') || u.includes('SD IT') || u === 'SD';
         }
         if (activeUnitTab.value === 'SMPIT') {
-            return u.includes('SMPIT') || u.includes('SMP IT');
+            return u.includes('SMPIT') || u.includes('SMP IT') || u === 'SMP';
         }
         return false;
     });
 });
 
 const activeUnitTabLabel = computed(() => {
-    return unitTabs.find(t => t.id === activeUnitTab.value)?.label ?? '';
+    if (activeUnitTab.value === 'all') return 'Semua Jenjang Pendidikan';
+    return unitTabs.find(t => t.id === activeUnitTab.value)?.label ?? activeUnitTab.value;
 });
+
+const unitOptions = computed(() => [
+    { value: 'all', label: `Semua Jenjang Pendidikan (${unitStudentCount('all')})` },
+    { value: 'SDIT', label: `SDIT (${unitStudentCount('SDIT')})` },
+    { value: 'SMPIT', label: `SMPIT (${unitStudentCount('SMPIT')})` },
+]);
 
 function switchUnitTab(unitId) {
     activeUnitTab.value = unitId;
@@ -217,22 +241,6 @@ function onPageChange(p) {
     currentPage.value = p;
 }
 
-function unitStudentCount(unitId) {
-    if (unitId === 'all') return props.students.length;
-
-    return props.students.filter(s => {
-        if (!s.unit) return false;
-        const u = s.unit.toUpperCase();
-        if (unitId === 'SDIT') {
-            return u.includes('SDIT') || u.includes('SD IT');
-        }
-        if (unitId === 'SMPIT') {
-            return u.includes('SMPIT') || u.includes('SMP IT');
-        }
-        return false;
-    }).length;
-}
-
 const downloadTemplate = async () => {
     showTemplateDropdown.value = false;
     isDownloadingTemplate.value = true;
@@ -276,46 +284,17 @@ const downloadTemplate = async () => {
         <Head title="Database Siswa - Foundation Data Center" />
 
         <div class="max-w-[1440px] mx-auto">
-            <!-- Page Header: Judul, Unit Tabs & Action Buttons -->
+            <!-- Page Header: Judul & Action Buttons -->
             <div class="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-                <div class="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
-                    <div>
-                        <h1 class="text-2xl sm:text-[26px] font-bold text-slate-900 tracking-tight leading-none">
-                            Database Siswa
-                        </h1>
-                        <p class="text-[13.5px] text-slate-500 mt-2 font-medium">
-                            <strong class="text-slate-700 font-semibold">{{ unitTabStudents.length }}</strong> siswa di unit <strong class="text-slate-700 font-semibold">{{ activeUnitTabLabel }}</strong>
-                        </p>
-                    </div>
-
-                    <!-- Unit Segmented Capsule Tabs (SDIT / SMPIT) -->
-                    <div class="bg-slate-100 p-1 rounded-full inline-flex items-center gap-1 border border-slate-200/90 shrink-0">
-                        <button
-                            v-for="tab in unitTabs"
-                            :key="tab.id"
-                            type="button"
-                            @click="switchUnitTab(tab.id)"
-                            :class="[
-                                'inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[13px] font-bold transition-all duration-150 cursor-pointer shrink-0',
-                                activeUnitTab === tab.id
-                                    ? 'bg-emerald-900 text-yellow-200 shadow-xs'
-                                    : 'text-slate-600 hover:text-slate-900 font-semibold'
-                            ]"
-                        >
-                            <span class="material-symbols-outlined text-[16px]">{{ tab.icon }}</span>
-                            <span>{{ tab.label }}</span>
-                            <span
-                                :class="[
-                                    'px-2 py-0.5 rounded-full text-[11px] leading-none transition-colors font-bold',
-                                    activeUnitTab === tab.id
-                                        ? 'bg-emerald-800 text-yellow-100'
-                                        : 'bg-slate-300/80 text-slate-700'
-                                ]"
-                            >
-                                {{ unitStudentCount(tab.id) }}
-                            </span>
-                        </button>
-                    </div>
+                <div>
+                    <h1 class="text-2xl sm:text-[26px] font-bold text-slate-900 tracking-tight leading-none">
+                        Database Siswa
+                    </h1>
+                    <p class="text-[13.5px] text-slate-500 mt-2 font-medium">
+                        <strong class="text-slate-700 font-semibold">{{ unitTabStudents.length }}</strong> siswa
+                        <span v-if="activeUnitTab !== 'all'"> di unit <strong class="text-slate-700 font-semibold">{{ activeUnitTabLabel }}</strong></span>
+                        <span v-else> di <strong class="text-slate-700 font-semibold">Semua Jenjang Pendidikan</strong></span>
+                    </p>
                 </div>
 
                 <!-- Action Buttons: Edit Data Dropdown & Template Dropdown -->
@@ -457,6 +436,9 @@ const downloadTemplate = async () => {
                 :active-angkatan="angkatanFilters"
                 :active-jenjang="jenjangFilters"
                 :active-jk="jkFilter"
+                :active-unit="activeUnitTab"
+                :unit-options="unitOptions"
+                @filter-unit="switchUnitTab"
                 @update:per-page="onPerPageChange"
                 @search="onSearch"
                 @filter-status="onFilterStatus"

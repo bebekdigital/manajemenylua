@@ -34,6 +34,14 @@ const props = defineProps({
         type: String,
         default: '',
     },
+    activeUnit: {
+        type: String,
+        default: 'all',
+    },
+    unitOptions: {
+        type: Array,
+        default: () => [],
+    },
 });
 
 const emit = defineEmits([
@@ -42,6 +50,7 @@ const emit = defineEmits([
     'filter-angkatan',
     'filter-jenjang',
     'filter-jk',
+    'filter-unit',
     'update:per-page',
     'reset-filters',
 ]);
@@ -96,6 +105,21 @@ const perPageOptions = [
     { value: 100, label: '100 Data' },
     { value: 0, label: 'Semua Data' },
 ];
+
+const effectiveUnitOptions = computed(() => {
+    if (props.unitOptions && props.unitOptions.length > 0) {
+        return props.unitOptions;
+    }
+    return [
+        { value: 'all', label: 'Semua Jenjang Pendidikan' },
+        { value: 'SDIT', label: 'SDIT' },
+        { value: 'SMPIT', label: 'SMPIT' },
+    ];
+});
+
+function onUnitChange(e) {
+    emit('filter-unit', e.target.value);
+}
 
 const activeFiltersCount = computed(() => {
     let count = 0;
@@ -215,8 +239,27 @@ onUnmounted(() => {
                 </button>
             </div>
 
-            <!-- Right Controls: Per Page Selector -->
+            <!-- Right Controls: Dropdown Jenjang Pendidikan (Left) + Per Page Selector (Right) -->
             <div class="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                <!-- Dropdown Jenjang Pendidikan -->
+                <div class="relative">
+                    <span class="material-symbols-outlined text-[16px] text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">school</span>
+                    <select
+                        :value="activeUnit"
+                        @change="onUnitChange"
+                        class="pl-8.5 pr-8 py-2 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl text-[12.5px] sm:text-[13px] font-medium text-slate-700 focus:outline-none focus:border-emerald-500 shadow-2xs cursor-pointer appearance-none transition-colors"
+                        title="Jenjang Pendidikan"
+                    >
+                        <option v-for="opt in effectiveUnitOptions" :key="opt.value" :value="opt.value">
+                            {{ opt.label }}
+                        </option>
+                    </select>
+                    <span class="material-symbols-outlined text-[15px] text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none">
+                        expand_more
+                    </span>
+                </div>
+
+                <!-- Per Page Selector (filter jumlah data) -->
                 <div class="relative">
                     <select
                         :value="perPage"
