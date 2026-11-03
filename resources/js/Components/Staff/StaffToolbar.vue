@@ -169,7 +169,7 @@ onUnmounted(() => {
         <!-- ROW 1: Segmented Status Tabs (Left) + Unit & Per Page Controls (Right) -->
         <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
             <!-- Segmented Status Tabs (Default: Aktif) -->
-            <div class="bg-slate-200/60 p-1 rounded-full inline-flex items-center gap-0.5 overflow-x-auto custom-tab-scrollbar max-w-full border border-slate-200/80 shrink-0">
+            <div class="bg-slate-100 p-1 rounded-full inline-flex items-center gap-0.5 overflow-x-auto custom-tab-scrollbar max-w-full border border-slate-200/90 shrink-0">
                 <button
                     v-for="tab in statusTabs"
                     :key="tab.key"
@@ -178,7 +178,7 @@ onUnmounted(() => {
                     :class="[
                         'inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[13px] transition-all duration-150 cursor-pointer shrink-0',
                         activeStatus === tab.key
-                            ? 'bg-white text-slate-900 font-bold shadow-2xs'
+                            ? 'bg-white text-slate-900 font-bold shadow-xs ring-1 ring-slate-200/80'
                             : 'text-slate-600 hover:text-slate-900 font-medium'
                     ]"
                 >
@@ -352,9 +352,9 @@ onUnmounted(() => {
                 <!-- Status Chip (Muncul jika status bukan Aktif atau jika ada pilihan) -->
                 <div
                     v-if="activeStatus && activeStatus !== 'semua'"
-                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white border border-slate-200 text-[12.5px] shadow-2xs"
+                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-50 border border-slate-300 text-[12.5px] shadow-2xs"
                 >
-                    <span class="text-slate-400">Status:</span>
+                    <span class="text-slate-500">Status:</span>
                     <strong class="text-slate-800 font-semibold capitalize">{{ activeStatus }}</strong>
                     <button
                         type="button"
@@ -369,9 +369,9 @@ onUnmounted(() => {
                 <!-- Unit Chip (Muncul saat unit dipilih) -->
                 <div
                     v-if="activeUnit"
-                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white border border-slate-200 text-[12.5px] shadow-2xs"
+                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-50 border border-slate-300 text-[12.5px] shadow-2xs"
                 >
-                    <span class="text-slate-400">Unit:</span>
+                    <span class="text-slate-500">Unit:</span>
                     <strong class="text-slate-800 font-semibold">{{ activeUnit }}</strong>
                     <button
                         type="button"
@@ -388,9 +388,9 @@ onUnmounted(() => {
                     <div
                         v-for="j in activeJenjang"
                         :key="j"
-                        class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white border border-slate-200 text-[12.5px] shadow-2xs"
+                        class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-50 border border-slate-300 text-[12.5px] shadow-2xs"
                     >
-                        <span class="text-slate-400">Jenjang:</span>
+                        <span class="text-slate-500">Jenjang:</span>
                         <strong class="text-slate-800 font-semibold">{{ j }}</strong>
                         <button
                             type="button"
