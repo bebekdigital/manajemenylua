@@ -54,25 +54,12 @@ export function usePwaInstall() {
         }
     };
 
-    const purgeOldCaches = () => {
-        if (typeof window !== 'undefined' && 'caches' in window) {
-            caches.keys().then((names) => {
-                names.forEach((name) => {
-                    if (name === 'ylua-pwa-v1') {
-                        caches.delete(name);
-                    }
-                });
-            }).catch(() => {});
-        }
-    };
-
     const initPwa = () => {
         if (isInitialized || typeof window === 'undefined') return;
         isInitialized = true;
 
         checkInstalledStatus();
         ensureWhiteThemeColor();
-        purgeOldCaches();
 
         // 1. Tangkap event beforeinstallprompt (Chrome, Edge, Android)
         window.addEventListener('beforeinstallprompt', (e) => {

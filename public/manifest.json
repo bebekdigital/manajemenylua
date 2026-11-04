@@ -2,7 +2,7 @@
   "name": "Sistem Terpadu Yayasan Li Ulil Albab",
   "short_name": "Ulil Albab",
   "description": "Portal Data & Sistem Manajemen Terpadu Yayasan Li Ulil Albab Karanganyar",
-  "start_url": "/?mode=standalone",
+  "start_url": "/beranda?mode=standalone",
   "scope": "/",
   "id": "/",
   "display": "standalone",

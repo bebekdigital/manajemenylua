@@ -26,11 +26,16 @@ use App\Models\StudentAcademicRecord;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::get('/', function () {
+    if (Auth::check()) {
+        return redirect()->intended('/beranda');
+    }
+
     return Inertia::render('Auth/Login');
 })->name('login');
 

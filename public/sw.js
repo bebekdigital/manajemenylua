@@ -82,10 +82,6 @@ self.addEventListener('fetch', (event) => {
         if (cachedResponse) {
           return cachedResponse;
         }
-        // Fallback ke app shell jika navigasi HTML
-        if (request.mode === 'navigate') {
-          return caches.match('/');
-        }
         return new Response('Anda sedang offline. Silakan periksa koneksi internet Anda.', {
           status: 503,
           statusText: 'Service Unavailable',
