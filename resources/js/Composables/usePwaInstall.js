@@ -40,11 +40,24 @@ export function usePwaInstall() {
         }
     };
 
+    const ensureWhiteThemeColor = () => {
+        if (typeof document === 'undefined') return;
+        const meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) {
+            meta.setAttribute('content', '#ffffff');
+        }
+        const tileMeta = document.querySelector('meta[name="msapplication-TileColor"]');
+        if (tileMeta) {
+            tileMeta.setAttribute('content', '#ffffff');
+        }
+    };
+
     const initPwa = () => {
         if (isInitialized || typeof window === 'undefined') return;
         isInitialized = true;
 
         checkInstalledStatus();
+        ensureWhiteThemeColor();
 
         // 1. Tangkap event beforeinstallprompt (Chrome, Edge, Android)
         window.addEventListener('beforeinstallprompt', (e) => {
@@ -62,19 +75,22 @@ export function usePwaInstall() {
             showGuideModal.value = false;
         });
 
-        // 3. Register Service Worker
+        // 3. Register Service Worker & Auto-Update
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker
                     .register('/sw.js', { scope: '/' })
                     .then((reg) => {
-                        // Cek update
+                        // Periksa pembaruan Service Worker
+                        reg.update().catch(() => {});
+
                         reg.onupdatefound = () => {
                             const installingWorker = reg.installing;
                             if (installingWorker) {
                                 installingWorker.onstatechange = () => {
                                     if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                        console.log('[PWA] Versi baru tersedia, silakan refresh.');
+                                        // Kirim sinyal agar service worker baru langsung aktif
+                                        installingWorker.postMessage({ type: 'SKIP_WAITING' });
                                     }
                                 };
                             }
@@ -83,6 +99,15 @@ export function usePwaInstall() {
                     .catch((err) => {
                         console.warn('[PWA] Service worker registration failed:', err);
                     });
+            });
+
+            // Saat service worker baru mengambil alih kontrol, reload otomatis agar aset terbaru langsung aktif
+            let refreshing = false;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (!refreshing) {
+                    refreshing = true;
+                    window.location.reload();
+                }
             });
         }
     };

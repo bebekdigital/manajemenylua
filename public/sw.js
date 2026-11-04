@@ -1,7 +1,5 @@
-const CACHE_NAME = 'ylua-pwa-v1';
+const CACHE_NAME = 'ylua-pwa-v2';
 const PRECACHE_ASSETS = [
-  '/',
-  '/manifest.json',
   '/favicon.png',
   '/images/icons/icon-192x192.png',
   '/images/icons/icon-512x512.png',
