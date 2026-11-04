@@ -42,13 +42,27 @@ export function usePwaInstall() {
 
     const ensureWhiteThemeColor = () => {
         if (typeof document === 'undefined') return;
-        const meta = document.querySelector('meta[name="theme-color"]');
-        if (meta) {
-            meta.setAttribute('content', '#ffffff');
-        }
+        const metas = document.querySelectorAll('meta[name="theme-color"]');
+        metas.forEach(meta => meta.setAttribute('content', '#ffffff'));
         const tileMeta = document.querySelector('meta[name="msapplication-TileColor"]');
         if (tileMeta) {
             tileMeta.setAttribute('content', '#ffffff');
+        }
+        const navMeta = document.querySelector('meta[name="msapplication-navbutton-color"]');
+        if (navMeta) {
+            navMeta.setAttribute('content', '#ffffff');
+        }
+    };
+
+    const purgeOldCaches = () => {
+        if (typeof window !== 'undefined' && 'caches' in window) {
+            caches.keys().then((names) => {
+                names.forEach((name) => {
+                    if (name === 'ylua-pwa-v1') {
+                        caches.delete(name);
+                    }
+                });
+            }).catch(() => {});
         }
     };
 
@@ -58,6 +72,7 @@ export function usePwaInstall() {
 
         checkInstalledStatus();
         ensureWhiteThemeColor();
+        purgeOldCaches();
 
         // 1. Tangkap event beforeinstallprompt (Chrome, Edge, Android)
         window.addEventListener('beforeinstallprompt', (e) => {
@@ -79,7 +94,7 @@ export function usePwaInstall() {
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker
-                    .register('/sw.js', { scope: '/' })
+                    .register('/sw.js?v=2', { scope: '/' })
                     .then((reg) => {
                         // Periksa pembaruan Service Worker
                         reg.update().catch(() => {});

@@ -7,15 +7,18 @@
 
     <!-- PWA & Mobile Web App Meta Tags (Putih sesuai background page web) -->
     <meta name="theme-color" content="#ffffff" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#ffffff" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Ulil Albab" />
     <meta name="application-name" content="Ulil Albab" />
     <meta name="msapplication-TileColor" content="#ffffff" />
+    <meta name="msapplication-navbutton-color" content="#ffffff" />
 
     <!-- PWA Manifest & Icons -->
-    <link rel="manifest" href="/manifest.json" />
+    <link rel="manifest" href="/manifest.json?v=2" />
     <link rel="icon" type="image/png" sizes="32x32" href="/images/icons/favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/images/icons/favicon-16x16.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/images/icons/apple-touch-icon.png" />
