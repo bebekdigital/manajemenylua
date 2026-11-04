@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Data Center - Yayasan Li Ulil Albab Karanganyar</title>
 
-    <!-- PWA & Mobile Web App Meta Tags -->
-    <meta name="theme-color" content="#004d27" />
+    <!-- PWA & Mobile Web App Meta Tags (Putih sesuai background page web) -->
+    <meta name="theme-color" content="#ffffff" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Ulil Albab" />
     <meta name="application-name" content="Ulil Albab" />
-    <meta name="msapplication-TileColor" content="#004d27" />
+    <meta name="msapplication-TileColor" content="#ffffff" />
 
     <!-- PWA Manifest & Icons -->
     <link rel="manifest" href="/manifest.json" />

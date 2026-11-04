@@ -140,14 +140,14 @@ onUnmounted(() => {
 
 <template>
     <section
-        class="relative w-full overflow-hidden bg-gradient-to-b from-[#bae0fd] via-[#ddf1fe] to-[#eef8ff] md:rounded-[28px] md:border md:border-sky-200/80 md:shadow-sm"
+        class="relative w-full overflow-hidden bg-gradient-to-b from-[#bae0fd] via-[#ddf1fe] to-[#eef8ff] min-h-[55dvh] sm:min-h-[55dvh] md:min-h-0 md:rounded-[28px] md:border md:border-sky-200/80 md:shadow-sm"
     >
         <!-- Latar Ilustrasi 2D Cerah & Bahagia (SDIT / SMPIT & PPTQ) -->
         <div class="absolute inset-0 z-0">
             <img
                 :src="backgroundUrl"
                 :alt="unitAltText"
-                class="w-full h-full object-cover object-[58%_82%] md:object-[center_78%] transition-opacity duration-500"
+                class="w-full h-full object-cover object-[58%_85%] md:object-[center_78%] transition-opacity duration-500"
             />
             <!-- Kabut Cahaya Lembut di Kiri Atas agar Teks Sapaan Gelap Kontras Tinggi -->
             <div
@@ -155,9 +155,9 @@ onUnmounted(() => {
             ></div>
         </div>
 
-        <!-- Konten Utama -->
+        <!-- Konten Utama: 55% Porsi Layar pada Mobile, Proporsional pada Desktop -->
         <div
-            class="relative z-10 px-4 pt-16 pb-11 sm:px-6 md:px-8 md:pt-7 md:pb-7 flex flex-col justify-between min-h-[330px] sm:min-h-[320px] md:min-h-[300px]"
+            class="relative z-10 px-4 pt-16 pb-12 sm:px-6 md:px-8 md:pt-7 md:pb-7 flex flex-col justify-between min-h-[55dvh] sm:min-h-[55dvh] md:min-h-[300px]"
         >
             <!-- Bagian Atas: Sapaan, Tanggal, dan Kontrol Pratinjau Ringkas -->
             <div class="flex flex-col md:flex-row md:items-start justify-between gap-3">
@@ -199,7 +199,7 @@ onUnmounted(() => {
 
             <!-- Bagian Bawah: Banner Agenda Auto-Slide + Wajah Karakter 2D Mengintip -->
             <div
-                class="relative mt-16 sm:mt-20 md:mt-16 w-full md:max-w-xl"
+                class="relative mt-auto pt-8 sm:pt-10 md:mt-16 md:pt-0 w-full md:max-w-xl"
                 @mouseenter="isSliderPaused = true"
                 @mouseleave="isSliderPaused = false"
                 @focusin="isSliderPaused = true"

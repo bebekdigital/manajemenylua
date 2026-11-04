@@ -8,7 +8,7 @@
   "display": "standalone",
   "orientation": "any",
   "background_color": "#ffffff",
-  "theme_color": "#004d27",
+  "theme_color": "#ffffff",
   "lang": "id",
   "dir": "ltr",
   "categories": ["education", "management", "productivity"],
@@ -39,3 +39,4 @@
     }
   ]
 }
+
