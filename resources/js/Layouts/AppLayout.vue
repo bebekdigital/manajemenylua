@@ -4,6 +4,7 @@ import { usePage } from '@inertiajs/vue3';
 import SidebarNav from '@/Components/Sidebar/SidebarNav.vue';
 import TopNav from '@/Components/TopNav/TopNav.vue';
 import ForceChangePasswordModal from '@/Components/Shared/ForceChangePasswordModal.vue';
+import PwaInstallModal from '@/Components/Shared/PwaInstallModal.vue';
 
 // Auto-detect active route from URL
 const page = usePage();
@@ -60,6 +61,9 @@ const activeRouteLabel = computed(() => {
 
         <!-- Locked Modal: Force Change Password after Reset by SuperAdmin -->
         <ForceChangePasswordModal :show="Boolean(page.props.auth?.user?.must_change_password)" />
+
+        <!-- PWA Install Guide Modal -->
+        <PwaInstallModal />
     </div>
 </template>
 

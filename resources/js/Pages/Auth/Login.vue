@@ -1,8 +1,12 @@
 <script setup>
-import { Head } from '@inertiajs/vue3';
-import { useForm } from '@inertiajs/vue3';
-import { ref, onMounted, onUnmounted } from 'vue';
+import { Head, useForm } from '@inertiajs/vue3';
+import { ref } from 'vue';
+import { usePwaInstall } from '@/Composables/usePwaInstall';
+import PwaInstallModal from '@/Components/Shared/PwaInstallModal.vue';
+
 defineOptions({ layout: null });
+
+const { installPwa, isInstalled } = usePwaInstall();
 
 const form = useForm({
     user_id: '',
@@ -62,12 +66,20 @@ const submit = () => {
             </div>
           </div>
 
-          <!-- Bottom Informational / Trust Badge (Disembunyikan di mobile) -->
-          <div class="hidden md:block relative z-10 pt-8 mt-8 border-t border-white/15">
+          <!-- Bottom Informational / Trust Badge & PWA Link (Disembunyikan di mobile) -->
+          <div class="hidden md:flex flex-col gap-3 relative z-10 pt-6 mt-6 border-t border-white/15">
             <div class="flex items-center gap-3 text-emerald-100/90 text-xs font-inter">
               <span class="material-symbols-outlined text-accent-gold text-lg">verified_user</span>
-              <span class="">Enkripsi Institusional 256-bit aman &amp; terverifikasi.</span>
+              <span>Enkripsi Institusional 256-bit aman &amp; terverifikasi.</span>
             </div>
+            <button
+              type="button"
+              @click="installPwa"
+              class="inline-flex items-center gap-2 text-xs font-semibold text-emerald-100 hover:text-white bg-white/10 hover:bg-white/15 border border-white/20 rounded-xl px-3 py-2 transition-all cursor-pointer w-fit"
+            >
+              <span class="material-symbols-outlined text-[16px] text-yellow-300">install_mobile</span>
+              <span>{{ isInstalled ? 'Aplikasi Web Aktif' : 'Install Aplikasi di Perangkat' }}</span>
+            </button>
           </div>
         </section>
 
@@ -141,8 +153,34 @@ const submit = () => {
 
             </form>
 
+            <!-- Tombol Pasang Aplikasi (PWA) di Halaman Login -->
+            <div class="mt-5 pt-4 border-t border-slate-100">
+              <button
+                type="button"
+                @click="installPwa"
+                class="w-full flex items-center justify-between gap-3 p-3 rounded-xl bg-emerald-50/70 hover:bg-emerald-100/80 border border-emerald-200/80 text-emerald-950 transition-all cursor-pointer group active:scale-[0.99]"
+              >
+                <div class="flex items-center gap-2.5">
+                  <div class="w-8 h-8 rounded-lg bg-emerald-700 text-white flex items-center justify-center shadow-xs shrink-0 group-hover:scale-105 transition-transform">
+                    <span class="material-symbols-outlined text-[18px]">install_mobile</span>
+                  </div>
+                  <div class="text-left">
+                    <p class="text-xs font-bold text-slate-900 group-hover:text-emerald-950 leading-tight">
+                      {{ isInstalled ? 'Aplikasi Web Terpasang' : 'Pasang Aplikasi di HP / Laptop' }}
+                    </p>
+                    <p class="text-[11px] text-slate-500 leading-tight mt-0.5">
+                      {{ isInstalled ? 'Aplikasi sudah aktif di perangkat ini' : 'Buka instan dari layar utama tanpa browser' }}
+                    </p>
+                  </div>
+                </div>
+                <span class="text-xs font-semibold px-2.5 py-1 rounded-lg bg-white border border-emerald-200 text-emerald-800 shrink-0 group-hover:bg-emerald-700 group-hover:text-white transition-colors">
+                  {{ isInstalled ? 'Status' : 'Install' }}
+                </span>
+              </button>
+            </div>
+
             <!-- Security note / Footer hint within card -->
-            <div class="mt-8 pt-6 border-t border-slate-100 flex items-center justify-between text-xs font-inter text-slate-500">
+            <div class="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-inter text-slate-500">
               <span class="flex items-center gap-1.5">
                 <span class="material-symbols-outlined text-sm text-emerald-600">shield</span>
                 Akses Dilindungi RBAC
@@ -155,6 +193,9 @@ const submit = () => {
 
       </div>
     </main>
+
+    <!-- Dialog Panduan & Prompt PWA -->
+    <PwaInstallModal />
   </div>
 </template>
 

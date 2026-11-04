@@ -15,6 +15,7 @@ import GenerateUserModal from '@/Components/Portal/GenerateUserModal.vue';
 import RolePermissionPanel from '@/Components/Portal/RolePermissionPanel.vue';
 import SuccessModal from '@/Components/Shared/SuccessModal.vue';
 import ConfirmDeleteModal from '@/Components/Shared/ConfirmDeleteModal.vue';
+import { usePwaInstall } from '@/Composables/usePwaInstall';
 
 defineOptions({
     layout: AppLayout,
@@ -80,6 +81,7 @@ const props = defineProps({
 });
 
 const page = usePage();
+const { installPwa, isInstalled, canPromptDirectly, isIos, isAndroid } = usePwaInstall();
 
 const activeTab = ref('akademik');
 const tabs = computed(() => {
@@ -91,6 +93,7 @@ const tabs = computed(() => {
         list.push({ id: 'pengguna', label: 'Pengguna', icon: 'manage_accounts' });
         list.push({ id: 'hak_akses', label: 'Hak Akses', icon: 'shield_person' });
     }
+    list.push({ id: 'aplikasi_pwa', label: 'Aplikasi (PWA)', icon: 'install_mobile' });
     return list;
 });
 
@@ -625,8 +628,21 @@ function formatDate(dateStr) {
                     Manajemen Portal
                 </h2>
                 <p class="font-body-md text-body-md text-on-surface-variant mt-1">
-                    Kelola Tahun Ajaran dan pengaturan sistem data yayasan
+                    Kelola Tahun Ajaran, master data, dan pengaturan aplikasi sistem yayasan
                 </p>
+            </div>
+
+            <!-- Tombol Cepat PWA di Header Pengaturan -->
+            <div class="flex items-center gap-2.5">
+                <button
+                    type="button"
+                    @click="installPwa"
+                    class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-emerald-50 hover:bg-emerald-100 text-emerald-950 border border-emerald-300/80 shadow-2xs transition-all cursor-pointer active:scale-95"
+                    title="Pasang aplikasi di HP atau komputer"
+                >
+                    <span class="material-symbols-outlined text-[18px] text-emerald-700">install_mobile</span>
+                    <span>{{ isInstalled ? 'Aplikasi Terpasang' : 'Pasang Aplikasi (PWA)' }}</span>
+                </button>
             </div>
         </div>
 
@@ -1155,6 +1171,161 @@ function formatDate(dateStr) {
                 :organization-positions="organizationPositions"
                 @saved="onRolePermissionSaved"
             />
+        </div>
+
+        <!-- Tab Content: Aplikasi (PWA) -->
+        <div v-show="activeTab === 'aplikasi_pwa'" class="space-y-6">
+            <!-- PWA Main Hero Banner & Status -->
+            <div class="bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-950 text-white rounded-3xl p-6 sm:p-8 relative overflow-hidden shadow-lg border border-emerald-700/50">
+                <!-- Background decorative glow -->
+                <div class="absolute -right-12 -top-12 w-64 h-64 rounded-full bg-white/10 blur-3xl pointer-events-none"></div>
+                <div class="absolute -left-12 -bottom-12 w-64 h-64 rounded-full bg-amber-400/10 blur-3xl pointer-events-none"></div>
+
+                <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div class="flex items-start sm:items-center gap-4">
+                        <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white p-1.5 shadow-md flex items-center justify-center shrink-0">
+                            <img
+                                src="/images/icons/icon-192x192.png"
+                                alt="Logo PWA Yayasan Li Ulil Albab"
+                                class="w-full h-full object-contain rounded-xl"
+                            />
+                        </div>
+                        <div>
+                            <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wide uppercase bg-white/15 text-emerald-200 border border-white/20 mb-1.5">
+                                <span class="w-2 h-2 rounded-full" :class="isInstalled ? 'bg-emerald-400' : 'bg-amber-300 animate-pulse'"></span>
+                                <span>{{ isInstalled ? 'Aplikasi Web Aktif' : 'PWA Siap Dipasang' }}</span>
+                            </div>
+                            <h3 class="text-xl sm:text-2xl font-extrabold tracking-tight text-white leading-tight">
+                                Sistem Terpadu Yayasan Li Ulil Albab
+                            </h3>
+                            <p class="text-xs sm:text-sm text-emerald-100/90 mt-1 max-w-xl leading-relaxed">
+                                Nikmati akses sistem layaknya aplikasi native langsung dari layar utama perangkat Anda dengan performa optimal dan tampilan layar penuh.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Action Button -->
+                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
+                        <button
+                            type="button"
+                            @click="installPwa"
+                            class="px-5 py-3 rounded-2xl bg-white text-emerald-950 hover:bg-emerald-50 active:scale-[0.99] font-bold text-sm shadow-md flex items-center justify-center gap-2.5 transition-all cursor-pointer"
+                        >
+                            <span class="material-symbols-outlined text-[20px] text-emerald-700">
+                                {{ isInstalled ? 'check_circle' : 'install_mobile' }}
+                            </span>
+                            <span>{{ isInstalled ? 'Cek Status PWA' : 'Pasang Aplikasi Sekarang' }}</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Grid Keunggulan & Manfaat PWA -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs flex flex-col justify-between">
+                    <div>
+                        <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center mb-3">
+                            <span class="material-symbols-outlined text-[22px]">touch_app</span>
+                        </div>
+                        <h4 class="text-sm font-bold text-slate-900 leading-snug">Akses 1-Ketuk</h4>
+                        <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                            Buka portal langsung dari ikon beranda HP atau desktop Anda tanpa perlu membuka browser dan mengetik alamat URL.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs flex flex-col justify-between">
+                    <div>
+                        <div class="w-10 h-10 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center mb-3">
+                            <span class="material-symbols-outlined text-[22px]">fullscreen</span>
+                        </div>
+                        <h4 class="text-sm font-bold text-slate-900 leading-snug">Layar Penuh Mandiri</h4>
+                        <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                            Bebas dari bilah alamat peramban (standalone mode) untuk ruang kerja yang jauh lebih lega, bersih, dan fokus.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs flex flex-col justify-between">
+                    <div>
+                        <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center mb-3">
+                            <span class="material-symbols-outlined text-[22px]">bolt</span>
+                        </div>
+                        <h4 class="text-sm font-bold text-slate-900 leading-snug">Cepat &amp; Ringan</h4>
+                        <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                            Ukuran sangat kecil tidak membebani memori HP, didukung Service Worker cache untuk pemuatan data yang responsif.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs flex flex-col justify-between">
+                    <div>
+                        <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-700 flex items-center justify-center mb-3">
+                            <span class="material-symbols-outlined text-[22px]">devices</span>
+                        </div>
+                        <h4 class="text-sm font-bold text-slate-900 leading-snug">Multiplatform</h4>
+                        <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                            Dapat dipasang di Android, iPhone/iPad (iOS Safari), laptop/PC Windows, macOS, dan Linux tanpa toko aplikasi.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Petunjuk Langkah Pemasangan per Platform -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+                <div class="px-5 py-4 border-b border-slate-200 flex items-center gap-3">
+                    <span class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-700">
+                        <span class="material-symbols-outlined text-[18px]">help</span>
+                    </span>
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-900">Panduan Pemasangan di Berbagai Perangkat</h3>
+                        <p class="text-xs text-slate-500">Langkah-langkah jika tombol pasang otomatis tidak memicu dialog browser</p>
+                    </div>
+                </div>
+
+                <div class="p-5 grid grid-cols-1 md:grid-cols-3 gap-5">
+                    <!-- Android -->
+                    <div class="p-4 rounded-xl bg-slate-50 border border-slate-200/70 space-y-2">
+                        <div class="flex items-center gap-2 font-bold text-xs text-slate-800">
+                            <span class="material-symbols-outlined text-emerald-700 text-[18px]">phone_android</span>
+                            <span>Android (Chrome / Edge)</span>
+                        </div>
+                        <ol class="text-[11.5px] text-slate-600 space-y-1.5 list-decimal list-inside leading-relaxed">
+                            <li>Buka alamat web di browser Chrome / Edge.</li>
+                            <li>Ketuk tombol titik tiga (<strong>⋮</strong>) di kanan atas browser.</li>
+                            <li>Pilih menu <strong>"Instal aplikasi"</strong> atau <strong>"Tambahkan ke Layar Utama"</strong>.</li>
+                            <li>Konfirmasi dengan mengetuk <strong>"Instal"</strong>.</li>
+                        </ol>
+                    </div>
+
+                    <!-- iOS Safari -->
+                    <div class="p-4 rounded-xl bg-slate-50 border border-slate-200/70 space-y-2">
+                        <div class="flex items-center gap-2 font-bold text-xs text-slate-800">
+                            <span class="material-symbols-outlined text-sky-700 text-[18px]">phone_iphone</span>
+                            <span>iPhone &amp; iPad (Safari)</span>
+                        </div>
+                        <ol class="text-[11.5px] text-slate-600 space-y-1.5 list-decimal list-inside leading-relaxed">
+                            <li>Buka tautan sistem melalui peramban <strong>Safari</strong>.</li>
+                            <li>Ketuk ikon <strong>Bagikan (Share)</strong> <span class="material-symbols-outlined text-[13px] inline align-middle">ios_share</span> di bilah bawah.</li>
+                            <li>Gulir ke bawah dan ketuk <strong>"Tambahkan ke Layar Utama"</strong>.</li>
+                            <li>Ketuk tombol <strong>"Tambah"</strong> di pojok kanan atas.</li>
+                        </ol>
+                    </div>
+
+                    <!-- Desktop PC / Mac -->
+                    <div class="p-4 rounded-xl bg-slate-50 border border-slate-200/70 space-y-2">
+                        <div class="flex items-center gap-2 font-bold text-xs text-slate-800">
+                            <span class="material-symbols-outlined text-indigo-700 text-[18px]">laptop</span>
+                            <span>PC / Laptop (Windows &amp; Mac)</span>
+                        </div>
+                        <ol class="text-[11.5px] text-slate-600 space-y-1.5 list-decimal list-inside leading-relaxed">
+                            <li>Buka tautan web menggunakan Google Chrome atau Microsoft Edge.</li>
+                            <li>Lihat ikon <strong>Instal</strong> (komputer kecil berpanah) di sisi kanan bilah alamat URL.</li>
+                            <li>Atau klik menu titik tiga (⋮) &gt; <strong>Simpan dan bagikan</strong> &gt; <strong>Instal halaman ini sebagai aplikasi</strong>.</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
         </div>
 
     <!-- Form Modal -->
