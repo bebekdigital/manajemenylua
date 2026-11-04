@@ -23,11 +23,91 @@ const detectedGender = computed(() => {
     return 'L';
 });
 
+// Urutan & konfigurasi tema suasana waktu (Pagi, Siang, Sore, Malam)
+const TIME_THEMES = ['pagi', 'siang', 'sore', 'malam'];
+
+const TIME_META = {
+    pagi: {
+        label: 'Pagi',
+        greeting: 'Selamat pagi',
+        sectionBg: 'bg-gradient-to-b from-[#cfe9fc] via-[#eef7ff] to-[#fff4e4] md:border-sky-200/80',
+        scrim: 'from-white/40 via-amber-50/10 to-transparent',
+        headingText: 'text-slate-900',
+        dateText: 'text-slate-800',
+        pillButton: 'bg-white/85 hover:bg-white text-slate-800 border-white shadow-sm focus-visible:ring-slate-800',
+    },
+    siang: {
+        label: 'Siang',
+        greeting: 'Selamat siang',
+        sectionBg: 'bg-gradient-to-b from-[#bae0fd] via-[#ddf1fe] to-[#eef8ff] md:border-sky-200/80',
+        scrim: 'from-white/45 via-sky-50/15 to-transparent',
+        headingText: 'text-slate-900',
+        dateText: 'text-slate-800',
+        pillButton: 'bg-white/85 hover:bg-white text-slate-800 border-white shadow-sm focus-visible:ring-slate-800',
+    },
+    sore: {
+        label: 'Sore',
+        greeting: 'Selamat sore',
+        sectionBg: 'bg-gradient-to-b from-[#fde0b6] via-[#ffedd0] to-[#fff5e4] md:border-amber-200/80',
+        scrim: 'from-amber-50/45 via-orange-50/10 to-transparent',
+        headingText: 'text-slate-900',
+        dateText: 'text-slate-800',
+        pillButton: 'bg-white/85 hover:bg-white text-slate-800 border-white shadow-sm focus-visible:ring-slate-800',
+    },
+    malam: {
+        label: 'Malam',
+        greeting: 'Selamat malam',
+        sectionBg: 'bg-gradient-to-b from-[#0b1633] via-[#13254c] to-[#1d3464] md:border-indigo-900/60',
+        scrim: 'from-slate-950/45 via-slate-950/15 to-transparent',
+        headingText: 'text-white drop-shadow-[0_1px_6px_rgba(8,15,35,0.45)]',
+        dateText: 'text-slate-200',
+        pillButton: 'bg-slate-900/65 hover:bg-slate-900/85 text-white border-white/25 backdrop-blur-sm shadow-sm focus-visible:ring-white',
+    },
+};
+
+const HERO_BACKGROUNDS = {
+    sdit: {
+        pagi: '/images/hero/bg-sdit-pagi.jpg',
+        siang: '/images/hero/bg-sdit-2d.jpg',
+        sore: '/images/hero/bg-sdit-sore.jpg',
+        malam: '/images/hero/bg-sdit-malam.jpg',
+    },
+    smpit: {
+        pagi: '/images/hero/bg-smpit-pagi.jpg',
+        siang: '/images/hero/bg-smpit-2d.jpg',
+        sore: '/images/hero/bg-smpit-sore.jpg',
+        malam: '/images/hero/bg-smpit-malam.jpg',
+    },
+};
+
+// Sapaan waktu & tanggal realtime Bahasa Indonesia
+const now = ref(new Date());
+let clockInterval = null;
+
+const detectedTimeTheme = computed(() => {
+    const hour = now.value.getHours();
+    if (hour >= 4 && hour < 11) {
+        return 'pagi';
+    }
+    if (hour >= 11 && hour < 15) {
+        return 'siang';
+    }
+    if (hour >= 15 && hour < 18) {
+        return 'sore';
+    }
+    return 'malam';
+});
+
 const previewUnitOverride = ref(null);
+const previewTimeOverride = ref(null);
 const previewGenderOverride = ref(null);
 
 const activeUnitTheme = computed(() => previewUnitOverride.value || detectedUnitTheme.value);
+const activeTimeTheme = computed(() => previewTimeOverride.value || detectedTimeTheme.value);
 const activeGender = computed(() => previewGenderOverride.value || detectedGender.value);
+
+const currentTimeMeta = computed(() => TIME_META[activeTimeTheme.value] || TIME_META.siang);
+const greetingText = computed(() => currentTimeMeta.value.greeting);
 
 const isSuperAdmin = computed(() => {
     const role = String(user.value?.role || '').toLowerCase();
@@ -38,38 +118,26 @@ function cycleUnitTheme() {
     previewUnitOverride.value = activeUnitTheme.value === 'sdit' ? 'smpit' : 'sdit';
 }
 
+function cycleTimeTheme() {
+    const currentIndex = TIME_THEMES.indexOf(activeTimeTheme.value);
+    const nextIndex = (currentIndex + 1) % TIME_THEMES.length;
+    previewTimeOverride.value = TIME_THEMES[nextIndex];
+}
+
 function cycleGender() {
     previewGenderOverride.value = activeGender.value === 'L' ? 'P' : 'L';
 }
 
 const backgroundUrl = computed(() => {
-    return activeUnitTheme.value === 'smpit'
-        ? '/images/hero/bg-smpit-2d.jpg'
-        : '/images/hero/bg-sdit-2d.jpg';
+    const unitMap = HERO_BACKGROUNDS[activeUnitTheme.value] || HERO_BACKGROUNDS.sdit;
+    return unitMap[activeTimeTheme.value] || unitMap.siang;
 });
 
 const unitAltText = computed(() => {
-    return activeUnitTheme.value === 'smpit'
-        ? 'Ilustrasi 2D Gedung SMPIT dan PPTQ Ulil Albab'
-        : 'Ilustrasi 2D Gedung SDIT Ulil Albab';
-});
-
-// Sapaan waktu & tanggal realtime Bahasa Indonesia
-const now = ref(new Date());
-let clockInterval = null;
-
-const greetingText = computed(() => {
-    const hour = now.value.getHours();
-    if (hour >= 4 && hour < 11) {
-        return 'Selamat pagi';
-    }
-    if (hour >= 11 && hour < 15) {
-        return 'Selamat siang';
-    }
-    if (hour >= 15 && hour < 18) {
-        return 'Selamat sore';
-    }
-    return 'Selamat malam';
+    const unitLabel = activeUnitTheme.value === 'smpit'
+        ? 'SMPIT dan PPTQ Ulil Albab'
+        : 'SDIT Ulil Albab';
+    return `Ilustrasi 2D Gedung ${unitLabel} suasana ${currentTimeMeta.value.label.toLowerCase()}`;
 });
 
 const shortDisplayName = computed(() => {
@@ -109,11 +177,21 @@ const upcomingAgendas = [
 const activeAgendaIndex = ref(0);
 const isSliderPaused = ref(false);
 let agendaSlideInterval = null;
+let preloadTimer = null;
 
 const currentAgenda = computed(() => upcomingAgendas[activeAgendaIndex.value]);
 
 function nextAgenda() {
     activeAgendaIndex.value = (activeAgendaIndex.value + 1) % upcomingAgendas.length;
+}
+
+function preloadPreviewBackgrounds() {
+    Object.values(HERO_BACKGROUNDS).forEach((unitImages) => {
+        Object.values(unitImages).forEach((src) => {
+            const img = new Image();
+            img.src = src;
+        });
+    });
 }
 
 onMounted(() => {
@@ -126,6 +204,14 @@ onMounted(() => {
             nextAgenda();
         }
     }, 4200);
+
+    if (isSuperAdmin.value && typeof window !== 'undefined') {
+        if ('requestIdleCallback' in window) {
+            window.requestIdleCallback(() => preloadPreviewBackgrounds());
+        } else {
+            preloadTimer = setTimeout(preloadPreviewBackgrounds, 1200);
+        }
+    }
 });
 
 onUnmounted(() => {
@@ -135,23 +221,35 @@ onUnmounted(() => {
     if (agendaSlideInterval) {
         clearInterval(agendaSlideInterval);
     }
+    if (preloadTimer) {
+        clearTimeout(preloadTimer);
+    }
 });
 </script>
 
 <template>
     <section
-        class="relative w-full overflow-hidden bg-gradient-to-b from-[#bae0fd] via-[#ddf1fe] to-[#eef8ff] min-h-[55dvh] sm:min-h-[55dvh] md:min-h-0 md:rounded-[28px] md:border md:border-sky-200/80 md:shadow-sm"
+        :class="[
+            'relative w-full overflow-hidden min-h-[55dvh] sm:min-h-[55dvh] md:min-h-0 md:rounded-[28px] md:border md:shadow-sm transition-colors duration-500',
+            currentTimeMeta.sectionBg,
+        ]"
     >
-        <!-- Latar Ilustrasi 2D Cerah & Bahagia (SDIT / SMPIT & PPTQ) -->
+        <!-- Latar Ilustrasi 2D Lingkungan Sekolah Sesuai Waktu (Pagi, Siang, Sore, Malam) -->
         <div class="absolute inset-0 z-0">
-            <img
-                :src="backgroundUrl"
-                :alt="unitAltText"
-                class="w-full h-full object-cover object-[58%_85%] md:object-[center_78%] transition-opacity duration-500"
-            />
-            <!-- Kabut Cahaya Lembut di Kiri Atas agar Teks Sapaan Gelap Kontras Tinggi -->
+            <Transition name="hero-bg-fade">
+                <img
+                    :key="backgroundUrl"
+                    :src="backgroundUrl"
+                    :alt="unitAltText"
+                    class="absolute inset-0 w-full h-full object-cover object-[58%_85%] md:object-[center_78%]"
+                />
+            </Transition>
+            <!-- Kabut Kontras Halus di Kiri Atas Sesuai Suasana Waktu -->
             <div
-                class="absolute inset-0 bg-gradient-to-br from-white/45 via-sky-50/15 to-transparent pointer-events-none"
+                :class="[
+                    'absolute inset-0 bg-gradient-to-br pointer-events-none transition-colors duration-500',
+                    currentTimeMeta.scrim,
+                ]"
             ></div>
         </div>
 
@@ -159,134 +257,171 @@ onUnmounted(() => {
         <div
             class="relative z-10 px-4 pt-16 pb-12 sm:px-6 md:px-8 md:pt-7 md:pb-7 flex flex-col justify-between min-h-[55dvh] sm:min-h-[55dvh] md:min-h-[300px]"
         >
-            <!-- Bagian Atas: Sapaan, Tanggal, dan Kontrol Pratinjau Ringkas -->
+            <!-- Bagian Atas: Sapaan Sesuai Jam, Tanggal, dan Handle Pratinjau Superadmin -->
             <div class="flex flex-col md:flex-row md:items-start justify-between gap-3">
                 <div class="max-w-xl">
                     <h1
-                        class="font-headline-lg text-[26px] sm:text-3xl md:text-[33px] font-extrabold text-slate-900 tracking-tight leading-tight"
+                        :class="[
+                            'font-headline-lg text-[26px] sm:text-3xl md:text-[33px] font-extrabold tracking-tight leading-tight transition-colors duration-300',
+                            currentTimeMeta.headingText,
+                        ]"
                     >
                         {{ greetingText }}, {{ shortDisplayName }}.
                     </h1>
 
-                    <p class="mt-1 text-[13px] sm:text-sm font-medium text-slate-700">
+                    <p
+                        :class="[
+                            'mt-1 text-[13px] sm:text-sm font-medium transition-colors duration-300',
+                            currentTimeMeta.dateText,
+                        ]"
+                    >
                         {{ formattedToday }}
                     </p>
                 </div>
 
-                <!-- Tombol Pratinjau Sederhana (Khusus Superadmin untuk Cek Latar & Karakter) -->
+                <!-- Handle Pratinjau Superadmin: Latar, Suasana Waktu (Pagi/Siang/Sore/Malam), & Karakter -->
                 <div
                     v-if="isSuperAdmin"
-                    class="inline-flex items-center gap-2 self-start"
+                    class="flex flex-wrap items-center gap-1.5 sm:gap-2 self-start md:justify-end"
                 >
                     <button
                         type="button"
                         @click="cycleUnitTheme"
-                        class="min-h-[36px] px-3.5 py-1.5 rounded-[9999px] text-xs font-semibold bg-white/80 hover:bg-white text-slate-700 border border-white shadow-sm transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-800"
-                        title="Ganti pratinjau latar gedung"
+                        :class="[
+                            'min-h-[38px] sm:min-h-[36px] px-3 sm:px-3.5 py-1.5 rounded-[9999px] text-xs font-semibold border transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2',
+                            currentTimeMeta.pillButton,
+                        ]"
+                        title="Ganti pratinjau latar gedung (SDIT / SMPIT)"
                     >
                         {{ activeUnitTheme === 'sdit' ? 'Latar: SDIT' : 'Latar: SMPIT' }}
                     </button>
                     <button
                         type="button"
+                        @click="cycleTimeTheme"
+                        :class="[
+                            'min-h-[38px] sm:min-h-[36px] px-3 sm:px-3.5 py-1.5 rounded-[9999px] text-xs font-semibold border transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2',
+                            currentTimeMeta.pillButton,
+                        ]"
+                        title="Ganti pratinjau suasana waktu (Pagi / Siang / Sore / Malam)"
+                    >
+                        Waktu: {{ currentTimeMeta.label }}
+                    </button>
+                    <button
+                        type="button"
                         @click="cycleGender"
-                        class="min-h-[36px] px-3.5 py-1.5 rounded-[9999px] text-xs font-semibold bg-white/80 hover:bg-white text-slate-700 border border-white shadow-sm transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-800"
-                        title="Ganti pratinjau karakter"
+                        :class="[
+                            'min-h-[38px] sm:min-h-[36px] px-3 sm:px-3.5 py-1.5 rounded-[9999px] text-xs font-semibold border transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2',
+                            currentTimeMeta.pillButton,
+                        ]"
+                        title="Ganti pratinjau karakter (Putra / Putri)"
                     >
                         {{ activeGender === 'L' ? 'Karakter: Putra' : 'Karakter: Putri' }}
                     </button>
                 </div>
             </div>
 
-            <!-- Bagian Bawah: Banner Agenda Auto-Slide + Wajah Karakter 2D Mengintip -->
-            <div
-                class="relative mt-auto pt-8 sm:pt-10 md:mt-16 md:pt-0 w-full md:max-w-xl"
-                @mouseenter="isSliderPaused = true"
-                @mouseleave="isSliderPaused = false"
-                @focusin="isSliderPaused = true"
-                @focusout="isSliderPaused = false"
-            >
-                <!-- Wajah Karakter 2D Menggemaskan Mengintip di Tepi Atas Banner Agenda -->
+            <!-- Bagian Bawah: Spacer Luar Terpisah agar Padding Tidak Menggeser Posisi Mengintip Maskot -->
+            <div class="mt-auto pt-14 sm:pt-16 md:mt-16 md:pt-2 w-full md:max-w-xl">
                 <div
-                    class="absolute right-12 sm:right-14 bottom-full translate-y-[10.23%] z-30"
+                    class="relative w-full"
+                    @mouseenter="isSliderPaused = true"
+                    @mouseleave="isSliderPaused = false"
+                    @focusin="isSliderPaused = true"
+                    @focusout="isSliderPaused = false"
                 >
-                    <Transition
-                        mode="out-in"
-                        enter-active-class="transition duration-200 ease-out"
-                        enter-from-class="opacity-0 translate-y-3"
-                        enter-to-class="opacity-100 translate-y-0"
-                        leave-active-class="transition duration-150 ease-in"
-                        leave-from-class="opacity-100 translate-y-0"
-                        leave-to-class="opacity-0 translate-y-2"
+                    <!-- Wajah Karakter 2D Mengintip Tepat Menempel di Garis Atas Banner Agenda -->
+                    <div
+                        class="absolute right-12 sm:right-14 bottom-full translate-y-[10.8%] z-30"
                     >
-                        <PeekingMascot2D
-                            :key="activeGender"
-                            :gender="activeGender"
-                        />
-                    </Transition>
-                </div>
-
-                <!-- Banner Agenda Putih Minimalis seperti Referensi (Auto-Slide Agenda 1 & 2) -->
-                <Link
-                    href="/agenda"
-                    class="group relative z-20 flex items-center justify-between gap-3 rounded-[30px] bg-white/95 backdrop-blur-sm pl-5 pr-2 py-2 shadow-[0_8px_28px_rgba(15,23,42,0.09)] border border-white transition-shadow hover:shadow-[0_10px_32px_rgba(15,23,42,0.13)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
-                >
-                    <!-- Konten Teks Agenda yang Bergeser Otomatis -->
-                    <div class="min-w-0 flex-1 overflow-hidden py-0.5">
-                        <Transition name="agenda-slide" mode="out-in">
-                            <div :key="currentAgenda.id" class="min-w-0">
-                                <div class="flex items-center gap-2">
-                                    <!-- Indikator 2 Slide Minimalis tanpa Warna Tambahan -->
-                                    <span class="inline-flex items-center gap-1 shrink-0" aria-hidden="true">
-                                        <span
-                                            v-for="(item, idx) in upcomingAgendas"
-                                            :key="item.id"
-                                            :class="[
-                                                'block h-1 rounded-[9999px] transition-all duration-300',
-                                                activeAgendaIndex === idx
-                                                    ? 'w-3.5 bg-slate-800'
-                                                    : 'w-1 bg-slate-300'
-                                            ]"
-                                        ></span>
-                                    </span>
-                                    <p class="text-[11px] sm:text-xs font-medium text-slate-600 truncate">
-                                        {{ currentAgenda.meta }}
-                                    </p>
-                                </div>
-                                <p
-                                    class="text-[13.5px] sm:text-[15px] font-semibold text-slate-900 truncate mt-0.5 group-hover:text-slate-700 transition-colors"
-                                >
-                                    {{ currentAgenda.title }}
-                                </p>
-                            </div>
+                        <Transition
+                            mode="out-in"
+                            enter-active-class="transition duration-200 ease-out"
+                            enter-from-class="opacity-0 translate-y-3"
+                            enter-to-class="opacity-100 translate-y-0"
+                            leave-active-class="transition duration-150 ease-in"
+                            leave-from-class="opacity-100 translate-y-0"
+                            leave-to-class="opacity-0 translate-y-2"
+                        >
+                            <PeekingMascot2D
+                                :key="activeGender"
+                                :gender="activeGender"
+                            />
                         </Transition>
                     </div>
 
-                    <!-- Tombol Lingkaran Hitam Konsentris seperti Referensi -->
-                    <span
-                        class="w-11 h-11 rounded-[9999px] bg-slate-900 group-hover:bg-slate-800 text-white flex items-center justify-center shrink-0 transition-transform group-active:scale-95"
-                        aria-hidden="true"
+                    <!-- Banner Agenda Putih Minimalis (Auto-Slide Agenda 1 & 2) -->
+                    <Link
+                        href="/agenda"
+                        class="group relative z-20 flex items-center justify-between gap-3 rounded-[30px] bg-white/95 backdrop-blur-sm pl-5 pr-2 py-2 shadow-[0_8px_28px_rgba(15,23,42,0.12)] border border-white transition-shadow hover:shadow-[0_10px_32px_rgba(15,23,42,0.16)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
                     >
-                        <svg
-                            viewBox="0 0 20 20"
-                            fill="none"
-                            class="w-4 h-4"
+                        <!-- Konten Teks Agenda yang Bergeser Otomatis -->
+                        <div class="min-w-0 flex-1 overflow-hidden py-0.5">
+                            <Transition name="agenda-slide" mode="out-in">
+                                <div :key="currentAgenda.id" class="min-w-0">
+                                    <div class="flex items-center gap-2">
+                                        <!-- Indikator 2 Slide Minimalis -->
+                                        <span class="inline-flex items-center gap-1 shrink-0" aria-hidden="true">
+                                            <span
+                                                v-for="(item, idx) in upcomingAgendas"
+                                                :key="item.id"
+                                                :class="[
+                                                    'block h-1 rounded-[9999px] transition-all duration-300',
+                                                    activeAgendaIndex === idx
+                                                        ? 'w-3.5 bg-slate-800'
+                                                        : 'w-1 bg-slate-300'
+                                                ]"
+                                            ></span>
+                                        </span>
+                                        <p class="text-[11px] sm:text-xs font-medium text-slate-600 truncate">
+                                            {{ currentAgenda.meta }}
+                                        </p>
+                                    </div>
+                                    <p
+                                        class="text-[13.5px] sm:text-[15px] font-semibold text-slate-900 truncate mt-0.5 group-hover:text-slate-700 transition-colors"
+                                    >
+                                        {{ currentAgenda.title }}
+                                    </p>
+                                </div>
+                            </Transition>
+                        </div>
+
+                        <!-- Tombol Lingkaran Hitam Konsentris -->
+                        <span
+                            class="w-11 h-11 rounded-[9999px] bg-slate-900 group-hover:bg-slate-800 text-white flex items-center justify-center shrink-0 transition-transform group-active:scale-95"
+                            aria-hidden="true"
                         >
-                            <path
-                                d="M5 10H15M15 10L10.5 5.5M15 10L10.5 14.5"
-                                stroke="currentColor"
-                                stroke-width="1.9"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                            />
-                        </svg>
-                    </span>
-                </Link>
+                            <svg
+                                viewBox="0 0 20 20"
+                                fill="none"
+                                class="w-4 h-4"
+                            >
+                                <path
+                                    d="M5 10H15M15 10L10.5 5.5M15 10L10.5 14.5"
+                                    stroke="currentColor"
+                                    stroke-width="1.9"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                />
+                            </svg>
+                        </span>
+                    </Link>
+                </div>
             </div>
         </div>
     </section>
 </template>
 
 <style scoped>
+.hero-bg-fade-enter-active,
+.hero-bg-fade-leave-active {
+    transition: opacity 0.45s ease;
+}
+
+.hero-bg-fade-enter-from,
+.hero-bg-fade-leave-to {
+    opacity: 0;
+}
+
 .agenda-slide-enter-active,
 .agenda-slide-leave-active {
     transition: opacity 0.28s ease, transform 0.28s ease;
@@ -303,6 +438,8 @@ onUnmounted(() => {
 }
 
 @media (prefers-reduced-motion: reduce) {
+    .hero-bg-fade-enter-active,
+    .hero-bg-fade-leave-active,
     .agenda-slide-enter-active,
     .agenda-slide-leave-active {
         transition: opacity 0.15s ease;

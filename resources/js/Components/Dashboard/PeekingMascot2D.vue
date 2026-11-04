@@ -31,7 +31,7 @@ function triggerHappySquint() {
     >
         <svg
             viewBox="0 0 120 88"
-            class="w-[82px] h-[60px] sm:w-[92px] sm:h-[67.5px] overflow-visible block"
+            class="w-[82px] sm:w-[92px] aspect-[120/88] h-auto overflow-visible block"
             aria-hidden="true"
         >
             <defs>
@@ -116,9 +116,9 @@ function triggerHappySquint() {
                         <ellipse cx="97.5" cy="63" rx="6" ry="7" fill="#FFC9A3" />
                         <ellipse cx="96.5" cy="63" rx="3" ry="3.8" fill="#F3A680" />
 
-                        <!-- Wajah Mochi Bulat -->
+                        <!-- Wajah Mochi Bulat (Bagian bawah diperpanjang melewati garis potong y=79 agar tidak bercelah saat memantul) -->
                         <path
-                            d="M 60 27 C 81 27, 95 41, 95 62 C 95 75, 84 85, 60 85 C 36 85, 25 75, 25 62 C 25 41, 39 27, 60 27 Z"
+                            d="M 60 27 C 81 27, 95 41, 95 62 C 95 73, 92 80, 90 85 L 30 85 C 28 80, 25 73, 25 62 C 25 41, 39 27, 60 27 Z"
                             :fill="`url(#${uid}-skin)`"
                         />
 
