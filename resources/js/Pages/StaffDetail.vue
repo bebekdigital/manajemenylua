@@ -125,6 +125,7 @@ const isEmployeeDropdownOpen = ref(false);
 const employeeSearchQuery = ref('');
 const employeeDropdownRef = ref(null);
 const employeeSearchInputRef = ref(null);
+const mobileEmployeeSearchInputRef = ref(null);
 
 const filteredEmployees = computed(() => {
     const list = props.allEmployees || [];
@@ -145,7 +146,11 @@ function toggleEmployeeDropdown(e) {
     if (isEmployeeDropdownOpen.value) {
         employeeSearchQuery.value = '';
         setTimeout(() => {
-            employeeSearchInputRef.value?.focus();
+            if (window.innerWidth < 640) {
+                mobileEmployeeSearchInputRef.value?.focus();
+            } else {
+                employeeSearchInputRef.value?.focus();
+            }
         }, 60);
     }
 }
@@ -156,6 +161,7 @@ function closeEmployeeDropdown() {
 }
 
 function handleOutsideClick(e) {
+    if (e.target?.closest?.('.mobile-employee-sheet')) return;
     if (employeeDropdownRef.value && !employeeDropdownRef.value.contains(e.target)) {
         closeEmployeeDropdown();
     }
@@ -1755,11 +1761,13 @@ function selectTab(id) {
             </div>
 
             <!-- Header Card Identitas Profil Pegawai -->
-            <div class="relative overflow-hidden bg-gradient-to-br from-white via-emerald-50/25 to-slate-50/70 rounded-3xl border border-slate-200/90 p-5 sm:p-6 shadow-xs mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <!-- Efek Cahaya Lembut Statis di Latar Belakang -->
-                <div class="absolute -top-20 -right-20 w-72 h-72 rounded-full bg-gradient-to-br from-emerald-200/40 via-teal-100/25 to-transparent blur-3xl pointer-events-none"></div>
-                <div class="absolute -bottom-20 -left-16 w-64 h-64 rounded-full bg-gradient-to-tr from-sky-200/35 via-emerald-100/20 to-transparent blur-3xl pointer-events-none"></div>
-                <div class="absolute top-1/2 left-1/3 -translate-y-1/2 w-48 h-48 rounded-full bg-amber-100/30 blur-2xl pointer-events-none"></div>
+            <div class="relative bg-gradient-to-br from-white via-emerald-50/25 to-slate-50/70 rounded-3xl border border-slate-200/90 p-5 sm:p-6 shadow-xs mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <!-- Efek Cahaya Lembut Statis di Latar Belakang (Container rounded terpisah dengan overflow-hidden agar dropdown tidak terpotong) -->
+                <div class="absolute inset-0 rounded-3xl overflow-hidden pointer-events-none">
+                    <div class="absolute -top-20 -right-20 w-72 h-72 rounded-full bg-gradient-to-br from-emerald-200/40 via-teal-100/25 to-transparent blur-3xl"></div>
+                    <div class="absolute -bottom-20 -left-16 w-64 h-64 rounded-full bg-gradient-to-tr from-sky-200/35 via-emerald-100/20 to-transparent blur-3xl"></div>
+                    <div class="absolute top-1/2 left-1/3 -translate-y-1/2 w-48 h-48 rounded-full bg-amber-100/30 blur-2xl"></div>
+                </div>
 
                 <div class="relative z-10 flex items-center gap-4 sm:gap-5 min-w-0 flex-1">
                     <img
@@ -1800,10 +1808,10 @@ function selectTab(id) {
                                 {{ employee.nama }}
                             </h1>
 
-                            <!-- Floating Searchable Dropdown Menu -->
+                            <!-- Floating Searchable Dropdown Menu (Desktop Tampilan Layar Lebar) -->
                             <div
                                 v-if="isEmployeeDropdownOpen"
-                                class="absolute left-0 top-full mt-2 w-80 sm:w-96 max-w-[92vw] bg-white rounded-2xl shadow-xl border border-slate-200 z-50 p-2 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150"
+                                class="hidden sm:block absolute left-0 top-full mt-2 w-80 sm:w-96 max-w-[92vw] bg-white rounded-2xl shadow-xl border border-slate-200 z-50 p-2 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150"
                             >
                                 <div class="px-2 pt-1 pb-2 border-b border-slate-100 flex items-center justify-between text-xs text-slate-500">
                                     <span class="font-bold text-slate-800 text-[11px] uppercase tracking-wider">Pilih Pegawai Lain</span>
@@ -1859,6 +1867,101 @@ function selectTab(id) {
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Mobile Bottom Sheet Pemilih Pegawai -->
+                        <Teleport to="body">
+                            <div
+                                v-if="isEmployeeDropdownOpen"
+                                class="mobile-employee-sheet fixed inset-0 z-[100] sm:hidden flex items-end justify-center bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200"
+                                @click.self="closeEmployeeDropdown"
+                            >
+                                <div class="w-full bg-white rounded-t-3xl max-h-[85vh] flex flex-col shadow-2xl border-t border-slate-200 animate-in slide-in-from-bottom duration-200 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+                                    <!-- Top Drag Indicator Bar -->
+                                    <div class="w-12 h-1.5 bg-slate-200 rounded-full mx-auto my-3 shrink-0"></div>
+
+                                    <!-- Bottom Sheet Header -->
+                                    <div class="px-5 pb-3 border-b border-slate-100 flex items-center justify-between shrink-0">
+                                        <div>
+                                            <h3 class="text-base font-extrabold text-slate-900">Pilih Pegawai Lain</h3>
+                                            <p class="text-xs text-slate-400 mt-0.5">{{ filteredEmployees.length }} dari {{ allEmployees.length }} pegawai</p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            @click="closeEmployeeDropdown"
+                                            class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:text-slate-800 flex items-center justify-center cursor-pointer transition-colors"
+                                        >
+                                            <span class="material-symbols-outlined text-[20px]">close</span>
+                                        </button>
+                                    </div>
+
+                                    <!-- Search Input -->
+                                    <div class="p-4 border-b border-slate-100 shrink-0">
+                                        <div class="relative">
+                                            <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-[18px] text-slate-400">search</span>
+                                            <input
+                                                ref="mobileEmployeeSearchInputRef"
+                                                v-model="employeeSearchQuery"
+                                                type="text"
+                                                placeholder="Cari nama atau NIPY pegawai..."
+                                                class="w-full pl-10 pr-9 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 transition-colors"
+                                            />
+                                            <button
+                                                v-if="employeeSearchQuery"
+                                                type="button"
+                                                @click="employeeSearchQuery = ''"
+                                                class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                                            >
+                                                <span class="material-symbols-outlined text-[16px]">close</span>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Scrollable List Pegawai -->
+                                    <div class="flex-1 overflow-y-auto p-3 space-y-1 divide-y divide-slate-50">
+                                        <div
+                                            v-for="emp in filteredEmployees"
+                                            :key="emp.id"
+                                            @click="selectEmployee(emp.id)"
+                                            class="p-3 rounded-2xl transition-all cursor-pointer flex items-center justify-between gap-3 active:scale-[0.99]"
+                                            :class="String(emp.id) === String(employee.id) ? 'bg-emerald-50 text-emerald-950 font-bold border border-emerald-200/60' : 'hover:bg-slate-50 text-slate-800'"
+                                        >
+                                            <div class="flex items-center gap-3 min-w-0 flex-1">
+                                                <img
+                                                    v-if="emp.foto"
+                                                    :src="emp.foto"
+                                                    :alt="emp.nama"
+                                                    class="w-10 h-10 rounded-xl object-cover border border-slate-200 shrink-0"
+                                                />
+                                                <div
+                                                    v-else
+                                                    class="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 border"
+                                                    :class="String(emp.id) === String(employee.id) ? 'bg-emerald-100 text-emerald-900 border-emerald-300' : 'bg-slate-100 text-slate-700 border-slate-200'"
+                                                >
+                                                    {{ getInitials(emp.nama) }}
+                                                </div>
+                                                <div class="min-w-0 flex-1">
+                                                    <p class="text-sm font-bold truncate" :class="{ 'text-emerald-950': String(emp.id) === String(employee.id) }">
+                                                        {{ emp.nama }}
+                                                    </p>
+                                                    <div class="flex items-center gap-1.5 text-xs text-slate-500 truncate mt-0.5">
+                                                        <span v-if="emp.nipy && canViewKepegawaian" class="font-mono">NIPY: {{ emp.nipy }}</span>
+                                                        <span v-if="emp.nipy && canViewKepegawaian && (emp.jabatan || emp.unit_kerja)">·</span>
+                                                        <span v-if="emp.jabatan || emp.unit_kerja" class="truncate">{{ emp.jabatan || emp.unit_kerja }}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <span v-if="String(emp.id) === String(employee.id)" class="material-symbols-outlined text-emerald-700 text-[22px] shrink-0">
+                                                check_circle
+                                            </span>
+                                        </div>
+
+                                        <div v-if="filteredEmployees.length === 0" class="py-12 text-center text-sm text-slate-400 italic">
+                                            Pegawai tidak ditemukan.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </Teleport>
 
                         <!-- Info Jabatan & Unit Kerja (Tanpa NIPY) -->
                         <div v-if="employee.jabatan || employee.unit_kerja" class="flex items-center gap-1.5 text-xs sm:text-sm text-slate-500 font-medium flex-wrap">
