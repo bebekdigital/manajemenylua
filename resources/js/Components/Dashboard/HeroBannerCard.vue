@@ -174,15 +174,27 @@ const upcomingAgendas = [
     },
 ];
 
-// Pilihan Mood Karakter (Senang, Semangat, Sedih, Capek)
+// Mood karakter, diganti bergiliran lewat satu tombol
 const MOOD_OPTIONS = [
-    { id: 'senang', label: 'Senang', emoji: '😊', description: 'Mood ceria & bahagia' },
-    { id: 'semangat', label: 'Semangat', emoji: '🔥', description: 'Mood penuh energi & antusias' },
-    { id: 'sedih', label: 'Sedih', emoji: '🥺', description: 'Mood sendu & butuh semangat' },
-    { id: 'capek', label: 'Capek', emoji: '😮‍💨', description: 'Mood lelah & butuh istirahat' },
+    { id: 'senang', label: 'Senang' },
+    { id: 'semangat', label: 'Semangat' },
+    { id: 'sedih', label: 'Sedih' },
+    { id: 'capek', label: 'Capek' },
 ];
 
 const currentMood = ref('senang');
+
+const currentMoodIndex = computed(() => MOOD_OPTIONS.findIndex((m) => m.id === currentMood.value));
+const currentMoodLabel = computed(() => MOOD_OPTIONS[currentMoodIndex.value]?.label || 'Senang');
+
+const moodButtonTone = computed(() => (activeTimeTheme.value === 'malam'
+    ? 'bg-violet-400/15 border-violet-300/50 text-violet-50 hover:bg-violet-400/25 focus-visible:ring-violet-200'
+    : 'bg-violet-500/10 border-violet-500/40 text-violet-950 hover:bg-violet-500/20 focus-visible:ring-violet-700'));
+
+function cycleMood() {
+    const nextIndex = (currentMoodIndex.value + 1) % MOOD_OPTIONS.length;
+    setMood(MOOD_OPTIONS[nextIndex].id);
+}
 
 function setMood(moodId) {
     currentMood.value = moodId;
@@ -439,29 +451,43 @@ onUnmounted(() => {
                         </span>
                     </Link>
 
-                    <!-- Pilihan Mood di Bawah Banner Agenda di Ilustrasi -->
-                    <div class="mt-2.5 flex items-center justify-between sm:justify-start gap-1 relative z-20">
-                        <div class="inline-flex items-center gap-1 p-1 rounded-full bg-white/90 backdrop-blur-md border border-white/80 shadow-[0_4px_16px_rgba(15,23,42,0.08)] max-w-full overflow-x-auto no-scrollbar">
-                            <span class="pl-2.5 pr-1 text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider hidden xs:inline shrink-0">
-                                Mood:
+                    <!-- Tombol Mood Tunggal (klik untuk ganti bergiliran) -->
+                    <div class="mt-2.5 relative z-20">
+                        <button
+                            type="button"
+                            @click="cycleMood"
+                            :class="[
+                                'relative overflow-hidden inline-flex items-center gap-2 min-h-[40px] pl-3.5 pr-3 py-1.5 rounded-[9999px] border backdrop-blur-md text-xs font-semibold transition-colors cursor-pointer active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2',
+                                moodButtonTone,
+                            ]"
+                            :aria-label="`Mood karakter: ${currentMoodLabel}. Klik untuk mengganti.`"
+                        >
+                            <!-- Motif tipis: titik dan kilau kecil -->
+                            <svg class="absolute inset-0 w-full h-full pointer-events-none opacity-40" aria-hidden="true">
+                                <defs>
+                                    <pattern id="mood-btn-motif" width="14" height="14" patternUnits="userSpaceOnUse">
+                                        <circle cx="2" cy="2" r="0.7" fill="currentColor" />
+                                        <path d="M 9 6 L 9.5 7.5 L 11 8 L 9.5 8.5 L 9 10 L 8.5 8.5 L 7 8 L 8.5 7.5 Z" fill="currentColor" />
+                                    </pattern>
+                                </defs>
+                                <rect width="100%" height="100%" fill="url(#mood-btn-motif)" />
+                            </svg>
+
+                            <span class="relative text-[10px] uppercase tracking-wider opacity-75">Mood</span>
+                            <Transition name="mood-label" mode="out-in">
+                                <span :key="currentMood" class="relative font-bold text-[13px]">{{ currentMoodLabel }}</span>
+                            </Transition>
+                            <span class="relative inline-flex items-center gap-[3px] ml-0.5" aria-hidden="true">
+                                <span
+                                    v-for="(m, idx) in MOOD_OPTIONS"
+                                    :key="m.id"
+                                    :class="[
+                                        'block h-1 rounded-[9999px] bg-current transition-all duration-300',
+                                        currentMoodIndex === idx ? 'w-3 opacity-90' : 'w-1 opacity-35',
+                                    ]"
+                                ></span>
                             </span>
-                            <button
-                                v-for="m in MOOD_OPTIONS"
-                                :key="m.id"
-                                type="button"
-                                @click="setMood(m.id)"
-                                :class="[
-                                    'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold transition-all duration-200 cursor-pointer active:scale-95 shrink-0',
-                                    currentMood === m.id
-                                        ? 'bg-emerald-900 text-yellow-200 shadow-2xs font-bold scale-[1.02]'
-                                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
-                                ]"
-                                :title="m.description"
-                            >
-                                <span class="text-sm leading-none">{{ m.emoji }}</span>
-                                <span class="text-[11px] sm:text-xs">{{ m.label }}</span>
-                            </button>
-                        </div>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -493,6 +519,21 @@ onUnmounted(() => {
 .agenda-slide-leave-to {
     opacity: 0;
     transform: translateY(-8px);
+}
+
+.mood-label-enter-active,
+.mood-label-leave-active {
+    transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.mood-label-enter-from {
+    opacity: 0;
+    transform: translateY(5px);
+}
+
+.mood-label-leave-to {
+    opacity: 0;
+    transform: translateY(-5px);
 }
 
 @media (prefers-reduced-motion: reduce) {

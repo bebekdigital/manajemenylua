@@ -8,7 +8,7 @@ const props = defineProps({
     },
     mood: {
         type: String,
-        default: 'senang', // 'senang', 'semangat', 'sedih', 'capek'
+        default: 'senang', // 'senang' | 'semangat' | 'sedih' | 'capek'
     },
 });
 
@@ -30,7 +30,7 @@ function triggerHappySquint() {
 <template>
     <div
         class="mascot-2d-root select-none cursor-pointer"
-        :title="`${gender === 'P' ? 'Karakter Putri' : 'Karakter Putra'} (${mood})`"
+        :title="gender === 'P' ? 'Karakter Putri' : 'Karakter Putra'"
         @click.stop.prevent="triggerHappySquint"
     >
         <svg
@@ -65,13 +65,7 @@ function triggerHappySquint() {
 
             <!-- LAYER KEPALA MENGINTIP (Terpotong rapi tepat di tepi atas banner y = 79) -->
             <g :clip-path="`url(#${uid}-edge-clip)`">
-                <g
-                    :class="[
-                        'mascot-head-peek',
-                        `mascot-mood-${mood}`,
-                        { 'mascot-head-bounce': isWinking }
-                    ]"
-                >
+                <g :class="['mascot-head-peek', `mascot-mood-${mood}`, { 'mascot-head-bounce': isWinking }]">
                     <!-- ================= KARAKTER PUTRI (BERKERUDUNG) ================= -->
                     <template v-if="gender === 'P'">
                         <!-- Siluet Luar Kerudung Bulat -->
@@ -126,7 +120,7 @@ function triggerHappySquint() {
                         <ellipse cx="97.5" cy="63" rx="6" ry="7" fill="#FFC9A3" />
                         <ellipse cx="96.5" cy="63" rx="3" ry="3.8" fill="#F3A680" />
 
-                        <!-- Wajah Mochi Bulat -->
+                        <!-- Wajah Mochi Bulat (Bagian bawah diperpanjang melewati garis potong y=79 agar tidak bercelah saat memantul) -->
                         <path
                             d="M 60 27 C 81 27, 95 41, 95 62 C 95 73, 92 80, 90 85 L 30 85 C 28 80, 25 73, 25 62 C 25 41, 39 27, 60 27 Z"
                             :fill="`url(#${uid}-skin)`"
@@ -155,164 +149,135 @@ function triggerHappySquint() {
                         <circle cx="80" cy="24.5" r="2.1" fill="#FBBF24" />
                     </template>
 
-                    <!-- ================= 1. RONA PIPI MERAH SESUAI MOOD ================= -->
-                    <!-- SEMANGAT: Pipi Bersemu Merah Membara dengan Garis Kecepatan -->
+                    <!-- ================= RONA PIPI ================= -->
                     <template v-if="mood === 'semangat'">
-                        <ellipse cx="35.5" cy="69.5" rx="7.5" ry="4.5" fill="#FF477E" opacity="0.65" />
-                        <ellipse cx="84.5" cy="69.5" rx="7.5" ry="4.5" fill="#FF477E" opacity="0.65" />
-                        <line x1="32" y1="68" x2="34.5" y2="71.5" stroke="#E11D48" stroke-width="1.3" stroke-linecap="round" />
-                        <line x1="36" y1="68" x2="38.5" y2="71.5" stroke="#E11D48" stroke-width="1.3" stroke-linecap="round" />
-                        <line x1="81.5" y1="68" x2="84" y2="71.5" stroke="#E11D48" stroke-width="1.3" stroke-linecap="round" />
-                        <line x1="85.5" y1="68" x2="88" y2="71.5" stroke="#E11D48" stroke-width="1.3" stroke-linecap="round" />
+                        <ellipse cx="35" cy="69" rx="7.8" ry="4.6" fill="#FF5C8A" opacity="0.6" />
+                        <ellipse cx="85" cy="69" rx="7.8" ry="4.6" fill="#FF5C8A" opacity="0.6" />
                     </template>
-
-                    <!-- SEDIH: Pipi Halus dengan Rona Malu / Sendu -->
                     <template v-else-if="mood === 'sedih'">
-                        <ellipse cx="35.5" cy="70" rx="6.5" ry="3.5" fill="#FFA4B6" opacity="0.38" />
-                        <ellipse cx="84.5" cy="70" rx="6.5" ry="3.5" fill="#FFA4B6" opacity="0.38" />
+                        <ellipse cx="35.5" cy="70" rx="6.5" ry="3.4" fill="#FFA4B6" opacity="0.35" />
+                        <ellipse cx="84.5" cy="70" rx="6.5" ry="3.4" fill="#FFA4B6" opacity="0.35" />
                     </template>
-
-                    <!-- CAPEK: Pipi Redup dengan Tanda Letih Ringan -->
                     <template v-else-if="mood === 'capek'">
-                        <ellipse cx="35.5" cy="70" rx="6" ry="3" fill="#FDA4AF" opacity="0.28" />
-                        <ellipse cx="84.5" cy="70" rx="6" ry="3" fill="#FDA4AF" opacity="0.28" />
-                        <line x1="32.5" y1="67" x2="38.5" y2="67" stroke="#94A3B8" stroke-width="1.2" stroke-linecap="round" opacity="0.5" />
-                        <line x1="81.5" y1="67" x2="87.5" y2="67" stroke="#94A3B8" stroke-width="1.2" stroke-linecap="round" opacity="0.5" />
+                        <ellipse cx="35.5" cy="71" rx="5.8" ry="2.8" fill="#FDA4AF" opacity="0.25" />
+                        <ellipse cx="84.5" cy="71" rx="5.8" ry="2.8" fill="#FDA4AF" opacity="0.25" />
                     </template>
-
-                    <!-- SENANG (DEFAULT): Pipi Merah Muda Hangat Ceria -->
                     <template v-else>
                         <ellipse cx="35.5" cy="69.5" rx="7.2" ry="4" fill="#FF8FA3" opacity="0.52" />
                         <ellipse cx="84.5" cy="69.5" rx="7.2" ry="4" fill="#FF8FA3" opacity="0.52" />
                     </template>
 
-                    <!-- ================= 2. ALIS SESUAI MOOD ================= -->
-                    <!-- SEMANGAT: Alis Miring Tegas Penuh Tekad -->
-                    <g v-if="mood === 'semangat'">
-                        <path d="M 39 51 Q 45 46 51 46.5" fill="none" stroke="#2C1D17" stroke-width="2.6" stroke-linecap="round" />
-                        <path d="M 69 46.5 Q 75 46 81 51" fill="none" stroke="#2C1D17" stroke-width="2.6" stroke-linecap="round" />
+                    <!-- ================= ALIS ================= -->
+                    <!-- Semangat: alis terangkat tinggi melengkung (antusias) -->
+                    <g v-if="mood === 'semangat'" fill="none" stroke="#2C1D17" stroke-width="2.6" stroke-linecap="round">
+                        <path d="M 38.5 48.5 Q 44.5 43.5 50.5 47.5" />
+                        <path d="M 69.5 47.5 Q 75.5 43.5 81.5 48.5" />
+                    </g>
+                    <!-- Sedih: ujung dalam alis naik, ujung luar turun (memelas) -->
+                    <g v-else-if="mood === 'sedih'" fill="none" stroke="#432E24" stroke-width="2.2" stroke-linecap="round">
+                        <path d="M 39 51.5 Q 45 50.5 50 46.5" />
+                        <path d="M 70 46.5 Q 75 50.5 81 51.5" />
+                    </g>
+                    <!-- Capek: alis datar rendah dan rileks -->
+                    <g v-else-if="mood === 'capek'" fill="none" stroke="#5E4336" stroke-width="2.1" stroke-linecap="round">
+                        <path d="M 39.5 51.5 Q 45 50.3 50 51" />
+                        <path d="M 70 51 Q 75 50.3 80.5 51.5" />
+                    </g>
+                    <!-- Senang: alis ramah -->
+                    <g v-else fill="none" stroke="#432E24" stroke-width="2.2" stroke-linecap="round">
+                        <path d="M 39.5 49.5 Q 44.5 47 49.5 49" />
+                        <path d="M 70.5 49 Q 75.5 47 80.5 49.5" />
                     </g>
 
-                    <!-- SEDIH: Alis Melengkung Turun ke Samping (Sendu Pouty) -->
-                    <g v-else-if="mood === 'sedih'">
-                        <path d="M 39 46 Q 44.5 49 50 51.5" fill="none" stroke="#432E24" stroke-width="2.2" stroke-linecap="round" />
-                        <path d="M 70 51.5 Q 75.5 49 81 46" fill="none" stroke="#432E24" stroke-width="2.2" stroke-linecap="round" />
+                    <!-- ================= MATA ================= -->
+                    <!-- Mata senyum melengkung saat diklik -->
+                    <g v-if="isWinking" fill="none" stroke="#231B18" stroke-width="3" stroke-linecap="round">
+                        <path d="M 39 61.5 Q 44.5 55.5 50 61.5" />
+                        <path d="M 70 61.5 Q 75.5 55.5 81 61.5" />
                     </g>
 
-                    <!-- CAPEK: Alis Datar Lemas / Letih -->
-                    <g v-else-if="mood === 'capek'">
-                        <path d="M 39.5 50.5 Q 45 52 50.5 51.5" fill="none" stroke="#5E4336" stroke-width="2.1" stroke-linecap="round" />
-                        <path d="M 69.5 51.5 Q 75 52 80.5 50.5" fill="none" stroke="#5E4336" stroke-width="2.1" stroke-linecap="round" />
-                    </g>
-
-                    <!-- SENANG: Alis Melengkung Ramah Ceria -->
-                    <g v-else>
-                        <path d="M 39.5 49.5 Q 44.5 47 49.5 49" fill="none" stroke="#432E24" stroke-width="2.2" stroke-linecap="round" />
-                        <path d="M 70.5 49 Q 75.5 47 80.5 49.5" fill="none" stroke="#432E24" stroke-width="2.2" stroke-linecap="round" />
-                    </g>
-
-                    <!-- ================= 3. MATA SESUAI MOOD ================= -->
-                    <!-- Mata Mengedip Saat Diklik -->
-                    <g v-if="isWinking">
-                        <path d="M 39 61.5 Q 44.5 55.5 50 61.5" fill="none" stroke="#231B18" stroke-width="3" stroke-linecap="round" />
-                        <path d="M 70 61.5 Q 75.5 55.5 81 61.5" fill="none" stroke="#231B18" stroke-width="3" stroke-linecap="round" />
-                    </g>
-
-                    <!-- SEMANGAT: Mata Berbintang Api / Cahaya Menggebu -->
+                    <!-- Semangat: mata besar berbinar dengan kilau bintang -->
                     <g v-else-if="mood === 'semangat'" class="mascot-eyes-blink">
-                        <!-- Bulu Mata Halus Khusus Putri -->
                         <template v-if="gender === 'P'">
-                            <path d="M 39.5 57 L 36.5 55 M 80.5 57 L 83.5 55" stroke="#231B18" stroke-width="2" stroke-linecap="round" />
+                            <path d="M 39 57 L 36 54.8 M 81 57 L 84 54.8" stroke="#231B18" stroke-width="2" stroke-linecap="round" />
                         </template>
-
-                        <!-- Mata Kiri -->
-                        <ellipse cx="44.5" cy="60.5" rx="5.6" ry="6.4" fill="#1C1411" />
-                        <!-- Bintang Kilau Utama ✦ -->
-                        <path d="M 43 56.5 Q 43 58.5 41 58.5 Q 43 58.5 43 60.5 Q 43 58.5 45 58.5 Q 43 58.5 43 56.5 Z" fill="#FFFFFF" />
-                        <circle cx="47" cy="62.8" r="1.3" fill="#FFFFFF" />
-                        <circle cx="42.5" cy="63.5" r="0.9" fill="#FEF08A" />
-
-                        <!-- Mata Kanan -->
-                        <ellipse cx="75.5" cy="60.5" rx="5.6" ry="6.4" fill="#1C1411" />
-                        <!-- Bintang Kilau Utama ✦ -->
-                        <path d="M 74 56.5 Q 74 58.5 72 58.5 Q 74 58.5 74 60.5 Q 74 58.5 76 58.5 Q 74 58.5 74 56.5 Z" fill="#FFFFFF" />
-                        <circle cx="78" cy="62.8" r="1.3" fill="#FFFFFF" />
-                        <circle cx="73.5" cy="63.5" r="0.9" fill="#FEF08A" />
+                        <ellipse cx="44.5" cy="60.5" rx="6" ry="7" fill="#1C1411" />
+                        <path d="M 42.8 54.8 L 43.9 57.8 L 46.9 58.9 L 43.9 60 L 42.8 63 L 41.7 60 L 38.7 58.9 L 41.7 57.8 Z" fill="#FFFFFF" />
+                        <circle cx="47.2" cy="63.4" r="1.3" fill="#FFFFFF" />
+                        <ellipse cx="75.5" cy="60.5" rx="6" ry="7" fill="#1C1411" />
+                        <path d="M 73.8 54.8 L 74.9 57.8 L 77.9 58.9 L 74.9 60 L 73.8 63 L 72.7 60 L 69.7 58.9 L 72.7 57.8 Z" fill="#FFFFFF" />
+                        <circle cx="78.2" cy="63.4" r="1.3" fill="#FFFFFF" />
                     </g>
 
-                    <!-- SEDIH: Mata Kaca Berkaca-kaca Penuh Air Mata Haru -->
+                    <!-- Sedih: mata berkaca-kaca, genangan air di kelopak bawah -->
                     <g v-else-if="mood === 'sedih'" class="mascot-eyes-blink">
-                        <!-- Bulu Mata Halus Khusus Putri -->
                         <template v-if="gender === 'P'">
-                            <path d="M 39.5 58.5 L 36.8 57 M 80.5 58.5 L 83.2 57" stroke="#231B18" stroke-width="1.8" stroke-linecap="round" />
+                            <path d="M 39.5 58.5 L 37 57.2 M 80.5 58.5 L 83 57.2" stroke="#231B18" stroke-width="1.8" stroke-linecap="round" />
                         </template>
-
-                        <!-- Mata Kiri -->
-                        <ellipse cx="44.5" cy="61.5" rx="5.3" ry="6.2" fill="#231B18" />
-                        <ellipse cx="43.2" cy="58.8" rx="2.7" ry="2" fill="#FFFFFF" opacity="0.95" />
-                        <ellipse cx="45.5" cy="63.8" rx="2.2" ry="1.5" fill="#BAE6FD" opacity="0.8" />
-                        <circle cx="46.8" cy="64" r="0.8" fill="#FFFFFF" />
-
-                        <!-- Mata Kanan -->
-                        <ellipse cx="75.5" cy="61.5" rx="5.3" ry="6.2" fill="#231B18" />
-                        <ellipse cx="74.2" cy="58.8" rx="2.7" ry="2" fill="#FFFFFF" opacity="0.95" />
-                        <ellipse cx="76.5" cy="63.8" rx="2.2" ry="1.5" fill="#BAE6FD" opacity="0.8" />
-                        <circle cx="77.8" cy="64" r="0.8" fill="#FFFFFF" />
+                        <ellipse cx="44.5" cy="62" rx="5.4" ry="6.2" fill="#231B18" />
+                        <ellipse cx="43" cy="59.6" rx="2.6" ry="2.2" fill="#FFFFFF" />
+                        <circle cx="46.6" cy="64.4" r="1.2" fill="#FFFFFF" />
+                        <path d="M 39.6 65.6 Q 44.5 69 49.4 65.6" fill="none" stroke="#7DD3FC" stroke-width="1.8" stroke-linecap="round" />
+                        <ellipse cx="75.5" cy="62" rx="5.4" ry="6.2" fill="#231B18" />
+                        <ellipse cx="74" cy="59.6" rx="2.6" ry="2.2" fill="#FFFFFF" />
+                        <circle cx="77.6" cy="64.4" r="1.2" fill="#FFFFFF" />
+                        <path d="M 70.6 65.6 Q 75.5 69 80.4 65.6" fill="none" stroke="#7DD3FC" stroke-width="1.8" stroke-linecap="round" />
                     </g>
 
-                    <!-- CAPEK: Mata Mengantuk / Sayu Bergaris Kelopak Rendah -->
+                    <!-- Capek: kelopak mata turun setengah + kantung mata -->
                     <g v-else-if="mood === 'capek'" class="mascot-eyes-sleepy">
-                        <!-- Mata Kiri -->
-                        <path d="M 39 60.5 Q 44.5 57 50 60.5" fill="none" stroke="#231B18" stroke-width="2.6" stroke-linecap="round" />
-                        <path d="M 40.5 61 Q 44.5 64.8 48.5 61 Z" fill="#2E1C15" />
-                        <circle cx="44" cy="62" r="1.1" fill="#FFFFFF" opacity="0.9" />
-
-                        <!-- Mata Kanan -->
-                        <path d="M 70 60.5 Q 75.5 57 81 60.5" fill="none" stroke="#231B18" stroke-width="2.6" stroke-linecap="round" />
-                        <path d="M 71.5 61 Q 75.5 64.8 79.5 61 Z" fill="#2E1C15" />
-                        <circle cx="75" cy="62" r="1.1" fill="#FFFFFF" opacity="0.9" />
+                        <path d="M 40 60.5 Q 40 66.5 44.5 66.5 Q 49 66.5 49 60.5 Z" fill="#231B18" />
+                        <circle cx="46.2" cy="62.6" r="1" fill="#FFFFFF" opacity="0.85" />
+                        <path d="M 38.8 60.5 L 50.2 60.5" stroke="#231B18" stroke-width="2.6" stroke-linecap="round" />
+                        <path d="M 71 60.5 Q 71 66.5 75.5 66.5 Q 80 66.5 80 60.5 Z" fill="#231B18" />
+                        <circle cx="77.2" cy="62.6" r="1" fill="#FFFFFF" opacity="0.85" />
+                        <path d="M 69.8 60.5 L 81.2 60.5" stroke="#231B18" stroke-width="2.6" stroke-linecap="round" />
                     </g>
 
-                    <!-- SENANG (DEFAULT): Mata Bulat Berkilau Natural -->
+                    <!-- Senang: mata bulat berkilau dengan kedipan natural -->
                     <g v-else class="mascot-eyes-blink">
                         <template v-if="gender === 'P'">
                             <path d="M 39.5 57.5 L 36.8 55.5 M 80.5 57.5 L 83.2 55.5" stroke="#231B18" stroke-width="2" stroke-linecap="round" />
                         </template>
-                        <!-- Mata Kiri -->
                         <ellipse cx="44.5" cy="61" rx="5.3" ry="6.2" fill="#231B18" />
                         <circle cx="42.5" cy="58.5" r="2.1" fill="#FFFFFF" />
                         <circle cx="46.5" cy="63.2" r="1" fill="#FFFFFF" opacity="0.85" />
-                        <!-- Mata Kanan -->
                         <ellipse cx="75.5" cy="61" rx="5.3" ry="6.2" fill="#231B18" />
                         <circle cx="73.5" cy="58.5" r="2.1" fill="#FFFFFF" />
                         <circle cx="77.5" cy="63.2" r="1" fill="#FFFFFF" opacity="0.85" />
                     </g>
 
-                    <!-- ================= 4. MULUT SESUAI MOOD ================= -->
-                    <!-- SEMANGAT: Mulut Terbuka Ceria Bergigi / Lidah Antusias -->
-                    <g v-if="mood === 'semangat'">
-                        <path d="M 56.5 68.8 Q 60 67.8 63.5 68.8 Q 63.5 74.5 60 74.5 Q 56.5 74.5 56.5 68.8 Z" fill="#B91C1C" />
-                        <path d="M 57.5 72.8 Q 60 71 62.5 72.8 Q 61.5 74.2 60 74.2 Q 58.5 74.2 57.5 72.8 Z" fill="#FB7185" />
-                        <path d="M 57.2 69.2 Q 60 68.4 62.8 69.2" fill="none" stroke="#FFFFFF" stroke-width="1.1" stroke-linecap="round" />
+                    <!-- Kantung mata keunguan (khusus capek) -->
+                    <g v-if="mood === 'capek' && !isWinking" fill="none" stroke="#A78BFA" stroke-width="1.3" stroke-linecap="round" opacity="0.7">
+                        <path d="M 40.5 68.6 Q 44.5 70.4 48.5 68.6" />
+                        <path d="M 71.5 68.6 Q 75.5 70.4 79.5 68.6" />
                     </g>
 
-                    <!-- SEDIH: Mulut Cemberut Melengkung ke Bawah (Pouty) -->
+                    <!-- ================= MULUT ================= -->
+                    <!-- Semangat: tertawa lebar terbuka, gigi atas & lidah terlihat -->
+                    <g v-if="mood === 'semangat'">
+                        <path d="M 52 68.2 Q 60 70 68 68.2 Q 67.2 78 60 78 Q 52.8 78 52 68.2 Z" fill="#8B1E2D" />
+                        <path d="M 53 68.6 Q 60 70.2 67 68.6 L 66.6 70.6 Q 60 72 53.4 70.6 Z" fill="#FFFFFF" />
+                        <path d="M 55.2 75.2 Q 60 72.2 64.8 75.2 Q 63 77.8 60 77.8 Q 57 77.8 55.2 75.2 Z" fill="#FB7185" />
+                    </g>
+
+                    <!-- Sedih: mulut cemberut melengkung ke bawah -->
                     <path
                         v-else-if="mood === 'sedih'"
-                        d="M 57 73 Q 60 70.2 63 73"
+                        d="M 55.5 74.5 Q 60 69.8 64.5 74.5"
                         fill="none"
                         stroke="#B86B52"
                         stroke-width="2.2"
                         stroke-linecap="round"
                     />
 
-                    <!-- CAPEK: Mulut Menghela Napas / Menguap Halus -->
-                    <g v-else-if="mood === 'capek'">
-                        <ellipse cx="60" cy="71" rx="2.5" ry="1.9" fill="#884433" />
-                        <ellipse cx="60" cy="71" rx="1.7" ry="1.2" fill="#522419" />
+                    <!-- Capek: menguap (mulut oval terbuka) -->
+                    <g v-else-if="mood === 'capek'" class="mascot-yawn">
+                        <ellipse cx="60" cy="73" rx="3.2" ry="4.2" fill="#7A2E2E" />
+                        <ellipse cx="60" cy="75.4" rx="2.2" ry="1.4" fill="#F28B9B" />
                     </g>
 
-                    <!-- SENANG (DEFAULT): Senyum Bahagia Melengkung Hangat -->
+                    <!-- Senang: senyum kecil -->
                     <path
                         v-else
                         d="M 57.2 70.5 Q 60 73.5 62.8 70.5"
@@ -322,39 +287,28 @@ function triggerHappySquint() {
                         stroke-linecap="round"
                     />
 
-                    <!-- ================= 5. AKSEN UNIK & ANIMATIF PER MOOD ================= -->
-                    <!-- SEMANGAT: Bintang Kilau Mengambang di Sekitar Kepala -->
+                    <!-- ================= AKSEN PER MOOD ================= -->
+                    <!-- Semangat: garis energi memancar + bintang kilau -->
                     <template v-if="mood === 'semangat'">
-                        <g class="mascot-sparkle-1">
-                            <path d="M 25 21 Q 25 25 21 25 Q 25 25 25 29 Q 25 25 29 25 Q 25 25 25 21 Z" fill="#FBBF24" />
+                        <g class="mascot-energy" fill="none" stroke="#F59E0B" stroke-width="2.2" stroke-linecap="round">
+                            <path d="M 14 34 L 7 31 M 13 43 L 6 43 M 18 25 L 13 19" />
+                            <path d="M 106 34 L 113 31 M 107 43 L 114 43 M 102 25 L 107 19" />
                         </g>
-                        <g class="mascot-sparkle-2">
-                            <path d="M 95 24 Q 95 27 92 27 Q 95 27 95 30 Q 95 27 98 27 Q 95 27 95 24 Z" fill="#FBBF24" />
-                        </g>
+                        <path class="mascot-sparkle-1" d="M 22 9 L 23.3 12.7 L 27 14 L 23.3 15.3 L 22 19 L 20.7 15.3 L 17 14 L 20.7 12.7 Z" fill="#FBBF24" />
+                        <path class="mascot-sparkle-2" d="M 98 6 L 99 8.9 L 102 10 L 99 11.1 L 98 14 L 97 11.1 L 94 10 L 97 8.9 Z" fill="#FBBF24" />
                     </template>
 
-                    <!-- SEDIH: Tetes Air Mata Kaca Mengalir di Pipi Kiri -->
+                    <!-- Sedih: air mata menetes dari kedua mata -->
                     <template v-else-if="mood === 'sedih'">
-                        <g class="mascot-tear">
-                            <path d="M 48 67 Q 50 71.5 48 73 Q 46 71.5 48 67 Z" fill="#38BDF8" opacity="0.9" />
-                            <circle cx="47.5" cy="70" r="0.6" fill="#FFFFFF" />
-                        </g>
+                        <path class="mascot-tear" d="M 48.5 67 Q 51 71.5 48.5 73.6 Q 46 71.5 48.5 67 Z" fill="#38BDF8" />
+                        <path class="mascot-tear mascot-tear-delay" d="M 71.5 67 Q 74 71.5 71.5 73.6 Q 69 71.5 71.5 67 Z" fill="#38BDF8" />
                     </template>
 
-                    <!-- CAPEK: Tetes Keringat Anime di Pelipis Kanan + Awan Hembusan Napas -->
-                    <template v-else-if="mood === 'capek'">
-                        <!-- Tetes Keringat Comic Anime di Pelipis Kanan -->
-                        <g class="mascot-sweat">
-                            <path d="M 91 36 Q 93.5 40.5 92 42.5 Q 90 42.5 90 40.5 Q 90 38.5 91 36 Z" fill="#38BDF8" opacity="0.95" />
-                            <path d="M 91.8 38.5 Q 92.3 40.5 91.8 41.5" stroke="#FFFFFF" stroke-width="0.8" stroke-linecap="round" fill="none" />
-                        </g>
-                        <!-- Kepulan Hembusan Napas Kecil di Samping Mulut -->
-                        <g class="mascot-sigh">
-                            <circle cx="67" cy="69" r="1.3" fill="#E2E8F0" opacity="0.75" />
-                            <circle cx="70.5" cy="67.5" r="1.9" fill="#E2E8F0" opacity="0.65" />
-                            <circle cx="74.5" cy="65.5" r="2.5" fill="#E2E8F0" opacity="0.5" />
-                        </g>
-                    </template>
+                    <!-- Capek: huruf "z" mengambang -->
+                    <g v-else-if="mood === 'capek'" fill="none" stroke="#64748B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path class="mascot-z-1" d="M 100 26 L 105 26 L 100 31 L 105 31" />
+                        <path class="mascot-z-2" d="M 107 15 L 111 15 L 107 19 L 111 19" />
+                    </g>
                 </g>
             </g>
 
@@ -365,28 +319,12 @@ function triggerHappySquint() {
                 <ellipse cx="89" cy="81.5" rx="8.2" ry="4.2" fill="#0F172A" opacity="0.08" />
 
                 <!-- Tangan Mungil Kiri -->
-                <ellipse
-                    cx="31"
-                    cy="79.5"
-                    rx="8"
-                    ry="5.2"
-                    fill="#FFD8B9"
-                    stroke="#F1B38A"
-                    stroke-width="1.2"
-                />
+                <ellipse cx="31" cy="79.5" rx="8" ry="5.2" fill="#FFD8B9" stroke="#F1B38A" stroke-width="1.2" />
                 <line x1="28.5" y1="77.8" x2="28.5" y2="82.2" stroke="#E39D70" stroke-width="1.4" stroke-linecap="round" />
                 <line x1="33.5" y1="77.8" x2="33.5" y2="82.2" stroke="#E39D70" stroke-width="1.4" stroke-linecap="round" />
 
                 <!-- Tangan Mungil Kanan -->
-                <ellipse
-                    cx="89"
-                    cy="79.5"
-                    rx="8"
-                    ry="5.2"
-                    fill="#FFD8B9"
-                    stroke="#F1B38A"
-                    stroke-width="1.2"
-                />
+                <ellipse cx="89" cy="79.5" rx="8" ry="5.2" fill="#FFD8B9" stroke="#F1B38A" stroke-width="1.2" />
                 <line x1="86.5" y1="77.8" x2="86.5" y2="82.2" stroke="#E39D70" stroke-width="1.4" stroke-linecap="round" />
                 <line x1="91.5" y1="77.8" x2="91.5" y2="82.2" stroke="#E39D70" stroke-width="1.4" stroke-linecap="round" />
             </g>
@@ -395,7 +333,7 @@ function triggerHappySquint() {
 </template>
 
 <style scoped>
-/* Kedipan mata natural */
+/* Kedipan mata natural: 1x kedip lalu jeda, diikuti 2x kedip cepat (double-blink) */
 @keyframes naturalBlink2D {
     0%, 42%, 46%, 84%, 87.5%, 89.5%, 93%, 100% {
         transform: scaleY(1);
@@ -405,103 +343,68 @@ function triggerHappySquint() {
     }
 }
 
-/* Kedipan mata sayu / capek (lebih lambat & berat) */
+/* Kedipan berat dan lambat untuk mood capek */
 @keyframes sleepyBlink2D {
-    0%, 60%, 100% {
+    0%, 55%, 100% {
         transform: scaleY(1);
     }
-    65%, 68% {
-        transform: scaleY(0.12);
+    62%, 72% {
+        transform: scaleY(0.15);
     }
 }
 
-/* Gerakan mengintip default (Senang) */
 @keyframes gentlePeek2D {
-    0%, 100% {
-        transform: translateY(0px);
-    }
-    50% {
-        transform: translateY(2px);
-    }
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(2px); }
 }
 
-/* Gerakan mengintip Semangat (lebih enerjik & memantul) */
+/* Semangat: melompat-lompat kecil penuh energi */
 @keyframes spiritedPeek2D {
-    0%, 100% {
-        transform: translateY(0px) rotate(0deg);
-    }
-    30% {
-        transform: translateY(-2px) rotate(-1deg);
-    }
-    60% {
-        transform: translateY(1.5px) rotate(1deg);
-    }
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    20% { transform: translateY(-3.5px) rotate(-2deg); }
+    40% { transform: translateY(0px) rotate(0deg); }
+    60% { transform: translateY(-3.5px) rotate(2deg); }
+    80% { transform: translateY(0px) rotate(0deg); }
 }
 
-/* Gerakan mengintip Sedih (sedikit menunduk sendu) */
+/* Sedih: sedikit menunduk */
 @keyframes sadPeek2D {
-    0%, 100% {
-        transform: translateY(1px);
-    }
-    50% {
-        transform: translateY(2.5px);
-    }
+    0%, 100% { transform: translateY(2px); }
+    50% { transform: translateY(3px); }
 }
 
-/* Gerakan mengintip Capek (terkulai lemas pelan) */
+/* Capek: kepala terkulai miring pelan */
 @keyframes tiredPeek2D {
-    0%, 100% {
-        transform: translateY(1.5px);
-    }
-    50% {
-        transform: translateY(3px);
-    }
+    0%, 100% { transform: translateY(2.5px) rotate(0deg); }
+    50% { transform: translateY(3.5px) rotate(-3deg); }
 }
 
-/* Kilauan Bintang Semangat */
 @keyframes sparkleAnim {
-    0%, 100% {
-        transform: scale(0.8) rotate(0deg);
-        opacity: 0.6;
-    }
-    50% {
-        transform: scale(1.2) rotate(15deg);
-        opacity: 1;
-    }
+    0%, 100% { transform: scale(0.7) rotate(0deg); opacity: 0.55; }
+    50% { transform: scale(1.15) rotate(20deg); opacity: 1; }
 }
 
-/* Tetes Air Mata Sedih */
-@keyframes tearAnim {
-    0%, 100% {
-        transform: translateY(0px);
-        opacity: 0.85;
-    }
-    50% {
-        transform: translateY(1.8px);
-        opacity: 1;
-    }
+@keyframes energyPulse {
+    0%, 100% { opacity: 0.45; transform: scale(0.94); }
+    50% { opacity: 1; transform: scale(1.05); }
 }
 
-/* Tetes Keringat Capek */
-@keyframes sweatAnim {
-    0%, 100% {
-        transform: translateY(0px) rotate(0deg);
-    }
-    50% {
-        transform: translateY(1.5px) rotate(3deg);
-    }
+@keyframes tearDrip {
+    0% { transform: translateY(0px); opacity: 0; }
+    15% { opacity: 1; }
+    80% { opacity: 1; }
+    100% { transform: translateY(5px); opacity: 0; }
 }
 
-/* Hembusan Napas Capek */
-@keyframes sighAnim {
-    0%, 100% {
-        transform: scale(0.8) translate(0, 0);
-        opacity: 0.35;
-    }
-    50% {
-        transform: scale(1.1) translate(1.5px, -1.5px);
-        opacity: 0.75;
-    }
+@keyframes zFloat {
+    0% { transform: translate(0, 2px); opacity: 0; }
+    30% { opacity: 1; }
+    100% { transform: translate(3px, -5px); opacity: 0; }
+}
+
+@keyframes yawnAnim {
+    0%, 100% { transform: scaleY(0.75); }
+    50% { transform: scaleY(1.1); }
 }
 
 .mascot-eyes-blink {
@@ -512,55 +415,39 @@ function triggerHappySquint() {
 
 .mascot-eyes-sleepy {
     transform-box: fill-box;
-    transform-origin: center 62%;
-    animation: sleepyBlink2D 6.8s ease-in-out infinite;
+    transform-origin: center 30%;
+    animation: sleepyBlink2D 4.2s ease-in-out infinite;
 }
 
 .mascot-head-peek {
     transform-origin: 60px 79px;
-    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.mascot-mood-senang {
-    animation: gentlePeek2D 4.5s ease-in-out infinite;
+.mascot-mood-senang { animation: gentlePeek2D 4.5s ease-in-out infinite; }
+.mascot-mood-semangat { animation: spiritedPeek2D 1.6s ease-in-out infinite; }
+.mascot-mood-sedih { animation: sadPeek2D 5s ease-in-out infinite; }
+.mascot-mood-capek { animation: tiredPeek2D 5.5s ease-in-out infinite; }
+
+.mascot-sparkle-1,
+.mascot-sparkle-2,
+.mascot-energy,
+.mascot-tear,
+.mascot-z-1,
+.mascot-z-2,
+.mascot-yawn {
+    transform-box: fill-box;
+    transform-origin: center;
 }
 
-.mascot-mood-semangat {
-    animation: spiritedPeek2D 3.2s ease-in-out infinite;
-}
-
-.mascot-mood-sedih {
-    animation: sadPeek2D 5.5s ease-in-out infinite;
-}
-
-.mascot-mood-capek {
-    animation: tiredPeek2D 6s ease-in-out infinite;
-}
-
-.mascot-sparkle-1 {
-    transform-origin: 25px 25px;
-    animation: sparkleAnim 1.8s ease-in-out infinite;
-}
-
-.mascot-sparkle-2 {
-    transform-origin: 95px 27px;
-    animation: sparkleAnim 1.8s ease-in-out infinite 0.9s;
-}
-
-.mascot-tear {
-    transform-origin: 48px 70px;
-    animation: tearAnim 2.8s ease-in-out infinite;
-}
-
-.mascot-sweat {
-    transform-origin: 91px 39px;
-    animation: sweatAnim 2.4s ease-in-out infinite;
-}
-
-.mascot-sigh {
-    transform-origin: 70px 67px;
-    animation: sighAnim 3.2s ease-in-out infinite;
-}
+.mascot-sparkle-1 { animation: sparkleAnim 1.4s ease-in-out infinite; }
+.mascot-sparkle-2 { animation: sparkleAnim 1.4s ease-in-out infinite 0.7s; }
+.mascot-energy { animation: energyPulse 0.8s ease-in-out infinite; }
+.mascot-tear { animation: tearDrip 2.2s ease-in infinite; }
+.mascot-tear-delay { animation-delay: 1.1s; }
+.mascot-z-1 { animation: zFloat 2.6s ease-out infinite; }
+.mascot-z-2 { animation: zFloat 2.6s ease-out infinite 1.3s; }
+.mascot-yawn { animation: yawnAnim 4.2s ease-in-out infinite; }
 
 .mascot-head-bounce {
     transform: translateY(-3px) !important;
@@ -572,9 +459,11 @@ function triggerHappySquint() {
     .mascot-head-peek,
     .mascot-sparkle-1,
     .mascot-sparkle-2,
+    .mascot-energy,
     .mascot-tear,
-    .mascot-sweat,
-    .mascot-sigh {
+    .mascot-z-1,
+    .mascot-z-2,
+    .mascot-yawn {
         animation: none;
     }
 }
