@@ -1607,205 +1607,249 @@ function deleteDocument(doc) {
         preserveScroll: true,
     });
 }
+function getInitials(name) {
+    if (!name) return '??';
+    return name
+        .trim()
+        .split(/\s+/)
+        .slice(0, 2)
+        .map(w => w[0]?.toUpperCase() || '')
+        .join('');
+}
+
+function getAvatarStyle(emp) {
+    if (emp?.jk === 'L') {
+        return 'bg-blue-50 text-blue-800 border-blue-200/80';
+    }
+    return 'bg-rose-50 text-rose-800 border-rose-200/80';
+}
 </script>
 
 <template>
-    <div class="flex-1 overflow-y-auto p-4 md:p-margin-desktop bg-white">
+    <div class="flex-1 overflow-y-auto px-4 pt-6 pb-24 md:px-8 md:py-7 bg-white min-h-screen">
         <Head :title="`${isEditing ? 'Edit' : 'Detail'} Pegawai - ${employee.nama}`" />
 
-        <!-- Back Button -->
-        <div class="mb-4 flex items-center justify-between gap-4">
-            <Link href="/staff" class="inline-flex items-center gap-1 text-sm font-medium text-on-surface-variant hover:text-primary transition-colors">
-                <span class="material-symbols-outlined text-[18px]">arrow_back</span>
-                Kembali ke Data Pegawai
-            </Link>
-        </div>
-
-        <!-- Flash Notifications -->
-        <div
-            v-if="flashSuccess"
-            class="mb-5 p-4 bg-primary/10 border border-primary/30 rounded-2xl flex items-start justify-between gap-3 animate-in fade-in duration-200"
-        >
-            <div class="flex items-start gap-3">
-                <span class="material-symbols-outlined text-primary text-2xl shrink-0 mt-0.5">check_circle</span>
-                <div>
-                    <h4 class="text-sm font-bold text-primary">Berhasil</h4>
-                    <p class="text-xs text-on-surface-variant mt-0.5 leading-relaxed">{{ flashSuccess }}</p>
-                </div>
+        <div class="max-w-[1440px] mx-auto">
+            <!-- Back Button -->
+            <div class="mb-5 flex items-center justify-between gap-4">
+                <Link
+                    href="/staff"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs sm:text-sm font-semibold shadow-2xs transition-all active:scale-95"
+                >
+                    <span class="material-symbols-outlined text-[18px] text-slate-500">arrow_back</span>
+                    <span>Kembali ke Data Pegawai</span>
+                </Link>
             </div>
-            <button
-                type="button"
-                @click="dismissedFlash = true"
-                class="text-on-surface-variant hover:text-on-surface p-1 rounded-full hover:bg-primary/15 transition-colors cursor-pointer"
+
+            <!-- Flash Notifications -->
+            <div
+                v-if="flashSuccess"
+                class="mb-5 p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-start justify-between gap-3 animate-in fade-in duration-200"
             >
-                <span class="material-symbols-outlined text-lg">close</span>
-            </button>
-        </div>
-
-        <div
-            v-if="flashError"
-            class="mb-5 p-4 bg-error/10 border border-error/30 rounded-2xl flex items-start justify-between gap-3 animate-in fade-in duration-200"
-        >
-            <div class="flex items-start gap-3">
-                <span class="material-symbols-outlined text-error text-2xl shrink-0 mt-0.5">error</span>
-                <div>
-                    <h4 class="text-sm font-bold text-error">Terjadi Kesalahan</h4>
-                    <p class="text-xs text-on-surface-variant mt-0.5 leading-relaxed">{{ flashError }}</p>
-                </div>
-            </div>
-            <button
-                type="button"
-                @click="dismissedFlash = true"
-                class="text-on-surface-variant hover:text-on-surface p-1 rounded-full hover:bg-error/15 transition-colors cursor-pointer"
-            >
-                <span class="material-symbols-outlined text-lg">close</span>
-            </button>
-        </div>
-
-
-        <!-- Main Card -->
-        <div class="bg-white rounded-2xl shadow-sm border border-outline-variant/70 flex flex-col overflow-hidden">
-            <!-- Profile Header -->
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between p-5 sm:px-6 sm:py-5 border-b border-outline-variant/70 bg-white gap-4">
-                <div class="flex items-center gap-4 sm:gap-5">
-                    <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white flex items-center justify-center overflow-hidden border-2 border-outline-variant/90 shadow-sm shrink-0">
-                        <img
-                            v-if="employee.foto"
-                            :src="employee.foto"
-                            :alt="employee.nama"
-                            class="w-full h-full object-cover"
-                        />
-                        <span v-else class="text-primary font-bold text-2xl sm:text-3xl">
-                            {{ employee.nama ? employee.nama.charAt(0) : '?' }}
-                        </span>
+                <div class="flex items-start gap-3">
+                    <span class="material-symbols-outlined text-emerald-700 text-2xl shrink-0 mt-0.5">check_circle</span>
+                    <div>
+                        <h4 class="text-sm font-bold text-emerald-950">Berhasil</h4>
+                        <p class="text-xs text-emerald-800 mt-0.5 leading-relaxed">{{ flashSuccess }}</p>
                     </div>
-                    <div class="space-y-2">
+                </div>
+                <button
+                    type="button"
+                    @click="dismissedFlash = true"
+                    class="text-emerald-700 hover:text-emerald-950 p-1 rounded-full hover:bg-emerald-100 transition-colors cursor-pointer"
+                >
+                    <span class="material-symbols-outlined text-lg">close</span>
+                </button>
+            </div>
+
+            <div
+                v-if="flashError"
+                class="mb-5 p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-start justify-between gap-3 animate-in fade-in duration-200"
+            >
+                <div class="flex items-start gap-3">
+                    <span class="material-symbols-outlined text-rose-600 text-2xl shrink-0 mt-0.5">error</span>
+                    <div>
+                        <h4 class="text-sm font-bold text-rose-950">Terjadi Kesalahan</h4>
+                        <p class="text-xs text-rose-800 mt-0.5 leading-relaxed">{{ flashError }}</p>
+                    </div>
+                </div>
+                <button
+                    type="button"
+                    @click="dismissedFlash = true"
+                    class="text-rose-600 hover:text-rose-950 p-1 rounded-full hover:bg-rose-100 transition-colors cursor-pointer"
+                >
+                    <span class="material-symbols-outlined text-lg">close</span>
+                </button>
+            </div>
+
+            <!-- Header Card Identitas Profil Pegawai -->
+            <div class="bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-6 shadow-xs mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div class="flex items-center gap-4 sm:gap-5 min-w-0">
+                    <img
+                        v-if="employee.foto"
+                        :src="employee.foto"
+                        :alt="employee.nama"
+                        class="w-18 h-18 sm:w-22 sm:h-22 rounded-2xl object-cover border border-slate-200 shadow-2xs shrink-0"
+                    />
+                    <div
+                        v-else
+                        :class="[
+                            'w-18 h-18 sm:w-22 sm:h-22 rounded-2xl flex items-center justify-center font-bold text-xl sm:text-2xl border shadow-2xs shrink-0',
+                            getAvatarStyle(employee)
+                        ]"
+                    >
+                        <span>{{ getInitials(employee.nama) }}</span>
+                    </div>
+
+                    <div class="space-y-1.5 min-w-0">
                         <!-- Dropdown Pemilih Pegawai Lain -->
                         <div class="relative" ref="employeeDropdownRef">
                             <button
                                 v-if="allEmployees.length > 1"
                                 type="button"
                                 @click="toggleEmployeeDropdown"
-                                class="inline-flex items-center gap-1.5 text-left text-lg sm:text-xl font-bold text-on-surface hover:text-primary transition-colors cursor-pointer group rounded-xl -ml-2 px-2 py-0.5 hover:bg-slate-100/90 active:scale-[0.99]"
+                                class="inline-flex items-center gap-1.5 text-left text-xl sm:text-2xl font-extrabold text-slate-900 hover:text-emerald-950 transition-colors cursor-pointer group rounded-xl -ml-2 px-2 py-0.5 hover:bg-slate-100 active:scale-[0.99] max-w-full"
                                 title="Klik untuk beralih memilih pegawai lain"
                             >
-                                <span>{{ employee.nama }}</span>
+                                <span class="truncate">{{ employee.nama }}</span>
                                 <span
-                                    class="material-symbols-outlined text-[22px] text-on-surface-variant group-hover:text-primary transition-transform duration-200"
-                                    :class="{ 'rotate-180 text-primary': isEmployeeDropdownOpen }"
+                                    class="material-symbols-outlined text-[24px] text-slate-400 group-hover:text-emerald-950 transition-transform duration-200 shrink-0"
+                                    :class="{ 'rotate-180 text-emerald-950': isEmployeeDropdownOpen }"
                                 >
                                     arrow_drop_down
                                 </span>
                             </button>
-                            <h3 v-else class="text-lg sm:text-xl font-bold text-on-surface leading-snug">{{ employee.nama }}</h3>
+                            <h1 v-else class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight leading-tight truncate">
+                                {{ employee.nama }}
+                            </h1>
 
                             <!-- Floating Searchable Dropdown Menu -->
                             <div
                                 v-if="isEmployeeDropdownOpen"
-                                class="absolute left-0 top-full mt-2 w-80 sm:w-96 max-w-[92vw] bg-white rounded-2xl shadow-xl border border-outline-variant/60 z-50 p-2 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150"
+                                class="absolute left-0 top-full mt-2 w-80 sm:w-96 max-w-[92vw] bg-white rounded-2xl shadow-xl border border-slate-200 z-50 p-2 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150"
                             >
-                                <div class="px-2 pt-1 pb-2 border-b border-outline-variant/30 flex items-center justify-between text-xs text-on-surface-variant">
-                                    <span class="font-bold text-on-surface text-[11px] uppercase tracking-wider">Pilih Pegawai Lain</span>
-                                    <span class="text-[10px] text-outline">{{ filteredEmployees.length }} dari {{ allEmployees.length }} pegawai</span>
+                                <div class="px-2 pt-1 pb-2 border-b border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                                    <span class="font-bold text-slate-800 text-[11px] uppercase tracking-wider">Pilih Pegawai Lain</span>
+                                    <span class="text-[10px] text-slate-400">{{ filteredEmployees.length }} dari {{ allEmployees.length }} pegawai</span>
                                 </div>
 
                                 <!-- Search Input -->
                                 <div class="relative p-1 my-1">
-                                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[16px] text-on-surface-variant">search</span>
+                                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[16px] text-slate-400">search</span>
                                     <input
                                         ref="employeeSearchInputRef"
                                         v-model="employeeSearchQuery"
                                         type="text"
                                         placeholder="Cari nama atau NIPY pegawai..."
-                                        class="w-full pl-8 pr-7 py-1.5 rounded-xl border border-outline-variant/60 bg-surface-container-lowest text-xs text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                                        class="w-full pl-8 pr-7 py-1.5 rounded-xl border border-slate-300 bg-white text-xs text-slate-800 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
                                         @keydown.esc="closeEmployeeDropdown"
                                     />
                                     <button
                                         v-if="employeeSearchQuery"
                                         type="button"
                                         @click="employeeSearchQuery = ''"
-                                        class="absolute right-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface"
+                                        class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
                                     >
                                         <span class="material-symbols-outlined text-[14px]">close</span>
                                     </button>
                                 </div>
 
                                 <!-- Scrollable List -->
-                                <div class="max-h-64 overflow-y-auto divide-y divide-outline-variant/20">
+                                <div class="max-h-64 overflow-y-auto divide-y divide-slate-100">
                                     <div
                                         v-for="emp in filteredEmployees"
                                         :key="emp.id"
                                         @click="selectEmployee(emp.id)"
                                         class="p-2.5 rounded-xl hover:bg-slate-50 cursor-pointer transition-colors flex items-center justify-between gap-2.5"
-                                        :class="{ 'bg-primary/10 hover:bg-primary/15': String(emp.id) === String(employee.id) }"
+                                        :class="{ 'bg-emerald-50 hover:bg-emerald-100/70': String(emp.id) === String(employee.id) }"
                                     >
                                         <div class="min-w-0 flex-1">
-                                            <p class="text-xs font-bold text-on-surface truncate" :class="{ 'text-primary': String(emp.id) === String(employee.id) }">
+                                            <p class="text-xs font-bold text-slate-900 truncate" :class="{ 'text-emerald-950 font-extrabold': String(emp.id) === String(employee.id) }">
                                                 {{ emp.nama }}
                                             </p>
-                                            <div class="flex items-center gap-1.5 text-[10px] text-on-surface-variant truncate mt-0.5">
+                                            <div class="flex items-center gap-1.5 text-[10px] text-slate-500 truncate mt-0.5">
                                                 <span v-if="emp.nipy && canViewKepegawaian" class="font-mono">NIPY: {{ emp.nipy }}</span>
                                                 <span v-if="emp.nipy && canViewKepegawaian && (emp.jabatan || emp.unit_kerja)">·</span>
                                                 <span v-if="emp.jabatan || emp.unit_kerja" class="truncate">{{ emp.jabatan || emp.unit_kerja }}</span>
                                             </div>
                                         </div>
-                                        <span v-if="String(emp.id) === String(employee.id)" class="material-symbols-outlined text-primary text-[18px] shrink-0">check</span>
+                                        <span v-if="String(emp.id) === String(employee.id)" class="material-symbols-outlined text-emerald-700 text-[18px] shrink-0">check</span>
                                     </div>
 
-                                    <div v-if="filteredEmployees.length === 0" class="py-6 text-center text-xs text-on-surface-variant italic">
+                                    <div v-if="filteredEmployees.length === 0" class="py-6 text-center text-xs text-slate-400 italic">
                                         Pegawai tidak ditemukan.
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <p v-if="canViewKepegawaian" class="text-xs sm:text-sm text-on-surface-variant font-medium">NIPY: {{ employee.nipy || '-' }}</p>
+                        <div class="flex items-center gap-1.5 text-xs sm:text-sm text-slate-500 font-medium flex-wrap">
+                            <span v-if="canViewKepegawaian">NIPY: <span class="font-mono text-slate-700 font-semibold">{{ employee.nipy || '-' }}</span></span>
+                            <span v-if="canViewKepegawaian && (employee.jabatan || employee.unit_kerja)">•</span>
+                            <span v-if="employee.jabatan">{{ employee.jabatan }}</span>
+                            <span v-if="employee.jabatan && employee.unit_kerja">•</span>
+                            <span v-if="employee.unit_kerja">{{ employee.unit_kerja }}</span>
+                        </div>
+
+                        <!-- Badges Identitas -->
                         <div class="flex flex-wrap items-center gap-2 pt-0.5">
+                            <!-- Badge Status Keaktifan (Hijau Terang) -->
+                            <span
+                                v-if="employee.status_keaktifan"
+                                :class="[
+                                    'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border shadow-2xs',
+                                    (employee.status_keaktifan || 'Aktif').toLowerCase() === 'aktif'
+                                        ? 'bg-emerald-100 text-emerald-950 border-emerald-300'
+                                        : 'bg-slate-100 text-slate-700 border-slate-200'
+                                ]"
+                            >
+                                <span
+                                    class="w-2 h-2 rounded-full"
+                                    :class="(employee.status_keaktifan || 'Aktif').toLowerCase() === 'aktif' ? 'bg-emerald-600' : 'bg-slate-400'"
+                                ></span>
+                                <span>{{ employee.status_keaktifan }}</span>
+                            </span>
+
+                            <!-- Badge Jenjang -->
                             <span
                                 v-if="employee.jenjang_kepegawaian"
-                                :class="['inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-semibold border border-outline-variant/40 shadow-2xs', getJenjangColor(employee.jenjang_kepegawaian)]"
+                                class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200"
                             >
                                 {{ employee.jenjang_kepegawaian }}
                             </span>
-                            <span
-                                v-if="employee.status_keaktifan"
-                                :class="['inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border border-outline-variant/40 shadow-2xs', getStatusColor(employee.status_keaktifan)]"
-                            >
-                                <span class="w-1.5 h-1.5 rounded-full bg-current"></span>
-                                {{ employee.status_keaktifan }}
-                            </span>
                         </div>
-                        <p v-if="employee.jabatan" class="text-xs sm:text-sm text-on-surface-variant font-medium pt-0.5">
-                            {{ employee.jabatan }}{{ employee.unit_kerja ? ` · ${employee.unit_kerja}` : '' }}
-                        </p>
                     </div>
                 </div>
 
                 <!-- Action Buttons in Header -->
                 <div class="flex items-center gap-2 self-start sm:self-auto shrink-0">
-                    <!-- Tab Kepegawaian Terkunci (Jika user tidak memiliki hak akses ubah kepegawaian) -->
                     <div
                         v-if="!isEditing && activeTab === 'kepegawaian' && !canUpdateKepegawaian"
-                        class="inline-flex items-center gap-1.5 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl bg-slate-100 border border-outline-variant/60 text-slate-400 font-semibold text-xs sm:text-sm cursor-not-allowed select-none"
-                        title="Tab Kepegawaian terkunci — Role Anda tidak memiliki izin untuk mengubah data pada tab ini"
+                        class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-100 border border-slate-200 text-slate-400 font-semibold text-xs sm:text-sm cursor-not-allowed select-none"
+                        title="Tab Kepegawaian terkunci"
                     >
                         <span class="material-symbols-outlined text-[18px]">lock</span>
                         <span>Tab Terkunci</span>
                     </div>
 
-                    <!-- View Mode: Edit Data Button (Reusable Component dari Database Siswa) -->
-                    <EditDataButton
+                    <!-- View Mode: Edit Data Button (Bergaya Kelola Halaman Depan) -->
+                    <button
                         v-else-if="!isEditing && canEdit"
+                        type="button"
                         @click="startEdit"
+                        class="inline-flex items-center justify-center gap-1.5 px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-bold text-xs sm:text-sm shadow-xs border border-emerald-950/30 transition-all cursor-pointer active:scale-95"
                         title="Edit data pegawai ini langsung di tab"
-                    />
+                    >
+                        <span class="material-symbols-outlined text-[18px]">edit_note</span>
+                        <span>Edit Data</span>
+                    </button>
 
-                    <!-- Edit Mode: Batal & Simpan Perubahan Buttons (Hijau Tema Web) -->
+                    <!-- Edit Mode: Batal & Simpan Perubahan Buttons -->
                     <div v-else-if="isEditing" class="flex items-center gap-2">
                         <button
                             type="button"
                             @click="cancelEdit"
-                            class="px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-on-surface-variant hover:text-on-surface hover:bg-slate-100 border border-outline-variant/60 transition-all cursor-pointer"
+                            class="px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-100 border border-slate-300 transition-all cursor-pointer shadow-2xs"
                             :disabled="form.processing"
                             title="Batalkan perubahan"
                         >
@@ -1814,7 +1858,7 @@ function deleteDocument(doc) {
                         <button
                             type="button"
                             @click="saveChanges"
-                            class="inline-flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl bg-primary hover:bg-primary-container text-on-primary font-bold text-xs sm:text-sm transition-all shadow-xs hover:shadow-md active:scale-95 cursor-pointer disabled:opacity-60"
+                            class="inline-flex items-center gap-2 px-5 py-2 sm:px-6 sm:py-2.5 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-bold text-xs sm:text-sm shadow-xs border border-emerald-950/30 active:scale-95 cursor-pointer disabled:opacity-60 transition-all"
                             :disabled="form.processing"
                             title="Simpan semua perubahan data pegawai"
                         >
@@ -1826,26 +1870,29 @@ function deleteDocument(doc) {
                 </div>
             </div>
 
-            <!-- Tabs Navigation -->
-            <div class="flex border-b border-outline-variant/60 px-4 bg-white overflow-x-auto">
-                <button
-                    v-for="tab in tabs"
-                    :key="tab.id"
-                    @click="activeTab = tab.id"
-                    :class="[
-                        'flex items-center gap-2 px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap border-b-2 cursor-pointer',
-                        activeTab === tab.id
-                            ? 'text-primary border-primary bg-primary/5 font-semibold'
-                            : 'text-on-surface-variant border-transparent hover:text-on-surface hover:bg-slate-50'
-                    ]"
-                >
-                    <span class="material-symbols-outlined text-[18px]">{{ tab.icon }}</span>
-                    {{ tab.label }}
-                </button>
+            <!-- Segmented Capsule Tabs Navigation -->
+            <div class="mb-5 overflow-x-auto no-scrollbar">
+                <div class="bg-slate-100 p-1.5 rounded-2xl sm:rounded-full inline-flex items-center gap-1 border border-slate-200/90 shrink-0 max-w-full">
+                    <button
+                        v-for="tab in tabs"
+                        :key="tab.id"
+                        type="button"
+                        @click="activeTab = tab.id"
+                        :class="[
+                            'inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs sm:text-sm transition-all duration-150 cursor-pointer shrink-0 whitespace-nowrap',
+                            activeTab === tab.id
+                                ? 'bg-emerald-100 text-emerald-950 font-bold border border-emerald-300 shadow-2xs'
+                                : 'text-slate-600 hover:text-slate-900 font-medium border border-transparent hover:bg-slate-200/60'
+                        ]"
+                    >
+                        <span class="material-symbols-outlined text-[18px]">{{ tab.icon }}</span>
+                        <span>{{ tab.label }}</span>
+                    </button>
+                </div>
             </div>
 
-            <!-- Tab Content -->
-            <div class="flex-1 p-6">
+            <!-- Card Konten Tab Pegawai -->
+            <div class="bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-7 shadow-xs mb-8">
 
                 <!-- Warning NIK Kosong (View Mode Only) -->
                 <div v-if="!isEditing && !employee.nik" class="mb-6 p-4 rounded-xl bg-error/10 border border-error/20 flex gap-3 text-error">

@@ -82,552 +82,635 @@ function hitungUsia(tanggalLahir) {
     }
     return age;
 }
+
+function getInitials(name) {
+    if (!name) return '??';
+    return name
+        .trim()
+        .split(/\s+/)
+        .slice(0, 2)
+        .map(w => w[0]?.toUpperCase() || '')
+        .join('');
+}
+
+function getAvatarStyle(s) {
+    if (s?.jk === 'L') {
+        return 'bg-blue-50 text-blue-800 border-blue-200/80';
+    }
+    return 'bg-rose-50 text-rose-800 border-rose-200/80';
+}
 </script>
 
 <template>
-    <div class="flex-1 overflow-y-auto p-4 md:p-margin-desktop bg-white">
+    <div class="flex-1 overflow-y-auto px-4 pt-6 pb-24 md:px-8 md:py-7 bg-white min-h-screen">
         <Head :title="`Detail Siswa - ${student.nama}`" />
 
-        <!-- Back Button -->
-        <div class="mb-4">
-            <Link href="/students" class="inline-flex items-center gap-1 text-sm font-medium text-on-surface-variant hover:text-primary transition-colors">
-                <span class="material-symbols-outlined text-[18px]">arrow_back</span>
-                Kembali ke Data Siswa
-            </Link>
-        </div>
+        <div class="max-w-[1440px] mx-auto">
+            <!-- Back Button -->
+            <div class="mb-5 flex items-center justify-between gap-4">
+                <Link
+                    href="/students"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs sm:text-sm font-semibold shadow-2xs transition-all active:scale-95"
+                >
+                    <span class="material-symbols-outlined text-[18px] text-slate-500">arrow_back</span>
+                    <span>Kembali ke Data Siswa</span>
+                </Link>
+            </div>
 
-        <div class="bg-white rounded-2xl shadow-xs border border-slate-200 flex flex-col overflow-hidden">
-            <!-- Header -->
-            <div class="flex items-center justify-between px-6 py-5 border-b border-slate-200 bg-slate-50/70">
-                <div class="flex items-center gap-5">
-                    <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-primary/10 flex items-center justify-center overflow-hidden border-2 border-outline-variant/20 shadow-sm shrink-0">
-                        <img
-                            v-if="student.photo_url"
-                            :src="student.photo_url"
-                            :alt="student.nama"
-                            class="w-full h-full object-cover"
-                        />
-                        <span v-else class="text-primary font-bold text-2xl sm:text-3xl">
-                            {{ student.nama ? student.nama.charAt(0) : '?' }}
-                        </span>
+            <!-- Header Card Identitas Profil Siswa -->
+            <div class="bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-6 shadow-xs mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div class="flex items-center gap-4 sm:gap-5">
+                    <!-- Foto / Avatar Siswa -->
+                    <img
+                        v-if="student.photo_url"
+                        :src="student.photo_url"
+                        :alt="student.nama"
+                        class="w-18 h-18 sm:w-22 sm:h-22 rounded-2xl object-cover border border-slate-200 shadow-2xs shrink-0"
+                    />
+                    <div
+                        v-else
+                        :class="[
+                            'w-18 h-18 sm:w-22 sm:h-22 rounded-2xl flex items-center justify-center font-bold text-xl sm:text-2xl border shadow-2xs shrink-0',
+                            getAvatarStyle(student)
+                        ]"
+                    >
+                        <span>{{ getInitials(student.nama) }}</span>
                     </div>
-                    <div>
-                        <h3 class="text-lg sm:text-xl font-bold text-on-surface">{{ student.nama }}</h3>
-                        <p class="text-xs sm:text-sm text-on-surface-variant">NISN: {{ student.nisn }} &middot; Kelas {{ student.kelas }}</p>
-                        <span :class="[
-                            'inline-flex items-center mt-1.5 px-2 py-0.5 rounded-md text-[10px] font-semibold border',
-                            (student.student_status || 'aktif').toLowerCase() === 'aktif' 
-                                ? 'bg-primary/10 text-primary border-primary/20' 
-                                : 'bg-error/10 text-error border-error/20'
-                        ]">
-                            <span class="w-1.5 h-1.5 rounded-full mr-1.5"
-                                :class="(student.student_status || 'aktif').toLowerCase() === 'aktif' ? 'bg-primary' : 'bg-error'"
-                            ></span>
-                            {{ (student.student_status || 'aktif').toLowerCase() === 'aktif' ? 'Aktif' : 'Tidak Aktif' }}
-                        </span>
+
+                    <!-- Informasi Profil Singkat Siswa -->
+                    <div class="space-y-1.5">
+                        <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight leading-tight">
+                            {{ student.nama }}
+                        </h1>
+                        <div class="flex items-center gap-1.5 text-xs sm:text-sm text-slate-500 font-medium flex-wrap">
+                            <span>NISN: <span class="font-mono text-slate-700 font-semibold">{{ student.nisn || '-' }}</span></span>
+                            <span>•</span>
+                            <span>{{ student.unit || '-' }}</span>
+                            <span v-if="student.kelas">•</span>
+                            <span v-if="student.kelas">Kelas {{ student.kelas }}</span>
+                        </div>
+
+                        <!-- Badges Identitas -->
+                        <div class="flex items-center gap-2 flex-wrap pt-0.5">
+                            <!-- Badge Status Keaktifan (Hijau Terang) -->
+                            <span
+                                :class="[
+                                    'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border shadow-2xs',
+                                    (student.student_status || 'aktif').toLowerCase() === 'aktif'
+                                        ? 'bg-emerald-100 text-emerald-950 border-emerald-300'
+                                        : 'bg-rose-50 text-rose-800 border-rose-200'
+                                ]"
+                            >
+                                <span
+                                    class="w-2 h-2 rounded-full"
+                                    :class="(student.student_status || 'aktif').toLowerCase() === 'aktif' ? 'bg-emerald-600' : 'bg-rose-500'"
+                                ></span>
+                                <span>{{ (student.student_status || 'aktif').toLowerCase() === 'aktif' ? 'Aktif' : 'Tidak Aktif' }}</span>
+                            </span>
+
+                            <!-- Badge Jenis Kelamin -->
+                            <span
+                                v-if="student.jk"
+                                :class="[
+                                    'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border',
+                                    student.jk === 'L' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-rose-50 text-rose-700 border-rose-200'
+                                ]"
+                            >
+                                {{ student.jk === 'L' ? 'Laki-laki' : 'Perempuan' }}
+                            </span>
+
+                            <!-- Badge Program -->
+                            <span
+                                v-if="student.program"
+                                class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200"
+                            >
+                                {{ student.program }}
+                            </span>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Tabs -->
-            <div class="flex border-b border-outline-variant/30 px-4 bg-surface-container-low overflow-x-auto">
-                <button
-                    v-for="tab in tabs"
-                    :key="tab.id"
-                    @click="activeTab = tab.id"
-                    :class="[
-                        'flex items-center gap-2 px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap border-b-2',
-                        activeTab === tab.id
-                            ? 'text-primary border-primary'
-                            : 'text-on-surface-variant border-transparent hover:text-on-surface hover:border-outline-variant'
-                    ]"
-                >
-                    <span class="material-symbols-outlined text-[18px]">{{ tab.icon }}</span>
-                    {{ tab.label }}
-                </button>
+            <!-- Segmented Capsule Tabs Navigation -->
+            <div class="mb-5 overflow-x-auto no-scrollbar">
+                <div class="bg-slate-100 p-1.5 rounded-2xl sm:rounded-full inline-flex items-center gap-1 border border-slate-200/90 shrink-0 max-w-full">
+                    <button
+                        v-for="tab in tabs"
+                        :key="tab.id"
+                        type="button"
+                        @click="activeTab = tab.id"
+                        :class="[
+                            'inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs sm:text-sm transition-all duration-150 cursor-pointer shrink-0 whitespace-nowrap',
+                            activeTab === tab.id
+                                ? 'bg-emerald-100 text-emerald-950 font-bold border border-emerald-300 shadow-2xs'
+                                : 'text-slate-600 hover:text-slate-900 font-medium border border-transparent hover:bg-slate-200/60'
+                        ]"
+                    >
+                        <span class="material-symbols-outlined text-[18px]">{{ tab.icon }}</span>
+                        <span>{{ tab.label }}</span>
+                    </button>
+                </div>
             </div>
 
-            <!-- Tab Content -->
-            <div class="flex-1 p-6">
+            <!-- Card Konten Tab Siswa -->
+            <div class="bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-7 shadow-xs">
+                <!-- TAB: Identitas -->
+                <div v-if="activeTab === 'identitas'" class="space-y-6">
+                    <div>
+                        <div class="flex items-center gap-2 mb-4 pb-2 border-b border-slate-100">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span>
+                            <h4 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Identitas Pokok Siswa</h4>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Nama Lengkap</label>
+                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.nama }}</p>
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">NISN</label>
+                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1 font-mono">{{ student.nisn || '-' }}</p>
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">NIPD</label>
+                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1 font-mono">{{ student.nipd || '-' }}</p>
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">NIK</label>
+                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1 font-mono">{{ student.nik || '-' }}</p>
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">No. KK</label>
+                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1 font-mono">{{ student.no_kk || '-' }}</p>
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Unit Kerja</label>
+                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.unit || '-' }}</p>
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Program</label>
+                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">
+                                    <span :class="[
+                                        'inline-flex items-center px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-semibold',
+                                        student.program === 'Boarding' ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' :
+                                        student.program === 'Fullday' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' :
+                                        'bg-slate-100 text-slate-700 border border-slate-200'
+                                    ]">
+                                        {{ student.program || 'Umum' }}
+                                    </span>
+                                </p>
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Kelas</label>
+                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.kelas || '-' }}</p>
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Jenjang</label>
+                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.jenjang || '-' }}</p>
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Tingkat</label>
+                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.tingkat || '-' }}</p>
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Jenis Kelamin</label>
+                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.jk === 'L' ? 'Laki-laki' : 'Perempuan' }}</p>
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Tempat, Tanggal Lahir</label>
+                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.ttl || '-' }}</p>
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Agama</label>
+                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.agama || '-' }}</p>
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">No. WhatsApp 1</label>
+                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.no_wa || '-' }}</p>
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">No. WhatsApp 2</label>
+                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.no_wa_2 || '-' }}</p>
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Email</label>
+                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.email || '-' }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-                            <!-- TAB: Identitas -->
-                            <div v-if="activeTab === 'identitas'" class="space-y-4">
-
-
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-                                    <div>
-                                        <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Nama Lengkap</label>
-                                        <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.nama }}</p>
-                                    </div>
-                                    <div>
-                                        <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">NISN</label>
-                                        <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5 font-mono">{{ student.nisn }}</p>
-                                    </div>
-                                    <div>
-                                        <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">NIPD</label>
-                                        <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5 font-mono">{{ student.nipd }}</p>
-                                    </div>
-                                    <div>
-                                        <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">NIK</label>
-                                        <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5 font-mono">{{ student.nik }}</p>
-                                    </div>
-                                    <div>
-                                        <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">No. KK</label>
-                                        <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5 font-mono">{{ student.no_kk }}</p>
-                                    </div>
-                                    <div>
-                                        <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Unit</label>
-                                        <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.unit || '-' }}</p>
-                                    </div>
-                                    <div>
-                                        <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Program</label>
-                                        <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">
-                                            <span :class="[
-                                                'inline-flex items-center px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-semibold',
-                                                student.program === 'Boarding' ? 'bg-error/10 text-error' :
-                                                student.program === 'Fullday' ? 'bg-secondary/10 text-secondary' :
-                                                'bg-outline-variant/10 text-on-surface-variant'
-                                            ]">
-                                                {{ student.program || 'Umum' }}
-                                            </span>
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Kelas</label>
-                                        <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.kelas }}</p>
-                                    </div>
-                                    <div>
-                                        <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Jenjang</label>
-                                        <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.jenjang || '-' }}</p>
-                                    </div>
-                                    <div>
-                                        <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Tingkat</label>
-                                        <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.tingkat || '-' }}</p>
-                                    </div>
-                                    <div>
-                                        <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Jenis Kelamin</label>
-                                        <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.jk === 'L' ? 'Laki-laki' : 'Perempuan' }}</p>
-                                    </div>
-                                    <div>
-                                        <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Tempat, Tanggal Lahir</label>
-                                        <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.ttl }}</p>
-                                    </div>
-                                    <div>
-                                        <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Agama</label>
-                                        <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.agama }}</p>
-                                    </div>
-                                    <div>
-                                        <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">No. WhatsApp 1</label>
-                                        <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.no_wa || '-' }}</p>
-                                    </div>
-                                    <div>
-                                        <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">No. WhatsApp 2</label>
-                                        <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.no_wa_2 || '-' }}</p>
-                                    </div>
-                                    <div>
-                                        <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Email</label>
-                                        <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.email || '-' }}</p>
-                                    </div>
+                <!-- TAB: Alamat -->
+                <div v-if="activeTab === 'alamat'" class="space-y-6">
+                    <div>
+                        <div class="flex items-center gap-2 mb-4 pb-2 border-b border-slate-100">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span>
+                            <h4 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Data Tempat Tinggal Siswa</h4>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                            <div class="md:col-span-2">
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Alamat Lengkap</label>
+                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ getAlamatLengkap(student) }}</p>
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Jalan</label>
+                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.jalan || '-' }}</p>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">RT</label>
+                                    <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.rt || '-' }}</p>
+                                </div>
+                                <div>
+                                    <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">RW</label>
+                                    <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.rw || '-' }}</p>
                                 </div>
                             </div>
-
-                            <!-- TAB: Alamat -->
-                            <div v-if="activeTab === 'alamat'" class="space-y-4">
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-                                    <div class="md:col-span-2">
-                                        <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Alamat Lengkap</label>
-                                        <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ getAlamatLengkap(student) }}</p>
-                                    </div>
-                                    <div>
-                                        <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Jalan</label>
-                                        <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.jalan || '-' }}</p>
-                                    </div>
-                                    <div class="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">RT</label>
-                                            <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.rt || '-' }}</p>
-                                        </div>
-                                        <div>
-                                            <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">RW</label>
-                                            <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.rw || '-' }}</p>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Dusun</label>
-                                        <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.dusun || '-' }}</p>
-                                    </div>
-                                    <div>
-                                        <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Desa / Kelurahan</label>
-                                        <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.desa || '-' }}</p>
-                                    </div>
-                                    <div>
-                                        <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Kecamatan</label>
-                                        <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.kecamatan || '-' }}</p>
-                                    </div>
-                                    <div>
-                                        <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Kabupaten / Kota</label>
-                                        <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.kabupaten || '-' }}</p>
-                                    </div>
-                                    <div>
-                                        <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Provinsi</label>
-                                        <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.provinsi || '-' }}</p>
-                                    </div>
-                                    <div>
-                                        <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Jenis Tinggal</label>
-                                        <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.jenis_tinggal || '-' }}</p>
-                                    </div>
-                                    <div>
-                                        <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Alat Transportasi</label>
-                                        <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.alat_transportasi || '-' }}</p>
-                                    </div>
-                                    <div>
-                                        <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Jarak Rumah ke Sekolah</label>
-                                        <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.jarak_rumah || '-' }}</p>
-                                    </div>
-                                </div>
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Dusun</label>
+                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.dusun || '-' }}</p>
                             </div>
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Desa / Kelurahan</label>
+                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.desa || '-' }}</p>
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Kecamatan</label>
+                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.kecamatan || '-' }}</p>
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Kabupaten / Kota</label>
+                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.kabupaten || '-' }}</p>
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Provinsi</label>
+                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.provinsi || '-' }}</p>
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Jenis Tinggal</label>
+                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.jenis_tinggal || '-' }}</p>
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Alat Transportasi</label>
+                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.alat_transportasi || '-' }}</p>
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Jarak Rumah ke Sekolah</label>
+                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.jarak_rumah || '-' }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-                            <!-- TAB: Keluarga -->
-                            <div v-if="activeTab === 'keluarga'" class="space-y-6">
-                                <!-- Data Siswa di Keluarga -->
-                                <div>
-                                    <h4 class="text-xs sm:text-sm font-bold text-primary mb-2 sm:mb-3 flex items-center gap-2">
-                                        <span class="material-symbols-outlined text-[18px]">child_care</span>
-                                        Data Siswa dalam Keluarga
-                                    </h4>
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 pl-1">
-                                        <div>
-                                            <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Status dalam Keluarga</label>
-                                            <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.status_keluarga || '-' }}</p>
-                                        </div>
-                                        <div>
-                                            <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Anak ke</label>
-                                            <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.anak_ke || '-' }}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <hr class="border-outline-variant/30" />
+                <!-- TAB: Keluarga -->
+                <div v-if="activeTab === 'keluarga'" class="space-y-6">
+                    <!-- Data Siswa di Keluarga -->
+                    <div>
+                        <div class="flex items-center gap-2 mb-4 pb-2 border-b border-slate-100">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span>
+                            <h4 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Data Siswa dalam Keluarga</h4>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Status dalam Keluarga</label>
+                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.status_keluarga || '-' }}</p>
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Anak ke</label>
+                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.anak_ke || '-' }}</p>
+                            </div>
+                        </div>
+                    </div>
 
-                                <!-- Ayah -->
-                                <div>
-                                    <h4 class="text-xs sm:text-sm font-bold text-primary mb-2 sm:mb-3 flex items-center gap-2">
-                                        <span class="material-symbols-outlined text-[18px]">man</span>
-                                        Data Ayah
-                                    </h4>
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 pl-1">
-                                        <div>
-                                            <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Nama Ayah</label>
-                                            <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.ayah?.nama || '-' }}</p>
-                                        </div>
-                                        <div>
-                                            <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Tahun Lahir</label>
-                                            <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.ayah?.tahun_lahir || '-' }}</p>
-                                        </div>
-                                        <div>
-                                            <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Pekerjaan</label>
-                                            <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.ayah?.pekerjaan || '-' }}</p>
-                                        </div>
-                                        <div>
-                                            <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Penghasilan</label>
-                                            <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.ayah?.penghasilan || '-' }}</p>
-                                        </div>
-                                        <div>
-                                            <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">NIK</label>
-                                            <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5 font-mono">{{ student.ayah?.nik || '-' }}</p>
-                                        </div>
-                                        <div>
-                                            <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Status</label>
-                                            <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.ayah?.status || '-' }}</p>
-                                        </div>
-                                    </div>
-                                </div>
+                    <!-- Ayah -->
+                    <div class="pt-2">
+                        <div class="flex items-center gap-2 mb-4 pb-2 border-b border-slate-100">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span>
+                            <h4 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Data Ayah</h4>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Nama Ayah</label>
+                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.ayah?.nama || '-' }}</p>
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Tahun Lahir</label>
+                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.ayah?.tahun_lahir || '-' }}</p>
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Pekerjaan</label>
+                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.ayah?.pekerjaan || '-' }}</p>
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Penghasilan</label>
+                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.ayah?.penghasilan || '-' }}</p>
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">NIK</label>
+                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1 font-mono">{{ student.ayah?.nik || '-' }}</p>
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Status</label>
+                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.ayah?.status || '-' }}</p>
+                            </div>
+                        </div>
+                    </div>
 
-                                <!-- Ibu -->
-                                <div>
-                                    <h4 class="text-xs sm:text-sm font-bold text-primary mb-2 sm:mb-3 flex items-center gap-2">
-                                        <span class="material-symbols-outlined text-[18px]">woman</span>
-                                        Data Ibu
-                                    </h4>
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 pl-1">
-                                        <div>
-                                            <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Nama Ibu</label>
-                                            <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.ibu?.nama || '-' }}</p>
-                                        </div>
-                                        <div>
-                                            <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Tahun Lahir</label>
-                                            <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.ibu?.tahun_lahir || '-' }}</p>
-                                        </div>
-                                        <div>
-                                            <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Pekerjaan</label>
-                                            <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.ibu?.pekerjaan || '-' }}</p>
-                                        </div>
-                                        <div>
-                                            <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Penghasilan</label>
-                                            <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.ibu?.penghasilan || '-' }}</p>
-                                        </div>
-                                        <div>
-                                            <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">NIK</label>
-                                            <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5 font-mono">{{ student.ibu?.nik || '-' }}</p>
-                                        </div>
-                                        <div>
-                                            <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Status</label>
-                                            <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.ibu?.status || '-' }}</p>
-                                        </div>
-                                    </div>
-                                </div>
+                    <!-- Ibu -->
+                    <div class="pt-2">
+                        <div class="flex items-center gap-2 mb-4 pb-2 border-b border-slate-100">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span>
+                            <h4 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Data Ibu</h4>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Nama Ibu</label>
+                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.ibu?.nama || '-' }}</p>
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Tahun Lahir</label>
+                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.ibu?.tahun_lahir || '-' }}</p>
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Pekerjaan</label>
+                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.ibu?.pekerjaan || '-' }}</p>
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Penghasilan</label>
+                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.ibu?.penghasilan || '-' }}</p>
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">NIK</label>
+                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1 font-mono">{{ student.ibu?.nik || '-' }}</p>
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Status</label>
+                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.ibu?.status || '-' }}</p>
+                            </div>
+                        </div>
+                    </div>
 
-                                <!-- Bisnis / Usaha Keluarga -->
-                                <div>
-                                    <h4 class="text-xs sm:text-sm font-bold text-primary mb-2 sm:mb-3 flex items-center gap-2">
-                                        <span class="material-symbols-outlined text-[18px]">shoppingmode</span>
-                                        Bisnis / Usaha Keluarga
-                                    </h4>
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 pl-1">
-                                        <div>
-                                            <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Memiliki Bisnis/Usaha</label>
-                                            <p class="mt-0.5">
-                                                <span
-                                                    v-if="student.bisnis !== null"
-                                                    :class="[
-                                                        'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold',
-                                                        student.bisnis?.has_bisnis ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'
-                                                    ]"
-                                                >
-                                                    <span class="material-symbols-outlined text-[12px]">{{ student.bisnis?.has_bisnis ? 'store' : 'store_mall_directory' }}</span>
-                                                    {{ student.bisnis?.has_bisnis ? 'Ya' : 'Tidak' }}
+                    <!-- Bisnis / Usaha Keluarga -->
+                    <div class="pt-2">
+                        <div class="flex items-center gap-2 mb-4 pb-2 border-b border-slate-100">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span>
+                            <h4 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Bisnis / Usaha Keluarga</h4>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Memiliki Bisnis/Usaha</label>
+                                <p class="mt-1">
+                                    <span
+                                        v-if="student.bisnis !== null"
+                                        :class="[
+                                            'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold',
+                                            student.bisnis?.has_bisnis ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-slate-100 text-slate-600 border border-slate-200'
+                                        ]"
+                                    >
+                                        <span class="material-symbols-outlined text-[14px]">{{ student.bisnis?.has_bisnis ? 'store' : 'store_mall_directory' }}</span>
+                                        {{ student.bisnis?.has_bisnis ? 'Ya' : 'Tidak' }}
+                                    </span>
+                                    <span v-else class="text-xs sm:text-sm font-semibold text-slate-900">-</span>
+                                </p>
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Jenis Bisnis/Usaha</label>
+                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.bisnis?.jenis_bisnis || '-' }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Wali -->
+                    <div v-if="student.wali" class="pt-2">
+                        <div class="flex items-center gap-2 mb-4 pb-2 border-b border-slate-100">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span>
+                            <h4 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Data Wali</h4>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Nama Wali</label>
+                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.wali.nama }}</p>
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Hubungan</label>
+                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.wali.hubungan || '-' }}</p>
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Pekerjaan</label>
+                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.wali.pekerjaan || '-' }}</p>
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Penghasilan</label>
+                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.wali.penghasilan || '-' }}</p>
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">NIK</label>
+                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1 font-mono">{{ student.wali.nik || '-' }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Saudara -->
+                    <div v-if="student.saudara && student.saudara.length > 0" class="pt-2">
+                        <div class="flex items-center gap-2 mb-4 pb-2 border-b border-slate-100">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span>
+                            <h4 class="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                                Data Saudara
+                                <span class="text-xs font-normal text-slate-400 lowercase">(untuk penawaran PSB)</span>
+                            </h4>
+                        </div>
+                        <div class="overflow-x-auto rounded-2xl border border-slate-200">
+                            <table class="w-full text-xs sm:text-sm">
+                                <thead>
+                                    <tr class="bg-slate-50 text-slate-600 border-b border-slate-200">
+                                        <th class="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider">No</th>
+                                        <th class="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider">Nama</th>
+                                        <th class="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider">Tanggal Lahir</th>
+                                        <th class="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider">Usia (Tahun)</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100">
+                                    <tr v-for="(sdr, idx) in student.saudara" :key="idx" class="hover:bg-slate-50/60">
+                                        <td class="px-4 py-2.5 text-slate-500 font-medium">{{ idx + 1 }}</td>
+                                        <td class="px-4 py-2.5 text-slate-900 font-bold">{{ sdr.nama }}</td>
+                                        <td class="px-4 py-2.5 text-slate-600">{{ sdr.tanggal_lahir || '-' }}</td>
+                                        <td class="px-4 py-2.5 text-slate-600">{{ hitungUsia(sdr.tanggal_lahir) }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB: Registrasi -->
+                <div v-if="activeTab === 'registrasi'" class="space-y-6">
+                    <div>
+                        <div class="flex items-center gap-2 mb-4 pb-2 border-b border-slate-100">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span>
+                            <h4 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Data Pendaftaran Siswa</h4>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Status Registrasi</label>
+                                <p class="mt-1">
+                                    <span
+                                        v-if="student.status_registrasi"
+                                        :class="[
+                                            'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border',
+                                            student.status_registrasi === 'Siswa Baru' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-blue-50 text-blue-800 border-blue-200'
+                                        ]"
+                                    >
+                                        {{ student.status_registrasi }}
+                                    </span>
+                                    <span v-else class="text-xs sm:text-sm font-semibold text-slate-900">-</span>
+                                </p>
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Sekolah Asal</label>
+                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.sekolah_asal || '-' }}</p>
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Diterima di Jenjang / Kelas</label>
+                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.diterima_di_jenjang || '-' }}</p>
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Tanggal Diterima</label>
+                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.formatted_tanggal_diterima || '-' }}</p>
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Sumber Informasi PSB</label>
+                                <p class="mt-1">
+                                    <span
+                                        v-if="student.info_psb"
+                                        class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200"
+                                    >
+                                        <span class="material-symbols-outlined text-[14px]">campaign</span>
+                                        {{ student.info_psb }}
+                                    </span>
+                                    <span v-else class="text-xs sm:text-sm font-semibold text-slate-900">-</span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Riwayat Keaktifan Siswa Timeline -->
+                    <div class="mt-6 pt-2" v-if="student.riwayat_keaktifan && student.riwayat_keaktifan.length > 0">
+                        <div class="flex items-center gap-2 mb-4 pb-2 border-b border-slate-100">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span>
+                            <h4 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Riwayat Keaktifan Siswa</h4>
+                        </div>
+                        <div class="overflow-x-auto rounded-2xl border border-slate-200 shadow-2xs relative">
+                            <table class="w-full text-left text-xs sm:text-sm border-collapse whitespace-nowrap">
+                                <thead>
+                                    <tr class="border-b border-slate-200 bg-slate-50">
+                                        <th class="p-3.5 font-bold text-slate-700 min-w-[160px] sticky left-0 z-10 border-r border-slate-200 bg-slate-50">Unit</th>
+                                        <th v-for="header in timelineHeaders" :key="header.key" class="p-3.5 font-bold text-slate-700 text-center">
+                                            {{ header.ta }} <br/>
+                                            <span class="text-xs text-slate-500 font-medium">{{ header.semester }}</span>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100">
+                                    <tr v-for="row in timelineRows" :key="row.unit" class="hover:bg-slate-50/60">
+                                        <td class="p-3.5 text-slate-800 font-bold bg-white sticky left-0 z-10 border-r border-slate-100">
+                                            {{ row.unit }}
+                                        </td>
+                                        <td v-for="header in timelineHeaders" :key="header.key" class="p-3.5 text-center min-w-[160px]">
+                                            <template v-if="row.data[header.key]">
+                                                <span v-if="row.data[header.key].status === 'aktif'" class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-950 border border-emerald-300 shadow-2xs">
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                                                    Kelas {{ row.data[header.key].kelas || 'Aktif' }}
                                                 </span>
-                                                <span v-else class="text-xs sm:text-sm font-medium text-on-surface">-</span>
-                                            </p>
-                                        </div>
-                                        <div>
-                                            <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Jenis Bisnis/Usaha</label>
-                                            <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.bisnis?.jenis_bisnis || '-' }}</p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Wali -->
-                                <div v-if="student.wali">
-                                    <h4 class="text-xs sm:text-sm font-bold text-primary mb-2 sm:mb-3 flex items-center gap-2">
-                                        <span class="material-symbols-outlined text-[18px]">supervisor_account</span>
-                                        Data Wali
-                                    </h4>
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 pl-1">
-                                        <div>
-                                            <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Nama Wali</label>
-                                            <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.wali.nama }}</p>
-                                        </div>
-                                        <div>
-                                            <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Hubungan</label>
-                                            <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.wali.hubungan || '-' }}</p>
-                                        </div>
-                                        <div>
-                                            <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Pekerjaan</label>
-                                            <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.wali.pekerjaan || '-' }}</p>
-                                        </div>
-                                        <div>
-                                            <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Penghasilan</label>
-                                            <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.wali.penghasilan || '-' }}</p>
-                                        </div>
-                                        <div>
-                                            <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">NIK</label>
-                                            <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5 font-mono">{{ student.wali.nik || '-' }}</p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Saudara -->
-                                <div v-if="student.saudara && student.saudara.length > 0">
-                                    <h4 class="text-xs sm:text-sm font-bold text-primary mb-2 sm:mb-3 flex items-center gap-2">
-                                        <span class="material-symbols-outlined text-[18px]">group</span>
-                                        Data Saudara
-                                        <span class="text-xs font-normal text-on-surface-variant">(untuk keperluan penawaran PSB)</span>
-                                    </h4>
-                                    <div class="overflow-x-auto rounded-lg border border-outline-variant/30">
-                                        <table class="w-full text-xs sm:text-sm">
-                                            <thead>
-                                                <tr class="bg-surface-container-low text-on-surface-variant">
-                                                    <th class="px-4 py-2 text-left text-[10px] sm:text-xs uppercase tracking-wider">No</th>
-                                                    <th class="px-4 py-2 text-left text-[10px] sm:text-xs uppercase tracking-wider">Nama</th>
-                                                    <th class="px-4 py-2 text-left text-[10px] sm:text-xs uppercase tracking-wider">Tanggal Lahir Lengkap</th>
-                                                    <th class="px-4 py-2 text-left text-[10px] sm:text-xs uppercase tracking-wider">Usia (Tahun)</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody class="divide-y divide-outline-variant/10">
-                                                <tr v-for="(sdr, idx) in student.saudara" :key="idx">
-                                                    <td class="px-4 py-2 text-on-surface-variant">{{ idx + 1 }}</td>
-                                                    <td class="px-4 py-2 text-on-surface font-medium">{{ sdr.nama }}</td>
-                                                    <td class="px-4 py-2 text-on-surface-variant">{{ sdr.tanggal_lahir || '-' }}</td>
-                                                    <td class="px-4 py-2 text-on-surface-variant">{{ hitungUsia(sdr.tanggal_lahir) }}</td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- TAB: Registrasi -->
-                            <div v-if="activeTab === 'registrasi'" class="space-y-4">
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-                                    <div>
-                                        <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Status Registrasi</label>
-                                        <p class="mt-0.5">
-                                            <span
-                                                v-if="student.status_registrasi"
-                                                :class="[
-                                                    'inline-flex items-center px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-semibold',
-                                                    student.status_registrasi === 'Siswa Baru' ? 'bg-primary/10 text-primary' : 'bg-secondary/10 text-secondary'
-                                                ]"
-                                            >
-                                                {{ student.status_registrasi }}
-                                            </span>
-                                            <span v-else class="text-xs sm:text-sm font-medium text-on-surface">-</span>
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Sekolah Asal</label>
-                                        <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.sekolah_asal || '-' }}</p>
-                                    </div>
-                                    <div>
-                                        <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Diterima di Jenjang / Kelas</label>
-                                        <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.diterima_di_jenjang || '-' }}</p>
-                                    </div>
-                                    <div>
-                                        <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Tanggal Diterima</label>
-                                        <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ student.formatted_tanggal_diterima || '-' }}</p>
-                                    </div>
-                                    <div class="md:col-span-2">
-                                        <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Sumber Informasi PSB</label>
-                                        <p class="mt-0.5">
-                                            <span
-                                                v-if="student.info_psb"
-                                                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-semibold bg-primary/10 text-primary"
-                                            >
-                                                <span class="material-symbols-outlined text-[13px]">campaign</span>
-                                                {{ student.info_psb }}
-                                            </span>
-                                            <span v-else class="text-xs sm:text-sm font-medium text-on-surface">-</span>
-                                        </p>
-                                    </div>
-                                </div>
-                                
-                                <div class="mt-6" v-if="student.riwayat_keaktifan && student.riwayat_keaktifan.length > 0">
-                                    <h4 class="text-xs sm:text-sm font-bold text-primary mb-3 flex items-center gap-2">
-                                        <span class="material-symbols-outlined text-[18px]">history</span>
-                                        Riwayat Keaktifan Siswa
-                                    </h4>
-                                    <div class="overflow-x-auto rounded-xl border border-outline-variant/30 relative">
-                                        <table class="w-full text-left text-sm border-collapse whitespace-nowrap">
-                                            <thead>
-                                                <tr class="border-b border-outline-variant/30">
-                                                    <th class="p-3 font-semibold text-on-surface min-w-[160px] bg-surface-container-low sticky left-0 z-10 border-r border-outline-variant/30 shadow-[4px_0_12px_rgba(0,0,0,0.03)]">Unit</th>
-                                                    <th v-for="header in timelineHeaders" :key="header.key" class="p-3 font-semibold text-on-surface text-center bg-surface-container-low/50">
-                                                        {{ header.ta }} <br/>
-                                                        <span class="text-xs text-on-surface-variant font-medium">{{ header.semester }}</span>
-                                                    </th>
-                                                </tr>
-                                            </thead>
-                                            <tbody class="divide-y divide-outline-variant/30">
-                                                <tr v-for="row in timelineRows" :key="row.unit">
-                                                    <td class="p-3 text-on-surface-variant font-bold bg-white sticky left-0 z-10 border-r border-outline-variant/30 shadow-[4px_0_12px_rgba(0,0,0,0.03)]">
-                                                        {{ row.unit }}
-                                                    </td>
-                                                    <td v-for="header in timelineHeaders" :key="header.key" class="p-3 text-center min-w-[160px] hover:bg-surface-container-low/30 transition-colors">
-                                                        <template v-if="row.data[header.key]">
-                                                            <span v-if="row.data[header.key].status === 'aktif'" class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm">
-                                                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_4px_rgba(16,185,129,0.5)]"></span>
-                                                                Kelas {{ row.data[header.key].kelas || 'Aktif' }}
-                                                            </span>
-                                                            <div v-else class="flex flex-col items-center justify-center">
-                                                                <span class="text-error font-semibold capitalize text-xs bg-error/10 px-2 py-1 rounded">
-                                                                    {{ row.data[header.key].status.replace('_', ' ') }}
-                                                                </span>
-                                                                <span v-if="row.data[header.key].keterangan" class="text-[10px] text-error/80 mt-1 max-w-[140px] truncate" :title="row.data[header.key].keterangan">
-                                                                    ({{ row.data[header.key].keterangan }})
-                                                                </span>
-                                                            </div>
-                                                        </template>
-                                                        <template v-else>
-                                                            <span class="text-outline-variant/50">-</span>
-                                                        </template>
-                                                    </td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- TAB: Kesejahteraan -->
-                            <div v-if="activeTab === 'kesejahteraan'" class="space-y-6">
-                                <div>
-                                    <h4 class="text-xs sm:text-sm font-bold text-primary mb-2 sm:mb-3 flex items-center gap-2">
-                                        <span class="material-symbols-outlined text-[18px]">account_balance</span>
-                                        Status Bantuan Pemerintah & Kesejahteraan
-                                    </h4>
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <!-- PIP -->
-                                        <div class="p-4 rounded-xl border border-outline-variant/30 bg-surface-container-low">
-                                            <div class="flex items-center justify-between mb-2">
-                                                <span class="text-sm font-semibold text-on-surface">Kelayakan PIP</span>
-                                                <span
-                                                    :class="[
-                                                        'text-xs px-2.5 py-1 rounded-full font-medium',
-                                                        student.bantuan?.pip ? 'bg-primary/10 text-primary' : 'bg-outline-variant/20 text-on-surface-variant'
-                                                    ]"
-                                                >
-                                                    {{ student.bantuan?.pip ? 'Layak' : 'Tidak' }}
-                                                </span>
-                                            </div>
-                                            <p class="text-xs text-on-surface-variant mt-2">Alasan Layak PIP: <span class="text-on-surface">{{ student.bantuan?.pip_keterangan || 'Tidak ada data' }}</span></p>
-                                        </div>
-
-                                        <!-- KIP -->
-                                        <div class="p-4 rounded-xl border border-outline-variant/30 bg-surface-container-low">
-                                            <div class="flex items-center justify-between mb-2">
-                                                <span class="text-sm font-semibold text-on-surface">Penerima PIP</span>
-                                                <span
-                                                    :class="[
-                                                        'text-xs px-2.5 py-1 rounded-full font-medium',
-                                                        student.bantuan?.kip ? 'bg-primary/10 text-primary' : 'bg-outline-variant/20 text-on-surface-variant'
-                                                    ]"
-                                                >
-                                                    {{ student.bantuan?.kip ? 'Menerima' : 'Tidak' }}
-                                                </span>
-                                            </div>
-                                            <div class="flex flex-col gap-1 mt-2">
-                                                <p class="text-xs text-on-surface-variant">No. KIP: <span class="font-mono text-on-surface">{{ student.bantuan?.no_kip || 'Tidak ada data' }}</span></p>
-                                                <p class="text-xs text-on-surface-variant">Nama di KIP: <span class="text-on-surface">{{ student.bantuan?.nama_di_kip || 'Tidak ada data' }}</span></p>
-                                            </div>
-                                        </div>
-
-                                        <!-- Desil -->
-                                        <div class="p-4 rounded-xl border border-outline-variant/30 bg-surface-container-low md:col-span-2">
-                                            <div class="flex items-center gap-3">
-                                                <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                                                    <span class="material-symbols-outlined text-primary">pie_chart</span>
+                                                <div v-else class="flex flex-col items-center justify-center">
+                                                    <span class="text-rose-700 font-bold capitalize text-xs bg-rose-50 border border-rose-200 px-2.5 py-0.5 rounded-full">
+                                                        {{ row.data[header.key].status.replace('_', ' ') }}
+                                                    </span>
+                                                    <span v-if="row.data[header.key].keterangan" class="text-[10px] text-rose-600 mt-1 max-w-[140px] truncate" :title="row.data[header.key].keterangan">
+                                                        ({{ row.data[header.key].keterangan }})
+                                                    </span>
                                                 </div>
-                                                <div>
-                                                    <p class="text-xs text-on-surface-variant">Kategori Kesejahteraan (Desil)</p>
-                                                    <p class="text-sm font-semibold text-on-surface mt-0.5">
-                                                        {{ student.bantuan?.desil ? 'Desil ' + student.bantuan.desil : 'Belum ada data Desil' }}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
+                                            </template>
+                                            <template v-else>
+                                                <span class="text-slate-300">-</span>
+                                            </template>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB: Kesejahteraan -->
+                <div v-if="activeTab === 'kesejahteraan'" class="space-y-6">
+                    <div>
+                        <div class="flex items-center gap-2 mb-4 pb-2 border-b border-slate-100">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span>
+                            <h4 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Status Bantuan Pemerintah & Kesejahteraan</h4>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- PIP -->
+                            <div class="p-4 rounded-2xl border border-slate-200 bg-slate-50/70">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-xs sm:text-sm font-bold text-slate-800">Kelayakan PIP</span>
+                                    <span
+                                        :class="[
+                                            'text-xs px-2.5 py-0.5 rounded-full font-bold border',
+                                            student.bantuan?.pip ? 'bg-emerald-100 text-emerald-950 border-emerald-300' : 'bg-slate-100 text-slate-500 border-slate-200'
+                                        ]"
+                                    >
+                                        {{ student.bantuan?.pip ? 'Layak' : 'Tidak Layak' }}
+                                    </span>
                                 </div>
-                                <div>
-                                    <h4 class="text-xs sm:text-sm font-bold text-primary mb-2 sm:mb-3 flex items-center gap-2 mt-4">
-                                        <span class="material-symbols-outlined text-[18px]">accessible</span>
-                                        Kebutuhan Khusus
-                                    </h4>
-                                    <div class="p-4 rounded-xl border border-outline-variant/30 bg-surface-container-low">
-                                        <p class="text-sm font-medium text-on-surface">{{ student.kebutuhan_khusus || 'Tidak ada' }}</p>
-                                    </div>
+                                <p class="text-xs text-slate-500 mt-2">Alasan Layak PIP: <span class="font-semibold text-slate-800">{{ student.bantuan?.pip_keterangan || 'Tidak ada data' }}</span></p>
+                            </div>
+
+                            <!-- KIP -->
+                            <div class="p-4 rounded-2xl border border-slate-200 bg-slate-50/70">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-xs sm:text-sm font-bold text-slate-800">Penerima KIP</span>
+                                    <span
+                                        :class="[
+                                            'text-xs px-2.5 py-0.5 rounded-full font-bold border',
+                                            student.bantuan?.kip ? 'bg-emerald-100 text-emerald-950 border-emerald-300' : 'bg-slate-100 text-slate-500 border-slate-200'
+                                        ]"
+                                    >
+                                        {{ student.bantuan?.kip ? 'Menerima' : 'Tidak Menerima' }}
+                                    </span>
+                                </div>
+                                <div class="flex flex-col gap-1 mt-2">
+                                    <p class="text-xs text-slate-500">No. KIP: <span class="font-mono font-semibold text-slate-800">{{ student.bantuan?.no_kip || '-' }}</span></p>
+                                    <p class="text-xs text-slate-500">Nama di KIP: <span class="font-semibold text-slate-800">{{ student.bantuan?.nama_di_kip || '-' }}</span></p>
                                 </div>
                             </div>
 
+                            <!-- Desil -->
+                            <div class="p-4 rounded-2xl border border-slate-200 bg-slate-50/70 md:col-span-2">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-2xl bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-800 shrink-0">
+                                        <span class="material-symbols-outlined text-[20px]">pie_chart</span>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Kategori Kesejahteraan (Desil)</p>
+                                        <p class="text-sm font-bold text-slate-900 mt-0.5">
+                                            {{ student.bantuan?.desil ? 'Desil ' + student.bantuan.desil : 'Belum ada data Desil' }}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Kebutuhan Khusus -->
+                    <div class="pt-2">
+                        <div class="flex items-center gap-2 mb-4 pb-2 border-b border-slate-100">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span>
+                            <h4 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Kebutuhan Khusus</h4>
+                        </div>
+                        <div class="p-4 rounded-2xl border border-slate-200 bg-slate-50/70">
+                            <p class="text-xs sm:text-sm font-semibold text-slate-800">{{ student.kebutuhan_khusus || 'Tidak ada catatan kebutuhan khusus.' }}</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
