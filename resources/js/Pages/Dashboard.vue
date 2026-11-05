@@ -43,9 +43,9 @@ const canViewEmployee = computed(() => {
                 </div>
 
                 <div class="grid grid-cols-4 sm:grid-cols-5 gap-y-4 gap-x-2">
-                    <!-- 1. Section: Database Siswa -->
+                    <!-- 1. Section: Database Siswa (Langsung ke Data Siswa) -->
                     <Link
-                        href="/section/database-siswa"
+                        href="/students"
                         class="flex flex-col items-center group cursor-pointer text-center"
                     >
                         <div class="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-200/80 flex items-center justify-center text-emerald-800 group-hover:bg-emerald-100 group-active:scale-95 transition-all shadow-2xs">
@@ -54,10 +54,10 @@ const canViewEmployee = computed(() => {
                         <span class="text-[11px] font-semibold text-slate-700 mt-1.5 leading-tight group-hover:text-emerald-950">Database Siswa</span>
                     </Link>
 
-                    <!-- 2. Section: Database Pegawai -->
+                    <!-- 2. Section: Database Pegawai (Langsung ke Data Pegawai) -->
                     <Link
                         v-if="canViewEmployee"
-                        href="/section/database-pegawai"
+                        href="/staff"
                         class="flex flex-col items-center group cursor-pointer text-center"
                     >
                         <div class="w-12 h-12 rounded-2xl bg-teal-50 border border-teal-200/80 flex items-center justify-center text-teal-800 group-hover:bg-teal-100 group-active:scale-95 transition-all shadow-2xs">
@@ -66,9 +66,9 @@ const canViewEmployee = computed(() => {
                         <span class="text-[11px] font-semibold text-slate-700 mt-1.5 leading-tight group-hover:text-teal-950">Database Pegawai</span>
                     </Link>
 
-                    <!-- 3. Section: Administrasi & Aset -->
+                    <!-- 3. Section: Administrasi & Aset (Langsung ke Administrasi) -->
                     <Link
-                        href="/section/administrasi-aset"
+                        href="/administration"
                         class="flex flex-col items-center group cursor-pointer text-center"
                     >
                         <div class="w-12 h-12 rounded-2xl bg-sky-50 border border-sky-200/80 flex items-center justify-center text-sky-800 group-hover:bg-sky-100 group-active:scale-95 transition-all shadow-2xs">
@@ -77,9 +77,9 @@ const canViewEmployee = computed(() => {
                         <span class="text-[11px] font-semibold text-slate-700 mt-1.5 leading-tight group-hover:text-sky-950">Administrasi &amp; Aset</span>
                     </Link>
 
-                    <!-- 4. Section: Akademik -->
+                    <!-- 4. Section: Akademik (Langsung ke Pembelajaran) -->
                     <Link
-                        href="/section/akademik"
+                        href="/pembelajaran/kelas"
                         class="flex flex-col items-center group cursor-pointer text-center"
                     >
                         <div class="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200/80 flex items-center justify-center text-amber-800 group-hover:bg-amber-100 group-active:scale-95 transition-all shadow-2xs">

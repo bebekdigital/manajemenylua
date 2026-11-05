@@ -181,3 +181,4 @@ const maxTypeTotal = computed(() => {
         </div>
     </div>
 </template>
+

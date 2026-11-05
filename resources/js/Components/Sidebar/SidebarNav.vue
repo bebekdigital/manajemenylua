@@ -41,7 +41,7 @@ const canViewEmployee = computed(() => {
         <div class="flex-grow overflow-y-auto custom-scrollbar px-1 py-3 space-y-3">
             <!-- Category: WORKSPACE -->
             <div>
-                <div class="px-3 pb-1 text-[11px] font-bold text-emerald-300/90 tracking-wider uppercase">
+                <div class="px-3 pb-1 text-[10.5px] font-medium text-emerald-200/70 tracking-wider uppercase">
                     Workspace
                 </div>
                 <ul class="space-y-0.5">
@@ -59,7 +59,7 @@ const canViewEmployee = computed(() => {
 
             <!-- Category: DATABASE SISWA -->
             <div>
-                <div class="px-3 pb-1 text-[11px] font-bold text-emerald-300/90 tracking-wider uppercase">
+                <div class="px-3 pb-1 text-[10.5px] font-medium text-emerald-200/70 tracking-wider uppercase">
                     Database Siswa
                 </div>
                 <ul class="space-y-0.5">
@@ -83,7 +83,7 @@ const canViewEmployee = computed(() => {
 
             <!-- Category: DATABASE PEGAWAI -->
             <div v-if="canViewEmployee">
-                <div class="px-3 pb-1 text-[11px] font-bold text-emerald-300/90 tracking-wider uppercase">
+                <div class="px-3 pb-1 text-[10.5px] font-medium text-emerald-200/70 tracking-wider uppercase">
                     Database Pegawai
                 </div>
                 <ul class="space-y-0.5">
@@ -107,7 +107,7 @@ const canViewEmployee = computed(() => {
 
             <!-- Category: ADMINISTRASI & ASET -->
             <div>
-                <div class="px-3 pb-1 text-[11px] font-bold text-emerald-300/90 tracking-wider uppercase">
+                <div class="px-3 pb-1 text-[10.5px] font-medium text-emerald-200/70 tracking-wider uppercase">
                     Administrasi & Aset
                 </div>
                 <ul class="space-y-0.5">
@@ -131,7 +131,7 @@ const canViewEmployee = computed(() => {
 
             <!-- Category: AKADEMIK -->
             <div>
-                <div class="px-3 pb-1 text-[11px] font-bold text-emerald-300/90 tracking-wider uppercase">
+                <div class="px-3 pb-1 text-[10.5px] font-medium text-emerald-200/70 tracking-wider uppercase">
                     Akademik
                 </div>
                 <ul class="space-y-0.5">
@@ -153,7 +153,7 @@ const canViewEmployee = computed(() => {
 
         <!-- Bottom Pinned Section: Pengaturan & Logout (Terpisah di bagian bawah) -->
         <div class="pt-3 border-t border-emerald-800/80 mt-auto shrink-0 px-1">
-            <div class="px-3 pb-1 text-[11px] font-bold text-emerald-300/90 tracking-wider uppercase">
+            <div class="px-3 pb-1 text-[10.5px] font-medium text-emerald-200/70 tracking-wider uppercase">
                 Sistem
             </div>
             <ul class="space-y-0.5">

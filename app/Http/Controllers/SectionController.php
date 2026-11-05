@@ -4,8 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\RolePermission;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
-use Inertia\Response;
 
 class SectionController extends Controller
 {
@@ -116,15 +114,20 @@ class SectionController extends Controller
     ];
 
     /**
-     * Display the section hub page with its submenus.
+     * Redirect the section request directly to its primary submenu.
      */
-    public function show(Request $request, string $slug): Response
+    public function show(Request $request, string $slug)
     {
-        if (! isset($this->sections[$slug])) {
+        $primarySubmenuRoutes = [
+            'database-siswa' => '/students',
+            'database-pegawai' => '/staff',
+            'administrasi-aset' => '/administration',
+            'akademik' => '/pembelajaran/kelas',
+        ];
+
+        if (! isset($primarySubmenuRoutes[$slug])) {
             abort(404, 'Kategori menu tidak ditemukan.');
         }
-
-        $section = $this->sections[$slug];
 
         // Validasi akses khusus Database Pegawai
         if ($slug === 'database-pegawai') {
@@ -138,8 +141,6 @@ class SectionController extends Controller
             }
         }
 
-        return Inertia::render('Section/Show', [
-            'section' => $section,
-        ]);
+        return redirect($primarySubmenuRoutes[$slug]);
     }
 }
