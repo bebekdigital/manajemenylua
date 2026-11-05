@@ -176,20 +176,21 @@ const upcomingAgendas = [
 
 // Mood karakter, diganti bergiliran lewat satu tombol
 const MOOD_OPTIONS = [
-    { id: 'senang', label: 'Senang' },
-    { id: 'semangat', label: 'Semangat' },
-    { id: 'sedih', label: 'Sedih' },
-    { id: 'capek', label: 'Capek' },
+    { id: 'senang', label: 'Senang', icon: 'sentiment_satisfied' },
+    { id: 'semangat', label: 'Semangat', icon: 'bolt' },
+    { id: 'sedih', label: 'Sedih', icon: 'sentiment_dissatisfied' },
+    { id: 'capek', label: 'Capek', icon: 'bedtime' },
 ];
 
 const currentMood = ref('senang');
 
 const currentMoodIndex = computed(() => MOOD_OPTIONS.findIndex((m) => m.id === currentMood.value));
 const currentMoodLabel = computed(() => MOOD_OPTIONS[currentMoodIndex.value]?.label || 'Senang');
+const currentMoodIcon = computed(() => MOOD_OPTIONS[currentMoodIndex.value]?.icon || 'sentiment_satisfied');
 
 const moodButtonTone = computed(() => (activeTimeTheme.value === 'malam'
-    ? 'bg-violet-400/15 border-violet-300/50 text-violet-50 hover:bg-violet-400/25 focus-visible:ring-violet-200'
-    : 'bg-violet-500/10 border-violet-500/40 text-violet-950 hover:bg-violet-500/20 focus-visible:ring-violet-700'));
+    ? 'bg-purple-950/60 border-purple-400/40 text-purple-200 hover:bg-purple-950/75 focus-visible:ring-purple-300'
+    : 'bg-purple-100/75 border-purple-300/80 text-purple-950 hover:bg-purple-100/90 focus-visible:ring-purple-700'));
 
 function cycleMood() {
     const nextIndex = (currentMoodIndex.value + 1) % MOOD_OPTIONS.length;
@@ -451,39 +452,58 @@ onUnmounted(() => {
                         </span>
                     </Link>
 
-                    <!-- Tombol Mood Tunggal (klik untuk ganti bergiliran) -->
-                    <div class="mt-2.5 relative z-20">
+                    <!-- Tombol Mood Tunggal (Gaya Rekap Mingguku: Soft Ungu, Agak Transparan Tanpa Blur, 2 Baris Teks) -->
+                    <div class="mt-2.5 relative z-20 flex items-center">
                         <button
                             type="button"
                             @click="cycleMood"
                             :class="[
-                                'relative overflow-hidden inline-flex items-center gap-2 min-h-[40px] pl-3.5 pr-3 py-1.5 rounded-[9999px] border backdrop-blur-md text-xs font-semibold transition-colors cursor-pointer active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2',
+                                'relative overflow-hidden inline-flex items-center gap-2.5 pl-2.5 pr-4 py-1.5 rounded-full border transition-all duration-200 cursor-pointer active:scale-[0.97] shadow-2xs',
                                 moodButtonTone,
                             ]"
-                            :aria-label="`Mood karakter: ${currentMoodLabel}. Klik untuk mengganti.`"
+                            :aria-label="`Mood hari ini: ${currentMoodLabel}. Klik untuk mengganti.`"
+                            title="Klik untuk mengganti mood hari ini"
                         >
-                            <!-- Motif tipis: titik dan kilau kecil -->
-                            <svg class="absolute inset-0 w-full h-full pointer-events-none opacity-40" aria-hidden="true">
+                            <!-- Motif tipis di latar tombol -->
+                            <svg class="absolute inset-0 w-full h-full pointer-events-none opacity-25" aria-hidden="true">
                                 <defs>
                                     <pattern id="mood-btn-motif" width="14" height="14" patternUnits="userSpaceOnUse">
-                                        <circle cx="2" cy="2" r="0.7" fill="currentColor" />
-                                        <path d="M 9 6 L 9.5 7.5 L 11 8 L 9.5 8.5 L 9 10 L 8.5 8.5 L 7 8 L 8.5 7.5 Z" fill="currentColor" />
+                                        <circle cx="3" cy="3" r="0.7" fill="currentColor" />
+                                        <path d="M 9 6 L 9.6 7.6 L 11.2 8.2 L 9.6 8.8 L 9 10.4 L 8.4 8.8 L 6.8 8.2 L 8.4 7.6 Z" fill="currentColor" />
                                     </pattern>
                                 </defs>
                                 <rect width="100%" height="100%" fill="url(#mood-btn-motif)" />
                             </svg>
 
-                            <span class="relative text-[10px] uppercase tracking-wider opacity-75">Mood</span>
-                            <Transition name="mood-label" mode="out-in">
-                                <span :key="currentMood" class="relative font-bold text-[13px]">{{ currentMoodLabel }}</span>
-                            </Transition>
-                            <span class="relative inline-flex items-center gap-[3px] ml-0.5" aria-hidden="true">
+                            <!-- [icon] di sisi kiri -->
+                            <div class="relative w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-purple-300/35 flex items-center justify-center shrink-0">
+                                <Transition name="mood-label" mode="out-in">
+                                    <span :key="currentMood" class="material-symbols-outlined text-[18px] sm:text-[19px]">
+                                        {{ currentMoodIcon }}
+                                    </span>
+                                </Transition>
+                            </div>
+
+                            <!-- Teks 2 Baris: Atas (Mood hari ini) & Bawah (Senang / Sedih / dll) -->
+                            <div class="relative flex flex-col text-left leading-none py-0.5">
+                                <span class="text-[9.5px] sm:text-[10px] font-medium tracking-wide opacity-75 mb-0.5">
+                                    Mood hari ini
+                                </span>
+                                <Transition name="mood-label" mode="out-in">
+                                    <span :key="currentMood" class="text-xs sm:text-[13px] font-bold tracking-tight">
+                                        {{ currentMoodLabel }}
+                                    </span>
+                                </Transition>
+                            </div>
+
+                            <!-- Indikator titik di sisi kanan -->
+                            <span class="relative inline-flex items-center gap-[3px] ml-1 opacity-70" aria-hidden="true">
                                 <span
                                     v-for="(m, idx) in MOOD_OPTIONS"
                                     :key="m.id"
                                     :class="[
-                                        'block h-1 rounded-[9999px] bg-current transition-all duration-300',
-                                        currentMoodIndex === idx ? 'w-3 opacity-90' : 'w-1 opacity-35',
+                                        'block h-1 rounded-full bg-current transition-all duration-300',
+                                        currentMoodIndex === idx ? 'w-2.5 opacity-90' : 'w-1 opacity-30',
                                     ]"
                                 ></span>
                             </span>
