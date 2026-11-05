@@ -26,7 +26,12 @@ const canViewEmployee = computed(() => {
     <nav class="hidden md:flex bg-emerald-900 border-r border-emerald-800 h-screen w-64 fixed left-0 top-0 flex-col p-3.5 z-40 select-none shadow-sm">
         <!-- Brand Header -->
         <div class="px-2 pt-2 pb-5 border-b border-emerald-800/80 shrink-0">
-            <Link href="/beranda" class="flex items-center space-x-3 group">
+            <Link
+                href="/beranda"
+                :prefetch="['mount', 'hover']"
+                cache-for="5m"
+                class="flex items-center space-x-3 group"
+            >
                 <div class="w-10 h-10 rounded-xl bg-yellow-200 flex items-center justify-center text-emerald-950 shadow-sm shrink-0 group-hover:scale-105 transition-transform duration-200">
                     <span class="material-symbols-outlined filled-icon text-[22px]">school</span>
                 </div>

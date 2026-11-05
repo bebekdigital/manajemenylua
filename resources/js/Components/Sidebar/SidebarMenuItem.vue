@@ -63,6 +63,8 @@ defineProps({
         <Link
             v-else-if="href !== '#'"
             :href="href"
+            :prefetch="['mount', 'hover']"
+            cache-for="5m"
             :class="[
                 'w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-150 cursor-pointer group active:scale-[0.98]',
                 active

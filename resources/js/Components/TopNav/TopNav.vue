@@ -123,6 +123,8 @@ onUnmounted(() => {
                     <!-- Menu: Agenda -->
                     <Link
                         href="/agenda"
+                        :prefetch="['mount', 'hover']"
+                        cache-for="5m"
                         :class="[
                             'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12.5px] sm:text-[13px] font-semibold transition-all cursor-pointer border',
                             isRouteActive('/agenda')
@@ -138,6 +140,8 @@ onUnmounted(() => {
                     <!-- Menu: Info -->
                     <Link
                         href="/info"
+                        :prefetch="['mount', 'hover']"
+                        cache-for="5m"
                         :class="[
                             'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12.5px] sm:text-[13px] font-semibold transition-all cursor-pointer border',
                             isRouteActive('/info')
@@ -153,6 +157,8 @@ onUnmounted(() => {
                     <!-- Menu: Persetujuan (Terhubung Realtime dengan Pengajuan Perizinan Bawahan) -->
                     <Link
                         href="/persetujuan"
+                        :prefetch="['mount', 'hover']"
+                        cache-for="5m"
                         :class="[
                             'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12.5px] sm:text-[13px] font-semibold transition-all cursor-pointer border relative',
                             isRouteActive('/persetujuan')
@@ -193,6 +199,8 @@ onUnmounted(() => {
                 <!-- Desktop Profile Link (Hidden on mobile) -->
                 <Link
                     href="/profile"
+                    :prefetch="['mount', 'hover']"
+                    cache-for="5m"
                     class="hidden lg:flex items-center gap-2.5 p-1 pr-3 bg-surface-container-low hover:bg-surface-container-low/80 border border-outline-variant/30 rounded-full transition-colors cursor-pointer group"
                 >
                     <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0 group-hover:bg-primary/20 transition-colors">
@@ -247,6 +255,8 @@ onUnmounted(() => {
                             <div class="p-1.5 space-y-0.5">
                                 <Link
                                     href="/profile"
+                                    :prefetch="['hover']"
+                                    cache-for="5m"
                                     @click="closeProfileMenu"
                                     class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-on-surface hover:bg-surface-container-low hover:text-primary rounded-xl transition-colors"
                                 >
@@ -255,6 +265,8 @@ onUnmounted(() => {
                                 </Link>
                                 <Link
                                     href="/portal"
+                                    :prefetch="['hover']"
+                                    cache-for="5m"
                                     @click="closeProfileMenu"
                                     class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-on-surface hover:bg-surface-container-low hover:text-primary rounded-xl transition-colors"
                                 >
