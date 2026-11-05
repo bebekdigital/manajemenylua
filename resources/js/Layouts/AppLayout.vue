@@ -14,14 +14,16 @@ const activeRoute = computed(() => {
     if (url.startsWith('/agenda')) return 'agenda';
     if (url.startsWith('/info')) return 'info';
     if (url.startsWith('/persetujuan')) return 'persetujuan';
+    if (url.startsWith('/students/statistics') || url === '/statistics') return 'student-statistics';
     if (url.startsWith('/students')) return 'students';
     if (url.startsWith('/administration')) return 'administration';
+    if (url.startsWith('/staff/statistics')) return 'staff-statistics';
     if (url.startsWith('/staff')) return 'staff';
-    if (url.startsWith('/statistics')) return 'statistics';
     if (url.startsWith('/portal')) return 'portal';
     if (url.startsWith('/pembelajaran')) return 'pembelajaran';
     if (url.startsWith('/kesiswaan')) return 'kesiswaan';
     if (url.startsWith('/profile')) return 'profile';
+    if (url.startsWith('/section')) return 'section';
     return 'overview';
 });
 
@@ -31,14 +33,16 @@ const activeRouteLabel = computed(() => {
     if (route === 'agenda') return 'Agenda Kegiatan';
     if (route === 'info') return 'Pusat Informasi';
     if (route === 'persetujuan') return 'Persetujuan Perizinan';
+    if (route === 'student-statistics') return 'Statistik Siswa';
     if (route === 'students') return 'Data Siswa';
     if (route === 'administration') return 'Administrasi & Cetak Dokumen';
+    if (route === 'staff-statistics') return 'Statistik Pegawai';
     if (route === 'staff') return 'Data Pegawai';
-    if (route === 'statistics') return 'Statistik';
     if (route === 'portal') return 'Pengaturan';
     if (route === 'pembelajaran') return 'Pembelajaran';
     if (route === 'kesiswaan') return 'Kesiswaan';
     if (route === 'profile') return 'Profil Saya';
+    if (route === 'section') return 'Kategori Menu';
     return 'Beranda';
 });
 </script>
@@ -49,7 +53,7 @@ const activeRouteLabel = computed(() => {
         <SidebarNav :current-route="activeRoute" />
 
         <!-- Main Workspace Area -->
-        <div class="flex-grow md:ml-64 flex flex-col min-h-screen transition-all duration-300 min-w-0 overflow-x-hidden pb-16 md:pb-0 bg-white">
+        <div class="flex-grow md:ml-64 flex flex-col min-h-screen transition-all duration-300 min-w-0 overflow-x-hidden pb-24 md:pb-0 bg-white">
             <!-- Sticky Header -->
             <TopNav :page-title="activeRouteLabel" :is-home-overlay="activeRoute === 'overview'" />
 

@@ -17,6 +17,7 @@ use App\Http\Controllers\SchoolClassController;
 use App\Http\Controllers\SchoolLevelController;
 use App\Http\Controllers\SchoolProgramController;
 use App\Http\Controllers\SchoolUnitController;
+use App\Http\Controllers\SectionController;
 use App\Http\Controllers\StatisticsController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\StudentMappingController;
@@ -141,8 +142,13 @@ Route::middleware('auth')->group(function () {
     Route::get('/students/photo/{filename}', [StudentController::class, 'showPhoto'])->name('students.photo');
     Route::get('/students/{nisn}', [StudentController::class, 'show'])->name('students.show');
 
-    // Statistik
+    // Menu Section Hub (Kategori Layanan Mobile & Desktop)
+    Route::get('/section/{slug}', [SectionController::class, 'show'])->name('section.show');
+
+    // Statistik Siswa & Pegawai
     Route::get('/statistics', [StatisticsController::class, 'index'])->name('statistics.index');
+    Route::get('/students/statistics', [StatisticsController::class, 'index'])->name('students.statistics');
+    Route::get('/staff/statistics', [StatisticsController::class, 'staffIndex'])->name('staff.statistics');
 
     // Data Pegawai
     Route::get('/staff', [EmployeeController::class, 'index'])->name('staff.index');

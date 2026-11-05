@@ -32,98 +32,63 @@ const canViewEmployee = computed(() => {
 
         <!-- Konten Utama Bawah Hero (Pada Mobile: melengkung ke atas seperti sheet aplikasi modern) -->
         <div class="relative z-20 bg-white rounded-t-[26px] md:rounded-none -mt-5 md:mt-0 px-4 pt-5 pb-6 md:p-0">
-            <!-- Mobile Navigation Menu Icons: Menu Layanan Akses Cepat -->
+            <!-- Mobile Navigation Menu Icons: Menu Section Layanan -->
             <div class="md:hidden mb-6 bg-white rounded-2xl border border-slate-200 p-4 shadow-xs">
                 <div class="flex items-center justify-between mb-3.5 px-1">
                     <div class="flex items-center gap-2">
                         <div class="w-2 h-2 rounded-full bg-emerald-600"></div>
-                        <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Menu Layanan</h3>
+                        <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Kategori Menu</h3>
                     </div>
-                    <span class="text-[11px] text-slate-400 font-medium">Akses Cepat</span>
+                    <span class="text-[11px] text-slate-400 font-medium">Pilih Section</span>
                 </div>
 
-                <div class="grid grid-cols-4 gap-y-4 gap-x-2">
-                    <!-- 1. Data Siswa -->
+                <div class="grid grid-cols-4 sm:grid-cols-5 gap-y-4 gap-x-2">
+                    <!-- 1. Section: Database Siswa -->
                     <Link
-                        href="/students"
+                        href="/section/database-siswa"
                         class="flex flex-col items-center group cursor-pointer text-center"
                     >
                         <div class="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-200/80 flex items-center justify-center text-emerald-800 group-hover:bg-emerald-100 group-active:scale-95 transition-all shadow-2xs">
                             <span class="material-symbols-outlined text-[24px]">groups</span>
                         </div>
-                        <span class="text-[11px] font-semibold text-slate-700 mt-1.5 leading-tight group-hover:text-emerald-950">Data Siswa</span>
+                        <span class="text-[11px] font-semibold text-slate-700 mt-1.5 leading-tight group-hover:text-emerald-950">Database Siswa</span>
                     </Link>
 
-                    <!-- 2. Data Pegawai -->
+                    <!-- 2. Section: Database Pegawai -->
                     <Link
                         v-if="canViewEmployee"
-                        href="/staff"
+                        href="/section/database-pegawai"
                         class="flex flex-col items-center group cursor-pointer text-center"
                     >
                         <div class="w-12 h-12 rounded-2xl bg-teal-50 border border-teal-200/80 flex items-center justify-center text-teal-800 group-hover:bg-teal-100 group-active:scale-95 transition-all shadow-2xs">
                             <span class="material-symbols-outlined text-[24px]">badge</span>
                         </div>
-                        <span class="text-[11px] font-semibold text-slate-700 mt-1.5 leading-tight group-hover:text-teal-950">Data Pegawai</span>
+                        <span class="text-[11px] font-semibold text-slate-700 mt-1.5 leading-tight group-hover:text-teal-950">Database Pegawai</span>
                     </Link>
 
-                    <!-- 3. Administrasi -->
+                    <!-- 3. Section: Administrasi & Aset -->
                     <Link
-                        href="/administration"
+                        href="/section/administrasi-aset"
                         class="flex flex-col items-center group cursor-pointer text-center"
                     >
                         <div class="w-12 h-12 rounded-2xl bg-sky-50 border border-sky-200/80 flex items-center justify-center text-sky-800 group-hover:bg-sky-100 group-active:scale-95 transition-all shadow-2xs">
-                            <span class="material-symbols-outlined text-[24px]">description</span>
+                            <span class="material-symbols-outlined text-[24px]">folder_shared</span>
                         </div>
-                        <span class="text-[11px] font-semibold text-slate-700 mt-1.5 leading-tight group-hover:text-sky-950">Administrasi</span>
+                        <span class="text-[11px] font-semibold text-slate-700 mt-1.5 leading-tight group-hover:text-sky-950">Administrasi &amp; Aset</span>
                     </Link>
 
-                    <!-- 4. Statistik -->
+                    <!-- 4. Section: Akademik -->
                     <Link
-                        href="/statistics"
-                        class="flex flex-col items-center group cursor-pointer text-center"
-                    >
-                        <div class="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-200/80 flex items-center justify-center text-indigo-800 group-hover:bg-indigo-100 group-active:scale-95 transition-all shadow-2xs">
-                            <span class="material-symbols-outlined text-[24px]">bar_chart</span>
-                        </div>
-                        <span class="text-[11px] font-semibold text-slate-700 mt-1.5 leading-tight group-hover:text-indigo-950">Statistik</span>
-                    </Link>
-
-                    <!-- 5. Pembelajaran -->
-                    <Link
-                        href="/pembelajaran/kelas"
+                        href="/section/akademik"
                         class="flex flex-col items-center group cursor-pointer text-center"
                     >
                         <div class="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200/80 flex items-center justify-center text-amber-800 group-hover:bg-amber-100 group-active:scale-95 transition-all shadow-2xs">
                             <span class="material-symbols-outlined text-[24px]">menu_book</span>
                         </div>
-                        <span class="text-[11px] font-semibold text-slate-700 mt-1.5 leading-tight group-hover:text-amber-950">Pembelajaran</span>
+                        <span class="text-[11px] font-semibold text-slate-700 mt-1.5 leading-tight group-hover:text-amber-950">Akademik</span>
                     </Link>
 
-                    <!-- 6. Kesiswaan -->
-                    <Link
-                        href="#"
-                        class="flex flex-col items-center group cursor-pointer text-center"
-                    >
-                        <div class="w-12 h-12 rounded-2xl bg-purple-50 border border-purple-200/80 flex items-center justify-center text-purple-800 group-hover:bg-purple-100 group-active:scale-95 transition-all shadow-2xs">
-                            <span class="material-symbols-outlined text-[24px]">diversity_3</span>
-                        </div>
-                        <span class="text-[11px] font-semibold text-slate-700 mt-1.5 leading-tight group-hover:text-purple-950">Kesiswaan</span>
-                    </Link>
-
-                    <!-- 7. Aset -->
-                    <a
-                        href="https://assetulil.com"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="flex flex-col items-center group cursor-pointer text-center"
-                    >
-                        <div class="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-200/80 flex items-center justify-center text-rose-800 group-hover:bg-rose-100 group-active:scale-95 transition-all shadow-2xs">
-                            <span class="material-symbols-outlined text-[24px]">inventory_2</span>
-                        </div>
-                        <span class="text-[11px] font-semibold text-slate-700 mt-1.5 leading-tight group-hover:text-rose-950">Aset</span>
-                    </a>
-
-                    <!-- 8. Pengaturan -->
+                    <!-- 5. Pengaturan Sistem -->
                     <Link
                         href="/portal"
                         class="flex flex-col items-center group cursor-pointer text-center"
