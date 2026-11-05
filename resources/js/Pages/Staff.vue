@@ -504,32 +504,33 @@ function onPageChange(p) {
                 </div>
 
                 <!-- 2. Filter Status Keaktifan (DI ATAS SEARCH) -->
-                <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 mb-3">
-                    <button
-                        v-for="tab in statusTabs"
-                        :key="tab.key"
-                        type="button"
-                        @click="onFilterStatus(tab.key)"
-                        :class="[
-                            'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all shrink-0 cursor-pointer',
-                            statusFilter === tab.key
-                                ? 'bg-emerald-100 text-emerald-950 font-bold border border-emerald-300 shadow-2xs'
-                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80 border border-transparent'
-                        ]"
-                    >
-                        <span v-if="tab.key === 'aktif'" class="w-2 h-2 rounded-full bg-emerald-600 inline-block"></span>
-                        <span>{{ tab.label }}</span>
-                        <span
+                <div class="mb-3">
+                    <div class="bg-slate-100 p-1 rounded-full inline-flex items-center gap-0.5 overflow-x-auto no-scrollbar max-w-full border border-slate-200/90 shrink-0">
+                        <button
+                            v-for="tab in statusTabs"
+                            :key="tab.key"
+                            type="button"
+                            @click="onFilterStatus(tab.key)"
                             :class="[
-                                'px-2 py-0.5 rounded-full text-[10.5px] font-bold',
+                                'inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs transition-all duration-150 cursor-pointer shrink-0',
                                 statusFilter === tab.key
-                                    ? 'bg-emerald-900 text-yellow-200'
-                                    : 'bg-slate-200 text-slate-600'
+                                    ? 'bg-white text-slate-900 font-bold shadow-xs ring-1 ring-slate-200/80'
+                                    : 'text-slate-600 hover:text-slate-900 font-medium'
                             ]"
                         >
-                            {{ tab.count }}
-                        </span>
-                    </button>
+                            <span>{{ tab.label }}</span>
+                            <span
+                                :class="[
+                                    'px-2 py-0.5 rounded-full text-[10.5px] leading-none transition-colors font-bold',
+                                    statusFilter === tab.key
+                                        ? 'bg-emerald-950 text-emerald-300'
+                                        : 'bg-slate-200 text-slate-600'
+                                ]"
+                            >
+                                {{ tab.count }}
+                            </span>
+                        </button>
+                    </div>
                 </div>
 
                 <!-- 3. Search Bar + Tombol Filter -->

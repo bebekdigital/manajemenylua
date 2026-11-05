@@ -470,7 +470,11 @@ function onResetFilters() {
 }
 
 function onPageChange(p) {
+    if (p < 1 || p > totalPages.value) return;
     currentPage.value = p;
+    if (window.innerWidth < 768) {
+        window.scrollTo({ top: 120, behavior: 'smooth' });
+    }
 }
 
 const downloadTemplate = async () => {
@@ -512,7 +516,7 @@ const downloadTemplate = async () => {
 </script>
 
 <template>
-    <div ref="pageContainerRef" class="flex-1 overflow-y-auto px-4 py-3 sm:py-6 md:px-8 md:py-7 bg-white min-h-screen">
+    <div ref="pageContainerRef" class="flex-1 overflow-y-auto px-4 pt-6 pb-12 md:px-8 md:py-7 bg-white min-h-screen">
         <Head title="Database Siswa - Foundation Data Center" />
 
         <div class="max-w-[1440px] mx-auto">
@@ -564,28 +568,27 @@ const downloadTemplate = async () => {
                     </div>
                 </div>
 
-                <!-- 2. Filter Status Keaktifan (DI ATAS SEARCH) -->
+                <!-- 2. Filter Status Keaktifan (DI ATAS SEARCH) Sesuai Referensi -->
                 <div class="mb-3">
-                    <div class="flex items-center gap-1.5 p-1 bg-slate-100/90 rounded-2xl overflow-x-auto no-scrollbar border border-slate-200/60 shadow-2xs">
+                    <div class="bg-slate-100 p-1 rounded-full inline-flex items-center gap-0.5 overflow-x-auto no-scrollbar max-w-full border border-slate-200/90 shrink-0">
                         <button
                             v-for="tab in statusTabs"
                             :key="tab.key"
                             type="button"
                             @click="onFilterStatus(tab.key)"
                             :class="[
-                                'px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all duration-150 flex items-center gap-1.5 cursor-pointer whitespace-nowrap',
+                                'inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs transition-all duration-150 cursor-pointer shrink-0',
                                 statusFilter === tab.key
-                                    ? 'bg-white text-slate-900 font-bold shadow-xs border border-slate-200/80'
-                                    : 'text-slate-600 hover:text-slate-900'
+                                    ? 'bg-white text-slate-900 font-bold shadow-xs ring-1 ring-slate-200/80'
+                                    : 'text-slate-600 hover:text-slate-900 font-medium'
                             ]"
                         >
-                            <span v-if="tab.key === 'aktif'" class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
                             <span>{{ tab.label }}</span>
                             <span
                                 :class="[
-                                    'text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center leading-tight',
+                                    'px-2 py-0.5 rounded-full text-[10.5px] leading-none transition-colors font-bold',
                                     statusFilter === tab.key
-                                        ? 'bg-emerald-900 text-yellow-200'
+                                        ? 'bg-emerald-950 text-emerald-300'
                                         : 'bg-slate-200 text-slate-600'
                                 ]"
                             >
@@ -595,107 +598,118 @@ const downloadTemplate = async () => {
                     </div>
                 </div>
 
-                <!-- 3. Toolbar Pencarian & Tombol Filter (Berdampingan) -->
-                <div class="flex items-center gap-2 mb-2">
+                <!-- 3. Toolbar Pencarian & Tombol Filter Sesuai Data Pegawai -->
+                <div class="flex items-center gap-2 mb-3">
                     <div class="relative flex-1 min-w-0">
-                        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px] pointer-events-none">
+                        <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-[20px] pointer-events-none">
                             search
                         </span>
                         <input
                             v-model="searchQuery"
                             type="text"
-                            placeholder="Cari nama, NISN, NIPD, no. WA..."
-                            class="w-full pl-9 pr-8 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 shadow-2xs"
+                            placeholder="Cari nama, NISN, NIPD, angkatan, no. WA..."
+                            class="w-full pl-10 pr-9 py-2.5 rounded-xl border border-slate-300 bg-white text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-700 shadow-2xs transition-all"
+                            @input="currentPage = 1"
                         />
                         <button
                             v-if="searchQuery"
                             type="button"
                             @click="searchQuery = ''; currentPage = 1"
-                            class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer"
+                            class="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 rounded-full"
                         >
-                            <span class="material-symbols-outlined text-[16px]">close</span>
+                            <span class="material-symbols-outlined text-[16px] block">close</span>
                         </button>
                     </div>
 
-                    <!-- Tombol Pemicu Bottom Sheet Filter Mobile -->
+                    <!-- Tombol Filter Popover/Drawer dengan Icon filter_alt -->
                     <button
                         type="button"
                         @click="isMobileFilterDrawerOpen = !isMobileFilterDrawerOpen"
                         :class="[
-                            'inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-semibold transition-all shrink-0 cursor-pointer active:scale-95 shadow-2xs',
+                            'h-[42px] px-3.5 rounded-xl border flex items-center gap-1.5 transition-all cursor-pointer shrink-0 shadow-2xs',
                             activeExtraFiltersCount > 0
-                                ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
-                                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                                ? 'bg-emerald-50 border-emerald-300 text-emerald-950 font-bold'
+                                : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
                         ]"
+                        title="Buka filter lanjutan"
                     >
-                        <span class="material-symbols-outlined text-[17px] text-emerald-800">tune</span>
+                        <span class="material-symbols-outlined text-[18px]">filter_alt</span>
                         <span
                             v-if="activeExtraFiltersCount > 0"
-                            class="w-5 h-5 rounded-full bg-emerald-900 text-yellow-200 font-bold text-[10px] flex items-center justify-center leading-none"
+                            class="w-5 h-5 rounded-full bg-emerald-900 text-yellow-200 text-[10px] font-bold flex items-center justify-center"
                         >
                             {{ activeExtraFiltersCount }}
                         </span>
-                        <span class="material-symbols-outlined text-[15px] text-slate-400">expand_more</span>
+                        <span class="material-symbols-outlined text-[16px]">expand_more</span>
                     </button>
                 </div>
 
-                <!-- 4. Chip Filter Aktif (DI BAWAH SEARCH) -->
-                <div v-if="activeFilterChips.length > 0" class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1 mb-4">
+                <!-- 4. Chip Filter Aktif (DI BAWAH SEARCH) Sesuai Data Pegawai -->
+                <div v-if="activeFilterChips.length > 0" class="flex items-center gap-1.5 flex-wrap mb-4">
+                    <span class="text-[11px] font-medium text-slate-400">Filter Aktif:</span>
                     <span
                         v-for="chip in activeFilterChips"
                         :key="chip.id"
-                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 border border-emerald-200 text-emerald-900 shrink-0"
+                        class="inline-flex items-center gap-1 pl-2.5 pr-1.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100/90 text-emerald-950 border border-emerald-300/80 shadow-2xs"
                     >
                         <span>{{ chip.label }}</span>
-                        <button type="button" @click="chip.onRemove" class="hover:text-emerald-950 cursor-pointer">
-                            <span class="material-symbols-outlined text-[14px]">close</span>
+                        <button
+                            type="button"
+                            @click="chip.onRemove"
+                            class="w-3.5 h-3.5 rounded-full hover:bg-emerald-200 text-emerald-800 flex items-center justify-center cursor-pointer"
+                            title="Hapus filter ini"
+                        >
+                            <span class="material-symbols-outlined text-[12px]">close</span>
                         </button>
                     </span>
                     <button
                         type="button"
                         @click="onResetFilters"
-                        class="text-[11px] font-bold text-rose-600 hover:text-rose-800 px-2 py-0.5 shrink-0 cursor-pointer underline"
+                        class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold text-rose-700 bg-rose-50 border border-rose-200 hover:bg-rose-100 transition-colors cursor-pointer"
                     >
-                        Hapus Semua
+                        <span class="material-symbols-outlined text-[13px]">restart_alt</span>
+                        <span>Reset</span>
                     </button>
                 </div>
 
-                <!-- 5. List Kartu Siswa (Card View Mobile) -->
-                <div class="space-y-3 mt-4">
-                    <div class="flex items-center justify-between px-1 mb-1">
-                        <span class="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                            <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
-                            DATA SISWA
-                        </span>
-                        <span class="text-[11px] text-slate-400 font-medium">
+                <!-- 5. Card List Container: DATA SISWA Sesuai Referensi Data Pegawai -->
+                <div class="bg-white rounded-3xl border border-slate-200/90 p-4 shadow-xs">
+                    <!-- Header Kotak Card -->
+                    <div class="flex items-center justify-between mb-3 px-1">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span>
+                            <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Data Siswa</h3>
+                        </div>
+                        <span class="text-xs text-slate-500 font-medium">
                             {{ filteredStudents.length }} dari {{ displayTotalCount }}
                         </span>
                     </div>
 
-                    <div v-if="paginatedStudents.length > 0" class="space-y-2.5">
+                    <!-- Daftar Card Siswa -->
+                    <div v-if="paginatedStudents.length > 0" class="space-y-3">
                         <Link
                             v-for="student in paginatedStudents"
                             :key="student.id"
-                            :href="`/students/${student.id}`"
+                            :href="`/students/${student.nisn || student.id}`"
                             :prefetch="['mount', 'hover']"
                             cache-for="5m"
-                            class="flex items-center gap-3 p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs hover:border-emerald-300 hover:shadow-xs transition-all cursor-pointer group active:scale-[0.99]"
+                            class="bg-white rounded-2xl border border-slate-200/90 p-3.5 shadow-2xs hover:border-emerald-400 hover:shadow-xs transition-all flex items-center justify-between gap-3 group active:scale-[0.99] cursor-pointer"
                         >
                             <!-- Avatar Siswa -->
                             <img
                                 v-if="student.foto"
                                 :src="student.foto"
                                 :alt="student.nama"
-                                class="w-12 h-12 rounded-2xl object-cover border border-slate-200 shrink-0 shadow-2xs"
+                                class="w-13 h-13 rounded-2xl object-cover border border-slate-200 shrink-0 shadow-2xs"
                             />
                             <div
                                 v-else
                                 :class="[
-                                    'w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-sm border shrink-0 transition-transform group-hover:scale-105 shadow-2xs',
+                                    'w-13 h-13 rounded-2xl flex items-center justify-center font-bold text-base shrink-0 border shadow-2xs transition-transform group-hover:scale-105',
                                     getAvatarStyle(student)
                                 ]"
                             >
-                                {{ getInitials(student.nama) }}
+                                <span>{{ getInitials(student.nama) }}</span>
                             </div>
 
                             <!-- Detail Siswa -->
@@ -816,7 +830,7 @@ const downloadTemplate = async () => {
 
                             <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
                                 <div class="flex items-center gap-2">
-                                    <span class="material-symbols-outlined text-[20px] text-emerald-800">tune</span>
+                                    <span class="material-symbols-outlined text-[20px] text-emerald-800">filter_alt</span>
                                     <h3 class="text-sm font-bold text-slate-900">Filter Siswa</h3>
                                 </div>
                                 <button

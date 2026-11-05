@@ -233,7 +233,7 @@ onUnmounted(() => {
                         :class="[
                             'px-2 py-0.5 rounded-full text-[11px] leading-none transition-colors',
                             activeStatus === tab.key
-                                ? 'bg-emerald-900 text-yellow-200 font-bold'
+                                ? 'bg-emerald-950 text-emerald-300 font-bold'
                                 : 'bg-slate-200/90 text-slate-600 font-semibold'
                         ]"
                     >

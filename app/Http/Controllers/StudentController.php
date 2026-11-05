@@ -159,7 +159,7 @@ class StudentController extends Controller
             'academicRecords.classroom',
             'academicRecords.academicYear',
             'siblings',
-        ])->where('nisn', $nisn)->firstOrFail();
+        ])->where('nisn', $nisn)->orWhere('id', $nisn)->firstOrFail();
 
         $activeYear = AcademicYear::current();
         $currentRecord = $studentModel->academicRecords->firstWhere('academic_year_id', $activeYear?->id)
