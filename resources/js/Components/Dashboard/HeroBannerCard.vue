@@ -174,6 +174,27 @@ const upcomingAgendas = [
     },
 ];
 
+// Pilihan Mood Karakter (Senang, Semangat, Sedih, Capek)
+const MOOD_OPTIONS = [
+    { id: 'senang', label: 'Senang', emoji: '😊', description: 'Mood ceria & bahagia' },
+    { id: 'semangat', label: 'Semangat', emoji: '🔥', description: 'Mood penuh energi & antusias' },
+    { id: 'sedih', label: 'Sedih', emoji: '🥺', description: 'Mood sendu & butuh semangat' },
+    { id: 'capek', label: 'Capek', emoji: '😮‍💨', description: 'Mood lelah & butuh istirahat' },
+];
+
+const currentMood = ref('senang');
+
+function setMood(moodId) {
+    currentMood.value = moodId;
+    if (typeof window !== 'undefined' && window.localStorage) {
+        try {
+            localStorage.setItem('user_mascot_mood', moodId);
+        } catch (e) {
+            // Ignore storage errors
+        }
+    }
+}
+
 const activeAgendaIndex = ref(0);
 const isSliderPaused = ref(false);
 let agendaSlideInterval = null;
@@ -195,6 +216,17 @@ function preloadPreviewBackgrounds() {
 }
 
 onMounted(() => {
+    if (typeof window !== 'undefined' && window.localStorage) {
+        try {
+            const savedMood = localStorage.getItem('user_mascot_mood');
+            if (savedMood && MOOD_OPTIONS.some(m => m.id === savedMood)) {
+                currentMood.value = savedMood;
+            }
+        } catch (e) {
+            // Ignore
+        }
+    }
+
     clockInterval = setInterval(() => {
         now.value = new Date();
     }, 60000);
@@ -343,8 +375,9 @@ onUnmounted(() => {
                             leave-to-class="opacity-0 translate-y-2"
                         >
                             <PeekingMascot2D
-                                :key="activeGender"
+                                :key="`${activeGender}-${currentMood}`"
                                 :gender="activeGender"
+                                :mood="currentMood"
                             />
                         </Transition>
                     </div>
@@ -405,6 +438,31 @@ onUnmounted(() => {
                             </svg>
                         </span>
                     </Link>
+
+                    <!-- Pilihan Mood di Bawah Banner Agenda di Ilustrasi -->
+                    <div class="mt-2.5 flex items-center justify-between sm:justify-start gap-1 relative z-20">
+                        <div class="inline-flex items-center gap-1 p-1 rounded-full bg-white/90 backdrop-blur-md border border-white/80 shadow-[0_4px_16px_rgba(15,23,42,0.08)] max-w-full overflow-x-auto no-scrollbar">
+                            <span class="pl-2.5 pr-1 text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider hidden xs:inline shrink-0">
+                                Mood:
+                            </span>
+                            <button
+                                v-for="m in MOOD_OPTIONS"
+                                :key="m.id"
+                                type="button"
+                                @click="setMood(m.id)"
+                                :class="[
+                                    'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold transition-all duration-200 cursor-pointer active:scale-95 shrink-0',
+                                    currentMood === m.id
+                                        ? 'bg-emerald-900 text-yellow-200 shadow-2xs font-bold scale-[1.02]'
+                                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
+                                ]"
+                                :title="m.description"
+                            >
+                                <span class="text-sm leading-none">{{ m.emoji }}</span>
+                                <span class="text-[11px] sm:text-xs">{{ m.label }}</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
