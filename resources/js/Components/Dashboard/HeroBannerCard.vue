@@ -452,29 +452,18 @@ onUnmounted(() => {
                         </span>
                     </Link>
 
-                    <!-- Tombol Mood Tunggal (Gaya Rekap Mingguku: Soft Ungu, Agak Transparan Tanpa Blur, 2 Baris Teks) -->
+                    <!-- Tombol Mood Tunggal (Kapsul Full Rounded Seperti Agenda, Soft Ungu Transparan Polos Tanpa Motif) -->
                     <div class="mt-2.5 relative z-20 flex items-center">
                         <button
                             type="button"
                             @click="cycleMood"
                             :class="[
-                                'relative overflow-hidden inline-flex items-center gap-2.5 pl-2.5 pr-4 py-1.5 rounded-full border transition-all duration-200 cursor-pointer active:scale-[0.97] shadow-2xs',
+                                'relative inline-flex items-center gap-2.5 pl-3 pr-4 py-2 rounded-[30px] border transition-all duration-200 cursor-pointer active:scale-[0.97] shadow-2xs',
                                 moodButtonTone,
                             ]"
                             :aria-label="`Mood hari ini: ${currentMoodLabel}. Klik untuk mengganti.`"
                             title="Klik untuk mengganti mood hari ini"
                         >
-                            <!-- Motif tipis di latar tombol -->
-                            <svg class="absolute inset-0 w-full h-full pointer-events-none opacity-25" aria-hidden="true">
-                                <defs>
-                                    <pattern id="mood-btn-motif" width="14" height="14" patternUnits="userSpaceOnUse">
-                                        <circle cx="3" cy="3" r="0.7" fill="currentColor" />
-                                        <path d="M 9 6 L 9.6 7.6 L 11.2 8.2 L 9.6 8.8 L 9 10.4 L 8.4 8.8 L 6.8 8.2 L 8.4 7.6 Z" fill="currentColor" />
-                                    </pattern>
-                                </defs>
-                                <rect width="100%" height="100%" fill="url(#mood-btn-motif)" />
-                            </svg>
-
                             <!-- [icon] di sisi kiri -->
                             <div class="relative w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-purple-300/35 flex items-center justify-center shrink-0">
                                 <Transition name="mood-label" mode="out-in">
