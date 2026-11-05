@@ -1627,6 +1627,44 @@ function getAvatarStyle(emp) {
     return 'bg-rose-50 text-rose-800 border-rose-200/80';
 }
 
+function getJenjangBadgeClass(jenjang) {
+    if (!jenjang) return 'bg-slate-100 text-slate-600 border border-slate-200';
+    const j = jenjang.toUpperCase();
+    if (j.startsWith('GTY')) {
+        return 'bg-emerald-50 text-emerald-800 border border-emerald-200 font-semibold';
+    }
+    if (j.startsWith('GTT')) {
+        return 'bg-teal-50 text-teal-800 border border-teal-200 font-semibold';
+    }
+    if (j.startsWith('PTY')) {
+        return 'bg-indigo-50 text-indigo-800 border border-indigo-200 font-semibold';
+    }
+    if (j.startsWith('PTT')) {
+        return 'bg-amber-50 text-amber-800 border border-amber-200 font-semibold';
+    }
+    return 'bg-slate-100 text-slate-700 border border-slate-200 font-medium';
+}
+
+function getStatusStyle(status) {
+    const s = (status || 'Aktif').toLowerCase();
+    if (s === 'aktif') {
+        return {
+            wrapper: 'bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold',
+            dot: 'bg-emerald-600',
+        };
+    }
+    if (s === 'pensiun') {
+        return {
+            wrapper: 'bg-amber-50 text-amber-800 border border-amber-200 font-bold',
+            dot: 'bg-amber-500',
+        };
+    }
+    return {
+        wrapper: 'bg-rose-50 text-rose-700 border border-rose-200 font-bold',
+        dot: 'bg-rose-600',
+    };
+}
+
 const tabsContainerRef = ref(null);
 const canScrollLeft = ref(false);
 const canScrollRight = ref(false);
@@ -1717,8 +1755,13 @@ function selectTab(id) {
             </div>
 
             <!-- Header Card Identitas Profil Pegawai -->
-            <div class="bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-6 shadow-xs mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div class="flex items-center gap-4 sm:gap-5 min-w-0">
+            <div class="relative overflow-hidden bg-gradient-to-br from-white via-emerald-50/25 to-slate-50/70 rounded-3xl border border-slate-200/90 p-5 sm:p-6 shadow-xs mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <!-- Efek Cahaya Lembut Statis di Latar Belakang -->
+                <div class="absolute -top-20 -right-20 w-72 h-72 rounded-full bg-gradient-to-br from-emerald-200/40 via-teal-100/25 to-transparent blur-3xl pointer-events-none"></div>
+                <div class="absolute -bottom-20 -left-16 w-64 h-64 rounded-full bg-gradient-to-tr from-sky-200/35 via-emerald-100/20 to-transparent blur-3xl pointer-events-none"></div>
+                <div class="absolute top-1/2 left-1/3 -translate-y-1/2 w-48 h-48 rounded-full bg-amber-100/30 blur-2xl pointer-events-none"></div>
+
+                <div class="relative z-10 flex items-center gap-4 sm:gap-5 min-w-0 flex-1">
                     <img
                         v-if="employee.foto"
                         :src="employee.foto"
@@ -1735,17 +1778,17 @@ function selectTab(id) {
                         <span>{{ getInitials(employee.nama) }}</span>
                     </div>
 
-                    <div class="space-y-1.5 min-w-0">
+                    <div class="space-y-1.5 min-w-0 flex-1">
                         <!-- Dropdown Pemilih Pegawai Lain -->
                         <div class="relative" ref="employeeDropdownRef">
                             <button
                                 v-if="allEmployees.length > 1"
                                 type="button"
                                 @click="toggleEmployeeDropdown"
-                                class="inline-flex items-center gap-1.5 text-left text-xl sm:text-2xl font-extrabold text-slate-900 hover:text-emerald-950 transition-colors cursor-pointer group rounded-xl -ml-2 px-2 py-0.5 hover:bg-slate-100 active:scale-[0.99] max-w-full"
+                                class="inline-flex items-center gap-1.5 text-left text-xl sm:text-2xl font-extrabold text-slate-900 hover:text-emerald-950 transition-colors cursor-pointer group rounded-xl -ml-2 px-2 py-0.5 hover:bg-slate-100/80 active:scale-[0.99] max-w-full"
                                 title="Klik untuk beralih memilih pegawai lain"
                             >
-                                <span class="truncate">{{ employee.nama }}</span>
+                                <span class="break-words leading-tight">{{ employee.nama }}</span>
                                 <span
                                     class="material-symbols-outlined text-[24px] text-slate-400 group-hover:text-emerald-950 transition-transform duration-200 shrink-0"
                                     :class="{ 'rotate-180 text-emerald-950': isEmployeeDropdownOpen }"
@@ -1753,7 +1796,7 @@ function selectTab(id) {
                                     arrow_drop_down
                                 </span>
                             </button>
-                            <h1 v-else class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight leading-tight truncate">
+                            <h1 v-else class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight leading-tight break-words">
                                 {{ employee.nama }}
                             </h1>
 
@@ -1817,37 +1860,39 @@ function selectTab(id) {
                             </div>
                         </div>
 
-                        <div class="flex items-center gap-1.5 text-xs sm:text-sm text-slate-500 font-medium flex-wrap">
-                            <span v-if="canViewKepegawaian">NIPY: <span class="font-mono text-slate-700 font-semibold">{{ employee.nipy || '-' }}</span></span>
-                            <span v-if="canViewKepegawaian && (employee.jabatan || employee.unit_kerja)">•</span>
+                        <!-- Info Jabatan & Unit Kerja (Tanpa NIPY) -->
+                        <div v-if="employee.jabatan || employee.unit_kerja" class="flex items-center gap-1.5 text-xs sm:text-sm text-slate-500 font-medium flex-wrap">
                             <span v-if="employee.jabatan">{{ employee.jabatan }}</span>
                             <span v-if="employee.jabatan && employee.unit_kerja">•</span>
                             <span v-if="employee.unit_kerja">{{ employee.unit_kerja }}</span>
                         </div>
 
-                        <!-- Badges Identitas -->
+                        <!-- Badges Identitas: Warna Disamakan dengan Tabel -->
                         <div class="flex flex-wrap items-center gap-2 pt-0.5">
-                            <!-- Badge Status Keaktifan (Hijau Terang) -->
+                            <!-- Badge Status Keaktifan (Warna Sama dengan Tabel) -->
                             <span
                                 v-if="employee.status_keaktifan"
                                 :class="[
-                                    'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border shadow-2xs',
-                                    (employee.status_keaktifan || 'Aktif').toLowerCase() === 'aktif'
-                                        ? 'bg-emerald-100 text-emerald-950 border-emerald-300'
-                                        : 'bg-slate-100 text-slate-700 border-slate-200'
+                                    'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs shadow-2xs',
+                                    getStatusStyle(employee.status_keaktifan).wrapper
                                 ]"
                             >
                                 <span
-                                    class="w-2 h-2 rounded-full"
-                                    :class="(employee.status_keaktifan || 'Aktif').toLowerCase() === 'aktif' ? 'bg-emerald-600' : 'bg-slate-400'"
+                                    :class="[
+                                        'w-2 h-2 rounded-full shrink-0',
+                                        getStatusStyle(employee.status_keaktifan).dot
+                                    ]"
                                 ></span>
                                 <span>{{ employee.status_keaktifan }}</span>
                             </span>
 
-                            <!-- Badge Jenjang -->
+                            <!-- Badge Jenjang (Warna Sama dengan Tabel) -->
                             <span
                                 v-if="employee.jenjang_kepegawaian"
-                                class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200"
+                                :class="[
+                                    'inline-flex items-center px-2.5 py-1 rounded-full text-xs shadow-2xs',
+                                    getJenjangBadgeClass(employee.jenjang_kepegawaian)
+                                ]"
                             >
                                 {{ employee.jenjang_kepegawaian }}
                             </span>
@@ -1855,52 +1900,28 @@ function selectTab(id) {
                     </div>
                 </div>
 
-                <!-- Action Buttons in Header -->
-                <div class="flex items-center gap-2 self-start sm:self-auto shrink-0">
-                    <div
-                        v-if="!isEditing && activeTab === 'kepegawaian' && !canUpdateKepegawaian"
-                        class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-100 border border-slate-200 text-slate-400 font-semibold text-xs sm:text-sm cursor-not-allowed select-none"
-                        title="Tab Kepegawaian terkunci"
-                    >
-                        <span class="material-symbols-outlined text-[18px]">lock</span>
-                        <span>Tab Terkunci</span>
-                    </div>
-
-                    <!-- View Mode: Edit Data Button (Bergaya Kelola Halaman Depan) -->
+                <!-- Action Buttons in Header (Hanya saat mode edit aktif) -->
+                <div v-if="isEditing" class="relative z-10 flex items-center gap-2 self-start sm:self-auto shrink-0">
                     <button
-                        v-else-if="!isEditing && canEdit"
                         type="button"
-                        @click="startEdit"
-                        class="inline-flex items-center justify-center gap-1.5 px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-bold text-xs sm:text-sm shadow-xs border border-emerald-950/30 transition-all cursor-pointer active:scale-95"
-                        title="Edit data pegawai ini langsung di tab"
+                        @click="cancelEdit"
+                        class="px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-100 border border-slate-300 transition-all cursor-pointer shadow-2xs"
+                        :disabled="form.processing"
+                        title="Batalkan perubahan"
                     >
-                        <span class="material-symbols-outlined text-[18px]">edit_note</span>
-                        <span>Edit Data</span>
+                        Batal
                     </button>
-
-                    <!-- Edit Mode: Batal & Simpan Perubahan Buttons -->
-                    <div v-else-if="isEditing" class="flex items-center gap-2">
-                        <button
-                            type="button"
-                            @click="cancelEdit"
-                            class="px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-100 border border-slate-300 transition-all cursor-pointer shadow-2xs"
-                            :disabled="form.processing"
-                            title="Batalkan perubahan"
-                        >
-                            Batal
-                        </button>
-                        <button
-                            type="button"
-                            @click="saveChanges"
-                            class="inline-flex items-center gap-2 px-5 py-2 sm:px-6 sm:py-2.5 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-bold text-xs sm:text-sm shadow-xs border border-emerald-950/30 active:scale-95 cursor-pointer disabled:opacity-60 transition-all"
-                            :disabled="form.processing"
-                            title="Simpan semua perubahan data pegawai"
-                        >
-                            <span v-if="form.processing" class="material-symbols-outlined text-[18px] animate-spin">sync</span>
-                            <span v-else class="material-symbols-outlined text-[18px]">save</span>
-                            <span>{{ form.processing ? 'Menyimpan...' : 'Simpan Perubahan' }}</span>
-                        </button>
-                    </div>
+                    <button
+                        type="button"
+                        @click="saveChanges"
+                        class="inline-flex items-center gap-2 px-5 py-2 sm:px-6 sm:py-2.5 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-bold text-xs sm:text-sm shadow-xs border border-emerald-950/30 active:scale-95 cursor-pointer disabled:opacity-60 transition-all"
+                        :disabled="form.processing"
+                        title="Simpan semua perubahan data pegawai"
+                    >
+                        <span v-if="form.processing" class="material-symbols-outlined text-[18px] animate-spin">sync</span>
+                        <span v-else class="material-symbols-outlined text-[18px]">save</span>
+                        <span>{{ form.processing ? 'Menyimpan...' : 'Simpan Perubahan' }}</span>
+                    </button>
                 </div>
             </div>
 
