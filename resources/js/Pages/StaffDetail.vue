@@ -142,6 +142,10 @@ const filteredEmployees = computed(() => {
 
 function toggleEmployeeDropdown(e) {
     e.stopPropagation();
+    if (isEditing.value) {
+        alert('Anda sedang dalam mode edit. Selesaikan (Simpan) atau batalkan (Batal) perubahan terlebih dahulu sebelum beralih pegawai.');
+        return;
+    }
     isEmployeeDropdownOpen.value = !isEmployeeDropdownOpen.value;
     if (isEmployeeDropdownOpen.value) {
         employeeSearchQuery.value = '';
@@ -173,10 +177,9 @@ function selectEmployee(empId) {
         return;
     }
 
-    if (isEditing.value && form.isDirty) {
-        if (!confirm('Perubahan yang sedang Anda edit pada pegawai ini belum disimpan. Beralih ke pegawai lain sekarang?')) {
-            return;
-        }
+    if (isEditing.value) {
+        alert('Anda sedang dalam mode edit. Selesaikan (Simpan) atau batalkan (Batal) perubahan terlebih dahulu sebelum beralih ke pegawai lain.');
+        return;
     }
 
     closeEmployeeDropdown();
@@ -1692,6 +1695,11 @@ function scrollTabs(direction) {
 }
 
 function selectTab(id) {
+    if (isEditing.value) {
+        if (id === activeTab.value) return;
+        alert('Anda sedang dalam mode edit. Selesaikan (Simpan) atau batalkan (Batal) perubahan terlebih dahulu sebelum berpindah ke tab lain.');
+        return;
+    }
     activeTab.value = id;
     nextTick(() => {
         const activeBtn = tabsContainerRef.value?.querySelector(`[data-tab-id="${id}"]`);
@@ -1700,6 +1708,14 @@ function selectTab(id) {
         }
         checkScroll();
     });
+}
+
+function handleBackClick(e) {
+    if (isEditing.value) {
+        if (!confirm('Perubahan yang sedang Anda edit belum disimpan. Yakin ingin keluar dari halaman edit?')) {
+            e.preventDefault();
+        }
+    }
 }
 </script>
 
@@ -1712,6 +1728,7 @@ function selectTab(id) {
             <div class="mb-5 flex items-center justify-between gap-4">
                 <Link
                     href="/staff"
+                    @click="handleBackClick"
                     class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs sm:text-sm font-semibold shadow-2xs transition-all active:scale-95"
                 >
                     <span class="material-symbols-outlined text-[18px] text-slate-500">arrow_back</span>
@@ -2002,30 +2019,6 @@ function selectTab(id) {
                         </div>
                     </div>
                 </div>
-
-                <!-- Action Buttons in Header (Hanya saat mode edit aktif) -->
-                <div v-if="isEditing" class="relative z-10 flex items-center gap-2 self-start sm:self-auto shrink-0">
-                    <button
-                        type="button"
-                        @click="cancelEdit"
-                        class="px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-100 border border-slate-300 transition-all cursor-pointer shadow-2xs"
-                        :disabled="form.processing"
-                        title="Batalkan perubahan"
-                    >
-                        Batal
-                    </button>
-                    <button
-                        type="button"
-                        @click="saveChanges"
-                        class="inline-flex items-center gap-2 px-5 py-2 sm:px-6 sm:py-2.5 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-bold text-xs sm:text-sm shadow-xs border border-emerald-950/30 active:scale-95 cursor-pointer disabled:opacity-60 transition-all"
-                        :disabled="form.processing"
-                        title="Simpan semua perubahan data pegawai"
-                    >
-                        <span v-if="form.processing" class="material-symbols-outlined text-[18px] animate-spin">sync</span>
-                        <span v-else class="material-symbols-outlined text-[18px]">save</span>
-                        <span>{{ form.processing ? 'Menyimpan...' : 'Simpan Perubahan' }}</span>
-                    </button>
-                </div>
             </div>
 
             <!-- Segmented Capsule Tabs Navigation -->
@@ -2067,15 +2060,20 @@ function selectTab(id) {
                             :data-tab-id="tab.id"
                             type="button"
                             @click="selectTab(tab.id)"
+                            :disabled="isEditing && activeTab !== tab.id"
                             :class="[
-                                'inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs sm:text-sm transition-all duration-150 cursor-pointer shrink-0 whitespace-nowrap',
+                                'inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs sm:text-sm transition-all duration-150 shrink-0 whitespace-nowrap',
                                 activeTab === tab.id
                                     ? 'bg-emerald-100 text-emerald-950 font-bold border border-emerald-300 shadow-2xs'
-                                    : 'text-slate-600 hover:text-slate-900 font-medium border border-transparent hover:bg-slate-200/60'
+                                    : isEditing
+                                        ? 'text-slate-400 opacity-40 cursor-not-allowed border border-transparent'
+                                        : 'text-slate-600 hover:text-slate-900 font-medium border border-transparent hover:bg-slate-200/60 cursor-pointer'
                             ]"
+                            :title="isEditing && activeTab !== tab.id ? 'Selesaikan atau batalkan mode edit terlebih dahulu untuk berpindah tab' : ''"
                         >
                             <span class="material-symbols-outlined text-[18px]">{{ tab.icon }}</span>
                             <span>{{ tab.label }}</span>
+                            <span v-if="isEditing && activeTab !== tab.id" class="material-symbols-outlined text-[14px] text-slate-400">lock</span>
                         </button>
                     </div>
                 </div>
@@ -2467,28 +2465,6 @@ function selectTab(id) {
                                 :class="{ 'border-error': form.errors.skill }"
                             />
                             <div v-if="form.errors.skill" class="text-error text-xs mt-1">{{ form.errors.skill }}</div>
-                        </div>
-
-                        <!-- Action Buttons in Edit Mode (Bottom) -->
-                        <div class="md:col-span-2 pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
-                            <button
-                                type="button"
-                                @click="cancelEdit"
-                                class="px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-100 border border-slate-300 transition-all cursor-pointer shadow-2xs"
-                                :disabled="form.processing"
-                            >
-                                Batal
-                            </button>
-                            <button
-                                type="button"
-                                @click="saveChanges"
-                                class="inline-flex items-center gap-2 px-5 py-2 sm:px-6 sm:py-2.5 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-bold text-xs sm:text-sm shadow-xs border border-emerald-950/30 active:scale-95 cursor-pointer disabled:opacity-60 transition-all"
-                                :disabled="form.processing"
-                            >
-                                <span v-if="form.processing" class="material-symbols-outlined text-[18px] animate-spin">sync</span>
-                                <span v-else class="material-symbols-outlined text-[18px]">save</span>
-                                <span>{{ form.processing ? 'Menyimpan...' : 'Simpan Perubahan' }}</span>
-                            </button>
                         </div>
                     </div>
                 </div>
