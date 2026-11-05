@@ -369,14 +369,14 @@ onUnmounted(() => {
                 <!-- Handle Pratinjau Superadmin: Kapsul Mood (Sebelum Latar), Latar, Suasana Waktu, & Karakter -->
                 <div
                     v-if="isSuperAdmin"
-                    class="flex flex-wrap items-center gap-1.5 sm:gap-2 self-start md:justify-end"
+                    class="w-full md:w-auto -mx-4 px-4 sm:-mx-6 sm:px-6 md:mx-0 md:px-0 overflow-x-auto no-scrollbar flex items-center md:flex-wrap gap-1.5 sm:gap-2 self-start md:justify-end py-1 shrink-0"
                 >
                     <!-- Kapsul Mood (Sebelum Kapsul Latar) -->
                     <button
                         type="button"
                         @click="cycleMood"
                         :class="[
-                            'relative inline-flex items-center gap-2 pl-2.5 pr-3.5 py-1 sm:py-1.5 rounded-[30px] border transition-all duration-200 cursor-pointer active:scale-[0.97] shadow-2xs',
+                            'relative inline-flex items-center gap-2 pl-2.5 pr-3.5 py-1 sm:py-1.5 rounded-[30px] border transition-all duration-200 cursor-pointer active:scale-[0.97] shadow-2xs shrink-0',
                             moodButtonTone,
                         ]"
                         :aria-label="`Mood hari ini: ${currentMoodLabel}. Klik untuk mengganti.`"
@@ -415,7 +415,7 @@ onUnmounted(() => {
                         type="button"
                         @click="cycleUnitTheme"
                         :class="[
-                            'min-h-[38px] sm:min-h-[36px] px-3 sm:px-3.5 py-1.5 rounded-[9999px] text-xs font-semibold border transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2',
+                            'min-h-[38px] sm:min-h-[36px] px-3 sm:px-3.5 py-1.5 rounded-[9999px] text-xs font-semibold border transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 shrink-0',
                             currentTimeMeta.pillButton,
                         ]"
                         title="Ganti pratinjau latar gedung (SDIT / SMPIT)"
@@ -426,7 +426,7 @@ onUnmounted(() => {
                         type="button"
                         @click="cycleTimeTheme"
                         :class="[
-                            'min-h-[38px] sm:min-h-[36px] px-3 sm:px-3.5 py-1.5 rounded-[9999px] text-xs font-semibold border transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2',
+                            'min-h-[38px] sm:min-h-[36px] px-3 sm:px-3.5 py-1.5 rounded-[9999px] text-xs font-semibold border transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 shrink-0',
                             currentTimeMeta.pillButton,
                         ]"
                         title="Ganti pratinjau suasana waktu (Pagi / Siang / Sore / Malam)"
@@ -437,7 +437,7 @@ onUnmounted(() => {
                         type="button"
                         @click="cycleGender"
                         :class="[
-                            'min-h-[38px] sm:min-h-[36px] px-3 sm:px-3.5 py-1.5 rounded-[9999px] text-xs font-semibold border transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2',
+                            'min-h-[38px] sm:min-h-[36px] px-3 sm:px-3.5 py-1.5 rounded-[9999px] text-xs font-semibold border transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 shrink-0',
                             currentTimeMeta.pillButton,
                         ]"
                         title="Ganti pratinjau karakter (Putra / Putri)"
