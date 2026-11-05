@@ -514,8 +514,8 @@ function onPageChange(p) {
                             :class="[
                                 'inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs transition-all duration-150 cursor-pointer shrink-0',
                                 statusFilter === tab.key
-                                    ? 'bg-white text-slate-900 font-bold shadow-xs ring-1 ring-slate-200/80'
-                                    : 'text-slate-600 hover:text-slate-900 font-medium'
+                                    ? 'bg-emerald-100 text-emerald-950 font-bold border border-emerald-300 shadow-2xs'
+                                    : 'text-slate-600 hover:text-slate-900 font-medium border border-transparent'
                             ]"
                         >
                             <span>{{ tab.label }}</span>
@@ -523,8 +523,8 @@ function onPageChange(p) {
                                 :class="[
                                     'px-2 py-0.5 rounded-full text-[10.5px] leading-none transition-colors font-bold',
                                     statusFilter === tab.key
-                                        ? 'bg-emerald-950 text-emerald-300'
-                                        : 'bg-slate-200 text-slate-600'
+                                        ? 'bg-emerald-900 text-yellow-200'
+                                        : 'bg-slate-200 text-slate-600 font-semibold'
                                 ]"
                             >
                                 {{ tab.count }}

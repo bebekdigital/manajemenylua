@@ -202,8 +202,8 @@ onUnmounted(() => {
                     :class="[
                         'inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[13px] transition-all duration-150 cursor-pointer shrink-0',
                         activeStatus === tab.key
-                            ? 'bg-white text-slate-900 font-bold shadow-xs ring-1 ring-slate-200/80'
-                            : 'text-slate-600 hover:text-slate-900 font-medium'
+                            ? 'bg-emerald-100 text-emerald-950 font-bold border border-emerald-300 shadow-2xs'
+                            : 'text-slate-600 hover:text-slate-900 font-medium border border-transparent'
                     ]"
                 >
                     <span>{{ tab.label }}</span>
@@ -211,8 +211,8 @@ onUnmounted(() => {
                         :class="[
                             'px-2 py-0.5 rounded-full text-[11px] leading-none transition-colors font-bold',
                             activeStatus === tab.key
-                                ? 'bg-emerald-950 text-emerald-300'
-                                : 'bg-slate-200/90 text-slate-600'
+                                ? 'bg-emerald-900 text-yellow-200'
+                                : 'bg-slate-200/90 text-slate-600 font-semibold'
                         ]"
                     >
                         {{ tab.count }}
