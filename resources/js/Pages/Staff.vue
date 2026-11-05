@@ -657,9 +657,7 @@ function onPageChange(p) {
                                     </span>
                                 </div>
 
-                                <div class="flex items-center gap-1.5 text-xs text-slate-500 font-medium mt-1 truncate">
-                                    <span>NIPY: {{ emp.nipy || '-' }}</span>
-                                    <span>•</span>
+                                <div class="text-xs text-slate-500 font-medium mt-1 truncate">
                                     <span class="truncate">{{ emp.unit_kerja || 'Yayasan' }}</span>
                                 </div>
 

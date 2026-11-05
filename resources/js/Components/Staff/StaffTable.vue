@@ -167,25 +167,8 @@ function getStatusStyle(status) {
                 <!-- Table Header: Warna Hijau Tema Kontras Menarik -->
                 <thead>
                     <tr class="bg-emerald-800 text-white border-b border-emerald-900">
-                        <!-- Checkbox Header -->
-                        <th class="py-3.5 pl-4 pr-2 w-10 text-center">
-                            <button
-                                type="button"
-                                @click="toggleSelectAll"
-                                :class="[
-                                    'w-4 h-4 rounded-[4px] flex items-center justify-center transition-colors cursor-pointer mx-auto border',
-                                    allSelected || someSelected
-                                        ? 'bg-yellow-300 border-yellow-300 text-emerald-950'
-                                        : 'bg-emerald-900/60 border-emerald-400 hover:border-yellow-200'
-                                ]"
-                            >
-                                <span v-if="allSelected" class="material-symbols-outlined text-[13px] font-bold">check</span>
-                                <span v-else-if="someSelected" class="material-symbols-outlined text-[13px] font-bold">remove</span>
-                            </button>
-                        </th>
-
                         <!-- No -->
-                        <th class="py-3.5 px-2.5 w-12 text-center text-[11.5px] font-bold uppercase tracking-wider select-none text-white">
+                        <th class="py-3.5 pl-4 pr-2.5 w-14 text-center text-[11.5px] font-bold uppercase tracking-wider select-none text-white">
                             No
                         </th>
 
@@ -286,29 +269,10 @@ function getStatusStyle(status) {
                     <tr
                         v-for="(emp, index) in employees"
                         :key="emp.id"
-                        :class="[
-                            'transition-colors group',
-                            selectedIds.includes(emp.id) ? 'bg-emerald-50/50 hover:bg-emerald-50/80' : 'hover:bg-slate-50/80'
-                        ]"
+                        class="hover:bg-slate-50/80 transition-colors group"
                     >
-                        <!-- Checkbox Cell -->
-                        <td class="py-3.5 pl-4 pr-2 text-center align-middle">
-                            <button
-                                type="button"
-                                @click="toggleSelectRow(emp.id)"
-                                :class="[
-                                    'w-4 h-4 rounded-[4px] flex items-center justify-center transition-colors cursor-pointer mx-auto border',
-                                    selectedIds.includes(emp.id)
-                                        ? 'bg-emerald-900 border-emerald-900 text-yellow-200'
-                                        : 'bg-white border-slate-300 group-hover:border-emerald-600'
-                                ]"
-                            >
-                                <span v-if="selectedIds.includes(emp.id)" class="material-symbols-outlined text-[13px] font-bold">check</span>
-                            </button>
-                        </td>
-
                         <!-- No -->
-                        <td class="py-3.5 px-2.5 text-[12px] text-slate-500 font-medium text-center align-middle whitespace-nowrap">
+                        <td class="py-3.5 pl-4 pr-2.5 text-[12px] text-slate-500 font-medium text-center align-middle whitespace-nowrap">
                             {{ startEntry + index }}
                         </td>
 
@@ -406,7 +370,7 @@ function getStatusStyle(status) {
 
                     <!-- Empty state -->
                     <tr v-if="employees.length === 0">
-                        <td colspan="9" class="py-14 px-6 text-center">
+                        <td colspan="8" class="py-14 px-6 text-center">
                             <div class="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center mx-auto mb-3 text-slate-400">
                                 <span class="material-symbols-outlined text-2xl">search_off</span>
                             </div>
@@ -431,9 +395,6 @@ function getStatusStyle(status) {
                     <template v-else>
                         Menampilkan <strong class="text-slate-800 font-semibold">{{ startEntry }}–{{ endEntry }}</strong> dari <strong class="text-slate-800 font-semibold">{{ totalEntries }}</strong> pegawai
                     </template>
-                </span>
-                <span v-if="selectedIds.length > 0" class="text-[12px] font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                    {{ selectedIds.length }} dipilih
                 </span>
             </div>
 
