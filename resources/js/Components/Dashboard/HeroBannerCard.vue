@@ -322,13 +322,95 @@ onUnmounted(() => {
                     >
                         {{ formattedToday }}
                     </p>
+
+                    <!-- Kapsul Mood di Bawah Tanggal (Khusus Non-Superadmin) -->
+                    <div v-if="!isSuperAdmin" class="mt-2.5 sm:mt-3 flex items-center">
+                        <button
+                            type="button"
+                            @click="cycleMood"
+                            :class="[
+                                'relative inline-flex items-center gap-2 pl-2.5 pr-3.5 py-1 sm:py-1.5 rounded-[30px] border transition-all duration-200 cursor-pointer active:scale-[0.97] shadow-2xs',
+                                moodButtonTone,
+                            ]"
+                            :aria-label="`Mood hari ini: ${currentMoodLabel}. Klik untuk mengganti.`"
+                            title="Klik untuk mengganti mood hari ini"
+                        >
+                            <div class="relative w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-purple-300/35 flex items-center justify-center shrink-0">
+                                <Transition name="mood-label" mode="out-in">
+                                    <span :key="currentMood" class="material-symbols-outlined text-[16px] sm:text-[18px]">
+                                        {{ currentMoodIcon }}
+                                    </span>
+                                </Transition>
+                            </div>
+                            <div class="relative flex flex-col text-left leading-none">
+                                <span class="text-[9px] sm:text-[9.5px] font-medium tracking-wide opacity-75 mb-0.5">
+                                    Mood hari ini
+                                </span>
+                                <Transition name="mood-label" mode="out-in">
+                                    <span :key="currentMood" class="text-xs sm:text-[12.5px] font-bold tracking-tight">
+                                        {{ currentMoodLabel }}
+                                    </span>
+                                </Transition>
+                            </div>
+                            <span class="relative inline-flex items-center gap-[3px] ml-1 opacity-70" aria-hidden="true">
+                                <span
+                                    v-for="(m, idx) in MOOD_OPTIONS"
+                                    :key="m.id"
+                                    :class="[
+                                        'block h-1 rounded-full bg-current transition-all duration-300',
+                                        currentMoodIndex === idx ? 'w-2.5 opacity-90' : 'w-1 opacity-30',
+                                    ]"
+                                ></span>
+                            </span>
+                        </button>
+                    </div>
                 </div>
 
-                <!-- Handle Pratinjau Superadmin: Latar, Suasana Waktu (Pagi/Siang/Sore/Malam), & Karakter -->
+                <!-- Handle Pratinjau Superadmin: Kapsul Mood (Sebelum Latar), Latar, Suasana Waktu, & Karakter -->
                 <div
                     v-if="isSuperAdmin"
                     class="flex flex-wrap items-center gap-1.5 sm:gap-2 self-start md:justify-end"
                 >
+                    <!-- Kapsul Mood (Sebelum Kapsul Latar) -->
+                    <button
+                        type="button"
+                        @click="cycleMood"
+                        :class="[
+                            'relative inline-flex items-center gap-2 pl-2.5 pr-3.5 py-1 sm:py-1.5 rounded-[30px] border transition-all duration-200 cursor-pointer active:scale-[0.97] shadow-2xs',
+                            moodButtonTone,
+                        ]"
+                        :aria-label="`Mood hari ini: ${currentMoodLabel}. Klik untuk mengganti.`"
+                        title="Klik untuk mengganti mood hari ini"
+                    >
+                        <div class="relative w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-purple-300/35 flex items-center justify-center shrink-0">
+                            <Transition name="mood-label" mode="out-in">
+                                <span :key="currentMood" class="material-symbols-outlined text-[16px] sm:text-[18px]">
+                                    {{ currentMoodIcon }}
+                                </span>
+                            </Transition>
+                        </div>
+                        <div class="relative flex flex-col text-left leading-none">
+                            <span class="text-[9px] sm:text-[9.5px] font-medium tracking-wide opacity-75 mb-0.5">
+                                Mood hari ini
+                            </span>
+                            <Transition name="mood-label" mode="out-in">
+                                <span :key="currentMood" class="text-xs sm:text-[12.5px] font-bold tracking-tight">
+                                    {{ currentMoodLabel }}
+                                </span>
+                            </Transition>
+                        </div>
+                        <span class="relative inline-flex items-center gap-[3px] ml-1 opacity-70" aria-hidden="true">
+                            <span
+                                v-for="(m, idx) in MOOD_OPTIONS"
+                                :key="m.id"
+                                :class="[
+                                    'block h-1 rounded-full bg-current transition-all duration-300',
+                                    currentMoodIndex === idx ? 'w-2.5 opacity-90' : 'w-1 opacity-30',
+                                ]"
+                            ></span>
+                        </span>
+                    </button>
+
                     <button
                         type="button"
                         @click="cycleUnitTheme"
@@ -451,53 +533,6 @@ onUnmounted(() => {
                             </svg>
                         </span>
                     </Link>
-
-                    <!-- Tombol Mood Tunggal (Kapsul Full Rounded Seperti Agenda, Soft Ungu Transparan Polos Tanpa Motif) -->
-                    <div class="mt-2.5 relative z-20 flex items-center">
-                        <button
-                            type="button"
-                            @click="cycleMood"
-                            :class="[
-                                'relative inline-flex items-center gap-2.5 pl-3 pr-4 py-2 rounded-[30px] border transition-all duration-200 cursor-pointer active:scale-[0.97] shadow-2xs',
-                                moodButtonTone,
-                            ]"
-                            :aria-label="`Mood hari ini: ${currentMoodLabel}. Klik untuk mengganti.`"
-                            title="Klik untuk mengganti mood hari ini"
-                        >
-                            <!-- [icon] di sisi kiri -->
-                            <div class="relative w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-purple-300/35 flex items-center justify-center shrink-0">
-                                <Transition name="mood-label" mode="out-in">
-                                    <span :key="currentMood" class="material-symbols-outlined text-[18px] sm:text-[19px]">
-                                        {{ currentMoodIcon }}
-                                    </span>
-                                </Transition>
-                            </div>
-
-                            <!-- Teks 2 Baris: Atas (Mood hari ini) & Bawah (Senang / Sedih / dll) -->
-                            <div class="relative flex flex-col text-left leading-none py-0.5">
-                                <span class="text-[9.5px] sm:text-[10px] font-medium tracking-wide opacity-75 mb-0.5">
-                                    Mood hari ini
-                                </span>
-                                <Transition name="mood-label" mode="out-in">
-                                    <span :key="currentMood" class="text-xs sm:text-[13px] font-bold tracking-tight">
-                                        {{ currentMoodLabel }}
-                                    </span>
-                                </Transition>
-                            </div>
-
-                            <!-- Indikator titik di sisi kanan -->
-                            <span class="relative inline-flex items-center gap-[3px] ml-1 opacity-70" aria-hidden="true">
-                                <span
-                                    v-for="(m, idx) in MOOD_OPTIONS"
-                                    :key="m.id"
-                                    :class="[
-                                        'block h-1 rounded-full bg-current transition-all duration-300',
-                                        currentMoodIndex === idx ? 'w-2.5 opacity-90' : 'w-1 opacity-30',
-                                    ]"
-                                ></span>
-                            </span>
-                        </button>
-                    </div>
                 </div>
             </div>
         </div>
