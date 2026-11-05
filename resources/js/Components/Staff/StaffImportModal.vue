@@ -87,10 +87,11 @@ function closeModal() {
 </script>
 
 <template>
-    <div
-        v-if="show"
-        class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 sm:p-6"
-    >
+    <Teleport to="body">
+        <div
+            v-if="show"
+            class="fixed inset-0 z-[70] overflow-y-auto flex items-center justify-center p-4 sm:p-6"
+        >
         <!-- Backdrop -->
         <div
             class="fixed inset-0 bg-on-surface/40 backdrop-blur-xs transition-opacity"
@@ -268,5 +269,6 @@ function closeModal() {
                 </button>
             </div>
         </div>
-    </div>
+        </div>
+    </Teleport>
 </template>

@@ -742,176 +742,183 @@ function onPageChange(p) {
                     </div>
                 </div>
 
-                <!-- Bottom Sheet / Modal Filter Mobile untuk Jenjang & Unit -->
-                <div
-                    v-if="isMobileFilterDrawerOpen"
-                    class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in"
-                    @click.self="isMobileFilterDrawerOpen = false"
-                >
-                    <div class="w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl border border-slate-200 max-h-[85vh] overflow-y-auto">
-                        <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
-                            <div class="flex items-center gap-2">
-                                <span class="material-symbols-outlined text-[20px] text-emerald-800">filter_alt</span>
-                                <h3 class="text-sm font-bold text-slate-900">Filter Pegawai</h3>
-                            </div>
-                            <button
-                                type="button"
-                                @click="isMobileFilterDrawerOpen = false"
-                                class="w-7 h-7 rounded-full bg-slate-100 text-slate-500 hover:text-slate-800 flex items-center justify-center cursor-pointer"
-                            >
-                                <span class="material-symbols-outlined text-[18px]">close</span>
-                            </button>
-                        </div>
+                <!-- Bottom Sheet / Modal Filter Mobile untuk Jenjang & Unit (Teleport ke body agar di atas Floating Bottom Nav) -->
+                <Teleport to="body">
+                    <div
+                        v-if="isMobileFilterDrawerOpen"
+                        class="fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in"
+                        @click.self="isMobileFilterDrawerOpen = false"
+                    >
+                        <div class="w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl p-5 pb-[max(2rem,env(safe-area-inset-bottom))] sm:pb-5 shadow-2xl border border-slate-200 max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom duration-200">
+                            <!-- Top Indicator Drag Bar (Khas Tampilan Bottom Sheet Mobile) -->
+                            <div class="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-3 sm:hidden"></div>
 
-                        <!-- Unit Kerja Selection: Langsung ditampilkan semua pilihan seperti pada Jenjang -->
-                        <div class="mb-5">
-                            <div class="flex items-center justify-between mb-2">
-                                <label class="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                                    Unit Kerja
-                                </label>
-                                <span class="text-[11px] text-slate-400">Pilih 1 unit</span>
-                            </div>
-                            <div class="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-                                <!-- Pilihan Semua Unit Kerja -->
-                                <label
-                                    class="flex items-center justify-between p-2.5 rounded-xl border cursor-pointer text-xs transition-colors"
-                                    :class="!unitFilter ? 'border-emerald-500 bg-emerald-50/60 font-bold text-emerald-950 shadow-2xs' : 'border-slate-200 hover:bg-slate-50 text-slate-800'"
+                            <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
+                                <div class="flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-[20px] text-emerald-800">filter_alt</span>
+                                    <h3 class="text-sm font-bold text-slate-900">Filter Pegawai</h3>
+                                </div>
+                                <button
+                                    type="button"
+                                    @click="isMobileFilterDrawerOpen = false"
+                                    class="w-7 h-7 rounded-full bg-slate-100 text-slate-500 hover:text-slate-800 flex items-center justify-center cursor-pointer transition-colors"
                                 >
-                                    <span>Semua Unit Kerja</span>
-                                    <input
-                                        type="radio"
-                                        name="mobile_unit_filter"
-                                        value=""
-                                        v-model="unitFilter"
-                                        class="w-4 h-4 text-emerald-900 focus:ring-emerald-700 border-slate-300 cursor-pointer"
-                                    />
-                                </label>
-
-                                <!-- Pilihan Setiap Unit Kerja -->
-                                <label
-                                    v-for="u in units.filter(x => x.value)"
-                                    :key="u.value"
-                                    class="flex items-center justify-between p-2.5 rounded-xl border cursor-pointer text-xs transition-colors"
-                                    :class="unitFilter === u.value ? 'border-emerald-500 bg-emerald-50/60 font-bold text-emerald-950 shadow-2xs' : 'border-slate-200 hover:bg-slate-50 text-slate-800'"
-                                >
-                                    <span>{{ u.label }}</span>
-                                    <input
-                                        type="radio"
-                                        name="mobile_unit_filter"
-                                        :value="u.value"
-                                        v-model="unitFilter"
-                                        class="w-4 h-4 text-emerald-900 focus:ring-emerald-700 border-slate-300 cursor-pointer"
-                                    />
-                                </label>
+                                    <span class="material-symbols-outlined text-[18px]">close</span>
+                                </button>
                             </div>
-                        </div>
 
-                        <!-- Jenjang Kepegawaian Checkboxes -->
-                        <div class="mb-5">
-                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                                Jenjang Kepegawaian
-                            </label>
-                            <div class="space-y-2 max-h-48 overflow-y-auto pr-1">
-                                <label
-                                    v-for="j in availableJenjang"
-                                    :key="j"
-                                    class="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer text-xs"
-                                >
-                                    <span class="font-medium text-slate-800">{{ j }}</span>
-                                    <input
-                                        type="checkbox"
-                                        :value="j"
-                                        v-model="jenjangFilters"
-                                        class="w-4 h-4 rounded text-emerald-900 focus:ring-emerald-700 border-slate-300 cursor-pointer"
-                                    />
-                                </label>
+                            <!-- Unit Kerja Selection: Langsung ditampilkan semua pilihan seperti pada Jenjang -->
+                            <div class="mb-5">
+                                <div class="flex items-center justify-between mb-2">
+                                    <label class="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                                        Unit Kerja
+                                    </label>
+                                    <span class="text-[11px] text-slate-400">Pilih 1 unit</span>
+                                </div>
+                                <div class="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                                    <!-- Pilihan Semua Unit Kerja -->
+                                    <label
+                                        class="flex items-center justify-between p-2.5 rounded-xl border cursor-pointer text-xs transition-colors"
+                                        :class="!unitFilter ? 'border-emerald-500 bg-emerald-50/60 font-bold text-emerald-950 shadow-2xs' : 'border-slate-200 hover:bg-slate-50 text-slate-800'"
+                                    >
+                                        <span>Semua Unit Kerja</span>
+                                        <input
+                                            type="radio"
+                                            name="mobile_unit_filter"
+                                            value=""
+                                            v-model="unitFilter"
+                                            class="w-4 h-4 text-emerald-900 focus:ring-emerald-700 border-slate-300 cursor-pointer"
+                                        />
+                                    </label>
+
+                                    <!-- Pilihan Setiap Unit Kerja -->
+                                    <label
+                                        v-for="u in units.filter(x => x.value)"
+                                        :key="u.value"
+                                        class="flex items-center justify-between p-2.5 rounded-xl border cursor-pointer text-xs transition-colors"
+                                        :class="unitFilter === u.value ? 'border-emerald-500 bg-emerald-50/60 font-bold text-emerald-950 shadow-2xs' : 'border-slate-200 hover:bg-slate-50 text-slate-800'"
+                                    >
+                                        <span>{{ u.label }}</span>
+                                        <input
+                                            type="radio"
+                                            name="mobile_unit_filter"
+                                            :value="u.value"
+                                            v-model="unitFilter"
+                                            class="w-4 h-4 text-emerald-900 focus:ring-emerald-700 border-slate-300 cursor-pointer"
+                                        />
+                                    </label>
+                                </div>
                             </div>
-                        </div>
 
-                        <!-- Tombol Aksi Modal Filter -->
-                        <div class="flex items-center gap-2 pt-2 border-t border-slate-100">
-                            <button
-                                type="button"
-                                @click="unitFilter = ''; jenjangFilters = []; currentPage = 1"
-                                class="flex-1 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 cursor-pointer"
-                            >
-                                Reset
-                            </button>
-                            <button
-                                type="button"
-                                @click="isMobileFilterDrawerOpen = false; currentPage = 1"
-                                class="flex-1 py-2 rounded-xl bg-emerald-900 text-yellow-200 font-bold text-xs shadow-xs hover:bg-emerald-800 cursor-pointer"
-                            >
-                                Terapkan Filter
-                            </button>
+                            <!-- Jenjang Kepegawaian Checkboxes -->
+                            <div class="mb-5">
+                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                                    Jenjang Kepegawaian
+                                </label>
+                                <div class="space-y-2 max-h-48 overflow-y-auto pr-1">
+                                    <label
+                                        v-for="j in availableJenjang"
+                                        :key="j"
+                                        class="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer text-xs"
+                                    >
+                                        <span class="font-medium text-slate-800">{{ j }}</span>
+                                        <input
+                                            type="checkbox"
+                                            :value="j"
+                                            v-model="jenjangFilters"
+                                            class="w-4 h-4 rounded text-emerald-900 focus:ring-emerald-700 border-slate-300 cursor-pointer"
+                                        />
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Tombol Aksi Modal Filter -->
+                            <div class="flex items-center gap-2 pt-2 border-t border-slate-100">
+                                <button
+                                    type="button"
+                                    @click="unitFilter = ''; jenjangFilters = []; currentPage = 1"
+                                    class="flex-1 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 cursor-pointer"
+                                >
+                                    Reset
+                                </button>
+                                <button
+                                    type="button"
+                                    @click="isMobileFilterDrawerOpen = false; currentPage = 1"
+                                    class="flex-1 py-2 rounded-xl bg-emerald-900 text-yellow-200 font-bold text-xs shadow-xs hover:bg-emerald-800 cursor-pointer"
+                                >
+                                    Terapkan Filter
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
+                </Teleport>
 
-                <!-- Bottom Sheet / Modal Kelola Mobile (Muncul dari Bawah Layar Seperti Filter) -->
-                <div
-                    v-if="isKelolaOpen"
-                    class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in"
-                    @click.self="isKelolaOpen = false"
-                >
-                    <div class="w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl p-5 pb-8 sm:pb-5 shadow-2xl border border-slate-200 max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom duration-200">
-                        <!-- Top Indicator Drag Bar (Khas Tampilan Bottom Sheet Mobile) -->
-                        <div class="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-3 sm:hidden"></div>
+                <!-- Bottom Sheet / Modal Kelola Mobile (Teleport ke body agar di atas Floating Bottom Nav) -->
+                <Teleport to="body">
+                    <div
+                        v-if="isKelolaOpen"
+                        class="fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in"
+                        @click.self="isKelolaOpen = false"
+                    >
+                        <div class="w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl p-5 pb-[max(2rem,env(safe-area-inset-bottom))] sm:pb-5 shadow-2xl border border-slate-200 max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom duration-200">
+                            <!-- Top Indicator Drag Bar (Khas Tampilan Bottom Sheet Mobile) -->
+                            <div class="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-3 sm:hidden"></div>
 
-                        <!-- Header Kelola -->
-                        <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
-                            <div class="flex items-center gap-2">
-                                <span class="material-symbols-outlined text-[20px] text-emerald-800">tune</span>
-                                <h3 class="text-sm font-bold text-slate-900">Kelola Data Pegawai</h3>
+                            <!-- Header Kelola -->
+                            <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
+                                <div class="flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-[20px] text-emerald-800">tune</span>
+                                    <h3 class="text-sm font-bold text-slate-900">Kelola Data Pegawai</h3>
+                                </div>
+                                <button
+                                    type="button"
+                                    @click="isKelolaOpen = false"
+                                    class="w-7 h-7 rounded-full bg-slate-100 text-slate-500 hover:text-slate-800 flex items-center justify-center cursor-pointer transition-colors"
+                                >
+                                    <span class="material-symbols-outlined text-[18px]">close</span>
+                                </button>
                             </div>
-                            <button
-                                type="button"
-                                @click="isKelolaOpen = false"
-                                class="w-7 h-7 rounded-full bg-slate-100 text-slate-500 hover:text-slate-800 flex items-center justify-center cursor-pointer transition-colors"
-                            >
-                                <span class="material-symbols-outlined text-[18px]">close</span>
-                            </button>
-                        </div>
 
-                        <!-- Pilihan Aksi Kelola -->
-                        <div class="space-y-2.5">
-                            <!-- Download Template -->
-                            <a
-                                v-if="permissions?.can_export"
-                                href="/staff/template"
-                                download
-                                @click="isKelolaOpen = false"
-                                class="w-full flex items-center gap-3 p-3.5 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/50 bg-white transition-all cursor-pointer group shadow-2xs"
-                            >
-                                <div class="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200/80 flex items-center justify-center text-emerald-800 group-hover:bg-emerald-100 transition-colors shrink-0">
-                                    <span class="material-symbols-outlined text-[22px]">download</span>
-                                </div>
-                                <div class="flex-1 text-left min-w-0">
-                                    <h4 class="text-xs font-bold text-slate-800 group-hover:text-emerald-950 truncate">Download Template</h4>
-                                    <p class="text-[11px] text-slate-500 font-medium truncate mt-0.5">Format file XLSX untuk import data pegawai</p>
-                                </div>
-                                <span class="material-symbols-outlined text-[18px] text-slate-400 group-hover:text-emerald-800 transition-colors shrink-0">chevron_right</span>
-                            </a>
+                            <!-- Pilihan Aksi Kelola -->
+                            <div class="space-y-2.5">
+                                <!-- Download Template -->
+                                <a
+                                    v-if="permissions?.can_export"
+                                    href="/staff/template"
+                                    download
+                                    @click="isKelolaOpen = false"
+                                    class="w-full flex items-center gap-3 p-3.5 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/50 bg-white transition-all cursor-pointer group shadow-2xs"
+                                >
+                                    <div class="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200/80 flex items-center justify-center text-emerald-800 group-hover:bg-emerald-100 transition-colors shrink-0">
+                                        <span class="material-symbols-outlined text-[22px]">download</span>
+                                    </div>
+                                    <div class="flex-1 text-left min-w-0">
+                                        <h4 class="text-xs font-bold text-slate-800 group-hover:text-emerald-950 truncate">Download Template</h4>
+                                        <p class="text-[11px] text-slate-500 font-medium truncate mt-0.5">Format file XLSX untuk import data pegawai</p>
+                                    </div>
+                                    <span class="material-symbols-outlined text-[18px] text-slate-400 group-hover:text-emerald-800 transition-colors shrink-0">chevron_right</span>
+                                </a>
 
-                            <!-- Import Data Pegawai -->
-                            <button
-                                v-if="permissions?.can_import"
-                                type="button"
-                                @click="isKelolaOpen = false; showImportModal = true"
-                                class="w-full flex items-center gap-3 p-3.5 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/50 bg-white transition-all cursor-pointer group shadow-2xs text-left"
-                            >
-                                <div class="w-10 h-10 rounded-xl bg-teal-50 border border-teal-200/80 flex items-center justify-center text-teal-800 group-hover:bg-teal-100 transition-colors shrink-0">
-                                    <span class="material-symbols-outlined text-[22px]">upload_file</span>
-                                </div>
-                                <div class="flex-1 text-left min-w-0">
-                                    <h4 class="text-xs font-bold text-slate-800 group-hover:text-teal-950 truncate">Import Data Pegawai</h4>
-                                    <p class="text-[11px] text-slate-500 font-medium truncate mt-0.5">Unggah data massal pegawai via Excel</p>
-                                </div>
-                                <span class="material-symbols-outlined text-[18px] text-slate-400 group-hover:text-teal-800 transition-colors shrink-0">chevron_right</span>
-                            </button>
+                                <!-- Import Data Pegawai -->
+                                <button
+                                    v-if="permissions?.can_import"
+                                    type="button"
+                                    @click="isKelolaOpen = false; showImportModal = true"
+                                    class="w-full flex items-center gap-3 p-3.5 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/50 bg-white transition-all cursor-pointer group shadow-2xs text-left"
+                                >
+                                    <div class="w-10 h-10 rounded-xl bg-teal-50 border border-teal-200/80 flex items-center justify-center text-teal-800 group-hover:bg-teal-100 transition-colors shrink-0">
+                                        <span class="material-symbols-outlined text-[22px]">upload_file</span>
+                                    </div>
+                                    <div class="flex-1 text-left min-w-0">
+                                        <h4 class="text-xs font-bold text-slate-800 group-hover:text-teal-950 truncate">Import Data Pegawai</h4>
+                                        <p class="text-[11px] text-slate-500 font-medium truncate mt-0.5">Unggah data massal pegawai via Excel</p>
+                                    </div>
+                                    <span class="material-symbols-outlined text-[18px] text-slate-400 group-hover:text-teal-800 transition-colors shrink-0">chevron_right</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
+                </Teleport>
             </div>
 
             <!-- ============================================================ -->

@@ -62,7 +62,7 @@ const activeRouteLabel = computed(() => {
             />
 
             <!-- Page Slot -->
-            <main class="flex-grow relative z-0 bg-white">
+            <main class="flex-grow relative bg-white">
                 <slot />
             </main>
         </div>
