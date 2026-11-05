@@ -821,7 +821,6 @@ function onPageChange(p) {
                     :active-status="statusFilter"
                     :active-unit="unitFilter"
                     :active-jenjang="jenjangFilters"
-                    :search-query="searchQuery"
                     @update:per-page="onPerPageChange"
                     @search="onSearch"
                     @filter-unit="onFilterUnit"
