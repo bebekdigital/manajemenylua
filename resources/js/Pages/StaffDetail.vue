@@ -2132,67 +2132,114 @@ function selectTab(id) {
 
                 <!-- TAB 1: IDENTITAS -->
                 <div v-if="activeTab === 'identitas'" class="space-y-4">
+                    <!-- Section Header Identitas Pegawai -->
+                    <div class="flex items-center justify-between pb-3 mb-2 border-b border-slate-100">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span>
+                            <h4 class="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider">
+                                Data Identitas Pegawai
+                            </h4>
+                        </div>
+
+                        <!-- Tombol Edit di Pojok Kanan Atas Section -->
+                        <div v-if="canEdit" class="flex items-center gap-2">
+                            <!-- Saat View Mode: Tombol Edit Data -->
+                            <button
+                                v-if="!isEditing"
+                                type="button"
+                                @click="startEdit"
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-bold text-xs sm:text-sm shadow-xs border border-emerald-950/30 transition-all cursor-pointer active:scale-95"
+                                title="Edit data identitas pegawai"
+                            >
+                                <span class="material-symbols-outlined text-[16px] sm:text-[18px]">edit_note</span>
+                                <span>Edit Data</span>
+                            </button>
+
+                            <!-- Saat Edit Mode: Tombol Batal & Simpan di Header Section -->
+                            <template v-else>
+                                <button
+                                    type="button"
+                                    @click="cancelEdit"
+                                    class="px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-100 border border-slate-300 transition-all cursor-pointer shadow-2xs"
+                                    :disabled="form.processing"
+                                >
+                                    Batal
+                                </button>
+                                <button
+                                    type="button"
+                                    @click="saveChanges"
+                                    class="inline-flex items-center gap-1.5 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-bold text-xs sm:text-sm shadow-xs border border-emerald-950/30 active:scale-95 cursor-pointer disabled:opacity-60 transition-all"
+                                    :disabled="form.processing"
+                                >
+                                    <span v-if="form.processing" class="material-symbols-outlined text-[16px] animate-spin">sync</span>
+                                    <span v-else class="material-symbols-outlined text-[16px]">save</span>
+                                    <span>Simpan</span>
+                                </button>
+                            </template>
+                        </div>
+                    </div>
+
                     <!-- VIEW MODE -->
                     <div v-if="!isEditing" class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
                         <div>
-                            <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Nama Lengkap</label>
-                            <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ employee.nama }}</p>
+                            <label class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Nama Lengkap</label>
+                            <p class="text-sm sm:text-base font-semibold text-slate-900 mt-1">{{ employee.nama }}</p>
                         </div>
                         <div v-if="canViewKepegawaian">
-                            <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">NIPY</label>
-                            <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5 font-mono">{{ employee.nipy || '-' }}</p>
+                            <label class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">NIPY</label>
+                            <p class="text-sm sm:text-base font-semibold text-slate-900 mt-1 font-mono">{{ employee.nipy || '-' }}</p>
                         </div>
                         <div>
-                            <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Gelar Depan</label>
-                            <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ employee.gelar_depan || '-' }}</p>
+                            <label class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Gelar Depan</label>
+                            <p class="text-sm sm:text-base font-semibold text-slate-900 mt-1">{{ employee.gelar_depan || '-' }}</p>
                         </div>
                         <div>
-                            <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Gelar Belakang</label>
-                            <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ employee.gelar_belakang || '-' }}</p>
+                            <label class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Gelar Belakang</label>
+                            <p class="text-sm sm:text-base font-semibold text-slate-900 mt-1">{{ employee.gelar_belakang || '-' }}</p>
                         </div>
                         <div>
-                            <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Jenis Kelamin</label>
-                            <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">
+                            <label class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Jenis Kelamin</label>
+                            <p class="text-sm sm:text-base font-semibold text-slate-900 mt-1">
                                 {{ employee.jk === 'L' ? 'Laki-laki' : employee.jk === 'P' ? 'Perempuan' : '-' }}
                             </p>
                         </div>
                         <div>
-                            <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Tempat, Tanggal Lahir</label>
-                            <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ employee.ttl || '-' }}</p>
+                            <label class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Tempat, Tanggal Lahir</label>
+                            <p class="text-sm sm:text-base font-semibold text-slate-900 mt-1">{{ employee.ttl || '-' }}</p>
                         </div>
                         <div>
-                            <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Usia</label>
-                            <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">
-                                <span v-if="hitungUsia(employee.tanggal_lahir, employee.ttl) !== '-'" class="inline-flex items-center gap-1.5 text-primary font-semibold">
-                                    <span class="material-symbols-outlined text-[16px]">cake</span>
+                            <label class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Usia</label>
+                            <p class="text-sm sm:text-base font-semibold text-slate-900 mt-1">
+                                <span v-if="hitungUsia(employee.tanggal_lahir, employee.ttl) !== '-'" class="inline-flex items-center gap-1.5 text-emerald-800 font-bold">
+                                    <span class="material-symbols-outlined text-[18px]">cake</span>
                                     <span>{{ hitungUsia(employee.tanggal_lahir, employee.ttl) }}</span>
                                 </span>
-                                <span v-else class="text-outline">-</span>
+                                <span v-else class="text-slate-400">-</span>
                             </p>
                         </div>
                         <div>
-                            <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">NIK</label>
-                            <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5 font-mono">{{ employee.nik || '-' }}</p>
+                            <label class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">NIK</label>
+                            <p class="text-sm sm:text-base font-semibold text-slate-900 mt-1 font-mono">{{ employee.nik || '-' }}</p>
                         </div>
                         <div>
-                            <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">No. WhatsApp</label>
-                            <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ employee.no_wa || '-' }}</p>
+                            <label class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">No. WhatsApp</label>
+                            <p class="text-sm sm:text-base font-semibold text-slate-900 mt-1">{{ employee.no_wa || '-' }}</p>
                         </div>
                         <div>
-                            <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Email</label>
-                            <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ employee.email || '-' }}</p>
+                            <label class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Email</label>
+                            <p class="text-sm sm:text-base font-semibold text-slate-900 mt-1">{{ employee.email || '-' }}</p>
                         </div>
                         <div>
-                            <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Kepemilikan BPJS</label>
-                            <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ employee.kepemilikan_bpjs || '-' }}</p>
+                            <label class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Kepemilikan BPJS</label>
+                            <p class="text-sm sm:text-base font-semibold text-slate-900 mt-1">{{ employee.kepemilikan_bpjs || '-' }}</p>
                         </div>
                         <div>
-                            <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Penanggung BPJS</label>
-                            <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ employee.penanggung_bpjs || '-' }}</p>
+                            <label class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Penanggung BPJS</label>
+                            <p class="text-sm sm:text-base font-semibold text-slate-900 mt-1">{{ employee.penanggung_bpjs || '-' }}</p>
                         </div>
                         <div class="md:col-span-2">
-                            <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Skill / Keahlian</label>
-                            <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ employee.skill || '-' }}</p>
+                            <label class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Skill / Keahlian</label>
+                            <p class="text-sm sm:text-base font-semibold text-slate-900 mt-1">{{ employee.skill || '-' }}</p>
                         </div>
                     </div>
 
@@ -2420,6 +2467,28 @@ function selectTab(id) {
                                 :class="{ 'border-error': form.errors.skill }"
                             />
                             <div v-if="form.errors.skill" class="text-error text-xs mt-1">{{ form.errors.skill }}</div>
+                        </div>
+
+                        <!-- Action Buttons in Edit Mode (Bottom) -->
+                        <div class="md:col-span-2 pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
+                            <button
+                                type="button"
+                                @click="cancelEdit"
+                                class="px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-100 border border-slate-300 transition-all cursor-pointer shadow-2xs"
+                                :disabled="form.processing"
+                            >
+                                Batal
+                            </button>
+                            <button
+                                type="button"
+                                @click="saveChanges"
+                                class="inline-flex items-center gap-2 px-5 py-2 sm:px-6 sm:py-2.5 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-bold text-xs sm:text-sm shadow-xs border border-emerald-950/30 active:scale-95 cursor-pointer disabled:opacity-60 transition-all"
+                                :disabled="form.processing"
+                            >
+                                <span v-if="form.processing" class="material-symbols-outlined text-[18px] animate-spin">sync</span>
+                                <span v-else class="material-symbols-outlined text-[18px]">save</span>
+                                <span>{{ form.processing ? 'Menyimpan...' : 'Simpan Perubahan' }}</span>
+                            </button>
                         </div>
                     </div>
                 </div>
