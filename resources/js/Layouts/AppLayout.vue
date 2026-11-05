@@ -58,7 +58,7 @@ const activeRouteLabel = computed(() => {
             <TopNav
                 :page-title="activeRouteLabel"
                 :is-home-overlay="activeRoute === 'overview'"
-                :hide-mobile="activeRoute === 'staff'"
+                :hide-mobile="activeRoute === 'staff' || activeRoute === 'students'"
             />
 
             <!-- Page Slot -->
