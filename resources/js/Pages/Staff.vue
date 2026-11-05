@@ -54,7 +54,6 @@ const perPage = ref(15);
 const showImportModal = ref(false);
 const dismissedFlash = ref(false);
 const isKelolaOpen = ref(false);
-const kelolaDropdownRef = ref(null);
 const isMobileFilterDrawerOpen = ref(false);
 
 const pageContainerRef = ref(null);
@@ -69,14 +68,7 @@ function checkTitleVisibility() {
     }
 }
 
-function handleClickOutside(event) {
-    if (kelolaDropdownRef.value && !kelolaDropdownRef.value.contains(event.target)) {
-        isKelolaOpen.value = false;
-    }
-}
-
 onMounted(() => {
-    document.addEventListener('click', handleClickOutside);
     window.addEventListener('scroll', checkTitleVisibility, { passive: true });
 
     if (pageContainerRef.value) {
@@ -102,7 +94,6 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-    document.removeEventListener('click', handleClickOutside);
     window.removeEventListener('scroll', checkTitleVisibility);
     if (pageContainerRef.value) {
         pageContainerRef.value.removeEventListener('scroll', checkTitleVisibility);
@@ -487,52 +478,17 @@ function onPageChange(p) {
                     <!-- Tombol Kelola Sesuai Hak Akses di Samping Judul -->
                     <div
                         v-if="!isTeacher && (permissions?.can_export || permissions?.can_import || permissions?.can_create)"
-                        class="relative shrink-0"
-                        ref="kelolaDropdownRef"
+                        class="shrink-0"
                     >
                         <button
                             type="button"
-                            @click="isKelolaOpen = !isKelolaOpen"
+                            @click="isKelolaOpen = true"
                             class="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-bold text-xs shadow-xs transition-all cursor-pointer active:scale-95 border border-emerald-950/30"
                         >
                             <span class="material-symbols-outlined text-[17px]">tune</span>
                             <span>Kelola</span>
                             <span class="material-symbols-outlined text-[16px] transition-transform duration-200" :class="{ 'rotate-180': isKelolaOpen }">expand_more</span>
                         </button>
-
-                        <Transition
-                            enter-active-class="transition duration-150 ease-out"
-                            enter-from-class="transform scale-95 opacity-0 -translate-y-1"
-                            enter-to-class="transform scale-100 opacity-100 translate-y-0"
-                            leave-active-class="transition duration-100 ease-in"
-                            leave-from-class="transform scale-100 opacity-100 translate-y-0"
-                            leave-to-class="transform scale-95 opacity-0 -translate-y-1"
-                        >
-                            <div
-                                v-if="isKelolaOpen"
-                                class="absolute right-0 mt-2 w-52 bg-white rounded-2xl shadow-xl border border-slate-200 py-1.5 z-50 animate-in fade-in"
-                            >
-                                <a
-                                    v-if="permissions?.can_export"
-                                    href="/staff/template"
-                                    download
-                                    @click="isKelolaOpen = false"
-                                    class="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-emerald-900 transition-colors"
-                                >
-                                    <span class="material-symbols-outlined text-[18px] text-emerald-700">download</span>
-                                    <span>Download Template</span>
-                                </a>
-                                <button
-                                    v-if="permissions?.can_import"
-                                    type="button"
-                                    @click="isKelolaOpen = false; showImportModal = true"
-                                    class="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-xs font-semibold text-emerald-950 hover:bg-emerald-50 transition-colors cursor-pointer text-left border-t border-slate-100"
-                                >
-                                    <span class="material-symbols-outlined text-[18px] text-emerald-800">upload_file</span>
-                                    <span>Import Data Pegawai</span>
-                                </button>
-                            </div>
-                        </Transition>
                     </div>
 
                     <!-- Tombol Profil Saya Khusus Role Guru -->
@@ -887,6 +843,71 @@ function onPageChange(p) {
                                 class="flex-1 py-2 rounded-xl bg-emerald-900 text-yellow-200 font-bold text-xs shadow-xs hover:bg-emerald-800 cursor-pointer"
                             >
                                 Terapkan Filter
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bottom Sheet / Modal Kelola Mobile (Muncul dari Bawah Layar Seperti Filter) -->
+                <div
+                    v-if="isKelolaOpen"
+                    class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in"
+                    @click.self="isKelolaOpen = false"
+                >
+                    <div class="w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl p-5 pb-8 sm:pb-5 shadow-2xl border border-slate-200 max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom duration-200">
+                        <!-- Top Indicator Drag Bar (Khas Tampilan Bottom Sheet Mobile) -->
+                        <div class="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-3 sm:hidden"></div>
+
+                        <!-- Header Kelola -->
+                        <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
+                            <div class="flex items-center gap-2">
+                                <span class="material-symbols-outlined text-[20px] text-emerald-800">tune</span>
+                                <h3 class="text-sm font-bold text-slate-900">Kelola Data Pegawai</h3>
+                            </div>
+                            <button
+                                type="button"
+                                @click="isKelolaOpen = false"
+                                class="w-7 h-7 rounded-full bg-slate-100 text-slate-500 hover:text-slate-800 flex items-center justify-center cursor-pointer transition-colors"
+                            >
+                                <span class="material-symbols-outlined text-[18px]">close</span>
+                            </button>
+                        </div>
+
+                        <!-- Pilihan Aksi Kelola -->
+                        <div class="space-y-2.5">
+                            <!-- Download Template -->
+                            <a
+                                v-if="permissions?.can_export"
+                                href="/staff/template"
+                                download
+                                @click="isKelolaOpen = false"
+                                class="w-full flex items-center gap-3 p-3.5 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/50 bg-white transition-all cursor-pointer group shadow-2xs"
+                            >
+                                <div class="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200/80 flex items-center justify-center text-emerald-800 group-hover:bg-emerald-100 transition-colors shrink-0">
+                                    <span class="material-symbols-outlined text-[22px]">download</span>
+                                </div>
+                                <div class="flex-1 text-left min-w-0">
+                                    <h4 class="text-xs font-bold text-slate-800 group-hover:text-emerald-950 truncate">Download Template</h4>
+                                    <p class="text-[11px] text-slate-500 font-medium truncate mt-0.5">Format file XLSX untuk import data pegawai</p>
+                                </div>
+                                <span class="material-symbols-outlined text-[18px] text-slate-400 group-hover:text-emerald-800 transition-colors shrink-0">chevron_right</span>
+                            </a>
+
+                            <!-- Import Data Pegawai -->
+                            <button
+                                v-if="permissions?.can_import"
+                                type="button"
+                                @click="isKelolaOpen = false; showImportModal = true"
+                                class="w-full flex items-center gap-3 p-3.5 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/50 bg-white transition-all cursor-pointer group shadow-2xs text-left"
+                            >
+                                <div class="w-10 h-10 rounded-xl bg-teal-50 border border-teal-200/80 flex items-center justify-center text-teal-800 group-hover:bg-teal-100 transition-colors shrink-0">
+                                    <span class="material-symbols-outlined text-[22px]">upload_file</span>
+                                </div>
+                                <div class="flex-1 text-left min-w-0">
+                                    <h4 class="text-xs font-bold text-slate-800 group-hover:text-teal-950 truncate">Import Data Pegawai</h4>
+                                    <p class="text-[11px] text-slate-500 font-medium truncate mt-0.5">Unggah data massal pegawai via Excel</p>
+                                </div>
+                                <span class="material-symbols-outlined text-[18px] text-slate-400 group-hover:text-teal-800 transition-colors shrink-0">chevron_right</span>
                             </button>
                         </div>
                     </div>
