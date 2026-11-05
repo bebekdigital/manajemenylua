@@ -3447,24 +3447,25 @@ function handleBackClick(e) {
                 </div>
 
                 <!-- WADAH 1: INFORMASI UMUM KEPEGAWAIAN -->
-                <div class="bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-7 shadow-xs">
-                    <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
-                        <div class="flex items-center gap-2 flex-wrap">
-                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span>
-                            <h4 class="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider">
-                                Informasi Umum Kepegawaian
-                            </h4>
-                            <span
-                                v-if="isManagingRiwayat"
-                                class="text-[10.5px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 inline-flex items-center gap-1"
-                            >
-                                <span class="material-symbols-outlined text-[13px]">lock</span>
-                                Terkunci saat mengelola riwayat
-                            </span>
+                <div class="bg-white rounded-3xl border border-slate-200/90 p-4 sm:p-7 shadow-xs">
+                    <div class="flex items-center justify-between gap-3 pb-3 mb-4 border-b border-slate-100">
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 shrink-0"></span>
+                                <h4 class="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider leading-tight">
+                                    Informasi Umum Kepegawaian
+                                </h4>
+                            </div>
+                            <div v-if="isManagingRiwayat" class="mt-1">
+                                <span class="text-[10px] sm:text-[10.5px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 inline-flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-[12px] sm:text-[13px]">lock</span>
+                                    <span>Terkunci saat mengelola riwayat</span>
+                                </span>
+                            </div>
                         </div>
 
                         <!-- Tombol Edit / Simpan di Pojok Kanan Atas Section (Terkunci jika sedang Kelola Riwayat) -->
-                        <div v-if="canUpdateKepegawaian" class="flex items-center gap-2">
+                        <div v-if="canUpdateKepegawaian" class="flex items-center gap-2 shrink-0">
                             <!-- Saat View Mode: Tombol Edit Data -->
                             <button
                                 v-if="!isEditing"
@@ -3472,7 +3473,7 @@ function handleBackClick(e) {
                                 @click="startEdit"
                                 :disabled="isManagingRiwayat"
                                 :class="[
-                                    'inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold shadow-xs transition-all',
+                                    'inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold shadow-xs transition-all whitespace-nowrap shrink-0',
                                     isManagingRiwayat
                                         ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60'
                                         : 'bg-emerald-900 hover:bg-emerald-800 text-yellow-200 border border-emerald-950/30 cursor-pointer active:scale-95'
@@ -3485,31 +3486,31 @@ function handleBackClick(e) {
                                 <span>Edit Data</span>
                             </button>
 
-                                <!-- Saat Edit Mode: Tombol Batal & Simpan di Pojok Kanan Atas Section yang Sama -->
-                                <template v-else>
-                                    <button
-                                        type="button"
-                                        @click="cancelEdit"
-                                        class="px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-100 border border-slate-300 transition-all cursor-pointer shadow-2xs"
-                                        :disabled="form.processing"
-                                        title="Batalkan perubahan"
-                                    >
-                                        Batal
-                                    </button>
-                                    <button
-                                        type="button"
-                                        @click="saveChanges"
-                                        class="inline-flex items-center gap-1.5 px-4 py-1.5 sm:px-5 sm:py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-bold text-xs sm:text-sm shadow-xs border border-emerald-950/30 active:scale-95 cursor-pointer disabled:opacity-60 transition-all"
-                                        :disabled="form.processing"
-                                        title="Simpan perubahan informasi umum kepegawaian"
-                                    >
-                                        <span v-if="form.processing" class="material-symbols-outlined text-[16px] animate-spin">sync</span>
-                                        <span v-else class="material-symbols-outlined text-[16px]">save</span>
-                                        <span>{{ form.processing ? 'Menyimpan...' : 'Simpan' }}</span>
-                                    </button>
-                                </template>
-                            </div>
+                            <!-- Saat Edit Mode: Tombol Batal & Simpan di Pojok Kanan Atas Section yang Sama -->
+                            <template v-else>
+                                <button
+                                    type="button"
+                                    @click="cancelEdit"
+                                    class="px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-100 border border-slate-300 transition-all cursor-pointer shadow-2xs whitespace-nowrap shrink-0"
+                                    :disabled="form.processing"
+                                    title="Batalkan perubahan"
+                                >
+                                    Batal
+                                </button>
+                                <button
+                                    type="button"
+                                    @click="saveChanges"
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-5 sm:py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-bold text-xs sm:text-sm shadow-xs border border-emerald-950/30 active:scale-95 cursor-pointer disabled:opacity-60 transition-all whitespace-nowrap shrink-0"
+                                    :disabled="form.processing"
+                                    title="Simpan perubahan informasi umum kepegawaian"
+                                >
+                                    <span v-if="form.processing" class="material-symbols-outlined text-[16px] animate-spin">sync</span>
+                                    <span v-else class="material-symbols-outlined text-[16px]">save</span>
+                                    <span>{{ form.processing ? 'Menyimpan...' : 'Simpan' }}</span>
+                                </button>
+                            </template>
                         </div>
+                    </div>
 
                         <!-- View Mode Data Statis -->
                         <div v-if="!isEditing" class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
@@ -3646,34 +3647,37 @@ function handleBackClick(e) {
                     </div>
 
                 <!-- WADAH 2: RIWAYAT JENJANG KEPEGAWAIAN -->
-                <div class="bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-7 shadow-xs">
-                    <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
-                        <div class="flex items-center gap-2 flex-wrap">
-                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span>
-                            <h4 class="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider">
-                                Riwayat Jenjang Kepegawaian
-                            </h4>
-                            <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600">
-                                {{ currentRiwayatList.length }} Catatan
-                            </span>
-                            <span
-                                v-if="isEditing"
-                                class="text-[10.5px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 inline-flex items-center gap-1"
-                            >
-                                <span class="material-symbols-outlined text-[13px]">lock</span>
-                                Terkunci saat mengedit informasi umum
-                            </span>
+                <div class="bg-white rounded-3xl border border-slate-200/90 p-4 sm:p-7 shadow-xs">
+                    <div class="flex items-center justify-between gap-3 pb-3 mb-4 border-b border-slate-100">
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <div class="inline-flex items-center gap-2">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 shrink-0"></span>
+                                    <h4 class="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider leading-tight">
+                                        Riwayat Jenjang Kepegawaian
+                                    </h4>
+                                </div>
+                                <span class="text-[10px] sm:text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 shrink-0">
+                                    {{ currentRiwayatList.length }} Catatan
+                                </span>
+                            </div>
+                            <div v-if="isEditing" class="mt-1">
+                                <span class="text-[10px] sm:text-[10.5px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 inline-flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-[12px] sm:text-[13px]">lock</span>
+                                    <span>Terkunci saat mengedit informasi umum</span>
+                                </span>
+                            </div>
                         </div>
 
                         <!-- Tombol Kelola di Pojok Kanan Atas Section (Terkunci jika sedang Edit Informasi Umum) -->
-                        <div v-if="canUpdateKepegawaian" class="flex items-center gap-2">
+                        <div v-if="canUpdateKepegawaian" class="flex items-center gap-2 shrink-0">
                             <button
                                 v-if="!isManagingRiwayat"
                                 type="button"
                                 @click="startManageRiwayat"
                                 :disabled="isEditing"
                                 :class="[
-                                    'inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold shadow-xs transition-all',
+                                    'inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold shadow-xs transition-all whitespace-nowrap shrink-0',
                                     isEditing
                                         ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60'
                                         : 'bg-emerald-900 hover:bg-emerald-800 text-yellow-200 border border-emerald-950/30 cursor-pointer active:scale-95'
@@ -3689,7 +3693,7 @@ function handleBackClick(e) {
                                 v-else
                                 type="button"
                                 @click="finishManageRiwayat"
-                                class="inline-flex items-center gap-1.5 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-bold text-xs sm:text-sm shadow-xs border border-emerald-950/30 transition-all cursor-pointer active:scale-95"
+                                class="inline-flex items-center gap-1.5 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-bold text-xs sm:text-sm shadow-xs border border-emerald-950/30 transition-all cursor-pointer active:scale-95 whitespace-nowrap shrink-0"
                                 title="Selesai mengelola riwayat jenjang"
                             >
                                 <span class="material-symbols-outlined text-[16px] sm:text-[18px]">check</span>
