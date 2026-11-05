@@ -461,16 +461,11 @@ function onPageChange(p) {
             >
                 <div
                     v-if="isScrolledPastTitle"
-                    class="md:hidden fixed top-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md shadow-md border-b border-slate-200/80 px-4 py-2.5 flex items-center justify-center pt-[max(0.75rem,env(safe-area-inset-top))]"
+                    class="md:hidden fixed top-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md px-4 py-3 flex items-center justify-center pt-[max(0.85rem,env(safe-area-inset-top))] transition-all shadow-2xs"
                 >
-                    <div class="text-center min-w-0">
-                        <h2 class="text-sm font-bold text-slate-900 tracking-tight truncate">
-                            Database Pegawai
-                        </h2>
-                        <p class="text-[10px] text-slate-500 font-medium truncate -mt-0.5">
-                            {{ filteredEmployees.length }} dari {{ displayTotalCount }} pegawai
-                        </p>
-                    </div>
+                    <h2 class="text-base font-bold text-slate-900 tracking-tight text-center truncate">
+                        Database Pegawai
+                    </h2>
                 </div>
             </Transition>
 
@@ -708,10 +703,7 @@ function onPageChange(p) {
                                 <div class="flex items-center gap-1.5 text-xs text-slate-500 font-medium mt-1 truncate">
                                     <span>NIPY: {{ emp.nipy || '-' }}</span>
                                     <span>•</span>
-                                    <span class="inline-flex items-center gap-1 truncate">
-                                        <span class="material-symbols-outlined text-[13px] text-slate-400 shrink-0">apartment</span>
-                                        <span class="truncate">{{ emp.unit_kerja || 'Yayasan' }}</span>
-                                    </span>
+                                    <span class="truncate">{{ emp.unit_kerja || 'Yayasan' }}</span>
                                 </div>
 
                                 <div v-if="emp.jabatan" class="text-[11px] text-slate-400 truncate mt-0.5">
@@ -846,10 +838,7 @@ function onPageChange(p) {
                                     class="flex items-center justify-between p-2.5 rounded-xl border cursor-pointer text-xs transition-colors"
                                     :class="unitFilter === u.value ? 'border-emerald-500 bg-emerald-50/60 font-bold text-emerald-950 shadow-2xs' : 'border-slate-200 hover:bg-slate-50 text-slate-800'"
                                 >
-                                    <div class="flex items-center gap-2">
-                                        <span class="material-symbols-outlined text-[16px] text-slate-400">apartment</span>
-                                        <span>{{ u.label }}</span>
-                                    </div>
+                                    <span>{{ u.label }}</span>
                                     <input
                                         type="radio"
                                         name="mobile_unit_filter"

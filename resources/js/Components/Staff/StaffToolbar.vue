@@ -227,7 +227,6 @@ onUnmounted(() => {
                 <AppSelect
                     :model-value="activeUnit"
                     :options="units"
-                    icon="domain"
                     title="Unit Kerja"
                     placement="right"
                     @update:model-value="onUnitChange"
