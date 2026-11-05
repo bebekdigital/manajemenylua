@@ -55,7 +55,11 @@ const activeRouteLabel = computed(() => {
         <!-- Main Workspace Area -->
         <div class="flex-grow md:ml-64 flex flex-col min-h-screen transition-all duration-300 min-w-0 overflow-x-hidden pb-24 md:pb-0 bg-white">
             <!-- Sticky Header -->
-            <TopNav :page-title="activeRouteLabel" :is-home-overlay="activeRoute === 'overview'" />
+            <TopNav
+                :page-title="activeRouteLabel"
+                :is-home-overlay="activeRoute === 'overview'"
+                :hide-mobile="activeRoute === 'staff'"
+            />
 
             <!-- Page Slot -->
             <main class="flex-grow relative z-0 bg-white">

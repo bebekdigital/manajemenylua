@@ -12,6 +12,10 @@ defineProps({
         type: Boolean,
         default: false,
     },
+    hideMobile: {
+        type: Boolean,
+        default: false,
+    },
 });
 
 defineEmits(['toggle-sidebar']);
@@ -85,9 +89,11 @@ onUnmounted(() => {
     <header
         :class="[
             'docked full-width top-0 z-30 transition-all duration-300',
-            isHomeOverlay
-                ? 'max-md:absolute max-md:inset-x-0 max-md:bg-transparent max-md:border-none max-md:shadow-none md:sticky md:bg-white md:border-b md:border-slate-200 md:shadow-2xs'
-                : 'bg-white shadow-2xs sticky border-b border-slate-200'
+            hideMobile ? 'max-md:hidden md:sticky md:bg-white md:border-b md:border-slate-200 md:shadow-2xs' : (
+                isHomeOverlay
+                    ? 'max-md:absolute max-md:inset-x-0 max-md:bg-transparent max-md:border-none max-md:shadow-none md:sticky md:bg-white md:border-b md:border-slate-200 md:shadow-2xs'
+                    : 'bg-white shadow-2xs sticky border-b border-slate-200'
+            )
         ]"
     >
         <div class="flex items-center justify-between h-16 px-4 md:px-gutter max-w-container-max mx-auto gap-2 md:gap-4 w-full">

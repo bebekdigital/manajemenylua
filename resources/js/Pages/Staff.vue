@@ -55,6 +55,7 @@ const showImportModal = ref(false);
 const dismissedFlash = ref(false);
 const isKelolaOpen = ref(false);
 const kelolaDropdownRef = ref(null);
+const isMobileFilterDrawerOpen = ref(false);
 
 function handleClickOutside(event) {
     if (kelolaDropdownRef.value && !kelolaDropdownRef.value.contains(event.target)) {
@@ -76,6 +77,126 @@ const flashError = computed(() => !dismissedFlash.value ? page.props.flash?.erro
 const uniqueUnitsCount = computed(() => {
     return new Set(props.employees.map(e => e.unit_kerja).filter(Boolean)).size;
 });
+
+// Rekap Status Keaktifan (Semua, Aktif, Pensiun, Non-Aktif)
+const statusCounts = computed(() => {
+    const all = props.employees.length;
+    let aktif = 0;
+    let pensiun = 0;
+    let nonAktif = 0;
+
+    props.employees.forEach(e => {
+        const s = (e.status_keaktifan || 'Aktif').toLowerCase();
+        if (s === 'aktif') aktif++;
+        else if (s === 'pensiun') pensiun++;
+        else if (['non-aktif', 'tidak aktif', 'tidak_aktif', 'resign', 'keluar'].includes(s)) nonAktif++;
+    });
+
+    return {
+        semua: all,
+        aktif,
+        pensiun,
+        'non-aktif': nonAktif,
+    };
+});
+
+const statusTabs = computed(() => [
+    { key: 'semua', label: 'Semua', count: statusCounts.value.semua },
+    { key: 'aktif', label: 'Aktif', count: statusCounts.value.aktif },
+    { key: 'pensiun', label: 'Pensiun', count: statusCounts.value.pensiun },
+    { key: 'non-aktif', label: 'Non-Aktif', count: statusCounts.value['non-aktif'] },
+]);
+
+const units = computed(() => {
+    const uniqueUnits = [...new Set(props.employees.map(e => e.unit_kerja).filter(Boolean))].sort();
+    return [
+        { value: '', label: 'Semua Unit Kerja' },
+        ...uniqueUnits.map(u => ({ value: u, label: u })),
+    ];
+});
+
+const availableJenjang = computed(() => {
+    return [...new Set(props.employees.map(e => e.jenjang_kepegawaian).filter(Boolean))].sort();
+});
+
+const activeExtraFiltersCount = computed(() => {
+    let count = 0;
+    if (unitFilter.value) count++;
+    if (jenjangFilters.value.length > 0) count += jenjangFilters.value.length;
+    return count;
+});
+
+const hasActiveFilters = computed(() => {
+    return Boolean(
+        unitFilter.value ||
+        jenjangFilters.value.length > 0 ||
+        searchQuery.value.trim() ||
+        (statusFilter.value && statusFilter.value !== 'aktif')
+    );
+});
+
+const activeFilterChips = computed(() => {
+    const chips = [];
+    if (unitFilter.value) {
+        chips.push({
+            id: 'unit',
+            label: `Unit: ${unitFilter.value}`,
+            onRemove: () => {
+                unitFilter.value = '';
+                currentPage.value = 1;
+            },
+        });
+    }
+    jenjangFilters.value.forEach(j => {
+        chips.push({
+            id: `jenjang-${j}`,
+            label: `Jenjang: ${j}`,
+            onRemove: () => {
+                jenjangFilters.value = jenjangFilters.value.filter(item => item !== j);
+                currentPage.value = 1;
+            },
+        });
+    });
+    if (searchQuery.value.trim()) {
+        chips.push({
+            id: 'search',
+            label: `Cari: "${searchQuery.value.trim()}"`,
+            onRemove: () => {
+                searchQuery.value = '';
+                currentPage.value = 1;
+            },
+        });
+    }
+    return chips;
+});
+
+function getInitials(name) {
+    if (!name) return 'PG';
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+}
+
+const pastelPalette = [
+    'bg-[#cfe4fc] text-[#1e40af] border-[#bfdbfe]',
+    'bg-[#fde2e4] text-[#be185d] border-[#fbcfe8]',
+    'bg-[#edd8f8] text-[#6b21a8] border-[#e9d5ff]',
+    'bg-[#d1fae5] text-[#065f46] border-[#a7f3d0]',
+    'bg-[#fef3c7] text-[#92400e] border-[#fde68a]',
+    'bg-[#e0e7ff] text-[#3730a3] border-[#c7d2fe]',
+    'bg-[#ccfbf1] text-[#115e59] border-[#99f6e4]',
+];
+
+function getAvatarStyle(emp) {
+    const id = emp.id || 0;
+    const name = emp.nama || '';
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+        hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash + id) % pastelPalette.length;
+    return pastelPalette[index];
+}
 
 const filteredEmployees = computed(() => {
     let result = [...props.employees];
@@ -184,111 +305,13 @@ function onPageChange(p) {
 </script>
 
 <template>
-    <div class="flex-1 overflow-y-auto px-4 py-6 md:px-8 md:py-7 bg-white min-h-screen">
+    <div class="flex-1 overflow-y-auto px-4 py-4 md:px-8 md:py-7 bg-white min-h-screen">
         <Head title="Database Pegawai - Foundation Data Center" />
         <div class="max-w-[1440px] mx-auto">
-            <!-- Page Header (Di mobile: judul dikecilkan, tombol Download & Import dirangkum di tombol Kelola sebelah kanan judul) -->
-            <div class="mb-5 sm:mb-6 flex flex-row items-center justify-between gap-3">
-                <div class="min-w-0">
-                    <h1 class="text-xl sm:text-2xl md:text-[26px] font-bold text-slate-900 tracking-tight leading-tight">
-                        Database Pegawai
-                    </h1>
-                    <p class="text-xs sm:text-[13.5px] text-slate-500 mt-1 sm:mt-1.5 font-medium truncate">
-                        <strong class="text-slate-700 font-semibold">{{ employees.length }}</strong> pegawai di <strong class="text-slate-700 font-semibold">{{ uniqueUnitsCount }}</strong> unit kerja
-                    </p>
-                </div>
-
-                <!-- Mobile Action: Tombol Kelola dengan Dropdown (Rangkuman Download Template & Import) -->
-                <div
-                    v-if="!isTeacher && (permissions?.can_export || permissions?.can_import)"
-                    class="sm:hidden relative shrink-0"
-                    ref="kelolaDropdownRef"
-                >
-                    <button
-                        type="button"
-                        @click="isKelolaOpen = !isKelolaOpen"
-                        class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-bold text-xs shadow-xs transition-all cursor-pointer active:scale-95 border border-emerald-950/30"
-                    >
-                        <span class="material-symbols-outlined text-[17px]">tune</span>
-                        <span>Kelola</span>
-                        <span class="material-symbols-outlined text-[16px] transition-transform duration-200" :class="{ 'rotate-180': isKelolaOpen }">expand_more</span>
-                    </button>
-
-                    <!-- Dropdown Menu Mobile -->
-                    <Transition
-                        enter-active-class="transition duration-150 ease-out"
-                        enter-from-class="transform scale-95 opacity-0 -translate-y-1"
-                        enter-to-class="transform scale-100 opacity-100 translate-y-0"
-                        leave-active-class="transition duration-100 ease-in"
-                        leave-from-class="transform scale-100 opacity-100 translate-y-0"
-                        leave-to-class="transform scale-95 opacity-0 -translate-y-1"
-                    >
-                        <div
-                            v-if="isKelolaOpen"
-                            class="absolute right-0 mt-2 w-52 bg-white rounded-2xl shadow-xl border border-slate-200 py-1.5 z-50 animate-in fade-in"
-                        >
-                            <a
-                                v-if="permissions?.can_export"
-                                href="/staff/template"
-                                download
-                                @click="isKelolaOpen = false"
-                                class="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-emerald-900 transition-colors"
-                            >
-                                <span class="material-symbols-outlined text-[18px] text-emerald-700">download</span>
-                                <span>Download Template</span>
-                            </a>
-                            <button
-                                v-if="permissions?.can_import"
-                                type="button"
-                                @click="isKelolaOpen = false; showImportModal = true"
-                                class="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-xs font-semibold text-emerald-950 hover:bg-emerald-50 transition-colors cursor-pointer text-left border-t border-slate-100"
-                            >
-                                <span class="material-symbols-outlined text-[18px] text-emerald-800">upload_file</span>
-                                <span>Import Data Pegawai</span>
-                            </button>
-                        </div>
-                    </Transition>
-                </div>
-
-                <!-- Desktop Action Buttons (sm and up) -->
-                <div v-if="!isTeacher" class="hidden sm:flex items-center gap-2.5 shrink-0">
-                    <a
-                        v-if="permissions?.can_export"
-                        href="/staff/template"
-                        download
-                        class="inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl border border-slate-300 text-slate-700 bg-white hover:bg-slate-50 hover:border-slate-400 font-semibold text-[13px] transition-all shadow-2xs"
-                        title="Download template XLSX untuk import data pegawai"
-                    >
-                        <span class="material-symbols-outlined text-[18px] text-emerald-700">download</span>
-                        <span>Download Template</span>
-                    </a>
-
-                    <button
-                        v-if="permissions?.can_import"
-                        type="button"
-                        @click="showImportModal = true"
-                        class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-semibold text-[13px] transition-all shadow-xs cursor-pointer active:scale-95"
-                        title="Import data pegawai dari file template Excel"
-                    >
-                        <span class="material-symbols-outlined text-[18px]">upload_file</span>
-                        <span>Import Data Pegawai</span>
-                    </button>
-                </div>
-                <div v-else-if="teacherEmployee" class="flex items-center gap-2 shrink-0">
-                    <Link
-                        :href="`/staff/${teacherEmployee.id}`"
-                        class="inline-flex items-center justify-center gap-2 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-semibold text-xs sm:text-[13px] transition-all shadow-xs"
-                    >
-                        <span class="material-symbols-outlined text-[17px] sm:text-[18px]">person</span>
-                        <span>Buka Profil Saya</span>
-                    </Link>
-                </div>
-            </div>
-
             <!-- Teacher Role Scoping Notice Banner -->
             <div
                 v-if="isTeacher"
-                class="mb-5 p-4 bg-emerald-50/70 border border-emerald-200 rounded-2xl flex items-start gap-3.5"
+                class="mb-4 p-4 bg-emerald-50/70 border border-emerald-200 rounded-2xl flex items-start gap-3.5"
             >
                 <span class="material-symbols-outlined text-emerald-700 text-2xl shrink-0 mt-0.5">shield_person</span>
                 <div class="flex-1">
@@ -306,7 +329,7 @@ function onPageChange(p) {
             <!-- Flash Notifications -->
             <div
                 v-if="flashSuccess"
-                class="mb-5 p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-start justify-between gap-3 animate-in fade-in duration-200"
+                class="mb-4 p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-start justify-between gap-3 animate-in fade-in duration-200"
             >
                 <div class="flex items-start gap-3">
                     <span class="material-symbols-outlined text-emerald-700 text-2xl shrink-0 mt-0.5">check_circle</span>
@@ -326,7 +349,7 @@ function onPageChange(p) {
 
             <div
                 v-if="flashError"
-                class="mb-5 p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-start justify-between gap-3 animate-in fade-in duration-200"
+                class="mb-4 p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-start justify-between gap-3 animate-in fade-in duration-200"
             >
                 <div class="flex items-start gap-3">
                     <span class="material-symbols-outlined text-rose-600 text-2xl shrink-0 mt-0.5">error</span>
@@ -344,36 +367,507 @@ function onPageChange(p) {
                 </button>
             </div>
 
-            <!-- Toolbar (Modern layout matching image: Status tabs, Search Bar Database Siswa, Multi-select Jenjang Filter) -->
-            <StaffToolbar
-                :employees="employees"
-                :total-count="employees.length"
-                :filtered-count="totalEntries"
-                :per-page="perPage"
-                :active-status="statusFilter"
-                :active-unit="unitFilter"
-                :active-jenjang="jenjangFilters"
-                @update:per-page="onPerPageChange"
-                @search="onSearch"
-                @filter-unit="onFilterUnit"
-                @filter-status="onFilterStatus"
-                @filter-jenjang="onFilterJenjang"
-                @reset-filters="onResetFilters"
-            />
+            <!-- ============================================================ -->
+            <!-- TAMPILAN MOBILE (md:hidden) SESUAI STYLE FOTO REFERENSI      -->
+            <!-- ============================================================ -->
+            <div class="md:hidden space-y-3 pb-8">
+                <!-- 1. Header: Judul Database Pegawai + Tombol Kelola Samping Judul -->
+                <div class="flex items-center justify-between gap-3 pt-1">
+                    <div class="min-w-0">
+                        <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight leading-tight">
+                            Database Pegawai
+                        </h1>
+                        <p class="text-xs text-slate-500 mt-0.5 font-medium truncate">
+                            {{ employees.length }} pegawai • {{ uniqueUnitsCount }} unit kerja
+                        </p>
+                    </div>
 
-            <!-- Table (Modern design with green header, thicker horizontal dividers, and reduced rounded corners) -->
-            <StaffTable
-                :employees="paginatedEmployees"
-                :current-page="currentPage"
-                :per-page="perPage"
-                :total-entries="totalEntries"
-                :sort-by="sortBy"
-                :sort-direction="sortDirection"
-                :can-update="permissions?.can_update ?? true"
-                @update:per-page="onPerPageChange"
-                @page-change="onPageChange"
-                @sort-change="onSortChange"
-            />
+                    <!-- Tombol Kelola Sesuai Hak Akses di Samping Judul -->
+                    <div
+                        v-if="!isTeacher && (permissions?.can_export || permissions?.can_import || permissions?.can_create)"
+                        class="relative shrink-0"
+                        ref="kelolaDropdownRef"
+                    >
+                        <button
+                            type="button"
+                            @click="isKelolaOpen = !isKelolaOpen"
+                            class="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-bold text-xs shadow-xs transition-all cursor-pointer active:scale-95 border border-emerald-950/30"
+                        >
+                            <span class="material-symbols-outlined text-[17px]">tune</span>
+                            <span>Kelola</span>
+                            <span class="material-symbols-outlined text-[16px] transition-transform duration-200" :class="{ 'rotate-180': isKelolaOpen }">expand_more</span>
+                        </button>
+
+                        <Transition
+                            enter-active-class="transition duration-150 ease-out"
+                            enter-from-class="transform scale-95 opacity-0 -translate-y-1"
+                            enter-to-class="transform scale-100 opacity-100 translate-y-0"
+                            leave-active-class="transition duration-100 ease-in"
+                            leave-from-class="transform scale-100 opacity-100 translate-y-0"
+                            leave-to-class="transform scale-95 opacity-0 -translate-y-1"
+                        >
+                            <div
+                                v-if="isKelolaOpen"
+                                class="absolute right-0 mt-2 w-52 bg-white rounded-2xl shadow-xl border border-slate-200 py-1.5 z-50 animate-in fade-in"
+                            >
+                                <a
+                                    v-if="permissions?.can_export"
+                                    href="/staff/template"
+                                    download
+                                    @click="isKelolaOpen = false"
+                                    class="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-emerald-900 transition-colors"
+                                >
+                                    <span class="material-symbols-outlined text-[18px] text-emerald-700">download</span>
+                                    <span>Download Template</span>
+                                </a>
+                                <button
+                                    v-if="permissions?.can_import"
+                                    type="button"
+                                    @click="isKelolaOpen = false; showImportModal = true"
+                                    class="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-xs font-semibold text-emerald-950 hover:bg-emerald-50 transition-colors cursor-pointer text-left border-t border-slate-100"
+                                >
+                                    <span class="material-symbols-outlined text-[18px] text-emerald-800">upload_file</span>
+                                    <span>Import Data Pegawai</span>
+                                </button>
+                            </div>
+                        </Transition>
+                    </div>
+
+                    <!-- Tombol Profil Saya Khusus Role Guru -->
+                    <div v-else-if="teacherEmployee" class="shrink-0">
+                        <Link
+                            :href="`/staff/${teacherEmployee.id}`"
+                            class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-bold text-xs shadow-xs"
+                        >
+                            <span class="material-symbols-outlined text-[16px]">person</span>
+                            <span>Profil</span>
+                        </Link>
+                    </div>
+                </div>
+
+                <!-- 2. Filter Status Keaktifan (DI ATAS SEARCH) -->
+                <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
+                    <button
+                        v-for="tab in statusTabs"
+                        :key="tab.key"
+                        type="button"
+                        @click="onFilterStatus(tab.key)"
+                        :class="[
+                            'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all shrink-0 cursor-pointer',
+                            statusFilter === tab.key
+                                ? 'bg-emerald-100 text-emerald-950 font-bold border border-emerald-300 shadow-2xs'
+                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80 border border-transparent'
+                        ]"
+                    >
+                        <span v-if="tab.key === 'aktif'" class="w-2 h-2 rounded-full bg-emerald-600 inline-block"></span>
+                        <span>{{ tab.label }}</span>
+                        <span
+                            :class="[
+                                'px-2 py-0.5 rounded-full text-[10.5px] font-bold',
+                                statusFilter === tab.key
+                                    ? 'bg-emerald-900 text-yellow-200'
+                                    : 'bg-slate-200 text-slate-600'
+                            ]"
+                        >
+                            {{ tab.count }}
+                        </span>
+                    </button>
+                </div>
+
+                <!-- 3. Search Bar + Tombol Filter -->
+                <div class="flex items-center gap-2">
+                    <div class="relative flex-1">
+                        <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-[20px] text-slate-400">
+                            search
+                        </span>
+                        <input
+                            v-model="searchQuery"
+                            type="text"
+                            placeholder="Cari nama, NIPY, jabatan..."
+                            class="w-full pl-10 pr-9 py-2.5 rounded-xl border border-slate-300 bg-white text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-700 shadow-2xs transition-all"
+                            @input="currentPage = 1"
+                        />
+                        <button
+                            v-if="searchQuery"
+                            type="button"
+                            @click="searchQuery = ''; currentPage = 1"
+                            class="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 rounded-full"
+                        >
+                            <span class="material-symbols-outlined text-[16px] block">close</span>
+                        </button>
+                    </div>
+
+                    <!-- Tombol Filter Popover/Drawer -->
+                    <button
+                        type="button"
+                        @click="isMobileFilterDrawerOpen = !isMobileFilterDrawerOpen"
+                        :class="[
+                            'h-[42px] px-3.5 rounded-xl border flex items-center gap-1.5 transition-all cursor-pointer shrink-0 shadow-2xs',
+                            activeExtraFiltersCount > 0
+                                ? 'bg-emerald-50 border-emerald-300 text-emerald-950 font-bold'
+                                : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
+                        ]"
+                        title="Buka filter lanjutan"
+                    >
+                        <span class="material-symbols-outlined text-[18px]">filter_alt</span>
+                        <span
+                            v-if="activeExtraFiltersCount > 0"
+                            class="w-5 h-5 rounded-full bg-emerald-900 text-yellow-200 text-[10px] font-bold flex items-center justify-center"
+                        >
+                            {{ activeExtraFiltersCount }}
+                        </span>
+                        <span class="material-symbols-outlined text-[16px]">expand_more</span>
+                    </button>
+                </div>
+
+                <!-- 4. Controller Filter Mana Saja yang Dipilih (DI BAWAH SEARCH) -->
+                <div class="space-y-2">
+                    <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+                        <!-- Quick Selector Unit Kerja -->
+                        <div class="relative shrink-0">
+                            <select
+                                v-model="unitFilter"
+                                @change="currentPage = 1"
+                                class="appearance-none pl-3 pr-7 py-1.5 rounded-full border text-xs font-semibold bg-white transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-700 shadow-2xs"
+                                :class="unitFilter ? 'border-emerald-500 bg-emerald-50 text-emerald-950 font-bold' : 'border-slate-300 text-slate-700 hover:bg-slate-50'"
+                            >
+                                <option value="">Unit: Semua</option>
+                                <option v-for="u in units.filter(x => x.value)" :key="u.value" :value="u.value">
+                                    Unit: {{ u.label }}
+                                </option>
+                            </select>
+                            <span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-[14px] text-slate-400 pointer-events-none">
+                                expand_more
+                            </span>
+                        </div>
+
+                        <!-- Quick Selector Jenjang Trigger -->
+                        <button
+                            type="button"
+                            @click="isMobileFilterDrawerOpen = !isMobileFilterDrawerOpen"
+                            class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full border text-xs font-semibold bg-white transition-all cursor-pointer shrink-0 shadow-2xs"
+                            :class="jenjangFilters.length > 0 ? 'border-emerald-500 bg-emerald-50 text-emerald-950 font-bold' : 'border-slate-300 text-slate-700 hover:bg-slate-50'"
+                        >
+                            <span>Jenjang</span>
+                            <span
+                                v-if="jenjangFilters.length > 0"
+                                class="w-4 h-4 rounded-full bg-emerald-900 text-yellow-200 text-[10px] font-bold inline-flex items-center justify-center"
+                            >
+                                {{ jenjangFilters.length }}
+                            </span>
+                            <span class="material-symbols-outlined text-[14px] text-slate-400">tune</span>
+                        </button>
+
+                        <!-- Tombol Reset Filter -->
+                        <button
+                            v-if="hasActiveFilters"
+                            type="button"
+                            @click="onResetFilters"
+                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-200 hover:bg-rose-100 transition-colors cursor-pointer shrink-0"
+                        >
+                            <span class="material-symbols-outlined text-[14px]">restart_alt</span>
+                            <span>Reset</span>
+                        </button>
+                    </div>
+
+                    <!-- Active Filter Chips: Daftar Tag Filter yang Aktif -->
+                    <div v-if="activeFilterChips.length > 0" class="flex items-center gap-1.5 flex-wrap pt-0.5">
+                        <span class="text-[11px] font-medium text-slate-400">Filter Aktif:</span>
+                        <span
+                            v-for="chip in activeFilterChips"
+                            :key="chip.id"
+                            class="inline-flex items-center gap-1 pl-2.5 pr-1.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100/90 text-emerald-950 border border-emerald-300/80 shadow-2xs"
+                        >
+                            <span>{{ chip.label }}</span>
+                            <button
+                                type="button"
+                                @click="chip.onRemove"
+                                class="w-3.5 h-3.5 rounded-full hover:bg-emerald-200 text-emerald-800 flex items-center justify-center cursor-pointer"
+                                title="Hapus filter ini"
+                            >
+                                <span class="material-symbols-outlined text-[12px]">close</span>
+                            </button>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- 5. Card List Container: DATA PEGAWAI Sesuai Referensi -->
+                <div class="bg-white rounded-3xl border border-slate-200/90 p-4 shadow-xs">
+                    <!-- Header Kotak Card -->
+                    <div class="flex items-center justify-between mb-3 px-1">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span>
+                            <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Data Pegawai</h3>
+                        </div>
+                        <span class="text-xs text-slate-500 font-medium">
+                            {{ filteredEmployees.length }} dari {{ employees.length }}
+                        </span>
+                    </div>
+
+                    <!-- Daftar Card Pegawai -->
+                    <div v-if="paginatedEmployees.length > 0" class="space-y-3">
+                        <Link
+                            v-for="emp in paginatedEmployees"
+                            :key="emp.id"
+                            :href="`/staff/${emp.id}`"
+                            class="bg-white rounded-2xl border border-slate-200/90 p-3.5 shadow-2xs hover:border-emerald-400 hover:shadow-xs transition-all flex items-center justify-between gap-3 group active:scale-[0.99] cursor-pointer"
+                        >
+                            <!-- Avatar Kotak Rounded Warna Pastel Halus + Inisial 2 Huruf -->
+                            <div
+                                :class="[
+                                    'w-13 h-13 rounded-2xl flex items-center justify-center font-bold text-base shrink-0 border shadow-2xs',
+                                    getAvatarStyle(emp)
+                                ]"
+                            >
+                                <span>{{ getInitials(emp.nama) }}</span>
+                            </div>
+
+                            <!-- Detail Pegawai -->
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-center gap-1.5 flex-wrap">
+                                    <span class="text-[13.5px] font-bold text-slate-900 group-hover:text-emerald-950 transition-colors leading-tight">
+                                        {{ emp.nama }}
+                                    </span>
+                                    <span
+                                        v-if="emp.jk"
+                                        :class="[
+                                            'text-[9.5px] font-bold px-1.5 py-0.5 rounded-md border shrink-0',
+                                            emp.jk === 'L'
+                                                ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                                : 'bg-rose-50 text-rose-700 border-rose-200'
+                                        ]"
+                                    >
+                                        {{ emp.jk }}
+                                    </span>
+                                </div>
+
+                                <div class="flex items-center gap-1.5 text-xs text-slate-500 font-medium mt-1 truncate">
+                                    <span>NIPY: {{ emp.nipy || '-' }}</span>
+                                    <span>•</span>
+                                    <span class="inline-flex items-center gap-1 truncate">
+                                        <span class="material-symbols-outlined text-[13px] text-slate-400 shrink-0">apartment</span>
+                                        <span class="truncate">{{ emp.unit_kerja || 'Yayasan' }}</span>
+                                    </span>
+                                </div>
+
+                                <div v-if="emp.jabatan" class="text-[11px] text-slate-400 truncate mt-0.5">
+                                    {{ emp.jabatan }}
+                                </div>
+                            </div>
+
+                            <!-- Panah Chevron Kanan -->
+                            <span class="material-symbols-outlined text-[18px] text-slate-400 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all shrink-0">
+                                chevron_right
+                            </span>
+                        </Link>
+                    </div>
+
+                    <!-- State Kosong Mobile -->
+                    <div v-else class="py-12 text-center">
+                        <div class="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-3 text-slate-400">
+                            <span class="material-symbols-outlined text-2xl">search_off</span>
+                        </div>
+                        <p class="text-sm font-bold text-slate-700">Tidak ada pegawai ditemukan</p>
+                        <p class="text-xs text-slate-400 mt-1">Coba sesuaikan filter atau kata kunci pencarian.</p>
+                        <button
+                            v-if="hasActiveFilters"
+                            type="button"
+                            @click="onResetFilters"
+                            class="mt-3 px-3 py-1.5 rounded-full text-xs font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 cursor-pointer"
+                        >
+                            Reset Filter
+                        </button>
+                    </div>
+
+                    <!-- Paginasi Mobile -->
+                    <div v-if="totalPages > 1" class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                        <button
+                            type="button"
+                            :disabled="currentPage <= 1"
+                            @click="currentPage--"
+                            class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-2xs"
+                        >
+                            <span class="material-symbols-outlined text-[16px]">chevron_left</span>
+                            <span>Sebelumnya</span>
+                        </button>
+
+                        <span class="text-slate-500 font-medium">
+                            {{ currentPage }} / {{ totalPages }}
+                        </span>
+
+                        <button
+                            type="button"
+                            :disabled="currentPage >= totalPages"
+                            @click="currentPage++"
+                            class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-2xs"
+                        >
+                            <span>Berikutnya</span>
+                            <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Bottom Sheet / Modal Filter Mobile untuk Jenjang & Unit -->
+                <div
+                    v-if="isMobileFilterDrawerOpen"
+                    class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in"
+                    @click.self="isMobileFilterDrawerOpen = false"
+                >
+                    <div class="w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl border border-slate-200 max-h-[85vh] overflow-y-auto">
+                        <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
+                            <div class="flex items-center gap-2">
+                                <span class="material-symbols-outlined text-[20px] text-emerald-800">filter_alt</span>
+                                <h3 class="text-sm font-bold text-slate-900">Filter Lanjutan</h3>
+                            </div>
+                            <button
+                                type="button"
+                                @click="isMobileFilterDrawerOpen = false"
+                                class="w-7 h-7 rounded-full bg-slate-100 text-slate-500 hover:text-slate-800 flex items-center justify-center cursor-pointer"
+                            >
+                                <span class="material-symbols-outlined text-[18px]">close</span>
+                            </button>
+                        </div>
+
+                        <!-- Unit Kerja Selection -->
+                        <div class="mb-4">
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                                Unit Kerja
+                            </label>
+                            <select
+                                v-model="unitFilter"
+                                class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium text-slate-800 bg-white focus:ring-2 focus:ring-emerald-700 focus:outline-none"
+                            >
+                                <option value="">Semua Unit Kerja</option>
+                                <option v-for="u in units.filter(x => x.value)" :key="u.value" :value="u.value">
+                                    {{ u.label }}
+                                </option>
+                            </select>
+                        </div>
+
+                        <!-- Jenjang Kepegawaian Checkboxes -->
+                        <div class="mb-5">
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                                Jenjang Kepegawaian
+                            </label>
+                            <div class="space-y-2 max-h-48 overflow-y-auto pr-1">
+                                <label
+                                    v-for="j in availableJenjang"
+                                    :key="j"
+                                    class="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer text-xs"
+                                >
+                                    <span class="font-medium text-slate-800">{{ j }}</span>
+                                    <input
+                                        type="checkbox"
+                                        :value="j"
+                                        v-model="jenjangFilters"
+                                        class="w-4 h-4 rounded text-emerald-900 focus:ring-emerald-700 border-slate-300 cursor-pointer"
+                                    />
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Tombol Aksi Modal Filter -->
+                        <div class="flex items-center gap-2 pt-2 border-t border-slate-100">
+                            <button
+                                type="button"
+                                @click="unitFilter = ''; jenjangFilters = []; currentPage = 1"
+                                class="flex-1 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 cursor-pointer"
+                            >
+                                Reset
+                            </button>
+                            <button
+                                type="button"
+                                @click="isMobileFilterDrawerOpen = false; currentPage = 1"
+                                class="flex-1 py-2 rounded-xl bg-emerald-900 text-yellow-200 font-bold text-xs shadow-xs hover:bg-emerald-800 cursor-pointer"
+                            >
+                                Terapkan Filter
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================================ -->
+            <!-- TAMPILAN DESKTOP (hidden md:block)                           -->
+            <!-- ============================================================ -->
+            <div class="hidden md:block">
+                <!-- Page Header Desktop -->
+                <div class="mb-5 sm:mb-6 flex flex-row items-center justify-between gap-3">
+                    <div class="min-w-0">
+                        <h1 class="text-xl sm:text-2xl md:text-[26px] font-bold text-slate-900 tracking-tight leading-tight">
+                            Database Pegawai
+                        </h1>
+                        <p class="text-xs sm:text-[13.5px] text-slate-500 mt-1 sm:mt-1.5 font-medium truncate">
+                            <strong class="text-slate-700 font-semibold">{{ employees.length }}</strong> pegawai di <strong class="text-slate-700 font-semibold">{{ uniqueUnitsCount }}</strong> unit kerja
+                        </p>
+                    </div>
+
+                    <!-- Desktop Action Buttons -->
+                    <div v-if="!isTeacher" class="flex items-center gap-2.5 shrink-0">
+                        <a
+                            v-if="permissions?.can_export"
+                            href="/staff/template"
+                            download
+                            class="inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl border border-slate-300 text-slate-700 bg-white hover:bg-slate-50 hover:border-slate-400 font-semibold text-[13px] transition-all shadow-2xs"
+                            title="Download template XLSX untuk import data pegawai"
+                        >
+                            <span class="material-symbols-outlined text-[18px] text-emerald-700">download</span>
+                            <span>Download Template</span>
+                        </a>
+
+                        <button
+                            v-if="permissions?.can_import"
+                            type="button"
+                            @click="showImportModal = true"
+                            class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-semibold text-[13px] transition-all shadow-xs cursor-pointer active:scale-95"
+                            title="Import data pegawai dari file template Excel"
+                        >
+                            <span class="material-symbols-outlined text-[18px]">upload_file</span>
+                            <span>Import Data Pegawai</span>
+                        </button>
+                    </div>
+                    <div v-else-if="teacherEmployee" class="flex items-center gap-2 shrink-0">
+                        <Link
+                            :href="`/staff/${teacherEmployee.id}`"
+                            class="inline-flex items-center justify-center gap-2 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-semibold text-xs sm:text-[13px] transition-all shadow-xs"
+                        >
+                            <span class="material-symbols-outlined text-[17px] sm:text-[18px]">person</span>
+                            <span>Buka Profil Saya</span>
+                        </Link>
+                    </div>
+                </div>
+
+                <!-- Desktop Toolbar -->
+                <StaffToolbar
+                    :employees="employees"
+                    :total-count="employees.length"
+                    :filtered-count="totalEntries"
+                    :per-page="perPage"
+                    :active-status="statusFilter"
+                    :active-unit="unitFilter"
+                    :active-jenjang="jenjangFilters"
+                    @update:per-page="onPerPageChange"
+                    @search="onSearch"
+                    @filter-unit="onFilterUnit"
+                    @filter-status="onFilterStatus"
+                    @filter-jenjang="onFilterJenjang"
+                    @reset-filters="onResetFilters"
+                />
+
+                <!-- Desktop Table -->
+                <StaffTable
+                    :employees="paginatedEmployees"
+                    :current-page="currentPage"
+                    :per-page="perPage"
+                    :total-entries="totalEntries"
+                    :sort-by="sortBy"
+                    :sort-direction="sortDirection"
+                    :can-update="permissions?.can_update ?? true"
+                    @update:per-page="onPerPageChange"
+                    @page-change="onPageChange"
+                    @sort-change="onSortChange"
+                />
+            </div>
         </div>
 
         <!-- Import Modal -->
