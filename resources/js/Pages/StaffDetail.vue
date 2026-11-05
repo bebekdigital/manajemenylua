@@ -2971,84 +2971,133 @@ function handleBackClick(e) {
 
                 <!-- TAB 3: KELUARGA -->
                 <div v-if="activeTab === 'keluarga'" class="space-y-6">
+                    <!-- Section Header Keluarga Pegawai -->
+                    <div class="flex items-center justify-between pb-3 mb-2 border-b border-slate-100">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span>
+                            <h4 class="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider">
+                                Data Keluarga Pegawai
+                            </h4>
+                        </div>
+
+                        <!-- Tombol Edit / Simpan di Pojok Kanan Atas Section (Satu-satunya posisi tombol aksi) -->
+                        <div v-if="canEdit" class="flex items-center gap-2">
+                            <!-- Saat View Mode: Tombol Edit Data -->
+                            <button
+                                v-if="!isEditing"
+                                type="button"
+                                @click="startEdit"
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-bold text-xs sm:text-sm shadow-xs border border-emerald-950/30 transition-all cursor-pointer active:scale-95"
+                                title="Edit data keluarga pegawai"
+                            >
+                                <span class="material-symbols-outlined text-[16px] sm:text-[18px]">edit_note</span>
+                                <span>Edit Data</span>
+                            </button>
+
+                            <!-- Saat Edit Mode: Tombol Batal & Simpan di Pojok Kanan Atas Section yang Sama -->
+                            <template v-else>
+                                <button
+                                    type="button"
+                                    @click="cancelEdit"
+                                    class="px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-100 border border-slate-300 transition-all cursor-pointer shadow-2xs"
+                                    :disabled="form.processing"
+                                    title="Batalkan perubahan"
+                                >
+                                    Batal
+                                </button>
+                                <button
+                                    type="button"
+                                    @click="saveChanges"
+                                    class="inline-flex items-center gap-1.5 px-4 py-1.5 sm:px-5 sm:py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-bold text-xs sm:text-sm shadow-xs border border-emerald-950/30 active:scale-95 cursor-pointer disabled:opacity-60 transition-all"
+                                    :disabled="form.processing"
+                                    title="Simpan perubahan data keluarga"
+                                >
+                                    <span v-if="form.processing" class="material-symbols-outlined text-[16px] animate-spin">sync</span>
+                                    <span v-else class="material-symbols-outlined text-[16px]">save</span>
+                                    <span>{{ form.processing ? 'Menyimpan...' : 'Simpan' }}</span>
+                                </button>
+                            </template>
+                        </div>
+                    </div>
+
                     <!-- VIEW MODE -->
                     <template v-if="!isEditing">
                         <!-- Pernikahan -->
                         <div>
-                            <h4 class="text-xs sm:text-sm font-bold text-primary mb-3 flex items-center gap-2">
-                                <span class="material-symbols-outlined text-[18px]">favorite</span>
-                                Status Pernikahan
-                            </h4>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 pl-1">
+                            <div class="flex items-center gap-2 mb-3 text-emerald-950 font-bold text-xs sm:text-sm">
+                                <span class="material-symbols-outlined text-[18px] text-emerald-700">favorite</span>
+                                <h5>Status Pernikahan & Pasangan</h5>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 pl-1">
                                 <div>
-                                    <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Status Pernikahan</label>
-                                    <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ employee.status_pernikahan || '-' }}</p>
+                                    <label class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Status Pernikahan</label>
+                                    <p class="text-sm sm:text-base font-semibold text-slate-900 mt-1">{{ employee.status_pernikahan || '-' }}</p>
                                 </div>
                                 <div>
-                                    <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Tanggal Menikah</label>
-                                    <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ employee.formatted_tanggal_menikah || '-' }}</p>
+                                    <label class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Tanggal Menikah</label>
+                                    <p class="text-sm sm:text-base font-semibold text-slate-900 mt-1">{{ employee.formatted_tanggal_menikah || '-' }}</p>
                                 </div>
                                 <div>
-                                    <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Nama Suami/Istri</label>
-                                    <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ employee.nama_suami_istri || '-' }}</p>
+                                    <label class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Nama Suami/Istri</label>
+                                    <p class="text-sm sm:text-base font-semibold text-slate-900 mt-1">{{ employee.nama_suami_istri || '-' }}</p>
                                 </div>
                                 <div>
-                                    <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">TTL Suami/Istri</label>
-                                    <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ employee.ttl_suami_istri || '-' }}</p>
+                                    <label class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">TTL Suami/Istri</label>
+                                    <p class="text-sm sm:text-base font-semibold text-slate-900 mt-1">{{ employee.ttl_suami_istri || '-' }}</p>
                                 </div>
                                 <div>
-                                    <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Pekerjaan Suami/Istri</label>
-                                    <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ employee.pekerjaan_suami_istri || '-' }}</p>
+                                    <label class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Pekerjaan Suami/Istri</label>
+                                    <p class="text-sm sm:text-base font-semibold text-slate-900 mt-1">{{ employee.pekerjaan_suami_istri || '-' }}</p>
                                 </div>
                                 <div>
-                                    <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Jumlah Anak</label>
-                                    <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">
+                                    <label class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Jumlah Anak</label>
+                                    <p class="text-sm sm:text-base font-semibold text-slate-900 mt-1">
                                         {{ employee.jumlah_anak !== null && employee.jumlah_anak !== undefined ? employee.jumlah_anak + ' anak' : '-' }}
                                     </p>
                                 </div>
                             </div>
                         </div>
 
-                        <hr class="border-outline-variant/30" />
+                        <hr class="border-slate-100 my-6" />
 
                         <!-- Orangtua -->
                         <div>
-                            <h4 class="text-xs sm:text-sm font-bold text-primary mb-3 flex items-center gap-2">
-                                <span class="material-symbols-outlined text-[18px]">family_restroom</span>
-                                Data Orangtua
-                            </h4>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 pl-1">
+                            <div class="flex items-center gap-2 mb-3 text-emerald-950 font-bold text-xs sm:text-sm">
+                                <span class="material-symbols-outlined text-[18px] text-emerald-700">family_restroom</span>
+                                <h5>Data Orangtua</h5>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 pl-1">
                                 <div>
-                                    <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Nama Ibu</label>
-                                    <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ employee.nama_ibu || '-' }}</p>
+                                    <label class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Nama Ibu</label>
+                                    <p class="text-sm sm:text-base font-semibold text-slate-900 mt-1">{{ employee.nama_ibu || '-' }}</p>
                                 </div>
                                 <div>
-                                    <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Nama Ayah</label>
-                                    <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ employee.nama_ayah || '-' }}</p>
+                                    <label class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Nama Ayah</label>
+                                    <p class="text-sm sm:text-base font-semibold text-slate-900 mt-1">{{ employee.nama_ayah || '-' }}</p>
                                 </div>
                                 <div class="md:col-span-2">
-                                    <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Alamat Orangtua</label>
-                                    <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ employee.alamat_orangtua || '-' }}</p>
+                                    <label class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Alamat Orangtua</label>
+                                    <p class="text-sm sm:text-base font-semibold text-slate-900 mt-1">{{ employee.alamat_orangtua || '-' }}</p>
                                 </div>
                             </div>
                         </div>
 
-                        <hr class="border-outline-variant/30" />
+                        <hr class="border-slate-100 my-6" />
 
                         <!-- Kontak Darurat -->
                         <div>
-                            <h4 class="text-xs sm:text-sm font-bold text-primary mb-3 flex items-center gap-2">
-                                <span class="material-symbols-outlined text-[18px]">contact_phone</span>
-                                Kontak Darurat
-                            </h4>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 pl-1">
+                            <div class="flex items-center gap-2 mb-3 text-emerald-950 font-bold text-xs sm:text-sm">
+                                <span class="material-symbols-outlined text-[18px] text-emerald-700">contact_phone</span>
+                                <h5>Kontak Darurat</h5>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 pl-1">
                                 <div>
-                                    <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Nomor Kontak</label>
-                                    <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ employee.kontak_darurat || '-' }}</p>
+                                    <label class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Nomor Kontak</label>
+                                    <p class="text-sm sm:text-base font-semibold text-slate-900 mt-1 font-mono">{{ employee.kontak_darurat || '-' }}</p>
                                 </div>
                                 <div>
-                                    <label class="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Hubungan</label>
-                                    <p class="text-xs sm:text-sm font-medium text-on-surface mt-0.5">{{ employee.hubungan_kontak_darurat || '-' }}</p>
+                                    <label class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Hubungan</label>
+                                    <p class="text-sm sm:text-base font-semibold text-slate-900 mt-1">{{ employee.hubungan_kontak_darurat || '-' }}</p>
                                 </div>
                             </div>
                         </div>
