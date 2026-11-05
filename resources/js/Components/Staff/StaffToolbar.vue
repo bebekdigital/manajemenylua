@@ -192,27 +192,28 @@ onUnmounted(() => {
     <div class="mb-4 space-y-3">
         <!-- ROW 1: Segmented Status Tabs (Left) + Unit & Per Page Controls (Right) -->
         <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-            <!-- Segmented Status Tabs (Default: Aktif) -->
-            <div class="bg-slate-100 p-1 rounded-full inline-flex items-center gap-0.5 overflow-x-auto no-scrollbar max-w-full border border-slate-200/90 shrink-0">
+            <!-- Segmented Status Tabs (Default: Aktif) dengan Style Mobile -->
+            <div class="bg-slate-100 p-1 rounded-full inline-flex items-center gap-1 overflow-x-auto no-scrollbar max-w-full border border-slate-200/90 shrink-0">
                 <button
                     v-for="tab in statusTabs"
                     :key="tab.key"
                     type="button"
                     @click="selectStatusTab(tab.key)"
                     :class="[
-                        'inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[13px] transition-all duration-150 cursor-pointer shrink-0',
+                        'inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[13px] font-semibold transition-all duration-150 cursor-pointer shrink-0',
                         activeStatus === tab.key
-                            ? 'bg-white text-slate-900 font-bold shadow-xs ring-1 ring-slate-200/80'
-                            : 'text-slate-600 hover:text-slate-900 font-medium'
+                            ? 'bg-emerald-100 text-emerald-950 font-bold border border-emerald-300 shadow-2xs'
+                            : 'text-slate-600 hover:text-slate-900 border border-transparent'
                     ]"
                 >
+                    <span v-if="tab.key === 'aktif'" class="w-2 h-2 rounded-full bg-emerald-600 inline-block"></span>
                     <span>{{ tab.label }}</span>
                     <span
                         :class="[
-                            'px-2 py-0.5 rounded-full text-[11px] leading-none transition-colors',
+                            'px-2 py-0.5 rounded-full text-[11px] leading-none transition-colors font-bold',
                             activeStatus === tab.key
-                                ? 'bg-emerald-900 text-yellow-200 font-bold'
-                                : 'bg-slate-200/90 text-slate-600 font-semibold'
+                                ? 'bg-emerald-900 text-yellow-200'
+                                : 'bg-slate-200/90 text-slate-600'
                         ]"
                     >
                         {{ tab.count }}
