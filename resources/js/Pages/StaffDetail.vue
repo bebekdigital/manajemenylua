@@ -142,8 +142,8 @@ const filteredEmployees = computed(() => {
 
 function toggleEmployeeDropdown(e) {
     e.stopPropagation();
-    if (isEditing.value) {
-        alert('Anda sedang dalam mode edit. Selesaikan (Simpan) atau batalkan (Batal) perubahan terlebih dahulu sebelum beralih pegawai.');
+    if (isEditing.value || isManagingRiwayat.value) {
+        alert('Anda sedang dalam mode edit/kelola. Selesaikan terlebih dahulu sebelum beralih pegawai.');
         return;
     }
     isEmployeeDropdownOpen.value = !isEmployeeDropdownOpen.value;
@@ -177,8 +177,8 @@ function selectEmployee(empId) {
         return;
     }
 
-    if (isEditing.value) {
-        alert('Anda sedang dalam mode edit. Selesaikan (Simpan) atau batalkan (Batal) perubahan terlebih dahulu sebelum beralih ke pegawai lain.');
+    if (isEditing.value || isManagingRiwayat.value) {
+        alert('Anda sedang dalam mode edit/kelola. Selesaikan terlebih dahulu sebelum beralih ke pegawai lain.');
         return;
     }
 
@@ -755,6 +755,10 @@ onUnmounted(() => {
 
 function startEdit() {
     if (!canEdit.value) return;
+    if (isManagingRiwayat.value) {
+        alert('Anda sedang dalam mode kelola Riwayat Jenjang. Selesaikan (klik Selesai Kelola) terlebih dahulu sebelum mengedit Informasi Umum.');
+        return;
+    }
     initFormFromProps();
     form.clearErrors();
     isEditing.value = true;
@@ -875,6 +879,10 @@ const currentRiwayatList = computed(() => {
 });
 
 function startManageRiwayat() {
+    if (isEditing.value) {
+        alert('Anda sedang dalam mode edit Informasi Umum. Selesaikan (Simpan) atau batalkan (Batal) perubahan terlebih dahulu sebelum mengelola riwayat jenjang.');
+        return;
+    }
     isManagingRiwayat.value = true;
     if (!form.riwayat_kepegawaian || form.riwayat_kepegawaian.length === 0) {
         form.riwayat_kepegawaian = JSON.parse(JSON.stringify(props.employee.riwayat_kepegawaian || []));
@@ -1842,6 +1850,11 @@ function selectTab(id) {
         alert('Anda sedang dalam mode edit. Selesaikan (Simpan) atau batalkan (Batal) perubahan terlebih dahulu sebelum berpindah ke tab lain.');
         return;
     }
+    if (isManagingRiwayat.value) {
+        if (id === activeTab.value) return;
+        alert('Anda sedang dalam mode kelola Riwayat Jenjang. Selesaikan (klik Selesai Kelola) terlebih dahulu sebelum berpindah ke tab lain.');
+        return;
+    }
     activeTab.value = id;
     nextTick(() => {
         const activeBtn = tabsContainerRef.value?.querySelector(`[data-tab-id="${id}"]`);
@@ -1855,6 +1868,10 @@ function selectTab(id) {
 function handleBackClick(e) {
     if (isEditing.value) {
         if (!confirm('Perubahan yang sedang Anda edit belum disimpan. Yakin ingin keluar dari halaman edit?')) {
+            e.preventDefault();
+        }
+    } else if (isManagingRiwayat.value) {
+        if (!confirm('Anda sedang dalam mode kelola Riwayat Jenjang. Yakin ingin keluar dari halaman ini?')) {
             e.preventDefault();
         }
     }
@@ -1923,7 +1940,7 @@ function handleBackClick(e) {
             <div
                 :class="[
                     'relative bg-gradient-to-br from-white via-emerald-50/25 to-slate-50/70 rounded-3xl border border-slate-200/90 p-5 sm:p-6 shadow-xs mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4',
-                    isEmployeeDropdownOpen ? 'z-40' : 'z-20'
+                    isEmployeeDropdownOpen ? 'z-50' : 'z-20'
                 ]"
             >
                 <!-- Efek Cahaya Lembut Statis di Latar Belakang (Container rounded terpisah dengan overflow-hidden agar dropdown tidak terpotong) -->
@@ -1936,7 +1953,7 @@ function handleBackClick(e) {
                 <div
                     :class="[
                         'relative flex items-center gap-4 sm:gap-5 min-w-0 flex-1',
-                        isEmployeeDropdownOpen ? 'z-40' : 'z-10'
+                        isEmployeeDropdownOpen ? 'z-50' : 'z-10'
                     ]"
                 >
                     <img
@@ -2174,7 +2191,7 @@ function handleBackClick(e) {
             </div>
 
             <!-- Segmented Capsule Tabs Navigation -->
-            <div class="relative mb-5">
+            <div class="relative z-10 mb-5">
                 <!-- Left Scroll Arrow & Fade Hint -->
                 <Transition
                     enter-active-class="transition duration-150 ease-out"
@@ -2212,20 +2229,20 @@ function handleBackClick(e) {
                             :data-tab-id="tab.id"
                             type="button"
                             @click="selectTab(tab.id)"
-                            :disabled="isEditing && activeTab !== tab.id"
+                            :disabled="(isEditing || isManagingRiwayat) && activeTab !== tab.id"
                             :class="[
                                 'inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs sm:text-sm transition-all duration-150 shrink-0 whitespace-nowrap',
                                 activeTab === tab.id
                                     ? 'bg-emerald-100 text-emerald-950 font-bold border border-emerald-300 shadow-2xs'
-                                    : isEditing
+                                    : (isEditing || isManagingRiwayat)
                                         ? 'text-slate-400 opacity-40 cursor-not-allowed border border-transparent'
                                         : 'text-slate-600 hover:text-slate-900 font-medium border border-transparent hover:bg-slate-200/60 cursor-pointer'
                             ]"
-                            :title="isEditing && activeTab !== tab.id ? 'Selesaikan atau batalkan mode edit terlebih dahulu untuk berpindah tab' : ''"
+                            :title="(isEditing || isManagingRiwayat) && activeTab !== tab.id ? 'Selesaikan atau batalkan mode edit/kelola terlebih dahulu untuk berpindah tab' : ''"
                         >
                             <span class="material-symbols-outlined text-[18px]">{{ tab.icon }}</span>
                             <span>{{ tab.label }}</span>
-                            <span v-if="isEditing && activeTab !== tab.id" class="material-symbols-outlined text-[14px] text-slate-400">lock</span>
+                            <span v-if="(isEditing || isManagingRiwayat) && activeTab !== tab.id" class="material-symbols-outlined text-[14px] text-slate-400">lock</span>
                         </button>
                     </div>
                 </div>
@@ -2255,8 +2272,11 @@ function handleBackClick(e) {
                 </Transition>
             </div>
 
-            <!-- Card Konten Tab Pegawai -->
-            <div class="bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-7 shadow-xs mb-8">
+            <!-- Card Konten Tab Pegawai (Tab 1, 2, 3) -->
+            <div
+                v-if="['identitas', 'alamat', 'keluarga'].includes(activeTab)"
+                class="bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-7 shadow-xs mb-8"
+            >
 
                 <!-- Warning NIK Kosong (View Mode Only) -->
                 <div v-if="!isEditing && !employee.nik" class="mb-6 p-4 rounded-xl bg-error/10 border border-error/20 flex gap-3 text-error">
@@ -3403,39 +3423,67 @@ function handleBackClick(e) {
                     </template>
                 </div>
 
-                <!-- TAB 4: KEPEGAWAIAN -->
-                <div v-if="activeTab === 'kepegawaian' && canViewKepegawaian" class="space-y-8">
-                    <!-- Banner jika user tidak memiliki izin edit kepegawaian -->
-                    <div v-if="!canUpdateKepegawaian" class="p-3.5 rounded-xl bg-amber-50/80 border border-amber-200 text-amber-900 text-xs flex items-center gap-2.5">
-                        <span class="material-symbols-outlined text-[18px] text-amber-700 shrink-0">lock</span>
-                        <div>
-                            <strong>Mode Lihat Saja:</strong> Anda tidak memiliki hak akses untuk mengubah Data Kepegawaian. Data pada tab ini terkunci dan hanya dapat diubah oleh role yang memiliki hak akses Ubah Data Kepegawaian.
-                        </div>
+            </div>
+
+            <!-- TAB 4: KEPEGAWAIAN (2 Kontainer / Wadah Terpisah) -->
+            <div v-else-if="activeTab === 'kepegawaian' && canViewKepegawaian" class="space-y-6 mb-8">
+                <!-- Validation Error Alert in Edit Mode (Jika form kepegawaian ada error) -->
+                <div v-if="isEditing && Object.keys(form.errors).length > 0" class="p-4 rounded-2xl bg-error/10 border border-error/20 flex items-start gap-3 text-error">
+                    <span class="material-symbols-outlined shrink-0 text-xl">error</span>
+                    <div class="text-xs sm:text-sm">
+                        <span class="font-bold">Terdapat kesalahan pada isian form:</span>
+                        <ul class="list-disc list-inside mt-1 space-y-0.5">
+                            <li v-for="(err, key) in form.errors" :key="key">{{ err }}</li>
+                        </ul>
                     </div>
+                </div>
 
-                    <!-- SECTION 1: INFORMASI UMUM KEPEGAWAIAN -->
+                <!-- Banner jika user tidak memiliki izin edit kepegawaian -->
+                <div v-if="!canUpdateKepegawaian" class="p-4 rounded-2xl bg-amber-50/80 border border-amber-200 text-amber-900 text-xs flex items-center gap-2.5">
+                    <span class="material-symbols-outlined text-[18px] text-amber-700 shrink-0">lock</span>
                     <div>
-                        <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
-                            <div class="flex items-center gap-2">
-                                <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span>
-                                <h4 class="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider">
-                                    Informasi Umum Kepegawaian
-                                </h4>
-                            </div>
+                        <strong>Mode Lihat Saja:</strong> Anda tidak memiliki hak akses untuk mengubah Data Kepegawaian. Data pada tab ini terkunci dan hanya dapat diubah oleh role yang memiliki hak akses Ubah Data Kepegawaian.
+                    </div>
+                </div>
 
-                            <!-- Tombol Edit / Simpan di Pojok Kanan Atas Section -->
-                            <div v-if="canUpdateKepegawaian" class="flex items-center gap-2">
-                                <!-- Saat View Mode: Tombol Edit Data -->
-                                <button
-                                    v-if="!isEditing"
-                                    type="button"
-                                    @click="startEdit"
-                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-bold text-xs sm:text-sm shadow-xs border border-emerald-950/30 transition-all cursor-pointer active:scale-95"
-                                    title="Edit informasi umum kepegawaian"
-                                >
-                                    <span class="material-symbols-outlined text-[16px] sm:text-[18px]">edit_note</span>
-                                    <span>Edit Data</span>
-                                </button>
+                <!-- WADAH 1: INFORMASI UMUM KEPEGAWAIAN -->
+                <div class="bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-7 shadow-xs">
+                    <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span>
+                            <h4 class="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider">
+                                Informasi Umum Kepegawaian
+                            </h4>
+                            <span
+                                v-if="isManagingRiwayat"
+                                class="text-[10.5px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 inline-flex items-center gap-1"
+                            >
+                                <span class="material-symbols-outlined text-[13px]">lock</span>
+                                Terkunci saat mengelola riwayat
+                            </span>
+                        </div>
+
+                        <!-- Tombol Edit / Simpan di Pojok Kanan Atas Section (Terkunci jika sedang Kelola Riwayat) -->
+                        <div v-if="canUpdateKepegawaian" class="flex items-center gap-2">
+                            <!-- Saat View Mode: Tombol Edit Data -->
+                            <button
+                                v-if="!isEditing"
+                                type="button"
+                                @click="startEdit"
+                                :disabled="isManagingRiwayat"
+                                :class="[
+                                    'inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold shadow-xs transition-all',
+                                    isManagingRiwayat
+                                        ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60'
+                                        : 'bg-emerald-900 hover:bg-emerald-800 text-yellow-200 border border-emerald-950/30 cursor-pointer active:scale-95'
+                                ]"
+                                :title="isManagingRiwayat ? 'Selesaikan kelola riwayat jenjang terlebih dahulu untuk mengedit informasi umum' : 'Edit informasi umum kepegawaian'"
+                            >
+                                <span class="material-symbols-outlined text-[16px] sm:text-[18px]">
+                                    {{ isManagingRiwayat ? 'lock' : 'edit_note' }}
+                                </span>
+                                <span>Edit Data</span>
+                            </button>
 
                                 <!-- Saat Edit Mode: Tombol Batal & Simpan di Pojok Kanan Atas Section yang Sama -->
                                 <template v-else>
@@ -3597,43 +3645,58 @@ function handleBackClick(e) {
                         </div>
                     </div>
 
-                    <!-- SECTION 2: RIWAYAT JENJANG KEPEGAWAIAN -->
-                    <div>
-                        <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
-                            <div class="flex items-center gap-2">
-                                <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span>
-                                <h4 class="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider">
-                                    Riwayat Jenjang Kepegawaian
-                                </h4>
-                                <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600">
-                                    {{ currentRiwayatList.length }} Catatan
-                                </span>
-                            </div>
-
-                            <!-- Tombol Kelola di Pojok Kanan Atas Section -->
-                            <div v-if="canUpdateKepegawaian" class="flex items-center gap-2">
-                                <button
-                                    v-if="!isManagingRiwayat"
-                                    type="button"
-                                    @click="startManageRiwayat"
-                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-bold text-xs sm:text-sm shadow-xs border border-emerald-950/30 transition-all cursor-pointer active:scale-95"
-                                    title="Kelola riwayat jenjang kepegawaian"
-                                >
-                                    <span class="material-symbols-outlined text-[16px] sm:text-[18px]">tune</span>
-                                    <span>Kelola</span>
-                                </button>
-                                <button
-                                    v-else
-                                    type="button"
-                                    @click="finishManageRiwayat"
-                                    class="inline-flex items-center gap-1.5 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-bold text-xs sm:text-sm shadow-xs border border-emerald-950/30 transition-all cursor-pointer active:scale-95"
-                                    title="Selesai mengelola riwayat jenjang"
-                                >
-                                    <span class="material-symbols-outlined text-[16px] sm:text-[18px]">check</span>
-                                    <span>Selesai Kelola</span>
-                                </button>
-                            </div>
+                <!-- WADAH 2: RIWAYAT JENJANG KEPEGAWAIAN -->
+                <div class="bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-7 shadow-xs">
+                    <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span>
+                            <h4 class="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider">
+                                Riwayat Jenjang Kepegawaian
+                            </h4>
+                            <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                                {{ currentRiwayatList.length }} Catatan
+                            </span>
+                            <span
+                                v-if="isEditing"
+                                class="text-[10.5px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 inline-flex items-center gap-1"
+                            >
+                                <span class="material-symbols-outlined text-[13px]">lock</span>
+                                Terkunci saat mengedit informasi umum
+                            </span>
                         </div>
+
+                        <!-- Tombol Kelola di Pojok Kanan Atas Section (Terkunci jika sedang Edit Informasi Umum) -->
+                        <div v-if="canUpdateKepegawaian" class="flex items-center gap-2">
+                            <button
+                                v-if="!isManagingRiwayat"
+                                type="button"
+                                @click="startManageRiwayat"
+                                :disabled="isEditing"
+                                :class="[
+                                    'inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold shadow-xs transition-all',
+                                    isEditing
+                                        ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60'
+                                        : 'bg-emerald-900 hover:bg-emerald-800 text-yellow-200 border border-emerald-950/30 cursor-pointer active:scale-95'
+                                ]"
+                                :title="isEditing ? 'Selesaikan atau batalkan mode edit terlebih dahulu untuk mengelola riwayat jenjang' : 'Kelola riwayat jenjang kepegawaian'"
+                            >
+                                <span class="material-symbols-outlined text-[16px] sm:text-[18px]">
+                                    {{ isEditing ? 'lock' : 'tune' }}
+                                </span>
+                                <span>Kelola</span>
+                            </button>
+                            <button
+                                v-else
+                                type="button"
+                                @click="finishManageRiwayat"
+                                class="inline-flex items-center gap-1.5 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-bold text-xs sm:text-sm shadow-xs border border-emerald-950/30 transition-all cursor-pointer active:scale-95"
+                                title="Selesai mengelola riwayat jenjang"
+                            >
+                                <span class="material-symbols-outlined text-[16px] sm:text-[18px]">check</span>
+                                <span>Selesai Kelola</span>
+                            </button>
+                        </div>
+                    </div>
 
                         <!-- TAMPILAN DESKTOP (TABLE VIEW) -->
                         <div class="hidden md:block">
@@ -3982,6 +4045,22 @@ function handleBackClick(e) {
                                 </div>
                             </div>
                         </Teleport>
+                    </div>
+                </div>
+
+            <!-- Card Konten Tab Pegawai (Tab 5, 6, 7, 8) -->
+            <div
+                v-else
+                class="bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-7 shadow-xs mb-8"
+            >
+                <!-- Validation Error Alert in Edit Mode -->
+                <div v-if="isEditing && Object.keys(form.errors).length > 0" class="mb-6 p-4 rounded-xl bg-error/10 border border-error/20 flex items-start gap-3 text-error">
+                    <span class="material-symbols-outlined shrink-0 text-xl">error</span>
+                    <div class="text-xs sm:text-sm">
+                        <span class="font-bold">Terdapat kesalahan pada isian form:</span>
+                        <ul class="list-disc list-inside mt-1 space-y-0.5">
+                            <li v-for="(err, key) in form.errors" :key="key">{{ err }}</li>
+                        </ul>
                     </div>
                 </div>
 
