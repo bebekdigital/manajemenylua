@@ -305,7 +305,7 @@ function onPageChange(p) {
 </script>
 
 <template>
-    <div class="flex-1 overflow-y-auto px-4 py-4 md:px-8 md:py-7 bg-white min-h-screen">
+    <div class="flex-1 overflow-y-auto px-4 pt-6 pb-6 md:px-8 md:py-7 bg-white min-h-screen">
         <Head title="Database Pegawai - Foundation Data Center" />
         <div class="max-w-[1440px] mx-auto">
             <!-- Teacher Role Scoping Notice Banner -->
@@ -370,14 +370,14 @@ function onPageChange(p) {
             <!-- ============================================================ -->
             <!-- TAMPILAN MOBILE (md:hidden) SESUAI STYLE FOTO REFERENSI      -->
             <!-- ============================================================ -->
-            <div class="md:hidden space-y-3 pb-8">
+            <div class="md:hidden pb-10">
                 <!-- 1. Header: Judul Database Pegawai + Tombol Kelola Samping Judul -->
-                <div class="flex items-center justify-between gap-3 pt-1">
+                <div class="flex items-center justify-between gap-3 pt-3 sm:pt-4 mb-6">
                     <div class="min-w-0">
                         <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight leading-tight">
                             Database Pegawai
                         </h1>
-                        <p class="text-xs text-slate-500 mt-0.5 font-medium truncate">
+                        <p class="text-xs text-slate-500 mt-1 font-medium truncate">
                             {{ employees.length }} pegawai • {{ uniqueUnitsCount }} unit kerja
                         </p>
                     </div>
@@ -446,7 +446,7 @@ function onPageChange(p) {
                 </div>
 
                 <!-- 2. Filter Status Keaktifan (DI ATAS SEARCH) -->
-                <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
+                <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 mb-3">
                     <button
                         v-for="tab in statusTabs"
                         :key="tab.key"
@@ -475,7 +475,7 @@ function onPageChange(p) {
                 </div>
 
                 <!-- 3. Search Bar + Tombol Filter -->
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 mb-3">
                     <div class="relative flex-1">
                         <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-[20px] text-slate-400">
                             search
@@ -521,7 +521,7 @@ function onPageChange(p) {
                 </div>
 
                 <!-- 4. Controller Filter Mana Saja yang Dipilih (DI BAWAH SEARCH) -->
-                <div class="space-y-2">
+                <div class="space-y-2 mb-4">
                     <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
                         <!-- Quick Selector Unit Kerja -->
                         <div class="relative shrink-0">

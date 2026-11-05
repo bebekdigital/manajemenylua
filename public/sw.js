@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ylua-pwa-v5';
+const CACHE_NAME = 'ylua-pwa-v6';
 const PRECACHE_ASSETS = [
   '/favicon.png',
   '/images/icons/icon-192x192.png',
