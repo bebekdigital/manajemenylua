@@ -135,6 +135,24 @@ const hasActiveFilters = computed(() => {
     );
 });
 
+const hasAdditionalFilters = computed(() => {
+    return Boolean(
+        (unitFilter.value && unitFilter.value.trim()) ||
+        (jenjangFilters.value && jenjangFilters.value.length > 0) ||
+        (searchQuery.value && searchQuery.value.trim())
+    );
+});
+
+const displayTotalCount = computed(() => {
+    if (hasAdditionalFilters.value) {
+        const key = statusFilter.value?.toLowerCase() || 'aktif';
+        if (statusCounts.value[key] !== undefined) {
+            return statusCounts.value[key];
+        }
+    }
+    return props.employees.length;
+});
+
 const activeFilterChips = computed(() => {
     const chips = [];
     if (unitFilter.value) {
@@ -521,74 +539,31 @@ function onPageChange(p) {
                 </div>
 
                 <!-- 4. Controller Filter Mana Saja yang Dipilih (DI BAWAH SEARCH) -->
-                <div class="space-y-2 mb-4">
-                    <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
-                        <!-- Quick Selector Unit Kerja -->
-                        <div class="relative shrink-0">
-                            <select
-                                v-model="unitFilter"
-                                @change="currentPage = 1"
-                                class="appearance-none pl-3 pr-7 py-1.5 rounded-full border text-xs font-semibold bg-white transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-700 shadow-2xs"
-                                :class="unitFilter ? 'border-emerald-500 bg-emerald-50 text-emerald-950 font-bold' : 'border-slate-300 text-slate-700 hover:bg-slate-50'"
-                            >
-                                <option value="">Unit: Semua</option>
-                                <option v-for="u in units.filter(x => x.value)" :key="u.value" :value="u.value">
-                                    Unit: {{ u.label }}
-                                </option>
-                            </select>
-                            <span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-[14px] text-slate-400 pointer-events-none">
-                                expand_more
-                            </span>
-                        </div>
-
-                        <!-- Quick Selector Jenjang Trigger -->
+                <div v-if="activeFilterChips.length > 0" class="flex items-center gap-1.5 flex-wrap mb-4">
+                    <span class="text-[11px] font-medium text-slate-400">Filter Aktif:</span>
+                    <span
+                        v-for="chip in activeFilterChips"
+                        :key="chip.id"
+                        class="inline-flex items-center gap-1 pl-2.5 pr-1.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100/90 text-emerald-950 border border-emerald-300/80 shadow-2xs"
+                    >
+                        <span>{{ chip.label }}</span>
                         <button
                             type="button"
-                            @click="isMobileFilterDrawerOpen = !isMobileFilterDrawerOpen"
-                            class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full border text-xs font-semibold bg-white transition-all cursor-pointer shrink-0 shadow-2xs"
-                            :class="jenjangFilters.length > 0 ? 'border-emerald-500 bg-emerald-50 text-emerald-950 font-bold' : 'border-slate-300 text-slate-700 hover:bg-slate-50'"
+                            @click="chip.onRemove"
+                            class="w-3.5 h-3.5 rounded-full hover:bg-emerald-200 text-emerald-800 flex items-center justify-center cursor-pointer"
+                            title="Hapus filter ini"
                         >
-                            <span>Jenjang</span>
-                            <span
-                                v-if="jenjangFilters.length > 0"
-                                class="w-4 h-4 rounded-full bg-emerald-900 text-yellow-200 text-[10px] font-bold inline-flex items-center justify-center"
-                            >
-                                {{ jenjangFilters.length }}
-                            </span>
-                            <span class="material-symbols-outlined text-[14px] text-slate-400">tune</span>
+                            <span class="material-symbols-outlined text-[12px]">close</span>
                         </button>
-
-                        <!-- Tombol Reset Filter -->
-                        <button
-                            v-if="hasActiveFilters"
-                            type="button"
-                            @click="onResetFilters"
-                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-200 hover:bg-rose-100 transition-colors cursor-pointer shrink-0"
-                        >
-                            <span class="material-symbols-outlined text-[14px]">restart_alt</span>
-                            <span>Reset</span>
-                        </button>
-                    </div>
-
-                    <!-- Active Filter Chips: Daftar Tag Filter yang Aktif -->
-                    <div v-if="activeFilterChips.length > 0" class="flex items-center gap-1.5 flex-wrap pt-0.5">
-                        <span class="text-[11px] font-medium text-slate-400">Filter Aktif:</span>
-                        <span
-                            v-for="chip in activeFilterChips"
-                            :key="chip.id"
-                            class="inline-flex items-center gap-1 pl-2.5 pr-1.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100/90 text-emerald-950 border border-emerald-300/80 shadow-2xs"
-                        >
-                            <span>{{ chip.label }}</span>
-                            <button
-                                type="button"
-                                @click="chip.onRemove"
-                                class="w-3.5 h-3.5 rounded-full hover:bg-emerald-200 text-emerald-800 flex items-center justify-center cursor-pointer"
-                                title="Hapus filter ini"
-                            >
-                                <span class="material-symbols-outlined text-[12px]">close</span>
-                            </button>
-                        </span>
-                    </div>
+                    </span>
+                    <button
+                        type="button"
+                        @click="onResetFilters"
+                        class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold text-rose-700 bg-rose-50 border border-rose-200 hover:bg-rose-100 transition-colors cursor-pointer"
+                    >
+                        <span class="material-symbols-outlined text-[13px]">restart_alt</span>
+                        <span>Reset</span>
+                    </button>
                 </div>
 
                 <!-- 5. Card List Container: DATA PEGAWAI Sesuai Referensi -->
@@ -600,7 +575,7 @@ function onPageChange(p) {
                             <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Data Pegawai</h3>
                         </div>
                         <span class="text-xs text-slate-500 font-medium">
-                            {{ filteredEmployees.length }} dari {{ employees.length }}
+                            {{ filteredEmployees.length }} dari {{ displayTotalCount }}
                         </span>
                     </div>
 
@@ -846,6 +821,7 @@ function onPageChange(p) {
                     :active-status="statusFilter"
                     :active-unit="unitFilter"
                     :active-jenjang="jenjangFilters"
+                    :search-query="searchQuery"
                     @update:per-page="onPerPageChange"
                     @search="onSearch"
                     @filter-unit="onFilterUnit"

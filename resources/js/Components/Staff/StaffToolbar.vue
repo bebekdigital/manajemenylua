@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import AppSelect from '@/Components/Shared/AppSelect.vue';
 
 const props = defineProps({
@@ -31,6 +31,10 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    searchQuery: {
+        type: String,
+        default: '',
+    },
 });
 
 const emit = defineEmits([
@@ -42,9 +46,15 @@ const emit = defineEmits([
     'reset-filters',
 ]);
 
-const searchQuery = ref('');
+const searchQuery = ref(props.searchQuery || '');
 const isFilterOpen = ref(false);
 const filterDropdownRef = ref(null);
+
+watch(() => props.searchQuery, (newVal) => {
+    if (newVal !== searchQuery.value) {
+        searchQuery.value = newVal || '';
+    }
+});
 
 // Status counts (Semua, Aktif, Pensiun, Non-Aktif - tanpa Cuti)
 const statusCounts = computed(() => {
@@ -97,12 +107,10 @@ const perPageOptions = [
     { value: 0, label: 'Semua Data' },
 ];
 
-const activeFiltersCount = computed(() => {
+const activeExtraFiltersCount = computed(() => {
     let count = 0;
-    if (props.activeStatus && props.activeStatus !== 'semua') count++;
     if (props.activeUnit) count++;
     if (props.activeJenjang && props.activeJenjang.length > 0) count += props.activeJenjang.length;
-    if (searchQuery.value.trim()) count++;
     return count;
 });
 
@@ -120,11 +128,38 @@ const hasAdditionalFilters = computed(() => {
 // Jika ada tambahan filter lain, diambil dari total keaktifan yang dipilih (misal: 25 dari 80).
 const displayTotalCount = computed(() => {
     if (hasAdditionalFilters.value) {
-        if (props.activeStatus && statusCounts.value[props.activeStatus] !== undefined) {
-            return statusCounts.value[props.activeStatus];
+        const key = props.activeStatus?.toLowerCase() || 'aktif';
+        if (statusCounts.value[key] !== undefined) {
+            return statusCounts.value[key];
         }
     }
     return props.totalCount;
+});
+
+const activeFilterChips = computed(() => {
+    const chips = [];
+    if (props.activeUnit) {
+        chips.push({
+            id: 'unit',
+            label: `Unit: ${props.activeUnit}`,
+            onRemove: () => emit('filter-unit', ''),
+        });
+    }
+    props.activeJenjang.forEach(j => {
+        chips.push({
+            id: `jenjang-${j}`,
+            label: `Jenjang: ${j}`,
+            onRemove: () => removeJenjang(j),
+        });
+    });
+    if (searchQuery.value.trim()) {
+        chips.push({
+            id: 'search',
+            label: `Cari: "${searchQuery.value.trim()}"`,
+            onRemove: () => clearSearch(),
+        });
+    }
+    return chips;
 });
 
 function selectStatusTab(key) {
@@ -190,29 +225,30 @@ onUnmounted(() => {
 
 <template>
     <div class="mb-4 space-y-3">
-        <!-- ROW 1: Segmented Status Tabs (Left) + Unit & Per Page Controls (Right) -->
-        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-            <!-- Segmented Status Tabs (Default: Aktif) -->
-            <div class="bg-slate-100 p-1 rounded-full inline-flex items-center gap-0.5 overflow-x-auto no-scrollbar max-w-full border border-slate-200/90 shrink-0">
+        <!-- ROW 1: Segmented Status Tabs (DI ATAS SEARCH) - Sesuai Style Mobile + Per Page & Counter (Kanan) -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <!-- Status Tabs bergaya mobile pill buttons -->
+            <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
                 <button
                     v-for="tab in statusTabs"
                     :key="tab.key"
                     type="button"
                     @click="selectStatusTab(tab.key)"
                     :class="[
-                        'inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[13px] transition-all duration-150 cursor-pointer shrink-0',
+                        'inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all shrink-0 cursor-pointer',
                         activeStatus === tab.key
-                            ? 'bg-white text-slate-900 font-bold shadow-xs ring-1 ring-slate-200/80'
-                            : 'text-slate-600 hover:text-slate-900 font-medium'
+                            ? 'bg-emerald-100 text-emerald-950 font-bold border border-emerald-300 shadow-2xs'
+                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80 border border-transparent'
                     ]"
                 >
+                    <span v-if="tab.key === 'aktif'" class="w-2 h-2 rounded-full bg-emerald-600 inline-block"></span>
                     <span>{{ tab.label }}</span>
                     <span
                         :class="[
-                            'px-2 py-0.5 rounded-full text-[11px] leading-none transition-colors',
+                            'px-2 py-0.5 rounded-full text-[10.5px] font-bold',
                             activeStatus === tab.key
-                                ? 'bg-emerald-900 text-yellow-200 font-bold'
-                                : 'bg-slate-200/90 text-slate-600 font-semibold'
+                                ? 'bg-emerald-900 text-yellow-200'
+                                : 'bg-slate-200 text-slate-600'
                         ]"
                     >
                         {{ tab.count }}
@@ -220,83 +256,77 @@ onUnmounted(() => {
                 </button>
             </div>
 
-            <!-- Right Controls: Unit Dropdown + Per Page Selector -->
-            <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-                <!-- Unit Kerja Dropdown (Custom, sederhana) -->
-                <AppSelect
-                    :model-value="activeUnit"
-                    :options="units"
-                    icon="domain"
-                    title="Unit Kerja"
-                    placement="right"
-                    @update:model-value="onUnitChange"
-                />
-
-                <!-- Per Page Selector (Desktop - Custom, sederhana) -->
-                <div class="hidden sm:block">
-                    <AppSelect
-                        :model-value="perPage"
-                        :options="perPageOptions"
-                        title="Tampilkan jumlah baris data per halaman"
-                        placement="right"
-                        @update:model-value="onPerPageChange"
-                    />
+            <!-- Right Controls: Per Page Selector & Counter -->
+            <div class="flex items-center gap-3 shrink-0 ml-auto sm:ml-0">
+                <div class="hidden lg:block text-xs text-slate-500 font-medium">
+                    Menampilkan <strong class="text-slate-900 font-bold">{{ filteredCount }}</strong> dari {{ displayTotalCount }} pegawai
                 </div>
+
+                <AppSelect
+                    :model-value="perPage"
+                    :options="perPageOptions"
+                    title="Tampilkan jumlah baris data per halaman"
+                    placement="right"
+                    @update:model-value="onPerPageChange"
+                />
             </div>
         </div>
 
-        <!-- ROW 2: Search Bar (Gaya Database Siswa: rounded-xl, border-slate-300) + Filter Button Dropdown -->
+        <!-- ROW 2: Search Bar + Filter Button (Unit & Jenjang ada di dalam tombol Filter seperti mobile) -->
         <div class="flex items-center gap-2.5 relative">
-            <!-- Search Bar bergaya Database Siswa -->
+            <!-- Search Bar -->
             <div class="relative flex-1 min-w-0">
-                <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-[19px] pointer-events-none">
+                <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-[19px] text-slate-400 pointer-events-none">
                     search
                 </span>
                 <input
                     v-model="searchQuery"
                     type="text"
-                    placeholder="Cari nama, NIPY, jabatan, unit, atau nomor WA..."
-                    class="w-full pl-11 pr-10 py-2.5 bg-white hover:bg-slate-50 focus:bg-white border border-slate-300 rounded-xl text-[13px] sm:text-[13.5px] text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all shadow-2xs"
+                    placeholder="Cari nama, NIPY, jabatan, unit kerja, nomor WA..."
+                    class="w-full pl-10 pr-9 py-2.5 rounded-xl border border-slate-300 bg-white text-xs sm:text-[13px] text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-700 shadow-2xs transition-all"
                     @input="onSearchInput"
                 />
                 <button
                     v-if="searchQuery"
                     type="button"
                     @click="clearSearch"
-                    class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1 rounded-full hover:bg-slate-100 transition-colors cursor-pointer"
+                    class="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 rounded-full cursor-pointer"
                     title="Hapus pencarian"
                 >
-                    <span class="material-symbols-outlined text-[17px]">close</span>
+                    <span class="material-symbols-outlined text-[16px] block">close</span>
                 </button>
             </div>
 
-            <!-- Filters Button dengan Dropdown Checklist Multi-select (Di mobile hanya icon corong + counter) -->
+            <!-- Filter Button Dropdown (Unit & Jenjang) -->
             <div class="relative" ref="filterDropdownRef">
                 <button
                     type="button"
                     @click="isFilterOpen = !isFilterOpen"
                     :class="[
-                        'inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 rounded-xl border text-[13px] font-semibold transition-all shadow-2xs cursor-pointer shrink-0',
-                        isFilterOpen || activeFiltersCount > 0
-                            ? 'bg-emerald-50 border-emerald-600 text-emerald-950 ring-2 ring-emerald-600/10'
+                        'h-[42px] px-3.5 sm:px-4 rounded-xl border flex items-center gap-2 transition-all cursor-pointer shrink-0 shadow-2xs',
+                        isFilterOpen || activeExtraFiltersCount > 0
+                            ? 'bg-emerald-50 border-emerald-300 text-emerald-950 font-bold'
                             : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
                     ]"
-                    title="Filter data pegawai"
+                    title="Buka filter lanjutan"
                 >
                     <span class="material-symbols-outlined text-[19px] text-emerald-800">filter_alt</span>
-                    <span class="hidden sm:inline">Filter</span>
+                    <span>Filter</span>
                     <span
-                        v-if="activeFiltersCount > 0"
-                        class="px-1.5 py-0.5 rounded-full bg-emerald-900 text-yellow-200 text-[11px] font-bold leading-none"
+                        v-if="activeExtraFiltersCount > 0"
+                        class="w-5 h-5 rounded-full bg-emerald-900 text-yellow-200 text-[10.5px] font-bold flex items-center justify-center leading-none"
                     >
-                        {{ activeFiltersCount }}
+                        {{ activeExtraFiltersCount }}
                     </span>
-                    <span class="hidden sm:inline-block material-symbols-outlined text-[16px] text-slate-400 transition-transform duration-200" :class="{ 'rotate-180': isFilterOpen }">
+                    <span
+                        class="material-symbols-outlined text-[16px] text-slate-400 transition-transform duration-200"
+                        :class="{ 'rotate-180': isFilterOpen }"
+                    >
                         expand_more
                     </span>
                 </button>
 
-                <!-- Filter Checklist Dropdown Menu -->
+                <!-- Popover Filter Menu -->
                 <Transition
                     enter-active-class="transition duration-150 ease-out"
                     enter-from-class="transform scale-95 opacity-0 -translate-y-1"
@@ -307,180 +337,126 @@ onUnmounted(() => {
                 >
                     <div
                         v-if="isFilterOpen"
-                        class="absolute right-0 mt-2 w-72 bg-white rounded-2xl border border-slate-200 shadow-xl z-50 p-4 space-y-3.5"
+                        class="absolute right-0 mt-2 w-80 bg-white rounded-2xl border border-slate-200 shadow-xl z-50 p-4 space-y-4 animate-in fade-in"
                     >
                         <div class="flex items-center justify-between pb-2 border-b border-slate-100">
-                            <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Pilih Filter</span>
+                            <div class="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-800">
+                                <span class="material-symbols-outlined text-[18px] text-emerald-800">tune</span>
+                                <span>Filter Pegawai</span>
+                            </div>
                             <button
-                                v-if="activeFiltersCount > 0"
+                                v-if="activeExtraFiltersCount > 0"
                                 type="button"
-                                @click="resetAll"
+                                @click="emit('filter-unit', ''); emit('filter-jenjang', [])"
                                 class="text-[11px] font-semibold text-emerald-700 hover:text-emerald-950 cursor-pointer"
                             >
-                                Reset Semua
+                                Reset Filter Ini
                             </button>
                         </div>
 
-                        <!-- Jenjang Kepegawaian Checklist (Multi-select) -->
+                        <!-- Unit Kerja Selection -->
                         <div>
-                            <span class="text-[12px] font-bold text-slate-700 block mb-1">Jenjang Pegawai</span>
-                            <span class="text-[11px] text-slate-400 block mb-2">Bisa pilih lebih dari 1</span>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                                Unit Kerja
+                            </label>
+                            <select
+                                :value="activeUnit"
+                                @change="onUnitChange"
+                                class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium text-slate-800 bg-white focus:ring-2 focus:ring-emerald-700 focus:outline-none cursor-pointer"
+                            >
+                                <option value="">Semua Unit Kerja</option>
+                                <option v-for="u in units.filter(x => x.value)" :key="u.value" :value="u.value">
+                                    {{ u.label }}
+                                </option>
+                            </select>
+                        </div>
+
+                        <!-- Jenjang Kepegawaian Checkboxes -->
+                        <div>
+                            <div class="flex items-center justify-between mb-1.5">
+                                <label class="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                                    Jenjang Pegawai
+                                </label>
+                                <span class="text-[11px] text-slate-400">Pilih multi</span>
+                            </div>
                             <div class="space-y-1 max-h-48 overflow-y-auto pr-1">
                                 <label
                                     v-for="j in availableJenjang"
                                     :key="j"
-                                    class="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50 cursor-pointer text-[12.5px] transition-colors"
+                                    class="flex items-center justify-between p-2 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer text-xs transition-colors"
                                 >
-                                    <span class="text-slate-700 font-medium">{{ j }}</span>
+                                    <span class="text-slate-800 font-medium">{{ j }}</span>
                                     <input
                                         type="checkbox"
                                         :checked="activeJenjang.includes(j)"
                                         @change="toggleJenjang(j)"
-                                        class="w-4 h-4 rounded text-emerald-800 border-slate-300 focus:ring-emerald-500 cursor-pointer"
+                                        class="w-4 h-4 rounded text-emerald-900 border-slate-300 focus:ring-emerald-700 cursor-pointer"
                                     />
                                 </label>
                             </div>
                         </div>
 
-                        <!-- Status Keaktifan Checklist -->
-                        <div class="pt-2 border-t border-slate-100">
-                            <span class="text-[12px] font-bold text-slate-700 block mb-2">Status Keaktifan</span>
-                            <div class="space-y-1">
-                                <label
-                                    v-for="s in statusTabs"
-                                    :key="s.key"
-                                    class="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50 cursor-pointer text-[12.5px] transition-colors"
-                                >
-                                    <span class="text-slate-700 font-medium">{{ s.label }}</span>
-                                    <input
-                                        type="radio"
-                                        name="status_radio"
-                                        :checked="activeStatus === s.key"
-                                        @change="selectStatusTab(s.key)"
-                                        class="w-4 h-4 text-emerald-800 border-slate-300 focus:ring-emerald-500 cursor-pointer"
-                                    />
-                                </label>
-                            </div>
+                        <!-- Tombol Selesai -->
+                        <div class="pt-2 border-t border-slate-100 flex items-center justify-end">
+                            <button
+                                type="button"
+                                @click="isFilterOpen = false"
+                                class="px-4 py-1.5 rounded-xl bg-emerald-900 text-yellow-200 font-bold text-xs hover:bg-emerald-800 transition-colors cursor-pointer shadow-2xs"
+                            >
+                                Selesai
+                            </button>
                         </div>
                     </div>
                 </Transition>
             </div>
         </div>
 
-        <!-- ROW 3: Active Filter Chips & Counter (Di mobile: Reset Semua & counter/perPage menjadi 1 baris) -->
-        <div class="space-y-2 pt-0.5 sm:space-y-0 sm:flex sm:items-center sm:justify-between sm:gap-3">
-            <!-- Chips Container (Status, Unit, Jenjang) -->
+        <!-- ROW 3: Active Filter Chips & Counter (DI BAWAH SEARCH BAR) -->
+        <div class="flex flex-wrap items-center justify-between gap-2 pt-0.5">
+            <!-- Active Chips -->
             <div class="flex flex-wrap items-center gap-1.5">
-                <!-- Status Chip (Muncul jika status bukan Aktif atau jika ada pilihan) -->
-                <div
-                    v-if="activeStatus && activeStatus !== 'semua'"
-                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-50 border border-slate-300 text-[12px] sm:text-[12.5px] shadow-2xs"
-                >
-                    <span class="text-slate-500">Status:</span>
-                    <strong class="text-slate-800 font-semibold capitalize">{{ activeStatus }}</strong>
-                    <button
-                        type="button"
-                        @click="selectStatusTab('semua')"
-                        class="text-slate-400 hover:text-slate-700 ml-0.5 flex items-center cursor-pointer"
-                        title="Hapus filter status"
+                <template v-if="activeFilterChips.length > 0">
+                    <span class="text-[11px] font-medium text-slate-400">Filter Aktif:</span>
+                    <span
+                        v-for="chip in activeFilterChips"
+                        :key="chip.id"
+                        class="inline-flex items-center gap-1 pl-2.5 pr-1.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100/90 text-emerald-950 border border-emerald-300/80 shadow-2xs"
                     >
-                        <span class="material-symbols-outlined text-[15px]">close</span>
-                    </button>
-                </div>
-
-                <!-- Unit Chip (Muncul saat unit dipilih) -->
-                <div
-                    v-if="activeUnit"
-                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-50 border border-slate-300 text-[12px] sm:text-[12.5px] shadow-2xs"
-                >
-                    <span class="text-slate-500">Unit:</span>
-                    <strong class="text-slate-800 font-semibold">{{ activeUnit }}</strong>
-                    <button
-                        type="button"
-                        @click="emit('filter-unit', '')"
-                        class="text-slate-400 hover:text-slate-700 ml-0.5 flex items-center cursor-pointer"
-                        title="Hapus filter unit"
-                    >
-                        <span class="material-symbols-outlined text-[15px]">close</span>
-                    </button>
-                </div>
-
-                <!-- Jenjang Chips (Muncul untuk setiap jenjang yang dipilih pada dropdown) -->
-                <template v-if="activeJenjang && activeJenjang.length > 0">
-                    <div
-                        v-for="j in activeJenjang"
-                        :key="j"
-                        class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-50 border border-slate-300 text-[12px] sm:text-[12.5px] shadow-2xs"
-                    >
-                        <span class="text-slate-500">Jenjang:</span>
-                        <strong class="text-slate-800 font-semibold">{{ j }}</strong>
+                        <span>{{ chip.label }}</span>
                         <button
                             type="button"
-                            @click="removeJenjang(j)"
-                            class="text-slate-400 hover:text-slate-700 ml-0.5 flex items-center cursor-pointer"
-                            :title="`Hapus filter jenjang ${j}`"
+                            @click="chip.onRemove"
+                            class="w-3.5 h-3.5 rounded-full hover:bg-emerald-200 text-emerald-800 flex items-center justify-center cursor-pointer"
+                            title="Hapus filter ini"
                         >
-                            <span class="material-symbols-outlined text-[15px]">close</span>
+                            <span class="material-symbols-outlined text-[12px]">close</span>
                         </button>
-                    </div>
+                    </span>
+                    <button
+                        type="button"
+                        @click="resetAll"
+                        class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold text-rose-700 bg-rose-50 border border-rose-200 hover:bg-rose-100 transition-colors cursor-pointer"
+                    >
+                        <span class="material-symbols-outlined text-[13px]">restart_alt</span>
+                        <span>Reset Semua</span>
+                    </button>
                 </template>
-
-                <!-- Tombol Reset Filter jika ada filter aktif (Desktop) -->
-                <button
-                    v-if="activeFiltersCount > 0"
-                    type="button"
-                    @click="resetAll"
-                    class="hidden sm:inline text-[12.5px] font-semibold text-emerald-800 hover:text-emerald-950 ml-1 cursor-pointer transition-colors underline underline-offset-2"
-                >
-                    Reset semua
-                </button>
             </div>
 
-            <!-- Sub-Baris di Mobile: Reset Semua (kiri) & Dropdown Per Page + Counter (kanan) sejajar 1 baris -->
-            <div class="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto pt-1 sm:pt-0">
-                <!-- Tombol Reset Filter di Mobile (Kiri) -->
-                <button
-                    v-if="activeFiltersCount > 0"
-                    type="button"
-                    @click="resetAll"
-                    class="sm:hidden text-[12px] font-semibold text-emerald-800 hover:text-emerald-950 cursor-pointer transition-colors underline underline-offset-2 shrink-0"
-                >
-                    Reset semua
-                </button>
-                <div v-else class="sm:hidden"></div>
-
-                <!-- Sisi Kanan: Dropdown Per Page Mobile + Counter -->
-                <div class="flex items-center gap-2 text-[12px] sm:text-[12.5px] text-slate-500 shrink-0 ml-auto sm:ml-0">
-                    <!-- Dropdown Jumlah Data di Mobile (Tombol kecil di samping counter - Custom, sederhana) -->
-                    <div class="sm:hidden">
-                        <AppSelect
-                            :model-value="perPage"
-                            :options="perPageOptions"
-                            size="sm"
-                            placement="right"
-                            title="Tampilkan jumlah baris data per halaman"
-                            @update:model-value="onPerPageChange"
-                        />
-                    </div>
-
-                    <!-- Counter Teks -->
-                    <span>
-                        <strong class="text-slate-900 font-bold">{{ filteredCount }}</strong> dari {{ displayTotalCount }} pegawai
-                    </span>
-                </div>
+            <!-- Counter for smaller screens when hidden in Row 1 -->
+            <div class="lg:hidden text-xs text-slate-500 font-medium ml-auto">
+                Menampilkan <strong class="text-slate-900 font-bold">{{ filteredCount }}</strong> dari {{ displayTotalCount }} pegawai
             </div>
         </div>
     </div>
 </template>
 
 <style scoped>
-/* Hilangkan scrollbar horizontal pada filter namun tetap bisa di-scroll / swipe pada perangkat mobile */
 .no-scrollbar {
-    -ms-overflow-style: none; /* IE and Edge */
-    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }
-
 .no-scrollbar::-webkit-scrollbar {
-    display: none; /* Chrome, Safari, Opera */
+    display: none;
 }
 </style>
