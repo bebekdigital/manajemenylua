@@ -52,8 +52,8 @@ const activeRouteLabel = computed(() => {
         <!-- Persistent Sidebar (Desktop Only) -->
         <SidebarNav :current-route="activeRoute" />
 
-        <!-- Main Workspace Area -->
-        <div class="flex-grow md:ml-64 flex flex-col min-h-screen transition-all duration-300 min-w-0 overflow-x-hidden pb-24 md:pb-0 bg-white">
+        <!-- Main Workspace Area (pb-36 di mobile untuk memastikan konten paling bawah tidak tertutup floating bottom nav) -->
+        <div class="flex-grow md:ml-64 flex flex-col min-h-screen transition-all duration-300 min-w-0 overflow-x-hidden pb-36 md:pb-0 bg-white">
             <!-- Sticky Header -->
             <TopNav
                 :page-title="activeRouteLabel"

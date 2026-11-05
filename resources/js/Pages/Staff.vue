@@ -57,6 +57,18 @@ const isKelolaOpen = ref(false);
 const kelolaDropdownRef = ref(null);
 const isMobileFilterDrawerOpen = ref(false);
 
+const pageContainerRef = ref(null);
+const mainTitleRef = ref(null);
+const isScrolledPastTitle = ref(false);
+let titleObserver = null;
+
+function checkTitleVisibility() {
+    if (mainTitleRef.value) {
+        const rect = mainTitleRef.value.getBoundingClientRect();
+        isScrolledPastTitle.value = rect.bottom < 15;
+    }
+}
+
 function handleClickOutside(event) {
     if (kelolaDropdownRef.value && !kelolaDropdownRef.value.contains(event.target)) {
         isKelolaOpen.value = false;
@@ -65,10 +77,39 @@ function handleClickOutside(event) {
 
 onMounted(() => {
     document.addEventListener('click', handleClickOutside);
+    window.addEventListener('scroll', checkTitleVisibility, { passive: true });
+
+    if (pageContainerRef.value) {
+        pageContainerRef.value.addEventListener('scroll', checkTitleVisibility, { passive: true });
+    }
+
+    if ('IntersectionObserver' in window && mainTitleRef.value) {
+        titleObserver = new IntersectionObserver(
+            ([entry]) => {
+                if (!entry.isIntersecting && entry.boundingClientRect.top < 50) {
+                    isScrolledPastTitle.value = true;
+                } else if (entry.isIntersecting) {
+                    isScrolledPastTitle.value = false;
+                }
+            },
+            {
+                root: null,
+                threshold: 0,
+            }
+        );
+        titleObserver.observe(mainTitleRef.value);
+    }
 });
 
 onUnmounted(() => {
     document.removeEventListener('click', handleClickOutside);
+    window.removeEventListener('scroll', checkTitleVisibility);
+    if (pageContainerRef.value) {
+        pageContainerRef.value.removeEventListener('scroll', checkTitleVisibility);
+    }
+    if (titleObserver) {
+        titleObserver.disconnect();
+    }
 });
 
 const flashSuccess = computed(() => !dismissedFlash.value ? page.props.flash?.success : null);
@@ -266,6 +307,26 @@ const filteredEmployees = computed(() => {
 
 const totalEntries = computed(() => filteredEmployees.value.length);
 
+const totalPages = computed(() => {
+    if (perPage.value === 0) return 1;
+    return Math.ceil(filteredEmployees.value.length / perPage.value) || 1;
+});
+
+const visiblePages = computed(() => {
+    const total = totalPages.value;
+    const current = currentPage.value;
+    if (total <= 5) {
+        return Array.from({ length: total }, (_, i) => i + 1);
+    }
+    if (current <= 3) {
+        return [1, 2, 3, '...', total];
+    }
+    if (current >= total - 2) {
+        return [1, '...', total - 2, total - 1, total];
+    }
+    return [1, '...', current, '...', total];
+});
+
 const paginatedEmployees = computed(() => {
     if (perPage.value === 0) return filteredEmployees.value;
     const start = (currentPage.value - 1) * perPage.value;
@@ -318,12 +379,16 @@ function onResetFilters() {
 }
 
 function onPageChange(p) {
+    if (p < 1 || p > totalPages.value) return;
     currentPage.value = p;
+    if (window.innerWidth < 768) {
+        window.scrollTo({ top: 120, behavior: 'smooth' });
+    }
 }
 </script>
 
 <template>
-    <div class="flex-1 overflow-y-auto px-4 pt-6 pb-6 md:px-8 md:py-7 bg-white min-h-screen">
+    <div ref="pageContainerRef" class="flex-1 overflow-y-auto px-4 pt-6 pb-12 md:px-8 md:py-7 bg-white min-h-screen">
         <Head title="Database Pegawai - Foundation Data Center" />
         <div class="max-w-[1440px] mx-auto">
             <!-- Teacher Role Scoping Notice Banner -->
@@ -385,14 +450,38 @@ function onPageChange(p) {
                 </button>
             </div>
 
+            <!-- Sticky Mini Topbar Judul Tengah Saat Di-scroll Keluar Layar -->
+            <Transition
+                enter-active-class="transition-all duration-200 ease-out"
+                enter-from-class="-translate-y-full opacity-0"
+                enter-to-class="translate-y-0 opacity-100"
+                leave-active-class="transition-all duration-150 ease-in"
+                leave-from-class="translate-y-0 opacity-100"
+                leave-to-class="-translate-y-full opacity-0"
+            >
+                <div
+                    v-if="isScrolledPastTitle"
+                    class="md:hidden fixed top-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md shadow-md border-b border-slate-200/80 px-4 py-2.5 flex items-center justify-center pt-[max(0.75rem,env(safe-area-inset-top))]"
+                >
+                    <div class="text-center min-w-0">
+                        <h2 class="text-sm font-bold text-slate-900 tracking-tight truncate">
+                            Database Pegawai
+                        </h2>
+                        <p class="text-[10px] text-slate-500 font-medium truncate -mt-0.5">
+                            {{ filteredEmployees.length }} dari {{ displayTotalCount }} pegawai
+                        </p>
+                    </div>
+                </div>
+            </Transition>
+
             <!-- ============================================================ -->
             <!-- TAMPILAN MOBILE (md:hidden) SESUAI STYLE FOTO REFERENSI      -->
             <!-- ============================================================ -->
-            <div class="md:hidden pb-10">
+            <div class="md:hidden pb-16">
                 <!-- 1. Header: Judul Database Pegawai + Tombol Kelola Samping Judul -->
                 <div class="flex items-center justify-between gap-3 pt-3 sm:pt-4 mb-6">
                     <div class="min-w-0">
-                        <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight leading-tight">
+                        <h1 ref="mainTitleRef" class="text-2xl font-extrabold text-slate-900 tracking-tight leading-tight">
                             Database Pegawai
                         </h1>
                         <p class="text-xs text-slate-500 mt-1 font-medium truncate">
@@ -654,31 +743,54 @@ function onPageChange(p) {
                         </button>
                     </div>
 
-                    <!-- Paginasi Mobile -->
-                    <div v-if="totalPages > 1" class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                        <button
-                            type="button"
-                            :disabled="currentPage <= 1"
-                            @click="currentPage--"
-                            class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-2xs"
-                        >
-                            <span class="material-symbols-outlined text-[16px]">chevron_left</span>
-                            <span>Sebelumnya</span>
-                        </button>
+                    <!-- Paginasi Mobile Lengkap & Mudah Digunakan -->
+                    <div v-if="totalPages > 1" class="mt-5 pt-4 border-t border-slate-100 space-y-3">
+                        <div class="flex items-center justify-between gap-1.5">
+                            <button
+                                type="button"
+                                :disabled="currentPage <= 1"
+                                @click="onPageChange(currentPage - 1)"
+                                class="inline-flex items-center gap-1 px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 font-semibold text-xs disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-2xs hover:bg-slate-50 active:scale-95 transition-all"
+                            >
+                                <span class="material-symbols-outlined text-[16px]">chevron_left</span>
+                                <span class="hidden sm:inline">Sebelumnya</span>
+                            </button>
 
-                        <span class="text-slate-500 font-medium">
-                            {{ currentPage }} / {{ totalPages }}
-                        </span>
+                            <!-- Nomor Halaman -->
+                            <div class="flex items-center gap-1">
+                                <template v-for="(p, idx) in visiblePages" :key="idx">
+                                    <span v-if="p === '...'" class="px-1 text-slate-400 text-xs font-bold">...</span>
+                                    <button
+                                        v-else
+                                        type="button"
+                                        @click="onPageChange(p)"
+                                        :class="[
+                                            'w-8 h-8 rounded-xl text-xs font-bold flex items-center justify-center transition-all cursor-pointer',
+                                            currentPage === p
+                                                ? 'bg-emerald-900 text-yellow-200 shadow-2xs'
+                                                : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+                                        ]"
+                                    >
+                                        {{ p }}
+                                    </button>
+                                </template>
+                            </div>
 
-                        <button
-                            type="button"
-                            :disabled="currentPage >= totalPages"
-                            @click="currentPage++"
-                            class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-2xs"
-                        >
-                            <span>Berikutnya</span>
-                            <span class="material-symbols-outlined text-[16px]">chevron_right</span>
-                        </button>
+                            <button
+                                type="button"
+                                :disabled="currentPage >= totalPages"
+                                @click="onPageChange(currentPage + 1)"
+                                class="inline-flex items-center gap-1 px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 font-semibold text-xs disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-2xs hover:bg-slate-50 active:scale-95 transition-all"
+                            >
+                                <span class="hidden sm:inline">Berikutnya</span>
+                                <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+                            </button>
+                        </div>
+
+                        <!-- Keterangan Jumlah Data Halaman -->
+                        <div class="text-center text-[11px] text-slate-400 font-medium">
+                            Menampilkan {{ ((currentPage - 1) * perPage) + 1 }} - {{ Math.min(currentPage * perPage, filteredEmployees.length) }} dari {{ filteredEmployees.length }} pegawai
+                        </div>
                     </div>
                 </div>
 
@@ -692,7 +804,7 @@ function onPageChange(p) {
                         <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
                             <div class="flex items-center gap-2">
                                 <span class="material-symbols-outlined text-[20px] text-emerald-800">filter_alt</span>
-                                <h3 class="text-sm font-bold text-slate-900">Filter Lanjutan</h3>
+                                <h3 class="text-sm font-bold text-slate-900">Filter Pegawai</h3>
                             </div>
                             <button
                                 type="button"
@@ -703,20 +815,50 @@ function onPageChange(p) {
                             </button>
                         </div>
 
-                        <!-- Unit Kerja Selection -->
-                        <div class="mb-4">
-                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                                Unit Kerja
-                            </label>
-                            <select
-                                v-model="unitFilter"
-                                class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium text-slate-800 bg-white focus:ring-2 focus:ring-emerald-700 focus:outline-none"
-                            >
-                                <option value="">Semua Unit Kerja</option>
-                                <option v-for="u in units.filter(x => x.value)" :key="u.value" :value="u.value">
-                                    {{ u.label }}
-                                </option>
-                            </select>
+                        <!-- Unit Kerja Selection: Langsung ditampilkan semua pilihan seperti pada Jenjang -->
+                        <div class="mb-5">
+                            <div class="flex items-center justify-between mb-2">
+                                <label class="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                                    Unit Kerja
+                                </label>
+                                <span class="text-[11px] text-slate-400">Pilih 1 unit</span>
+                            </div>
+                            <div class="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                                <!-- Pilihan Semua Unit Kerja -->
+                                <label
+                                    class="flex items-center justify-between p-2.5 rounded-xl border cursor-pointer text-xs transition-colors"
+                                    :class="!unitFilter ? 'border-emerald-500 bg-emerald-50/60 font-bold text-emerald-950 shadow-2xs' : 'border-slate-200 hover:bg-slate-50 text-slate-800'"
+                                >
+                                    <span>Semua Unit Kerja</span>
+                                    <input
+                                        type="radio"
+                                        name="mobile_unit_filter"
+                                        value=""
+                                        v-model="unitFilter"
+                                        class="w-4 h-4 text-emerald-900 focus:ring-emerald-700 border-slate-300 cursor-pointer"
+                                    />
+                                </label>
+
+                                <!-- Pilihan Setiap Unit Kerja -->
+                                <label
+                                    v-for="u in units.filter(x => x.value)"
+                                    :key="u.value"
+                                    class="flex items-center justify-between p-2.5 rounded-xl border cursor-pointer text-xs transition-colors"
+                                    :class="unitFilter === u.value ? 'border-emerald-500 bg-emerald-50/60 font-bold text-emerald-950 shadow-2xs' : 'border-slate-200 hover:bg-slate-50 text-slate-800'"
+                                >
+                                    <div class="flex items-center gap-2">
+                                        <span class="material-symbols-outlined text-[16px] text-slate-400">apartment</span>
+                                        <span>{{ u.label }}</span>
+                                    </div>
+                                    <input
+                                        type="radio"
+                                        name="mobile_unit_filter"
+                                        :value="u.value"
+                                        v-model="unitFilter"
+                                        class="w-4 h-4 text-emerald-900 focus:ring-emerald-700 border-slate-300 cursor-pointer"
+                                    />
+                                </label>
+                            </div>
                         </div>
 
                         <!-- Jenjang Kepegawaian Checkboxes -->
