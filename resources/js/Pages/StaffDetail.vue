@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import { Head, Link, usePage, useForm, router } from '@inertiajs/vue3';
 import axios from 'axios';
 import AppLayout from '@/Layouts/AppLayout.vue';
@@ -733,11 +733,14 @@ onMounted(async () => {
     await initWilayahFromForm();
     window.addEventListener('click', handleOutsideClick);
     window.addEventListener('focus', onWindowFocus);
+    window.addEventListener('resize', checkScroll);
+    nextTick(() => checkScroll());
 });
 
 onUnmounted(() => {
     window.removeEventListener('click', handleOutsideClick);
     window.removeEventListener('focus', onWindowFocus);
+    window.removeEventListener('resize', checkScroll);
     stopPermitPolling();
 });
 
@@ -1623,6 +1626,37 @@ function getAvatarStyle(emp) {
     }
     return 'bg-rose-50 text-rose-800 border-rose-200/80';
 }
+
+const tabsContainerRef = ref(null);
+const canScrollLeft = ref(false);
+const canScrollRight = ref(false);
+
+function checkScroll() {
+    if (!tabsContainerRef.value) return;
+    const { scrollLeft, scrollWidth, clientWidth } = tabsContainerRef.value;
+    canScrollLeft.value = scrollLeft > 10;
+    canScrollRight.value = scrollLeft + clientWidth < scrollWidth - 10;
+}
+
+function scrollTabs(direction) {
+    if (!tabsContainerRef.value) return;
+    const scrollAmount = 200;
+    tabsContainerRef.value.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+    });
+}
+
+function selectTab(id) {
+    activeTab.value = id;
+    nextTick(() => {
+        const activeBtn = tabsContainerRef.value?.querySelector(`[data-tab-id="${id}"]`);
+        if (activeBtn) {
+            activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
+        checkScroll();
+    });
+}
 </script>
 
 <template>
@@ -1689,12 +1723,12 @@ function getAvatarStyle(emp) {
                         v-if="employee.foto"
                         :src="employee.foto"
                         :alt="employee.nama"
-                        class="w-18 h-18 sm:w-22 sm:h-22 rounded-2xl object-cover border border-slate-200 shadow-2xs shrink-0"
+                        class="w-16 h-16 sm:w-20 sm:h-20 max-w-[64px] max-h-[64px] sm:max-w-[80px] sm:max-h-[80px] aspect-square rounded-2xl object-cover border border-slate-200 shadow-2xs shrink-0"
                     />
                     <div
                         v-else
                         :class="[
-                            'w-18 h-18 sm:w-22 sm:h-22 rounded-2xl flex items-center justify-center font-bold text-xl sm:text-2xl border shadow-2xs shrink-0',
+                            'w-16 h-16 sm:w-20 sm:h-20 max-w-[64px] max-h-[64px] sm:max-w-[80px] sm:max-h-[80px] aspect-square rounded-2xl flex items-center justify-center font-bold text-xl sm:text-2xl border shadow-2xs shrink-0',
                             getAvatarStyle(employee)
                         ]"
                     >
@@ -1871,24 +1905,80 @@ function getAvatarStyle(emp) {
             </div>
 
             <!-- Segmented Capsule Tabs Navigation -->
-            <div class="mb-5 overflow-x-auto no-scrollbar">
-                <div class="bg-slate-100 p-1.5 rounded-2xl sm:rounded-full inline-flex items-center gap-1 border border-slate-200/90 shrink-0 max-w-full">
-                    <button
-                        v-for="tab in tabs"
-                        :key="tab.id"
-                        type="button"
-                        @click="activeTab = tab.id"
-                        :class="[
-                            'inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs sm:text-sm transition-all duration-150 cursor-pointer shrink-0 whitespace-nowrap',
-                            activeTab === tab.id
-                                ? 'bg-emerald-100 text-emerald-950 font-bold border border-emerald-300 shadow-2xs'
-                                : 'text-slate-600 hover:text-slate-900 font-medium border border-transparent hover:bg-slate-200/60'
-                        ]"
+            <div class="relative mb-5">
+                <!-- Left Scroll Arrow & Fade Hint -->
+                <Transition
+                    enter-active-class="transition duration-150 ease-out"
+                    enter-from-class="opacity-0 -translate-x-2"
+                    enter-to-class="opacity-100 translate-x-0"
+                    leave-active-class="transition duration-150 ease-in"
+                    leave-from-class="opacity-100 translate-x-0"
+                    leave-to-class="opacity-0 -translate-x-2"
+                >
+                    <div
+                        v-if="canScrollLeft"
+                        class="absolute left-0 top-0 bottom-0 z-20 flex items-center pr-6 pl-1 bg-gradient-to-r from-white via-white/95 to-transparent pointer-events-none"
                     >
-                        <span class="material-symbols-outlined text-[18px]">{{ tab.icon }}</span>
-                        <span>{{ tab.label }}</span>
-                    </button>
+                        <button
+                            type="button"
+                            @click="scrollTabs('left')"
+                            class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white shadow-md border border-slate-200 text-slate-700 flex items-center justify-center hover:bg-slate-50 pointer-events-auto active:scale-95 transition-transform"
+                            title="Gulir tab ke kiri"
+                        >
+                            <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+                        </button>
+                    </div>
+                </Transition>
+
+                <!-- Tabs Scroll Container -->
+                <div
+                    ref="tabsContainerRef"
+                    @scroll="checkScroll"
+                    class="overflow-x-auto no-scrollbar scroll-smooth py-1"
+                >
+                    <div class="bg-slate-100 p-1.5 rounded-2xl sm:rounded-full inline-flex items-center gap-1 border border-slate-200/90 min-w-max">
+                        <button
+                            v-for="tab in tabs"
+                            :key="tab.id"
+                            :data-tab-id="tab.id"
+                            type="button"
+                            @click="selectTab(tab.id)"
+                            :class="[
+                                'inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs sm:text-sm transition-all duration-150 cursor-pointer shrink-0 whitespace-nowrap',
+                                activeTab === tab.id
+                                    ? 'bg-emerald-100 text-emerald-950 font-bold border border-emerald-300 shadow-2xs'
+                                    : 'text-slate-600 hover:text-slate-900 font-medium border border-transparent hover:bg-slate-200/60'
+                            ]"
+                        >
+                            <span class="material-symbols-outlined text-[18px]">{{ tab.icon }}</span>
+                            <span>{{ tab.label }}</span>
+                        </button>
+                    </div>
                 </div>
+
+                <!-- Right Scroll Arrow & Fade Hint -->
+                <Transition
+                    enter-active-class="transition duration-150 ease-out"
+                    enter-from-class="opacity-0 translate-x-2"
+                    enter-to-class="opacity-100 translate-x-0"
+                    leave-active-class="transition duration-150 ease-in"
+                    leave-from-class="opacity-100 translate-x-0"
+                    leave-to-class="opacity-0 translate-x-2"
+                >
+                    <div
+                        v-if="canScrollRight"
+                        class="absolute right-0 top-0 bottom-0 z-20 flex items-center pl-6 pr-1 bg-gradient-to-l from-white via-white/95 to-transparent pointer-events-none"
+                    >
+                        <button
+                            type="button"
+                            @click="scrollTabs('right')"
+                            class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white shadow-md border border-slate-200 text-slate-700 flex items-center justify-center hover:bg-slate-50 pointer-events-auto active:scale-95 transition-transform"
+                            title="Ada tab lain di sebelah kanan"
+                        >
+                            <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+                        </button>
+                    </div>
+                </Transition>
             </div>
 
             <!-- Card Konten Tab Pegawai -->
