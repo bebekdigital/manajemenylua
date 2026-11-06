@@ -90,10 +90,107 @@ watch(() => props.employee?.perizinan, (newVal) => {
     }
 }, { deep: true, immediate: true });
 
-const dismissedFlash = ref(false);
+// Floating Toast Notification State & Logic (Melayang dengan progress bar mundur)
+const toast = reactive({
+    show: false,
+    type: 'success', // 'success' | 'error'
+    title: '',
+    message: '',
+    progress: 100,
+});
+let toastTimer = null;
+let toastInterval = null;
 
-const flashSuccess = computed(() => !dismissedFlash.value ? page.props.flash?.success : null);
-const flashError = computed(() => !dismissedFlash.value ? page.props.flash?.error : null);
+function showToast(type, message, title = null) {
+    if (!message) return;
+    if (toastTimer) {
+        clearTimeout(toastTimer);
+        toastTimer = null;
+    }
+    if (toastInterval) {
+        clearInterval(toastInterval);
+        toastInterval = null;
+    }
+
+    toast.type = type;
+    toast.title = title || (type === 'success' ? 'Berhasil' : 'Terjadi Kesalahan');
+    toast.message = message;
+    toast.progress = 100;
+    toast.show = true;
+
+    const duration = 4000;
+    const startTime = Date.now();
+
+    toastInterval = setInterval(() => {
+        const elapsed = Date.now() - startTime;
+        const remaining = Math.max(0, 100 - (elapsed / duration) * 100);
+        toast.progress = remaining;
+        if (remaining <= 0) {
+            clearInterval(toastInterval);
+            toastInterval = null;
+        }
+    }, 25);
+
+    toastTimer = setTimeout(() => {
+        closeToast();
+    }, duration);
+}
+
+function closeToast() {
+    toast.show = false;
+    if (toastTimer) {
+        clearTimeout(toastTimer);
+        toastTimer = null;
+    }
+    if (toastInterval) {
+        clearInterval(toastInterval);
+        toastInterval = null;
+    }
+}
+
+// Pantau flash message dari server / Inertia
+watch(
+    () => [page.props.flash?.success, page.props.flash?.error],
+    ([newSuccess, newError]) => {
+        if (newSuccess) {
+            showToast('success', newSuccess, 'Berhasil Disimpan');
+        } else if (newError) {
+            showToast('error', newError, 'Terjadi Kesalahan');
+        }
+    },
+    { deep: true, immediate: true }
+);
+
+// State & Fungsi Modal Konfirmasi Hapus Kustom (Pengganti dialog bawaan browser)
+const isDeleteConfirmModalOpen = ref(false);
+const deleteConfirmData = reactive({
+    title: 'Konfirmasi Hapus Data',
+    message: '',
+    itemLabel: '',
+    isDeleting: false,
+    onConfirm: () => {},
+});
+
+function requestDeleteConfirm({ title, message, itemLabel, onConfirm }) {
+    deleteConfirmData.title = title || 'Konfirmasi Hapus Data';
+    deleteConfirmData.message = message || 'Apakah Anda yakin ingin menghapus catatan data ini?';
+    deleteConfirmData.itemLabel = itemLabel || '';
+    deleteConfirmData.isDeleting = false;
+    deleteConfirmData.onConfirm = onConfirm;
+    isDeleteConfirmModalOpen.value = true;
+}
+
+function handleConfirmDelete() {
+    if (typeof deleteConfirmData.onConfirm === 'function') {
+        deleteConfirmData.isDeleting = true;
+        deleteConfirmData.onConfirm();
+    }
+}
+
+function closeDeleteConfirmModal() {
+    if (deleteConfirmData.isDeleting) return;
+    isDeleteConfirmModalOpen.value = false;
+}
 
 watch(() => page.url, (newUrl) => {
     try {
@@ -844,8 +941,8 @@ function saveChanges() {
             only: ['employee', 'flash'],
             onSuccess: () => {
                 isEditing.value = false;
-                dismissedFlash.value = false;
                 initFormFromProps();
+                showToast('success', page.props.flash?.success || `Data pegawai '${props.employee.nama}' berhasil diperbarui.`);
             },
         });
     } else {
@@ -854,8 +951,8 @@ function saveChanges() {
             only: ['employee', 'flash'],
             onSuccess: () => {
                 isEditing.value = false;
-                dismissedFlash.value = false;
                 initFormFromProps();
+                showToast('success', page.props.flash?.success || `Data pegawai '${props.employee.nama}' berhasil diperbarui.`);
             },
         });
     }
@@ -981,7 +1078,7 @@ function syncJenjangKepegawaianFromRecords() {
 
 function submitRiwayatModal() {
     if (!riwayatModalForm.jenjang_kepegawaian && !riwayatModalForm.tmt_kenaikan_jenjang) {
-        alert('Mohon pilih Jenjang Kepegawaian atau isi TMT Kenaikan Jenjang.');
+        showToast('error', 'Mohon pilih Jenjang Kepegawaian atau isi TMT Kenaikan Jenjang.', 'Validasi Form');
         return;
     }
 
@@ -998,10 +1095,13 @@ function submitRiwayatModal() {
         onSuccess: () => {
             isRiwayatModalOpen.value = false;
             isSavingRiwayat.value = false;
+            isManagingRiwayat.value = false;
             initFormFromProps();
+            showToast('success', page.props.flash?.success || 'Riwayat jenjang kepegawaian berhasil disimpan.');
         },
         onError: () => {
             isSavingRiwayat.value = false;
+            showToast('error', page.props.flash?.error || 'Gagal menyimpan riwayat jenjang kepegawaian.');
         }
     });
 }
@@ -1011,24 +1111,35 @@ function deleteRiwayatRecord(idxOrItem) {
     const item = typeof idxOrItem === 'object' ? idxOrItem : list[idxOrItem];
     if (!item) return;
 
-    if (!confirm(`Apakah Anda yakin ingin menghapus catatan riwayat jenjang "${item.jenjang_kepegawaian || 'ini'}"?`)) {
-        return;
-    }
-
-    if (item.id) {
-        isSavingRiwayat.value = true;
-        router.delete(`/staff/${props.employee.id}/records/${item.id}`, {
-            preserveScroll: true,
-            only: ['employee', 'flash'],
-            onSuccess: () => {
-                isSavingRiwayat.value = false;
-                initFormFromProps();
-            },
-            onError: () => {
-                isSavingRiwayat.value = false;
+    requestDeleteConfirm({
+        title: 'Hapus Riwayat Jenjang Kepegawaian',
+        message: 'Apakah Anda yakin ingin menghapus catatan riwayat jenjang kepegawaian ini?',
+        itemLabel: item.jenjang_kepegawaian ? `Jenjang: ${item.jenjang_kepegawaian}${item.no_sk ? ' (No. SK: ' + item.no_sk + ')' : ''}` : '',
+        onConfirm: () => {
+            if (item.id) {
+                isSavingRiwayat.value = true;
+                router.delete(`/staff/${props.employee.id}/records/${item.id}`, {
+                    preserveScroll: true,
+                    only: ['employee', 'flash'],
+                    onSuccess: () => {
+                        isSavingRiwayat.value = false;
+                        isDeleteConfirmModalOpen.value = false;
+                        isManagingRiwayat.value = false;
+                        initFormFromProps();
+                        showToast('success', page.props.flash?.success || 'Riwayat jenjang kepegawaian berhasil dihapus.');
+                    },
+                    onError: () => {
+                        isSavingRiwayat.value = false;
+                        isDeleteConfirmModalOpen.value = false;
+                        showToast('error', page.props.flash?.error || 'Gagal menghapus riwayat jenjang kepegawaian.');
+                    }
+                });
+            } else {
+                isDeleteConfirmModalOpen.value = false;
+                isManagingRiwayat.value = false;
             }
-        });
-    }
+        }
+    });
 }
 
 function addRiwayatKepegawaianRow() {
@@ -1153,7 +1264,7 @@ function onModalUnitKerjaChange() {
 
 function submitJabatanModal() {
     if (!jabatanModalForm.unit_kerja && !jabatanModalForm.jabatan) {
-        alert('Mohon isi Unit Kerja atau Nama Jabatan.');
+        showToast('error', 'Mohon isi Unit Kerja atau Nama Jabatan.', 'Validasi Form');
         return;
     }
 
@@ -1172,10 +1283,13 @@ function submitJabatanModal() {
         onSuccess: () => {
             isJabatanModalOpen.value = false;
             isSavingJabatan.value = false;
+            isManagingJabatan.value = false;
             initFormFromProps();
+            showToast('success', page.props.flash?.success || 'Riwayat penugasan & jabatan berhasil disimpan.');
         },
         onError: () => {
             isSavingJabatan.value = false;
+            showToast('error', page.props.flash?.error || 'Gagal menyimpan riwayat penugasan & jabatan.');
         }
     });
 }
@@ -1185,24 +1299,35 @@ function deleteJabatanRecord(idxOrItem) {
     const item = typeof idxOrItem === 'object' ? idxOrItem : list[idxOrItem];
     if (!item) return;
 
-    if (!confirm(`Apakah Anda yakin ingin menghapus catatan riwayat penugasan "${item.jabatan || item.unit_kerja || 'ini'}"?`)) {
-        return;
-    }
-
-    if (item.id) {
-        isSavingJabatan.value = true;
-        router.delete(`/staff/${props.employee.id}/positions/${item.id}`, {
-            preserveScroll: true,
-            only: ['employee', 'flash'],
-            onSuccess: () => {
-                isSavingJabatan.value = false;
-                initFormFromProps();
-            },
-            onError: () => {
-                isSavingJabatan.value = false;
+    requestDeleteConfirm({
+        title: 'Hapus Riwayat Penugasan & Jabatan',
+        message: 'Apakah Anda yakin ingin menghapus catatan riwayat penugasan ini?',
+        itemLabel: item.jabatan ? `${item.jabatan} - ${item.unit_kerja || ''}` : item.unit_kerja || '',
+        onConfirm: () => {
+            if (item.id) {
+                isSavingJabatan.value = true;
+                router.delete(`/staff/${props.employee.id}/positions/${item.id}`, {
+                    preserveScroll: true,
+                    only: ['employee', 'flash'],
+                    onSuccess: () => {
+                        isSavingJabatan.value = false;
+                        isDeleteConfirmModalOpen.value = false;
+                        isManagingJabatan.value = false;
+                        initFormFromProps();
+                        showToast('success', page.props.flash?.success || 'Riwayat penugasan berhasil dihapus.');
+                    },
+                    onError: () => {
+                        isSavingJabatan.value = false;
+                        isDeleteConfirmModalOpen.value = false;
+                        showToast('error', page.props.flash?.error || 'Gagal menghapus riwayat penugasan.');
+                    }
+                });
+            } else {
+                isDeleteConfirmModalOpen.value = false;
+                isManagingJabatan.value = false;
             }
-        });
-    }
+        }
+    });
 }
 
 function addRiwayatJabatanRow() {
@@ -1293,7 +1418,7 @@ function closePendidikanModal() {
 
 function submitPendidikanModal() {
     if (!pendidikanModalForm.jenjang_pendidikan && !pendidikanModalForm.instansi_pendidikan) {
-        alert('Mohon pilih Jenjang atau isi Instansi Pendidikan.');
+        showToast('error', 'Mohon pilih Jenjang atau isi Instansi Pendidikan.', 'Validasi Form');
         return;
     }
 
@@ -1311,10 +1436,13 @@ function submitPendidikanModal() {
         onSuccess: () => {
             isPendidikanModalOpen.value = false;
             isSavingPendidikan.value = false;
+            isManagingPendidikan.value = false;
             initFormFromProps();
+            showToast('success', page.props.flash?.success || 'Riwayat pendidikan berhasil disimpan.');
         },
         onError: () => {
             isSavingPendidikan.value = false;
+            showToast('error', page.props.flash?.error || 'Gagal menyimpan riwayat pendidikan.');
         }
     });
 }
@@ -1324,24 +1452,35 @@ function deletePendidikanRecord(idxOrItem) {
     const item = typeof idxOrItem === 'object' ? idxOrItem : list[idxOrItem];
     if (!item) return;
 
-    if (!confirm(`Apakah Anda yakin ingin menghapus catatan riwayat pendidikan "${item.jenjang_pendidikan || 'ini'}"?`)) {
-        return;
-    }
-
-    if (item.id) {
-        isSavingPendidikan.value = true;
-        router.delete(`/staff/${props.employee.id}/education/${item.id}`, {
-            preserveScroll: true,
-            only: ['employee', 'flash'],
-            onSuccess: () => {
-                isSavingPendidikan.value = false;
-                initFormFromProps();
-            },
-            onError: () => {
-                isSavingPendidikan.value = false;
+    requestDeleteConfirm({
+        title: 'Hapus Riwayat Pendidikan',
+        message: 'Apakah Anda yakin ingin menghapus catatan riwayat pendidikan ini?',
+        itemLabel: item.jenjang_pendidikan ? `${item.jenjang_pendidikan} - ${item.instansi_pendidikan || ''}` : item.instansi_pendidikan || '',
+        onConfirm: () => {
+            if (item.id) {
+                isSavingPendidikan.value = true;
+                router.delete(`/staff/${props.employee.id}/education/${item.id}`, {
+                    preserveScroll: true,
+                    only: ['employee', 'flash'],
+                    onSuccess: () => {
+                        isSavingPendidikan.value = false;
+                        isDeleteConfirmModalOpen.value = false;
+                        isManagingPendidikan.value = false;
+                        initFormFromProps();
+                        showToast('success', page.props.flash?.success || 'Riwayat pendidikan berhasil dihapus.');
+                    },
+                    onError: () => {
+                        isSavingPendidikan.value = false;
+                        isDeleteConfirmModalOpen.value = false;
+                        showToast('error', page.props.flash?.error || 'Gagal menghapus riwayat pendidikan.');
+                    }
+                });
+            } else {
+                isDeleteConfirmModalOpen.value = false;
+                isManagingPendidikan.value = false;
             }
-        });
-    }
+        }
+    });
 }
 
 function addEducationRow() {
@@ -1413,7 +1552,7 @@ function closePelatihanModal() {
 
 function submitPelatihanModal() {
     if (!pelatihanModalForm.bidang && !pelatihanModalForm.keahlian && !pelatihanModalForm.instansi_penyelenggara) {
-        alert('Mohon isi Bidang, Keahlian, atau Instansi Penyelenggara.');
+        showToast('error', 'Mohon isi Bidang, Keahlian, atau Instansi Penyelenggara.', 'Validasi Form');
         return;
     }
 
@@ -1431,10 +1570,13 @@ function submitPelatihanModal() {
         onSuccess: () => {
             isPelatihanModalOpen.value = false;
             isSavingPelatihan.value = false;
+            isManagingPelatihan.value = false;
             initFormFromProps();
+            showToast('success', page.props.flash?.success || 'Riwayat pelatihan & nonformal berhasil disimpan.');
         },
         onError: () => {
             isSavingPelatihan.value = false;
+            showToast('error', page.props.flash?.error || 'Gagal menyimpan riwayat pelatihan.');
         }
     });
 }
@@ -1444,24 +1586,35 @@ function deletePelatihanRecord(idxOrItem) {
     const item = typeof idxOrItem === 'object' ? idxOrItem : list[idxOrItem];
     if (!item) return;
 
-    if (!confirm(`Apakah Anda yakin ingin menghapus catatan riwayat pelatihan "${item.bidang || 'ini'}"?`)) {
-        return;
-    }
-
-    if (item.id) {
-        isSavingPelatihan.value = true;
-        router.delete(`/staff/${props.employee.id}/training/${item.id}`, {
-            preserveScroll: true,
-            only: ['employee', 'flash'],
-            onSuccess: () => {
-                isSavingPelatihan.value = false;
-                initFormFromProps();
-            },
-            onError: () => {
-                isSavingPelatihan.value = false;
+    requestDeleteConfirm({
+        title: 'Hapus Riwayat Pelatihan & Sertifikasi',
+        message: 'Apakah Anda yakin ingin menghapus catatan riwayat pelatihan ini?',
+        itemLabel: item.bidang ? `${item.bidang} (${item.instansi_penyelenggara || ''})` : item.keahlian || '',
+        onConfirm: () => {
+            if (item.id) {
+                isSavingPelatihan.value = true;
+                router.delete(`/staff/${props.employee.id}/training/${item.id}`, {
+                    preserveScroll: true,
+                    only: ['employee', 'flash'],
+                    onSuccess: () => {
+                        isSavingPelatihan.value = false;
+                        isDeleteConfirmModalOpen.value = false;
+                        isManagingPelatihan.value = false;
+                        initFormFromProps();
+                        showToast('success', page.props.flash?.success || 'Riwayat pelatihan berhasil dihapus.');
+                    },
+                    onError: () => {
+                        isSavingPelatihan.value = false;
+                        isDeleteConfirmModalOpen.value = false;
+                        showToast('error', page.props.flash?.error || 'Gagal menghapus riwayat pelatihan.');
+                    }
+                });
+            } else {
+                isDeleteConfirmModalOpen.value = false;
+                isManagingPelatihan.value = false;
             }
-        });
-    }
+        }
+    });
 }
 
 function addTrainingRow() {
@@ -1613,12 +1766,14 @@ function submitPerizinanModal() {
             onSuccess: () => {
                 isSavingPerizinan.value = false;
                 isPerizinanModalOpen.value = false;
+                isManagingPerizinan.value = false;
                 fetchPermitsRealtime();
+                showToast('success', page.props.flash?.success || 'Catatan perizinan berhasil diperbarui.');
             },
             onError: (errors) => {
                 isSavingPerizinan.value = false;
-                const errMsg = Object.values(errors).join('\n');
-                alert('Gagal menyimpan perizinan:\n' + errMsg);
+                const errMsg = Object.values(errors).join(' ');
+                showToast('error', errMsg || 'Gagal memperbarui perizinan.');
             },
         });
     } else {
@@ -1629,12 +1784,14 @@ function submitPerizinanModal() {
             onSuccess: () => {
                 isSavingPerizinan.value = false;
                 isPerizinanModalOpen.value = false;
+                isManagingPerizinan.value = false;
                 fetchPermitsRealtime();
+                showToast('success', page.props.flash?.success || 'Catatan perizinan berhasil diajukan.');
             },
             onError: (errors) => {
                 isSavingPerizinan.value = false;
-                const errMsg = Object.values(errors).join('\n');
-                alert('Gagal mengajukan perizinan:\n' + errMsg);
+                const errMsg = Object.values(errors).join(' ');
+                showToast('error', errMsg || 'Gagal mengajukan perizinan.');
             },
         });
     }
@@ -1642,32 +1799,41 @@ function submitPerizinanModal() {
 
 function deletePerizinanRecord(item, index) {
     if (!canModifyPermit(item)) {
-        alert('Perizinan yang sudah disetujui tidak dapat dihapus oleh pemohon. Hanya Atasan Langsung dan Superadmin yang dapat menghapusnya.');
+        showToast('error', 'Perizinan yang sudah disetujui tidak dapat dihapus oleh pemohon. Hanya Atasan Langsung dan Superadmin yang dapat menghapusnya.', 'Akses Ditolak');
         return;
     }
 
-    if (!confirm(`Apakah Anda yakin ingin menghapus catatan perizinan "${item.jenis || 'ini'}"?`)) {
-        return;
-    }
-
-    if (item && item.id) {
-        isSavingPerizinan.value = true;
-        router.delete(`/staff/${props.employee.id}/permits/${item.id}`, {
-            preserveScroll: true,
-            only: ['employee', 'flash'],
-            onSuccess: () => {
-                isSavingPerizinan.value = false;
-                fetchPermitsRealtime();
-            },
-            onError: (errors) => {
-                isSavingPerizinan.value = false;
-                const errMsg = Object.values(errors).join('\n');
-                alert('Gagal menghapus perizinan:\n' + errMsg);
+    requestDeleteConfirm({
+        title: 'Hapus Catatan Perizinan',
+        message: 'Apakah Anda yakin ingin menghapus catatan perizinan ini?',
+        itemLabel: item.jenis ? `${item.jenis} (${formatTanggalIndo(item.tanggal) || item.tanggal})` : '',
+        onConfirm: () => {
+            if (item && item.id) {
+                isSavingPerizinan.value = true;
+                router.delete(`/staff/${props.employee.id}/permits/${item.id}`, {
+                    preserveScroll: true,
+                    only: ['employee', 'flash'],
+                    onSuccess: () => {
+                        isSavingPerizinan.value = false;
+                        isDeleteConfirmModalOpen.value = false;
+                        isManagingPerizinan.value = false;
+                        fetchPermitsRealtime();
+                        showToast('success', page.props.flash?.success || 'Catatan perizinan berhasil dihapus.');
+                    },
+                    onError: (errors) => {
+                        isSavingPerizinan.value = false;
+                        isDeleteConfirmModalOpen.value = false;
+                        const errMsg = Object.values(errors).join(' ');
+                        showToast('error', errMsg || 'Gagal menghapus perizinan.');
+                    }
+                });
+            } else {
+                perizinanList.value.splice(index, 1);
+                isDeleteConfirmModalOpen.value = false;
+                isManagingPerizinan.value = false;
             }
-        });
-    } else {
-        perizinanList.value.splice(index, 1);
-    }
+        }
+    });
 }
 
 function addRiwayatPerizinanRow() {
@@ -2287,12 +2453,24 @@ function closePreviewModal() {
 
 function deleteDocument(doc) {
     if (!doc) return;
-    if (!confirm(`Apakah Anda yakin ingin menghapus dokumen "${doc.title}"?`)) {
-        return;
-    }
-    router.delete(`/staff/${props.employee.id}/documents/${doc.id}`, {
-        preserveScroll: true,
-        only: ['employee', 'flash'],
+    requestDeleteConfirm({
+        title: 'Hapus Dokumen',
+        message: 'Apakah Anda yakin ingin menghapus berkas dokumen ini?',
+        itemLabel: doc.title || 'Dokumen Pegawai',
+        onConfirm: () => {
+            router.delete(`/staff/${props.employee.id}/documents/${doc.id}`, {
+                preserveScroll: true,
+                only: ['employee', 'flash'],
+                onSuccess: () => {
+                    isDeleteConfirmModalOpen.value = false;
+                    showToast('success', page.props.flash?.success || 'Dokumen berhasil dihapus.');
+                },
+                onError: () => {
+                    isDeleteConfirmModalOpen.value = false;
+                    showToast('error', page.props.flash?.error || 'Gagal menghapus dokumen.');
+                }
+            });
+        }
     });
 }
 function getInitials(name) {
@@ -2424,47 +2602,6 @@ function handleBackClick(e) {
                     <span class="material-symbols-outlined text-[18px] text-slate-500">arrow_back</span>
                     <span>Kembali ke Data Pegawai</span>
                 </Link>
-            </div>
-
-            <!-- Flash Notifications -->
-            <div
-                v-if="flashSuccess"
-                class="mb-5 p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-start justify-between gap-3 animate-in fade-in duration-200"
-            >
-                <div class="flex items-start gap-3">
-                    <span class="material-symbols-outlined text-emerald-700 text-2xl shrink-0 mt-0.5">check_circle</span>
-                    <div>
-                        <h4 class="text-sm font-bold text-emerald-950">Berhasil</h4>
-                        <p class="text-xs text-emerald-800 mt-0.5 leading-relaxed">{{ flashSuccess }}</p>
-                    </div>
-                </div>
-                <button
-                    type="button"
-                    @click="dismissedFlash = true"
-                    class="text-emerald-700 hover:text-emerald-950 p-1 rounded-full hover:bg-emerald-100 transition-colors cursor-pointer"
-                >
-                    <span class="material-symbols-outlined text-lg">close</span>
-                </button>
-            </div>
-
-            <div
-                v-if="flashError"
-                class="mb-5 p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-start justify-between gap-3 animate-in fade-in duration-200"
-            >
-                <div class="flex items-start gap-3">
-                    <span class="material-symbols-outlined text-rose-600 text-2xl shrink-0 mt-0.5">error</span>
-                    <div>
-                        <h4 class="text-sm font-bold text-rose-950">Terjadi Kesalahan</h4>
-                        <p class="text-xs text-rose-800 mt-0.5 leading-relaxed">{{ flashError }}</p>
-                    </div>
-                </div>
-                <button
-                    type="button"
-                    @click="dismissedFlash = true"
-                    class="text-rose-600 hover:text-rose-950 p-1 rounded-full hover:bg-rose-100 transition-colors cursor-pointer"
-                >
-                    <span class="material-symbols-outlined text-lg">close</span>
-                </button>
             </div>
 
             <!-- Header Card Identitas Profil Pegawai -->
@@ -7838,5 +7975,136 @@ function handleBackClick(e) {
                 </div>
             </div>
         </Transition>
+
+        <!-- MODAL KONFIRMASI HAPUS KUSTOM (PENGGANTI POPUP BAWAAN BROWSER) -->
+        <Teleport to="body">
+            <Transition
+                enter-active-class="transition ease-out duration-200"
+                enter-from-class="opacity-0"
+                enter-to-class="opacity-100"
+                leave-active-class="transition ease-in duration-150"
+                leave-from-class="opacity-100"
+                leave-to-class="opacity-0"
+            >
+                <div
+                    v-if="isDeleteConfirmModalOpen"
+                    class="fixed inset-0 z-[9998] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs"
+                    @click.self="closeDeleteConfirmModal"
+                >
+                    <div class="w-full max-w-sm sm:max-w-md bg-white rounded-3xl p-6 sm:p-7 shadow-2xl border border-slate-100 space-y-4 animate-in zoom-in-95 duration-200">
+                        <div class="w-14 h-14 rounded-2xl bg-rose-50 text-rose-600 border border-rose-100 flex items-center justify-center mx-auto shadow-2xs">
+                            <span class="material-symbols-outlined text-3xl">delete_forever</span>
+                        </div>
+
+                        <div class="text-center space-y-1.5">
+                            <h3 class="text-base sm:text-lg font-bold text-slate-900 leading-tight">
+                                {{ deleteConfirmData.title }}
+                            </h3>
+                            <p class="text-xs sm:text-sm text-slate-500 leading-relaxed">
+                                {{ deleteConfirmData.message }}
+                            </p>
+                        </div>
+
+                        <div v-if="deleteConfirmData.itemLabel" class="p-3 bg-slate-50 border border-slate-200/80 rounded-2xl text-center">
+                            <span class="text-xs font-semibold text-slate-800 break-words leading-relaxed font-mono">
+                                {{ deleteConfirmData.itemLabel }}
+                            </span>
+                        </div>
+
+                        <div class="p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-center">
+                            <p class="text-[11px] font-medium text-amber-800 leading-tight flex items-center justify-center gap-1.5">
+                                <span class="material-symbols-outlined text-[15px] shrink-0">info</span>
+                                <span>Tindakan ini permanen dan tidak dapat dibatalkan.</span>
+                            </p>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3 pt-2">
+                            <button
+                                type="button"
+                                @click="closeDeleteConfirmModal"
+                                :disabled="deleteConfirmData.isDeleting"
+                                class="w-full py-2.5 px-4 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 font-bold text-xs sm:text-sm transition-all cursor-pointer disabled:opacity-50"
+                            >
+                                Batal
+                            </button>
+                            <button
+                                type="button"
+                                @click="handleConfirmDelete"
+                                :disabled="deleteConfirmData.isDeleting"
+                                class="w-full py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs sm:text-sm shadow-md shadow-rose-600/20 transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
+                            >
+                                <span v-if="deleteConfirmData.isDeleting" class="material-symbols-outlined text-[18px] animate-spin">
+                                    progress_activity
+                                </span>
+                                <span v-else class="material-symbols-outlined text-[18px]">
+                                    delete
+                                </span>
+                                <span>{{ deleteConfirmData.isDeleting ? 'Menghapus...' : 'Ya, Hapus' }}</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </Transition>
+        </Teleport>
+
+        <!-- FLOATING TOAST MELAYANG DENGAN PROGRESS BAR MUNDUR -->
+        <Teleport to="body">
+            <Transition
+                enter-active-class="transform ease-out duration-300 transition"
+                enter-from-class="translate-y-2 opacity-0 sm:translate-y-0 sm:translate-x-2"
+                enter-to-class="translate-y-0 opacity-100 sm:translate-x-0"
+                leave-active-class="transition ease-in duration-200"
+                leave-from-class="opacity-100"
+                leave-to-class="opacity-0"
+            >
+                <div
+                    v-if="toast.show"
+                    class="fixed top-5 right-4 sm:top-6 sm:right-6 z-[9999] max-w-sm w-[calc(100%-2rem)] bg-white rounded-2xl shadow-2xl border overflow-hidden"
+                    :class="toast.type === 'success' ? 'border-emerald-200 shadow-emerald-950/20' : 'border-rose-200 shadow-rose-950/20'"
+                    role="alert"
+                >
+                    <div class="p-4 flex items-start gap-3">
+                        <div
+                            :class="[
+                                'w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-2xs',
+                                toast.type === 'success' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                            ]"
+                        >
+                            <span class="material-symbols-outlined text-[20px]">
+                                {{ toast.type === 'success' ? 'check_circle' : 'error' }}
+                            </span>
+                        </div>
+                        <div class="flex-1 min-w-0 pr-1">
+                            <h4
+                                class="text-xs sm:text-sm font-bold leading-tight"
+                                :class="toast.type === 'success' ? 'text-emerald-950' : 'text-rose-950'"
+                            >
+                                {{ toast.title }}
+                            </h4>
+                            <p class="text-xs text-slate-600 mt-1 leading-relaxed break-words font-medium">
+                                {{ toast.message }}
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            @click="closeToast"
+                            class="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
+                            title="Tutup pemberitahuan"
+                        >
+                            <span class="material-symbols-outlined text-[18px]">close</span>
+                        </button>
+                    </div>
+
+                    <!-- Progress Bar Mundur -->
+                    <div class="w-full bg-slate-100 h-1 overflow-hidden">
+                        <div
+                            class="h-full transition-all duration-75 ease-linear"
+                            :class="toast.type === 'success' ? 'bg-emerald-600' : 'bg-rose-600'"
+                            :style="{ width: `${toast.progress}%` }"
+                        ></div>
+                    </div>
+                </div>
+            </Transition>
+        </Teleport>
     </div>
 </template>
