@@ -1,57 +1,10 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { usePage, router } from '@inertiajs/vue3';
+import { ref, computed } from 'vue';
+import { usePage } from '@inertiajs/vue3';
 import SidebarNav from '@/Components/Sidebar/SidebarNav.vue';
 import TopNav from '@/Components/TopNav/TopNav.vue';
 import ForceChangePasswordModal from '@/Components/Shared/ForceChangePasswordModal.vue';
 import PwaInstallModal from '@/Components/Shared/PwaInstallModal.vue';
-import GlobalPageSkeleton from '@/Components/Shared/GlobalPageSkeleton.vue';
-
-// Skeleton Loading State saat perpindahan halaman
-const isPageLoading = ref(false);
-const skeletonType = ref('general');
-let loadingTimer = null;
-let unregisterCallbacks = [];
-
-const stopLoading = () => {
-    clearTimeout(loadingTimer);
-    isPageLoading.value = false;
-};
-
-onMounted(() => {
-    unregisterCallbacks = [
-        router.on('start', (event) => {
-            const rawUrl = event.detail.visit?.url;
-            const visitUrl = typeof rawUrl === 'string' 
-                ? rawUrl 
-                : (rawUrl?.pathname || rawUrl?.href || '');
-
-            if (visitUrl.match(/\/staff\/\d+/) || visitUrl.match(/\/students\/[^\/]+/)) {
-                skeletonType.value = 'detail';
-            } else if (visitUrl.includes('/staff') || visitUrl.includes('/students')) {
-                skeletonType.value = 'table';
-            } else {
-                skeletonType.value = 'general';
-            }
-
-            clearTimeout(loadingTimer);
-            // Hanya muncul jika transisi/request memakan waktu lebih dari 100ms
-            loadingTimer = setTimeout(() => {
-                isPageLoading.value = true;
-            }, 100);
-        }),
-        router.on('finish', stopLoading),
-        router.on('navigate', stopLoading),
-        router.on('cancel', stopLoading),
-        router.on('error', stopLoading),
-    ];
-});
-
-onUnmounted(() => {
-    stopLoading();
-    unregisterCallbacks.forEach(cb => typeof cb === 'function' && cb());
-    unregisterCallbacks = [];
-});
 
 // Auto-detect active route from URL
 const page = usePage();
@@ -110,23 +63,6 @@ const activeRouteLabel = computed(() => {
 
             <!-- Page Slot -->
             <main class="flex-grow relative bg-white">
-                <!-- Skeleton Transition Overlay saat proses loading/delay -->
-                <Transition
-                    enter-active-class="transition-opacity duration-150 ease-out"
-                    enter-from-class="opacity-0"
-                    enter-to-class="opacity-100"
-                    leave-active-class="transition-opacity duration-150 ease-in"
-                    leave-from-class="opacity-100"
-                    leave-to-class="opacity-0"
-                >
-                    <div
-                        v-if="isPageLoading"
-                        class="absolute inset-0 z-30 bg-white p-4 md:p-margin-desktop overflow-y-auto"
-                    >
-                        <GlobalPageSkeleton :type="skeletonType" />
-                    </div>
-                </Transition>
-
                 <slot />
             </main>
         </div>
