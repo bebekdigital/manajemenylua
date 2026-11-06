@@ -92,8 +92,8 @@ function getAlamatLengkap(s) {
 </script>
 
 <template>
-    <!-- Table Container: Radius diperkecil (rounded-lg) & Outline presisi (border border-emerald-800) -->
-    <div class="bg-white rounded-lg border border-emerald-800 shadow-[0_4px_25px_rgba(0,40,20,0.08)] overflow-hidden">
+    <!-- Table Container: Radius disamakan dengan tombol search di atasnya (rounded-xl) & Outline presisi (border border-emerald-800) -->
+    <div class="bg-white rounded-xl border border-emerald-800 shadow-[0_4px_25px_rgba(0,40,20,0.08)] overflow-hidden">
         <div class="overflow-x-auto custom-scrollbar-x">
             <table class="w-full text-left border-collapse">
                 <!-- Table Header: Warna Hijau Tema Kontras Menarik -->
