@@ -150,6 +150,8 @@ onUnmounted(() => {
             <div class="mb-5 flex items-center justify-between gap-4">
                 <Link
                     href="/students"
+                    prefetch
+                    cache-for="1m"
                     class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs sm:text-sm font-semibold shadow-2xs transition-all active:scale-95"
                 >
                     <span class="material-symbols-outlined text-[18px] text-slate-500">arrow_back</span>
