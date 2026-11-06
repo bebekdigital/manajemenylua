@@ -11,38 +11,46 @@ import GlobalPageSkeleton from '@/Components/Shared/GlobalPageSkeleton.vue';
 const isPageLoading = ref(false);
 const skeletonType = ref('general');
 let loadingTimer = null;
+let unregisterCallbacks = [];
 
-let removeStartListener = null;
-let removeFinishListener = null;
+const stopLoading = () => {
+    clearTimeout(loadingTimer);
+    isPageLoading.value = false;
+};
 
 onMounted(() => {
-    removeStartListener = router.on('start', (event) => {
-        const visitUrl = event.detail.visit.url.pathname || event.detail.visit.url.toString() || '';
-        if (visitUrl.match(/\/staff\/\d+/) || visitUrl.match(/\/students\/[^\/]+/)) {
-            skeletonType.value = 'detail';
-        } else if (visitUrl.includes('/staff') || visitUrl.includes('/students')) {
-            skeletonType.value = 'table';
-        } else {
-            skeletonType.value = 'general';
-        }
+    unregisterCallbacks = [
+        router.on('start', (event) => {
+            const rawUrl = event.detail.visit?.url;
+            const visitUrl = typeof rawUrl === 'string' 
+                ? rawUrl 
+                : (rawUrl?.pathname || rawUrl?.href || '');
 
-        // Tunda 60ms agar transisi instan dari cache tidak berkedip
-        clearTimeout(loadingTimer);
-        loadingTimer = setTimeout(() => {
-            isPageLoading.value = true;
-        }, 60);
-    });
+            if (visitUrl.match(/\/staff\/\d+/) || visitUrl.match(/\/students\/[^\/]+/)) {
+                skeletonType.value = 'detail';
+            } else if (visitUrl.includes('/staff') || visitUrl.includes('/students')) {
+                skeletonType.value = 'table';
+            } else {
+                skeletonType.value = 'general';
+            }
 
-    removeFinishListener = router.on('finish', () => {
-        clearTimeout(loadingTimer);
-        isPageLoading.value = false;
-    });
+            clearTimeout(loadingTimer);
+            // Hanya muncul jika transisi/request memakan waktu lebih dari 100ms
+            loadingTimer = setTimeout(() => {
+                isPageLoading.value = true;
+            }, 100);
+        }),
+        router.on('finish', stopLoading),
+        router.on('navigate', stopLoading),
+        router.on('cancel', stopLoading),
+        router.on('error', stopLoading),
+    ];
 });
 
 onUnmounted(() => {
-    clearTimeout(loadingTimer);
-    if (removeStartListener) removeStartListener();
-    if (removeFinishListener) removeFinishListener();
+    stopLoading();
+    unregisterCallbacks.forEach(cb => typeof cb === 'function' && cb());
+    unregisterCallbacks = [];
 });
 
 // Auto-detect active route from URL
