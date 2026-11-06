@@ -1,27 +1,27 @@
 {
-  "_AppSelect-Dols3HlH.js": {
-    "file": "assets/AppSelect-Dols3HlH.js",
+  "_AppSelect-CSHVcIxL.js": {
+    "file": "assets/AppSelect-CSHVcIxL.js",
     "name": "AppSelect",
     "imports": [
-      "_dist-18RcTvWR.js"
+      "_runtime-dom.esm-bundler-BLJKOuuF.js"
     ]
   },
-  "_PwaInstallModal-TTzFlCPa.js": {
-    "file": "assets/PwaInstallModal-TTzFlCPa.js",
+  "_PwaInstallModal-CxAtD4LZ.js": {
+    "file": "assets/PwaInstallModal-CxAtD4LZ.js",
     "name": "PwaInstallModal",
     "imports": [
-      "_dist-18RcTvWR.js"
+      "_runtime-dom.esm-bundler-BLJKOuuF.js"
     ]
   },
   "_StudentDocumentSheet-CGMVhzdY.css": {
     "file": "assets/StudentDocumentSheet-CGMVhzdY.css",
     "src": "_StudentDocumentSheet-CGMVhzdY.css"
   },
-  "_StudentDocumentSheet-iKP5Bvv4.js": {
-    "file": "assets/StudentDocumentSheet-iKP5Bvv4.js",
+  "_StudentDocumentSheet-gM1oPjNW.js": {
+    "file": "assets/StudentDocumentSheet-gM1oPjNW.js",
     "name": "StudentDocumentSheet",
     "imports": [
-      "_dist-18RcTvWR.js",
+      "_runtime-dom.esm-bundler-BLJKOuuF.js",
       "resources/js/app.js"
     ],
     "css": [
@@ -32,30 +32,48 @@
     "file": "assets/StudentTable-B-fp_gAu.css",
     "src": "_StudentTable-B-fp_gAu.css"
   },
-  "_StudentTable-DgP0czi5.js": {
-    "file": "assets/StudentTable-DgP0czi5.js",
+  "_StudentTable-BqNTsXMt.js": {
+    "file": "assets/StudentTable-BqNTsXMt.js",
     "name": "StudentTable",
     "imports": [
-      "_dist-18RcTvWR.js",
+      "_runtime-dom.esm-bundler-BLJKOuuF.js",
+      "_dist-C6fQ4J97.js",
       "resources/js/app.js",
-      "_AppSelect-Dols3HlH.js"
+      "_AppSelect-CSHVcIxL.js"
     ],
     "css": [
       "assets/StudentTable-B-fp_gAu.css"
     ]
   },
-  "_dist-18RcTvWR.js": {
-    "file": "assets/dist-18RcTvWR.js",
-    "name": "dist"
+  "_axios-CT2XOAfC.js": {
+    "file": "assets/axios-CT2XOAfC.js",
+    "name": "axios"
+  },
+  "_dist-C6fQ4J97.js": {
+    "file": "assets/dist-C6fQ4J97.js",
+    "name": "dist",
+    "imports": [
+      "_runtime-dom.esm-bundler-BLJKOuuF.js"
+    ]
+  },
+  "_runtime-dom.esm-bundler-BLJKOuuF.js": {
+    "file": "assets/runtime-dom.esm-bundler-BLJKOuuF.js",
+    "name": "runtime-dom.esm-bundler"
+  },
+  "_staffHelpers-D5Bt_C9d.js": {
+    "file": "assets/staffHelpers-D5Bt_C9d.js",
+    "name": "staffHelpers"
   },
   "resources/js/Layouts/AppLayout.vue": {
-    "file": "assets/AppLayout-Buo9NoHP.js",
+    "file": "assets/AppLayout-D0MRgssk.js",
     "name": "AppLayout",
     "src": "resources/js/Layouts/AppLayout.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_dist-18RcTvWR.js",
-      "_PwaInstallModal-TTzFlCPa.js",
+      "_axios-CT2XOAfC.js",
+      "_runtime-dom.esm-bundler-BLJKOuuF.js",
+      "_dist-C6fQ4J97.js",
+      "_PwaInstallModal-CxAtD4LZ.js",
       "resources/js/app.js"
     ],
     "css": [
@@ -63,36 +81,39 @@
     ]
   },
   "resources/js/Pages/Administration/IdentityDocument.vue": {
-    "file": "assets/IdentityDocument-Clp6GL_f.js",
+    "file": "assets/IdentityDocument-D-YX95Rm.js",
     "name": "IdentityDocument",
     "src": "resources/js/Pages/Administration/IdentityDocument.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_dist-18RcTvWR.js",
-      "_StudentDocumentSheet-iKP5Bvv4.js",
-      "_StudentTable-DgP0czi5.js"
+      "_runtime-dom.esm-bundler-BLJKOuuF.js",
+      "_dist-C6fQ4J97.js",
+      "_StudentDocumentSheet-gM1oPjNW.js",
+      "_StudentTable-BqNTsXMt.js"
     ],
     "css": [
       "assets/IdentityDocument-B9T8CqnO.css"
     ]
   },
   "resources/js/Pages/Administration/Index.vue": {
-    "file": "assets/Index-f8ZS5oC_.js",
+    "file": "assets/Index-CLPbryB4.js",
     "name": "Index",
     "src": "resources/js/Pages/Administration/Index.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_dist-18RcTvWR.js",
+      "_runtime-dom.esm-bundler-BLJKOuuF.js",
+      "_dist-C6fQ4J97.js",
       "resources/js/Layouts/AppLayout.vue"
     ]
   },
   "resources/js/Pages/Administration/StudentPhotos.vue": {
-    "file": "assets/StudentPhotos-Ch1C0u5A.js",
+    "file": "assets/StudentPhotos-32pp48C4.js",
     "name": "StudentPhotos",
     "src": "resources/js/Pages/Administration/StudentPhotos.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_dist-18RcTvWR.js",
+      "_runtime-dom.esm-bundler-BLJKOuuF.js",
+      "_dist-C6fQ4J97.js",
       "resources/js/app.js",
       "resources/js/Layouts/AppLayout.vue"
     ],
@@ -101,32 +122,35 @@
     ]
   },
   "resources/js/Pages/Administration/TemplateEditor.vue": {
-    "file": "assets/TemplateEditor-Dgt3XRCB.js",
+    "file": "assets/TemplateEditor-GHuR0hEI.js",
     "name": "TemplateEditor",
     "src": "resources/js/Pages/Administration/TemplateEditor.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_dist-18RcTvWR.js",
-      "_StudentDocumentSheet-iKP5Bvv4.js"
+      "_runtime-dom.esm-bundler-BLJKOuuF.js",
+      "_dist-C6fQ4J97.js",
+      "_StudentDocumentSheet-gM1oPjNW.js"
     ]
   },
   "resources/js/Pages/Agenda.vue": {
-    "file": "assets/Agenda-RExB6OLd.js",
+    "file": "assets/Agenda-DN5N_1YO.js",
     "name": "Agenda",
     "src": "resources/js/Pages/Agenda.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_dist-18RcTvWR.js",
+      "_runtime-dom.esm-bundler-BLJKOuuF.js",
+      "_dist-C6fQ4J97.js",
       "resources/js/Layouts/AppLayout.vue"
     ]
   },
   "resources/js/Pages/Dashboard.vue": {
-    "file": "assets/Dashboard-Btny24kA.js",
+    "file": "assets/Dashboard-DuGzOjwH.js",
     "name": "Dashboard",
     "src": "resources/js/Pages/Dashboard.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_dist-18RcTvWR.js",
+      "_runtime-dom.esm-bundler-BLJKOuuF.js",
+      "_dist-C6fQ4J97.js",
       "resources/js/app.js",
       "resources/js/Layouts/AppLayout.vue"
     ],
@@ -135,53 +159,59 @@
     ]
   },
   "resources/js/Pages/Info.vue": {
-    "file": "assets/Info-B_WeaCi-.js",
+    "file": "assets/Info-uPqbYROK.js",
     "name": "Info",
     "src": "resources/js/Pages/Info.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_dist-18RcTvWR.js",
+      "_runtime-dom.esm-bundler-BLJKOuuF.js",
+      "_dist-C6fQ4J97.js",
       "resources/js/Layouts/AppLayout.vue"
     ]
   },
   "resources/js/Pages/Pembelajaran/ClassroomAddStudentModal.vue": {
-    "file": "assets/ClassroomAddStudentModal-CEr5Ijlj.js",
+    "file": "assets/ClassroomAddStudentModal-CPX55OH-.js",
     "name": "ClassroomAddStudentModal",
     "src": "resources/js/Pages/Pembelajaran/ClassroomAddStudentModal.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_dist-18RcTvWR.js"
+      "_runtime-dom.esm-bundler-BLJKOuuF.js",
+      "_dist-C6fQ4J97.js"
     ]
   },
   "resources/js/Pages/Pembelajaran/Classrooms.vue": {
-    "file": "assets/Classrooms-DmobMuxp.js",
+    "file": "assets/Classrooms-BX6Utm9w.js",
     "name": "Classrooms",
     "src": "resources/js/Pages/Pembelajaran/Classrooms.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_dist-18RcTvWR.js",
+      "_runtime-dom.esm-bundler-BLJKOuuF.js",
+      "_dist-C6fQ4J97.js",
       "resources/js/Layouts/AppLayout.vue",
       "resources/js/Pages/Pembelajaran/ClassroomAddStudentModal.vue"
     ]
   },
   "resources/js/Pages/Persetujuan.vue": {
-    "file": "assets/Persetujuan-Bxgxzes4.js",
+    "file": "assets/Persetujuan-Dj9G76fq.js",
     "name": "Persetujuan",
     "src": "resources/js/Pages/Persetujuan.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_dist-18RcTvWR.js",
+      "_runtime-dom.esm-bundler-BLJKOuuF.js",
+      "_dist-C6fQ4J97.js",
       "resources/js/Layouts/AppLayout.vue"
     ]
   },
   "resources/js/Pages/Portal.vue": {
-    "file": "assets/Portal-IiYsMQto.js",
+    "file": "assets/Portal-Ba2q62QT.js",
     "name": "Portal",
     "src": "resources/js/Pages/Portal.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_dist-18RcTvWR.js",
-      "_PwaInstallModal-TTzFlCPa.js",
+      "_axios-CT2XOAfC.js",
+      "_runtime-dom.esm-bundler-BLJKOuuF.js",
+      "_dist-C6fQ4J97.js",
+      "_PwaInstallModal-CxAtD4LZ.js",
       "resources/js/app.js",
       "resources/js/Layouts/AppLayout.vue"
     ],
@@ -190,67 +220,166 @@
     ]
   },
   "resources/js/Pages/Profile.vue": {
-    "file": "assets/Profile-DKwoM7kp.js",
+    "file": "assets/Profile-2a7xsioo.js",
     "name": "Profile",
     "src": "resources/js/Pages/Profile.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_dist-18RcTvWR.js",
+      "_runtime-dom.esm-bundler-BLJKOuuF.js",
+      "_dist-C6fQ4J97.js",
       "resources/js/Layouts/AppLayout.vue"
     ]
   },
   "resources/js/Pages/Section/Show.vue": {
-    "file": "assets/Show-CW0-g3Kj.js",
+    "file": "assets/Show-DosTuh6v.js",
     "name": "Show",
     "src": "resources/js/Pages/Section/Show.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_dist-18RcTvWR.js",
+      "_runtime-dom.esm-bundler-BLJKOuuF.js",
+      "_dist-C6fQ4J97.js",
       "resources/js/Layouts/AppLayout.vue"
     ]
   },
   "resources/js/Pages/Staff.vue": {
-    "file": "assets/Staff-BvnwXKsh.js",
+    "file": "assets/Staff-C9l8ESq0.js",
     "name": "Staff",
     "src": "resources/js/Pages/Staff.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_dist-18RcTvWR.js",
+      "_runtime-dom.esm-bundler-BLJKOuuF.js",
+      "_dist-C6fQ4J97.js",
       "resources/js/app.js",
       "resources/js/Layouts/AppLayout.vue",
-      "_AppSelect-Dols3HlH.js"
+      "_AppSelect-CSHVcIxL.js"
     ],
     "css": [
       "assets/Staff-Ffgqz-KF.css"
     ]
   },
+  "resources/js/Pages/Staff/Tabs/TabAlamat.vue": {
+    "file": "assets/TabAlamat-D_y5oxu9.js",
+    "name": "TabAlamat",
+    "src": "resources/js/Pages/Staff/Tabs/TabAlamat.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "_runtime-dom.esm-bundler-BLJKOuuF.js",
+      "_staffHelpers-D5Bt_C9d.js"
+    ]
+  },
+  "resources/js/Pages/Staff/Tabs/TabDokumen.vue": {
+    "file": "assets/TabDokumen-PcZVTigj.js",
+    "name": "TabDokumen",
+    "src": "resources/js/Pages/Staff/Tabs/TabDokumen.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "_runtime-dom.esm-bundler-BLJKOuuF.js",
+      "_dist-C6fQ4J97.js",
+      "_staffHelpers-D5Bt_C9d.js"
+    ]
+  },
+  "resources/js/Pages/Staff/Tabs/TabIdentitas.vue": {
+    "file": "assets/TabIdentitas-CtEkYemY.js",
+    "name": "TabIdentitas",
+    "src": "resources/js/Pages/Staff/Tabs/TabIdentitas.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "_runtime-dom.esm-bundler-BLJKOuuF.js",
+      "_staffHelpers-D5Bt_C9d.js"
+    ]
+  },
+  "resources/js/Pages/Staff/Tabs/TabKeluarga.vue": {
+    "file": "assets/TabKeluarga-igUgS1I_.js",
+    "name": "TabKeluarga",
+    "src": "resources/js/Pages/Staff/Tabs/TabKeluarga.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "_runtime-dom.esm-bundler-BLJKOuuF.js"
+    ]
+  },
+  "resources/js/Pages/Staff/Tabs/TabKepegawaian.vue": {
+    "file": "assets/TabKepegawaian-iuqW1iKK.js",
+    "name": "TabKepegawaian",
+    "src": "resources/js/Pages/Staff/Tabs/TabKepegawaian.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "_runtime-dom.esm-bundler-BLJKOuuF.js",
+      "_dist-C6fQ4J97.js",
+      "_staffHelpers-D5Bt_C9d.js"
+    ]
+  },
+  "resources/js/Pages/Staff/Tabs/TabPendidikan.vue": {
+    "file": "assets/TabPendidikan-DGqhKCH3.js",
+    "name": "TabPendidikan",
+    "src": "resources/js/Pages/Staff/Tabs/TabPendidikan.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "_runtime-dom.esm-bundler-BLJKOuuF.js",
+      "_dist-C6fQ4J97.js"
+    ]
+  },
+  "resources/js/Pages/Staff/Tabs/TabPenugasan.vue": {
+    "file": "assets/TabPenugasan-CKOa8Nj5.js",
+    "name": "TabPenugasan",
+    "src": "resources/js/Pages/Staff/Tabs/TabPenugasan.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "_runtime-dom.esm-bundler-BLJKOuuF.js",
+      "_dist-C6fQ4J97.js",
+      "_staffHelpers-D5Bt_C9d.js"
+    ]
+  },
+  "resources/js/Pages/Staff/Tabs/TabPerizinan.vue": {
+    "file": "assets/TabPerizinan-bG_SIauj.js",
+    "name": "TabPerizinan",
+    "src": "resources/js/Pages/Staff/Tabs/TabPerizinan.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "_axios-CT2XOAfC.js",
+      "_runtime-dom.esm-bundler-BLJKOuuF.js",
+      "_dist-C6fQ4J97.js",
+      "_staffHelpers-D5Bt_C9d.js"
+    ]
+  },
   "resources/js/Pages/StaffDetail.vue": {
-    "file": "assets/StaffDetail-NGs-ngko.js",
+    "file": "assets/StaffDetail-DwpzhQXs.js",
     "name": "StaffDetail",
     "src": "resources/js/Pages/StaffDetail.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_dist-18RcTvWR.js",
-      "resources/js/Layouts/AppLayout.vue"
+      "_runtime-dom.esm-bundler-BLJKOuuF.js",
+      "_dist-C6fQ4J97.js",
+      "resources/js/Layouts/AppLayout.vue",
+      "_staffHelpers-D5Bt_C9d.js",
+      "resources/js/Pages/Staff/Tabs/TabAlamat.vue",
+      "resources/js/Pages/Staff/Tabs/TabDokumen.vue",
+      "resources/js/Pages/Staff/Tabs/TabIdentitas.vue",
+      "resources/js/Pages/Staff/Tabs/TabKeluarga.vue",
+      "resources/js/Pages/Staff/Tabs/TabKepegawaian.vue",
+      "resources/js/Pages/Staff/Tabs/TabPendidikan.vue",
+      "resources/js/Pages/Staff/Tabs/TabPenugasan.vue",
+      "resources/js/Pages/Staff/Tabs/TabPerizinan.vue"
     ]
   },
   "resources/js/Pages/Statistics/EmployeeStatistics.vue": {
-    "file": "assets/EmployeeStatistics-9xk3MBJs.js",
+    "file": "assets/EmployeeStatistics-CEJBotHV.js",
     "name": "EmployeeStatistics",
     "src": "resources/js/Pages/Statistics/EmployeeStatistics.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_dist-18RcTvWR.js",
+      "_runtime-dom.esm-bundler-BLJKOuuF.js",
+      "_dist-C6fQ4J97.js",
       "resources/js/Layouts/AppLayout.vue"
     ]
   },
   "resources/js/Pages/Statistics/StudentStatistics.vue": {
-    "file": "assets/StudentStatistics-DSBYJyEW.js",
+    "file": "assets/StudentStatistics-BoPO-J0Z.js",
     "name": "StudentStatistics",
     "src": "resources/js/Pages/Statistics/StudentStatistics.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_dist-18RcTvWR.js",
+      "_runtime-dom.esm-bundler-BLJKOuuF.js",
+      "_dist-C6fQ4J97.js",
       "resources/js/app.js",
       "resources/js/Layouts/AppLayout.vue"
     ],
@@ -259,54 +388,61 @@
     ]
   },
   "resources/js/Pages/StudentDetail.vue": {
-    "file": "assets/StudentDetail-78Oennr8.js",
+    "file": "assets/StudentDetail-CEoIJxjF.js",
     "name": "StudentDetail",
     "src": "resources/js/Pages/StudentDetail.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_dist-18RcTvWR.js",
+      "_runtime-dom.esm-bundler-BLJKOuuF.js",
+      "_dist-C6fQ4J97.js",
       "resources/js/Layouts/AppLayout.vue"
     ]
   },
   "resources/js/Pages/Students.vue": {
-    "file": "assets/Students-Cd_rlGdX.js",
+    "file": "assets/Students-Ck56avme.js",
     "name": "Students",
     "src": "resources/js/Pages/Students.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_dist-18RcTvWR.js",
+      "_runtime-dom.esm-bundler-BLJKOuuF.js",
+      "_dist-C6fQ4J97.js",
       "resources/js/Layouts/AppLayout.vue",
-      "_StudentTable-DgP0czi5.js"
+      "_StudentTable-BqNTsXMt.js"
     ]
   },
   "resources/js/Pages/Students/InlineEdit.vue": {
-    "file": "assets/InlineEdit-CJ2M7482.js",
+    "file": "assets/InlineEdit-BVU3BgY_.js",
     "name": "InlineEdit",
     "src": "resources/js/Pages/Students/InlineEdit.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_dist-18RcTvWR.js",
+      "_runtime-dom.esm-bundler-BLJKOuuF.js",
+      "_dist-C6fQ4J97.js",
       "resources/js/Layouts/AppLayout.vue"
     ]
   },
   "resources/js/Pages/Students/Mapping.vue": {
-    "file": "assets/Mapping-B5KVO0KT.js",
+    "file": "assets/Mapping-wE9ygQnk.js",
     "name": "Mapping",
     "src": "resources/js/Pages/Students/Mapping.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_dist-18RcTvWR.js",
+      "_axios-CT2XOAfC.js",
+      "_runtime-dom.esm-bundler-BLJKOuuF.js",
+      "_dist-C6fQ4J97.js",
       "resources/js/Layouts/AppLayout.vue"
     ]
   },
   "resources/js/app.js": {
-    "file": "assets/app-u5FX5K-Q.js",
+    "file": "assets/app-L25g3aFQ.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
     "imports": [
-      "_dist-18RcTvWR.js",
-      "_PwaInstallModal-TTzFlCPa.js"
+      "_axios-CT2XOAfC.js",
+      "_runtime-dom.esm-bundler-BLJKOuuF.js",
+      "_dist-C6fQ4J97.js",
+      "_PwaInstallModal-CxAtD4LZ.js"
     ],
     "dynamicImports": [
       "resources/js/Pages/Administration/IdentityDocument.vue",
@@ -323,6 +459,14 @@
       "resources/js/Pages/Portal.vue",
       "resources/js/Pages/Profile.vue",
       "resources/js/Pages/Section/Show.vue",
+      "resources/js/Pages/Staff/Tabs/TabAlamat.vue",
+      "resources/js/Pages/Staff/Tabs/TabDokumen.vue",
+      "resources/js/Pages/Staff/Tabs/TabIdentitas.vue",
+      "resources/js/Pages/Staff/Tabs/TabKeluarga.vue",
+      "resources/js/Pages/Staff/Tabs/TabKepegawaian.vue",
+      "resources/js/Pages/Staff/Tabs/TabPendidikan.vue",
+      "resources/js/Pages/Staff/Tabs/TabPenugasan.vue",
+      "resources/js/Pages/Staff/Tabs/TabPerizinan.vue",
       "resources/js/Pages/Staff.vue",
       "resources/js/Pages/StaffDetail.vue",
       "resources/js/Pages/Statistics/EmployeeStatistics.vue",
@@ -334,7 +478,7 @@
       "resources/js/Layouts/AppLayout.vue"
     ],
     "css": [
-      "assets/app-BYA9uplt.css"
+      "assets/app-BfiBiW9s.css"
     ]
   }
 }
