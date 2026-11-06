@@ -4069,270 +4069,574 @@ function handleBackClick(e) {
                 </div>
 
                 <!-- TAB 5: PENUGASAN (RIWAYAT JABATAN) -->
-                <div v-if="activeTab === 'penugasan'" class="space-y-6">
-                    <div>
-                        <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
-                            <div>
-                                <h4 class="text-xs sm:text-sm font-bold text-primary flex items-center gap-2">
-                                    <span class="material-symbols-outlined text-[18px]">assignment_turned_in</span>
-                                    Riwayat Jabatan
-                                </h4>
-                                <p v-if="isEditing" class="text-xs text-on-surface-variant mt-0.5">
-                                    Edit data langsung di baris tabel atau klik tombol di baris paling bawah untuk menambah riwayat jabatan baru
+                <div v-if="activeTab === 'penugasan'" class="space-y-6 mb-8">
+                    <!-- Validation Error Alert in Edit Mode (Jika form penugasan ada error) -->
+                    <div v-if="isEditing && Object.keys(form.errors).length > 0" class="p-4 rounded-2xl bg-error/10 border border-error/20 flex items-start gap-3 text-error">
+                        <span class="material-symbols-outlined shrink-0 text-xl">error</span>
+                        <div class="text-xs sm:text-sm">
+                            <span class="font-bold">Terdapat kesalahan pada isian form:</span>
+                            <ul class="list-disc list-inside mt-1 space-y-0.5">
+                                <li v-for="(err, key) in form.errors" :key="key">{{ err }}</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- WADAH UTAMA: RIWAYAT PENUGASAN & JABATAN -->
+                    <div class="bg-white rounded-3xl border border-slate-200/90 p-4 sm:p-7 shadow-xs">
+                        <div class="flex items-center justify-between gap-3 pb-3 mb-4 border-b border-slate-100 flex-wrap">
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <div class="inline-flex items-center gap-2">
+                                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 shrink-0"></span>
+                                        <h4 class="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider leading-tight">
+                                            Riwayat Penugasan &amp; Jabatan
+                                        </h4>
+                                    </div>
+                                    <span class="text-[10px] sm:text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 shrink-0">
+                                        {{ (isEditing ? form.riwayat_jabatan?.length : employee.riwayat_jabatan?.length) || 0 }} Jabatan
+                                    </span>
+                                </div>
+                                <p v-if="isEditing" class="text-xs text-slate-500 mt-1">
+                                    Ubah data langsung pada baris tabel (desktop) atau formulir kartu (mobile) di bawah ini
                                 </p>
                             </div>
-                            <span class="text-xs text-outline font-medium">
-                                {{ (isEditing ? form.riwayat_jabatan?.length : employee.riwayat_jabatan?.length) || 0 }} Jabatan
-                            </span>
+
+                            <!-- Tombol Edit / Simpan di Pojok Kanan Atas Section -->
+                            <div class="flex items-center gap-2 shrink-0">
+                                <!-- Saat View Mode: Tombol Edit Data -->
+                                <button
+                                    v-if="!isEditing"
+                                    type="button"
+                                    @click="startEdit"
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold shadow-xs transition-all whitespace-nowrap shrink-0 bg-emerald-900 hover:bg-emerald-800 text-yellow-200 border border-emerald-950/30 cursor-pointer active:scale-95"
+                                    title="Edit riwayat penugasan &amp; jabatan"
+                                >
+                                    <span class="material-symbols-outlined text-[16px] sm:text-[18px]">edit_note</span>
+                                    <span>Edit Data</span>
+                                </button>
+
+                                <!-- Saat Edit Mode: Tombol Batal & Simpan -->
+                                <template v-else>
+                                    <button
+                                        type="button"
+                                        @click="cancelEdit"
+                                        class="px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-100 border border-slate-300 transition-all cursor-pointer shadow-2xs whitespace-nowrap shrink-0"
+                                        :disabled="form.processing"
+                                        title="Batalkan perubahan"
+                                    >
+                                        Batal
+                                    </button>
+                                    <button
+                                        type="button"
+                                        @click="saveChanges"
+                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-5 sm:py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-bold text-xs sm:text-sm shadow-xs border border-emerald-950/30 active:scale-95 cursor-pointer disabled:opacity-60 transition-all whitespace-nowrap shrink-0"
+                                        :disabled="form.processing"
+                                        title="Simpan perubahan riwayat penugasan"
+                                    >
+                                        <span v-if="form.processing" class="material-symbols-outlined text-[16px] animate-spin">sync</span>
+                                        <span v-else class="material-symbols-outlined text-[16px]">save</span>
+                                        <span>{{ form.processing ? 'Menyimpan...' : 'Simpan' }}</span>
+                                    </button>
+                                </template>
+                            </div>
                         </div>
 
-                        <!-- VIEW MODE (Ketika tidak sedang edit) -->
-                        <div v-if="!isEditing">
-                            <div v-if="employee.riwayat_jabatan && employee.riwayat_jabatan.length > 0" class="overflow-x-auto rounded-xl border border-outline-variant/60 bg-white shadow-2xs">
-                                <table class="w-full text-xs sm:text-sm border-collapse border border-outline-variant/60">
+                        <!-- 1. TAMPILAN DESKTOP (TABLE VIEW) -->
+                        <div class="hidden md:block">
+                            <!-- View Mode (Tabel Bersih Tanpa Border Kaku) -->
+                            <div v-if="!isEditing">
+                                <div v-if="employee.riwayat_jabatan && employee.riwayat_jabatan.length > 0" class="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-2xs">
+                                    <table class="w-full text-xs sm:text-sm border-collapse">
+                                        <thead>
+                                            <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold text-[11px] uppercase tracking-wider">
+                                                <th class="px-4 py-3 text-center w-12">No</th>
+                                                <th class="px-4 py-3 text-left">Unit Kerja</th>
+                                                <th class="px-4 py-3 text-left">Jabatan</th>
+                                                <th class="px-4 py-3 text-left">Jenis Kepegawaian</th>
+                                                <th class="px-4 py-3 text-left">No. SK</th>
+                                                <th class="px-4 py-3 text-left">TMT Jabatan</th>
+                                                <th class="px-4 py-3 text-left">TST Jabatan</th>
+                                                <th class="px-4 py-3 text-left">Status</th>
+                                                <th class="px-4 py-3 text-center">Berkas SK</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-slate-100">
+                                            <tr
+                                                v-for="(pos, idx) in employee.riwayat_jabatan"
+                                                :key="pos.id || idx"
+                                                class="hover:bg-slate-50/80 transition-colors"
+                                            >
+                                                <td class="px-4 py-3.5 text-center text-slate-400 font-mono">{{ idx + 1 }}</td>
+                                                <td class="px-4 py-3.5">
+                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs">
+                                                        {{ pos.unit_kerja || '-' }}
+                                                    </span>
+                                                </td>
+                                                <td class="px-4 py-3.5 font-bold text-slate-900">{{ pos.jabatan || '-' }}</td>
+                                                <td class="px-4 py-3.5 text-slate-700 font-medium">{{ pos.jenis_kepegawaian || '-' }}</td>
+                                                <td class="px-4 py-3.5 text-slate-800 font-medium font-mono text-xs">{{ pos.no_sk || '-' }}</td>
+                                                <td class="px-4 py-3.5 text-slate-700">
+                                                    {{ pos.formatted_tmt_jabatan || formatTanggalIndo(pos.tmt_jabatan) || '-' }}
+                                                </td>
+                                                <td class="px-4 py-3.5 text-slate-700">
+                                                    {{ pos.formatted_tst_jabatan || formatTanggalIndo(pos.tst_jabatan) || 'Sekarang / Aktif' }}
+                                                </td>
+                                                <td class="px-4 py-3.5">
+                                                    <span
+                                                        v-if="!pos.tst_jabatan"
+                                                        class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200"
+                                                    >
+                                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                                                        Menjabat
+                                                    </span>
+                                                    <span
+                                                        v-else
+                                                        class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200"
+                                                    >
+                                                        Selesai
+                                                    </span>
+                                                </td>
+                                                <td class="px-4 py-3.5 text-center">
+                                                    <div v-if="pos.document" class="inline-flex items-center justify-center">
+                                                        <button
+                                                            type="button"
+                                                            @click="openPreview(pos.document)"
+                                                            class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-800 hover:bg-emerald-100 transition-colors border border-emerald-200 cursor-pointer shadow-2xs"
+                                                            title="Lihat / Preview SK Penugasan"
+                                                        >
+                                                            <span class="material-symbols-outlined text-[15px]">visibility</span>
+                                                            <span>Lihat SK</span>
+                                                        </button>
+                                                    </div>
+                                                    <span v-else class="text-slate-400 text-xs">-</span>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div v-else class="py-10 text-center border-2 border-dashed border-slate-200 rounded-2xl">
+                                    <span class="material-symbols-outlined text-4xl text-slate-300 block mb-2">assignment_late</span>
+                                    <p class="text-sm text-slate-500">Belum ada riwayat jabatan untuk pegawai ini</p>
+                                </div>
+                            </div>
+
+                            <!-- Edit Mode (Form Tabel Interaktif) -->
+                            <div v-else class="overflow-x-auto rounded-2xl border border-emerald-200/80 bg-white shadow-2xs">
+                                <table class="w-full text-xs sm:text-sm border-collapse min-w-[850px]">
                                     <thead>
-                                        <tr class="bg-white text-on-surface-variant font-bold text-[10px] sm:text-xs uppercase tracking-wider">
-                                            <th class="border border-outline-variant/60 px-4 py-3 text-center w-12">No</th>
-                                            <th class="border border-outline-variant/60 px-4 py-3 text-left">Unit Kerja</th>
-                                            <th class="border border-outline-variant/60 px-4 py-3 text-left">Jabatan</th>
-                                            <th class="border border-outline-variant/60 px-4 py-3 text-left">Jenis Kepegawaian</th>
-                                            <th class="border border-outline-variant/60 px-4 py-3 text-left">No SK</th>
-                                            <th class="border border-outline-variant/60 px-4 py-3 text-left">TMT Jabatan</th>
-                                            <th class="border border-outline-variant/60 px-4 py-3 text-left">TST Jabatan</th>
-                                            <th class="border border-outline-variant/60 px-4 py-3 text-left">Status</th>
-                                            <th class="border border-outline-variant/60 px-4 py-3 text-center">Dokumen SK Penugasan</th>
+                                        <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold text-[11px] uppercase tracking-wider">
+                                            <th class="px-3 py-3 text-center w-12">No</th>
+                                            <th class="px-3 py-3 text-left min-w-[170px]">Unit Kerja</th>
+                                            <th class="px-3 py-3 text-left min-w-[170px]">Jabatan</th>
+                                            <th class="px-3 py-3 text-left min-w-[160px]">Jenis Kepegawaian</th>
+                                            <th class="px-3 py-3 text-left min-w-[150px]">No. SK</th>
+                                            <th class="px-3 py-3 text-left min-w-[150px]">TMT Jabatan</th>
+                                            <th class="px-3 py-3 text-left min-w-[150px]">TST Jabatan</th>
+                                            <th class="px-3 py-3 text-center min-w-[110px]">Berkas SK</th>
+                                            <th class="px-3 py-3 text-center w-16">Aksi</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
+                                    <tbody class="divide-y divide-slate-100">
+                                        <tr v-if="!form.riwayat_jabatan || form.riwayat_jabatan.length === 0">
+                                            <td colspan="9" class="p-8 text-center text-xs text-slate-500 italic">
+                                                <span class="material-symbols-outlined text-3xl text-slate-300 block mb-1">assignment_late</span>
+                                                Belum ada riwayat jabatan. Klik tombol di bawah untuk menambah riwayat jabatan baru.
+                                            </td>
+                                        </tr>
                                         <tr
-                                            v-for="(pos, idx) in employee.riwayat_jabatan"
+                                            v-for="(pos, idx) in form.riwayat_jabatan"
                                             :key="pos.id || idx"
-                                            class="hover:bg-slate-50 transition-colors"
+                                            class="hover:bg-slate-50/70 transition-colors"
                                         >
-                                            <td class="border border-outline-variant/60 px-4 py-3 text-center text-on-surface-variant font-mono">{{ idx + 1 }}</td>
-                                            <td class="border border-outline-variant/60 px-4 py-3">
-                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-semibold bg-primary/10 text-primary">
-                                                    {{ pos.unit_kerja || '-' }}
-                                                </span>
+                                            <td class="px-3 py-2.5 text-center text-slate-400 font-mono font-bold">
+                                                {{ idx + 1 }}
                                             </td>
-                                            <td class="border border-outline-variant/60 px-4 py-3 font-bold text-on-surface">{{ pos.jabatan || '-' }}</td>
-                                            <td class="border border-outline-variant/60 px-4 py-3 text-on-surface">{{ pos.jenis_kepegawaian || '-' }}</td>
-                                            <td class="border border-outline-variant/60 px-4 py-3 text-on-surface font-medium">{{ pos.no_sk || '-' }}</td>
-                                            <td class="border border-outline-variant/60 px-4 py-3 text-on-surface">
-                                                {{ pos.formatted_tmt_jabatan || formatTanggalIndo(pos.tmt_jabatan) || '-' }}
-                                            </td>
-                                            <td class="border border-outline-variant/60 px-4 py-3 text-on-surface">
-                                                {{ pos.formatted_tst_jabatan || formatTanggalIndo(pos.tst_jabatan) || 'Sekarang / Aktif' }}
-                                            </td>
-                                            <td class="border border-outline-variant/60 px-4 py-3">
-                                                <span
-                                                    v-if="!pos.tst_jabatan"
-                                                    class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-700"
+                                            <!-- UNIT KERJA -->
+                                            <td class="px-3 py-2.5">
+                                                <select
+                                                    v-model="pos.unit_kerja"
+                                                    @change="onUnitKerjaChange(pos)"
+                                                    class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 cursor-pointer"
                                                 >
-                                                    <span class="w-1.5 h-1.5 rounded-full bg-current"></span>
-                                                    Menjabat
-                                                </span>
-                                                <span
-                                                    v-else
-                                                    class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-600"
-                                                >
-                                                    Selesai
-                                                </span>
+                                                    <option value="" disabled>-- Pilih Unit Kerja --</option>
+                                                    <option v-for="dept in bidangList" :key="'dept_' + dept" :value="dept">
+                                                        {{ dept }}
+                                                    </option>
+                                                    <option
+                                                        v-if="pos.unit_kerja && !allMasterUnitNames.includes(pos.unit_kerja)"
+                                                        :value="pos.unit_kerja"
+                                                    >
+                                                        {{ pos.unit_kerja }} (Lainnya)
+                                                    </option>
+                                                </select>
                                             </td>
-                                            <td class="border border-outline-variant/60 px-4 py-3 text-center">
+                                            <!-- JABATAN -->
+                                            <td class="px-3 py-2.5">
+                                                <div class="flex items-center gap-1.5">
+                                                    <select
+                                                        v-if="!pos.custom_jabatan && getJabatanOptionsForUnit(pos.unit_kerja).length > 0"
+                                                        v-model="pos.jabatan"
+                                                        class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-800 font-semibold focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 cursor-pointer"
+                                                    >
+                                                        <option value="" disabled>-- Pilih Jabatan --</option>
+                                                        <option
+                                                            v-for="jbt in getJabatanOptionsForUnit(pos.unit_kerja)"
+                                                            :key="jbt"
+                                                            :value="jbt"
+                                                        >
+                                                            {{ jbt }}
+                                                        </option>
+                                                        <option
+                                                            v-if="pos.jabatan && !getJabatanOptionsForUnit(pos.unit_kerja).includes(pos.jabatan)"
+                                                            :value="pos.jabatan"
+                                                        >
+                                                            {{ pos.jabatan }} (Lainnya)
+                                                        </option>
+                                                    </select>
+
+                                                    <input
+                                                        v-else
+                                                        v-model="pos.jabatan"
+                                                        type="text"
+                                                        :placeholder="pos.unit_kerja ? 'Ketik nama jabatan' : 'Pilih unit kerja dahulu'"
+                                                        class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-800 font-semibold focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
+                                                    />
+
+                                                    <button
+                                                        v-if="getJabatanOptionsForUnit(pos.unit_kerja).length > 0"
+                                                        type="button"
+                                                        @click="pos.custom_jabatan = !pos.custom_jabatan"
+                                                        class="p-1.5 rounded-lg text-slate-500 hover:text-emerald-800 hover:bg-emerald-50 transition-colors shrink-0 cursor-pointer border border-slate-200"
+                                                        :title="pos.custom_jabatan ? 'Kembali ke pilihan dropdown jabatan' : 'Ketik nama jabatan secara manual'"
+                                                    >
+                                                        <span class="material-symbols-outlined text-[16px]">
+                                                            {{ pos.custom_jabatan ? 'list' : 'edit' }}
+                                                        </span>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                            <!-- JENIS KEPEGAWAIAN -->
+                                            <td class="px-3 py-2.5">
+                                                <input
+                                                    v-model="pos.jenis_kepegawaian"
+                                                    type="text"
+                                                    placeholder="Tenaga Pendidik / Kependidikan"
+                                                    class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
+                                                />
+                                            </td>
+                                            <!-- NO SK -->
+                                            <td class="px-3 py-2.5">
+                                                <input
+                                                    v-model="pos.no_sk"
+                                                    type="text"
+                                                    placeholder="Nomor SK"
+                                                    class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 font-mono"
+                                                />
+                                            </td>
+                                            <!-- TMT JABATAN -->
+                                            <td class="px-3 py-2.5">
+                                                <input
+                                                    v-model="pos.tmt_jabatan"
+                                                    type="date"
+                                                    class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 cursor-pointer"
+                                                />
+                                            </td>
+                                            <!-- TST JABATAN -->
+                                            <td class="px-3 py-2.5">
+                                                <div>
+                                                    <input
+                                                        v-model="pos.tst_jabatan"
+                                                        type="date"
+                                                        class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 cursor-pointer"
+                                                    />
+                                                    <span class="text-[10px] text-slate-400 mt-0.5 block">Kosongkan jika aktif</span>
+                                                </div>
+                                            </td>
+                                            <!-- DOKUMEN -->
+                                            <td class="px-3 py-2.5 text-center">
                                                 <div v-if="pos.document" class="inline-flex items-center justify-center">
                                                     <button
                                                         type="button"
                                                         @click="openPreview(pos.document)"
-                                                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors border border-emerald-200 cursor-pointer"
+                                                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-800 hover:bg-emerald-100 transition-colors border border-emerald-200 cursor-pointer shadow-2xs"
                                                         title="Lihat / Preview SK Penugasan"
                                                     >
                                                         <span class="material-symbols-outlined text-[15px]">visibility</span>
                                                         <span>Lihat SK</span>
                                                     </button>
                                                 </div>
-                                                <span v-else class="text-outline text-xs">-</span>
+                                                <span v-else class="text-[11px] text-slate-400 italic">Tab Dokumen</span>
+                                            </td>
+                                            <!-- HAPUS -->
+                                            <td class="px-3 py-2.5 text-center">
+                                                <button
+                                                    type="button"
+                                                    @click="removeRiwayatJabatanRow(idx)"
+                                                    class="w-8 h-8 rounded-lg text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 flex items-center justify-center mx-auto transition-colors cursor-pointer"
+                                                    title="Hapus baris riwayat jabatan ini"
+                                                >
+                                                    <span class="material-symbols-outlined text-[18px]">delete</span>
+                                                </button>
+                                            </td>
+                                        </tr>
+
+                                        <!-- BARIS TAMBAH RIWAYAT JABATAN -->
+                                        <tr class="bg-slate-50/70 hover:bg-slate-100/70 transition-colors">
+                                            <td colspan="9" class="p-2.5 text-center">
+                                                <button
+                                                    type="button"
+                                                    @click="addRiwayatJabatanRow"
+                                                    class="w-full py-2.5 px-4 rounded-xl border border-dashed border-emerald-400 hover:border-emerald-600 bg-emerald-50/60 hover:bg-emerald-100/60 text-emerald-900 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-[0.99]"
+                                                >
+                                                    <span class="material-symbols-outlined text-[18px]">add_circle</span>
+                                                    <span>Tambah Riwayat Jabatan</span>
+                                                </button>
                                             </td>
                                         </tr>
                                     </tbody>
                                 </table>
                             </div>
-
-                            <div v-else class="py-10 text-center border-2 border-dashed border-outline-variant/30 rounded-2xl">
-                                <span class="material-symbols-outlined text-4xl text-outline/60 block mb-2">assignment_late</span>
-                                <p class="text-sm text-on-surface-variant">Belum ada riwayat jabatan untuk pegawai ini</p>
-                            </div>
                         </div>
 
-                        <!-- EDIT MODE (Edit langsung di tabel dan tombol tambah di baris paling bawah) -->
-                        <div v-else class="overflow-x-auto rounded-xl border border-primary/30 bg-white shadow-2xs">
-                            <table class="w-full text-xs sm:text-sm border-collapse border border-outline-variant/60 min-w-[850px]">
-                                <thead>
-                                    <tr class="bg-primary/5 text-primary font-bold text-[10px] sm:text-xs uppercase tracking-wider">
-                                        <th class="border border-outline-variant/60 px-3 py-2.5 text-center w-12">No</th>
-                                        <th class="border border-outline-variant/60 px-3 py-2.5 text-left min-w-[170px]">Unit Kerja</th>
-                                        <th class="border border-outline-variant/60 px-3 py-2.5 text-left min-w-[170px]">Jabatan</th>
-                                        <th class="border border-outline-variant/60 px-3 py-2.5 text-left min-w-[160px]">Jenis Kepegawaian</th>
-                                        <th class="border border-outline-variant/60 px-3 py-2.5 text-left min-w-[150px]">No SK</th>
-                                        <th class="border border-outline-variant/60 px-3 py-2.5 text-left min-w-[150px]">TMT Jabatan</th>
-                                        <th class="border border-outline-variant/60 px-3 py-2.5 text-left min-w-[150px]">TST Jabatan</th>
-                                        <th class="border border-outline-variant/60 px-3 py-2.5 text-center min-w-[110px]">Berkas SK</th>
-                                        <th class="border border-outline-variant/60 px-3 py-2.5 text-center w-16">Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr v-if="!form.riwayat_jabatan || form.riwayat_jabatan.length === 0">
-                                        <td colspan="9" class="border border-outline-variant/60 p-6 text-center text-xs text-on-surface-variant italic">
-                                            <span class="material-symbols-outlined text-2xl text-outline/60 block mb-1">assignment_late</span>
-                                            Belum ada riwayat jabatan. Klik tombol di bawah untuk menambah riwayat jabatan baru.
-                                        </td>
-                                    </tr>
-                                    <tr
-                                        v-for="(pos, idx) in form.riwayat_jabatan"
+                        <!-- 2. TAMPILAN MOBILE (CARD VIEW) -->
+                        <div class="md:hidden">
+                            <!-- View Mode (Card Bersih Modern) -->
+                            <div v-if="!isEditing">
+                                <div v-if="employee.riwayat_jabatan && employee.riwayat_jabatan.length > 0" class="space-y-3">
+                                    <div
+                                        v-for="(pos, idx) in employee.riwayat_jabatan"
                                         :key="pos.id || idx"
-                                        class="hover:bg-slate-50/70 transition-colors"
+                                        class="bg-white rounded-2xl border border-slate-200 p-4 shadow-2xs space-y-3"
                                     >
-                                        <td class="border border-outline-variant/60 px-3 py-2.5 text-center text-on-surface-variant font-mono font-bold">
-                                            {{ idx + 1 }}
-                                        </td>
-                                        <!-- KOLOM 2: UNIT KERJA (DROPDOWN DARI TAB UNIT & BIDANG) -->
-                                        <td class="border border-outline-variant/60 px-3 py-2.5">
-                                            <select
-                                                v-model="pos.unit_kerja"
-                                                @change="onUnitKerjaChange(pos)"
-                                                class="w-full px-3 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                                        <!-- Header Card: Unit Kerja & Status Menjabat/Selesai -->
+                                        <div class="flex items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
+                                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs">
+                                                {{ pos.unit_kerja || 'Unit Kerja -' }}
+                                            </span>
+                                            <span
+                                                v-if="!pos.tst_jabatan"
+                                                class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200"
                                             >
-                                                <option value="" disabled>-- Pilih Unit Kerja --</option>
-                                                <option v-for="dept in bidangList" :key="'dept_' + dept" :value="dept">
-                                                    {{ dept }}
-                                                </option>
-                                                <option
-                                                    v-if="pos.unit_kerja && !allMasterUnitNames.includes(pos.unit_kerja)"
-                                                    :value="pos.unit_kerja"
-                                                >
-                                                    {{ pos.unit_kerja }} (Lainnya)
-                                                </option>
-                                            </select>
-                                        </td>
-                                        <!-- KOLOM 3: JABATAN (DROPDOWN COCOK DENGAN UNIT KERJA) -->
-                                        <td class="border border-outline-variant/60 px-3 py-2.5">
-                                            <div class="flex items-center gap-1.5">
-                                                <select
-                                                    v-if="!pos.custom_jabatan && getJabatanOptionsForUnit(pos.unit_kerja).length > 0"
-                                                    v-model="pos.jabatan"
-                                                    class="w-full px-3 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface font-semibold focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
-                                                >
-                                                    <option value="" disabled>-- Pilih Jabatan --</option>
-                                                    <option
-                                                        v-for="jbt in getJabatanOptionsForUnit(pos.unit_kerja)"
-                                                        :key="jbt"
-                                                        :value="jbt"
-                                                    >
-                                                        {{ jbt }}
-                                                    </option>
-                                                    <option
-                                                        v-if="pos.jabatan && !getJabatanOptionsForUnit(pos.unit_kerja).includes(pos.jabatan)"
-                                                        :value="pos.jabatan"
-                                                    >
-                                                        {{ pos.jabatan }} (Lainnya)
-                                                    </option>
-                                                </select>
+                                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                                                Menjabat
+                                            </span>
+                                            <span
+                                                v-else
+                                                class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200"
+                                            >
+                                                Selesai
+                                            </span>
+                                        </div>
 
-                                                <input
-                                                    v-else
-                                                    v-model="pos.jabatan"
-                                                    type="text"
-                                                    :placeholder="pos.unit_kerja ? 'Ketik nama jabatan' : 'Pilih unit kerja dahulu'"
-                                                    class="w-full px-3 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface font-semibold focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                                                />
+                                        <!-- Isi Data Card -->
+                                        <div class="space-y-2.5">
+                                            <div>
+                                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Jabatan</label>
+                                                <p class="text-sm font-bold text-slate-900 mt-0.5">{{ pos.jabatan || '-' }}</p>
+                                            </div>
 
+                                            <div class="grid grid-cols-2 gap-2">
+                                                <div>
+                                                    <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Jenis Kepegawaian</label>
+                                                    <p class="text-xs sm:text-sm font-semibold text-slate-800 mt-0.5">{{ pos.jenis_kepegawaian || '-' }}</p>
+                                                </div>
+                                                <div>
+                                                    <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">No. SK</label>
+                                                    <p class="text-xs sm:text-sm font-semibold text-slate-800 mt-0.5 font-mono">{{ pos.no_sk || '-' }}</p>
+                                                </div>
+                                            </div>
+
+                                            <div class="grid grid-cols-2 gap-2">
+                                                <div>
+                                                    <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">TMT Jabatan</label>
+                                                    <p class="text-xs sm:text-sm font-semibold text-slate-800 mt-0.5">
+                                                        {{ pos.formatted_tmt_jabatan || formatTanggalIndo(pos.tmt_jabatan) || '-' }}
+                                                    </p>
+                                                </div>
+                                                <div>
+                                                    <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">TST Jabatan</label>
+                                                    <p class="text-xs sm:text-sm font-semibold text-slate-800 mt-0.5">
+                                                        {{ pos.formatted_tst_jabatan || formatTanggalIndo(pos.tst_jabatan) || 'Sekarang / Aktif' }}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div v-if="pos.document" class="pt-1">
                                                 <button
-                                                    v-if="getJabatanOptionsForUnit(pos.unit_kerja).length > 0"
                                                     type="button"
-                                                    @click="pos.custom_jabatan = !pos.custom_jabatan"
-                                                    class="p-1.5 rounded-lg text-on-surface-variant hover:text-primary hover:bg-primary/10 transition-colors shrink-0 cursor-pointer"
-                                                    :title="pos.custom_jabatan ? 'Kembali ke pilihan dropdown jabatan' : 'Ketik nama jabatan secara manual'"
+                                                    @click="openPreview(pos.document)"
+                                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 transition-colors shadow-2xs"
                                                 >
-                                                    <span class="material-symbols-outlined text-[16px]">
-                                                        {{ pos.custom_jabatan ? 'list' : 'edit' }}
-                                                    </span>
+                                                    <span class="material-symbols-outlined text-[16px]">visibility</span>
+                                                    <span>Lihat SK Penugasan</span>
                                                 </button>
                                             </div>
-                                        </td>
-                                        <td class="border border-outline-variant/60 px-3 py-2.5">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div v-else class="py-10 text-center border-2 border-dashed border-slate-200 rounded-2xl">
+                                    <span class="material-symbols-outlined text-4xl text-slate-300 block mb-2">assignment_late</span>
+                                    <p class="text-sm text-slate-500">Belum ada riwayat jabatan untuk pegawai ini</p>
+                                </div>
+                            </div>
+
+                            <!-- Edit Mode on Mobile (Form Kartu Interaktif) -->
+                            <div v-else class="space-y-4">
+                                <button
+                                    type="button"
+                                    @click="addRiwayatJabatanRow"
+                                    class="w-full py-2.5 px-4 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs border border-emerald-950/30 transition-all cursor-pointer active:scale-[0.99]"
+                                >
+                                    <span class="material-symbols-outlined text-[18px]">add_circle</span>
+                                    <span>Tambah Riwayat Jabatan</span>
+                                </button>
+
+                                <div v-if="!form.riwayat_jabatan || form.riwayat_jabatan.length === 0" class="py-8 text-center border-2 border-dashed border-slate-200 rounded-2xl">
+                                    <span class="material-symbols-outlined text-3xl text-slate-300 block mb-1">assignment_late</span>
+                                    <p class="text-xs text-slate-500">Belum ada jabatan. Klik tombol di atas untuk menambah.</p>
+                                </div>
+
+                                <div
+                                    v-for="(pos, idx) in form.riwayat_jabatan"
+                                    :key="pos.id || idx"
+                                    class="bg-slate-50/80 rounded-2xl border border-slate-200 p-4 space-y-3 shadow-2xs"
+                                >
+                                    <!-- Card Header dengan No dan Tombol Hapus -->
+                                    <div class="flex items-center justify-between pb-2 border-b border-slate-200">
+                                        <span class="text-xs font-bold text-slate-700 uppercase tracking-wider">Jabatan #{{ idx + 1 }}</span>
+                                        <button
+                                            type="button"
+                                            @click="removeRiwayatJabatanRow(idx)"
+                                            class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200 transition-colors cursor-pointer"
+                                        >
+                                            <span class="material-symbols-outlined text-[15px]">delete</span>
+                                            <span>Hapus</span>
+                                        </button>
+                                    </div>
+
+                                    <!-- Unit Kerja -->
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Unit Kerja</label>
+                                        <select
+                                            v-model="pos.unit_kerja"
+                                            @change="onUnitKerjaChange(pos)"
+                                            class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 cursor-pointer"
+                                        >
+                                            <option value="" disabled>-- Pilih Unit Kerja --</option>
+                                            <option v-for="dept in bidangList" :key="'dept_m_' + dept" :value="dept">
+                                                {{ dept }}
+                                            </option>
+                                            <option
+                                                v-if="pos.unit_kerja && !allMasterUnitNames.includes(pos.unit_kerja)"
+                                                :value="pos.unit_kerja"
+                                            >
+                                                {{ pos.unit_kerja }} (Lainnya)
+                                            </option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Jabatan -->
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Jabatan</label>
+                                        <div class="flex items-center gap-1.5">
+                                            <select
+                                                v-if="!pos.custom_jabatan && getJabatanOptionsForUnit(pos.unit_kerja).length > 0"
+                                                v-model="pos.jabatan"
+                                                class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-800 font-semibold focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 cursor-pointer"
+                                            >
+                                                <option value="" disabled>-- Pilih Jabatan --</option>
+                                                <option
+                                                    v-for="jbt in getJabatanOptionsForUnit(pos.unit_kerja)"
+                                                    :key="'m_jbt_' + jbt"
+                                                    :value="jbt"
+                                                >
+                                                    {{ jbt }}
+                                                </option>
+                                                <option
+                                                    v-if="pos.jabatan && !getJabatanOptionsForUnit(pos.unit_kerja).includes(pos.jabatan)"
+                                                    :value="pos.jabatan"
+                                                >
+                                                    {{ pos.jabatan }} (Lainnya)
+                                                </option>
+                                            </select>
+
+                                            <input
+                                                v-else
+                                                v-model="pos.jabatan"
+                                                type="text"
+                                                :placeholder="pos.unit_kerja ? 'Ketik nama jabatan' : 'Pilih unit kerja dahulu'"
+                                                class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-800 font-semibold focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
+                                            />
+
+                                            <button
+                                                v-if="getJabatanOptionsForUnit(pos.unit_kerja).length > 0"
+                                                type="button"
+                                                @click="pos.custom_jabatan = !pos.custom_jabatan"
+                                                class="p-2 rounded-xl text-slate-600 hover:text-emerald-800 hover:bg-emerald-50 border border-slate-200 transition-colors shrink-0 cursor-pointer"
+                                                :title="pos.custom_jabatan ? 'Kembali ke pilihan dropdown jabatan' : 'Ketik manual'"
+                                            >
+                                                <span class="material-symbols-outlined text-[18px]">
+                                                    {{ pos.custom_jabatan ? 'list' : 'edit' }}
+                                                </span>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Jenis Kepegawaian & No. SK -->
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Jenis Kepegawaian</label>
                                             <input
                                                 v-model="pos.jenis_kepegawaian"
                                                 type="text"
                                                 placeholder="Tenaga Pendidik / Kependidikan"
-                                                class="w-full px-3 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                                class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
                                             />
-                                        </td>
-                                        <td class="border border-outline-variant/60 px-3 py-2.5">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Nomor SK</label>
                                             <input
                                                 v-model="pos.no_sk"
                                                 type="text"
                                                 placeholder="Nomor SK"
-                                                class="w-full px-3 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                                class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 font-mono"
                                             />
-                                        </td>
-                                        <td class="border border-outline-variant/60 px-3 py-2.5">
+                                        </div>
+                                    </div>
+
+                                    <!-- TMT & TST Jabatan -->
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">TMT Jabatan</label>
                                             <input
                                                 v-model="pos.tmt_jabatan"
                                                 type="date"
-                                                class="w-full px-3 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                                                class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 cursor-pointer"
                                             />
-                                        </td>
-                                        <td class="border border-outline-variant/60 px-3 py-2.5">
-                                            <div>
-                                                <input
-                                                    v-model="pos.tst_jabatan"
-                                                    type="date"
-                                                    class="w-full px-3 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
-                                                />
-                                                <span class="text-[10px] text-outline mt-0.5 block">Kosongkan jika aktif</span>
-                                            </div>
-                                        </td>
-                                        <td class="border border-outline-variant/60 px-3 py-2.5 text-center">
-                                            <div v-if="pos.document" class="inline-flex items-center justify-center">
-                                                <button
-                                                    type="button"
-                                                    @click="openPreview(pos.document)"
-                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors border border-emerald-200 cursor-pointer"
-                                                    title="Lihat / Preview SK Penugasan"
-                                                >
-                                                    <span class="material-symbols-outlined text-[15px]">visibility</span>
-                                                    <span>Lihat SK</span>
-                                                </button>
-                                            </div>
-                                            <span v-else class="text-[11px] text-outline italic">Tab Dokumen</span>
-                                        </td>
-                                        <td class="border border-outline-variant/60 px-3 py-2.5 text-center">
-                                            <button
-                                                type="button"
-                                                @click="removeRiwayatJabatanRow(idx)"
-                                                class="w-8 h-8 rounded-lg text-error hover:bg-error/10 flex items-center justify-center mx-auto transition-colors cursor-pointer"
-                                                title="Hapus baris riwayat jabatan ini"
-                                            >
-                                                <span class="material-symbols-outlined text-[18px]">delete</span>
-                                            </button>
-                                        </td>
-                                    </tr>
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">TST Jabatan</label>
+                                            <input
+                                                v-model="pos.tst_jabatan"
+                                                type="date"
+                                                class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 cursor-pointer"
+                                            />
+                                            <span class="text-[10px] text-slate-400 mt-0.5 block">Kosongkan jika aktif</span>
+                                        </div>
+                                    </div>
+                                </div>
 
-                                    <!-- BARIS PALING BAWAH: TOMBOL TAMBAH RIWAYAT JABATAN -->
-                                    <tr class="bg-slate-50/70 hover:bg-slate-100/70 transition-colors">
-                                        <td colspan="9" class="border border-outline-variant/60 p-2.5 text-center">
-                                            <button
-                                                type="button"
-                                                @click="addRiwayatJabatanRow"
-                                                class="w-full py-2.5 px-4 rounded-xl border border-dashed border-primary/50 hover:border-primary bg-primary/5 hover:bg-primary/10 text-primary font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-[0.99]"
-                                            >
-                                                <span class="material-symbols-outlined text-[18px]">add_circle</span>
-                                                <span>Tambah Riwayat Jabatan</span>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                                <button
+                                    type="button"
+                                    @click="addRiwayatJabatanRow"
+                                    class="w-full py-2.5 px-4 rounded-xl border border-dashed border-emerald-400 hover:border-emerald-600 bg-emerald-50/60 hover:bg-emerald-100/60 text-emerald-900 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-[0.99]"
+                                >
+                                    <span class="material-symbols-outlined text-[18px]">add_circle</span>
+                                    <span>Tambah Riwayat Jabatan</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

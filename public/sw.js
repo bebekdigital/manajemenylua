@@ -1,6 +1,5 @@
-const CACHE_NAME = 'ylua-pwa-v12';
-const INERTIA_CACHE = 'ylua-inertia-v12';
-const CURRENT_CACHES = [CACHE_NAME, INERTIA_CACHE];
+const CACHE_NAME = 'ylua-pwa-v20';
+const CURRENT_CACHES = [CACHE_NAME];
 
 const PRECACHE_ASSETS = [
   '/manifest.json',
@@ -21,7 +20,7 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Activate Event: Bersihkan cache versi lama
+// Activate Event: Bersihkan SELURUH cache versi lama untuk mencegah stale HTML/JS
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -34,19 +33,62 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch Event: Penanganan Navigasi SPA & Aset Statis
+// Fetch Event
 self.addEventListener('fetch', (event) => {
   const request = event.request;
   const url = new URL(request.url);
 
-  // Jangan sentuh request non-GET (POST, PUT, DELETE, dsb.)
+  // Jangan sentuh request non-GET
   if (request.method !== 'GET') {
     return;
   }
 
-  // 1. Permintaan statis (build assets, images, icons, fonts) -> Cache-first dengan network fallback
-  const isStaticAsset = (
-    url.pathname.startsWith('/build/') ||
+  // 1. Permintaan Navigasi HTML Halaman Penuh: ALWAYS Network-Only (Cegah stale skeleton/HTML lama)
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request).catch(() => {
+        return new Response('Koneksi terputus. Silakan periksa jaringan internet Anda.', {
+          status: 503,
+          statusText: 'Service Unavailable',
+          headers: new Headers({ 'Content-Type': 'text/plain; charset=utf-8' })
+        });
+      })
+    );
+    return;
+  }
+
+  // 2. Permintaan Inertia SPA (X-Inertia: true): ALWAYS Network-Only
+  const isInertia = request.headers.get('X-Inertia') === 'true';
+  if (isInertia) {
+    event.respondWith(
+      fetch(request).catch(() => {
+        return new Response(JSON.stringify({ error: 'offline', message: 'Koneksi terputus.' }), {
+          status: 503,
+          statusText: 'Service Unavailable',
+          headers: new Headers({
+            'Content-Type': 'application/json',
+            'X-Inertia': 'true'
+          })
+        });
+      })
+    );
+    return;
+  }
+
+  // 3. Jangan cache endpoint autentikasi, logout, atau polling realtime
+  const isExcluded = (
+    url.pathname === '/login' ||
+    url.pathname === '/logout' ||
+    url.pathname.startsWith('/api/')
+  );
+
+  if (isExcluded) {
+    event.respondWith(fetch(request));
+    return;
+  }
+
+  // 4. Aset Statis Berkelanjutan (ikon, gambar, font): Cache-first dengan network fallback
+  const isStaticMedia = (
     url.pathname.startsWith('/images/') ||
     url.pathname.startsWith('/storage/logos/') ||
     url.pathname.includes('/fonts/') ||
@@ -54,7 +96,7 @@ self.addEventListener('fetch', (event) => {
     url.hostname.includes('fonts.gstatic.com')
   );
 
-  if (isStaticAsset) {
+  if (isStaticMedia) {
     event.respondWith(
       caches.match(request).then((cachedResponse) => {
         if (cachedResponse) {
@@ -74,81 +116,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 2. Jangan cache endpoint autentikasi, logout, atau polling realtime
-  const isExcluded = (
-    url.pathname === '/login' ||
-    url.pathname === '/logout' ||
-    url.pathname.startsWith('/api/approvals/pending')
-  );
-
-  if (isExcluded) {
-    event.respondWith(fetch(request));
-    return;
-  }
-
-  // 3. Request Inertia JSON (X-Inertia: true) -> Simpan di INERTIA_CACHE
-  const isInertia = request.headers.get('X-Inertia') === 'true';
-  if (isInertia) {
-    event.respondWith(
-      fetch(request)
-        .then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
-            const responseClone = networkResponse.clone();
-            caches.open(INERTIA_CACHE).then((cache) => {
-              cache.put(request, responseClone);
-            });
-          }
-          return networkResponse;
-        })
-        .catch(async () => {
-          const cache = await caches.open(INERTIA_CACHE);
-          const cachedResponse = await cache.match(request);
-          if (cachedResponse) {
-            return cachedResponse;
-          }
-          return new Response(JSON.stringify({ error: 'offline', message: 'Koneksi terputus.' }), {
-            status: 503,
-            statusText: 'Service Unavailable',
-            headers: new Headers({
-              'Content-Type': 'application/json',
-              'X-Inertia': 'true'
-            })
-          });
-        })
-    );
-    return;
-  }
-
-  // 4. Request Navigasi Halaman HTML Penuh (mode: 'navigate') -> Simpan di CACHE_NAME
-  if (request.mode === 'navigate') {
-    event.respondWith(
-      fetch(request)
-        .then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
-            const responseClone = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(request, responseClone);
-            });
-          }
-          return networkResponse;
-        })
-        .catch(async () => {
-          const cache = await caches.open(CACHE_NAME);
-          const cachedResponse = await cache.match(request);
-          if (cachedResponse) {
-            return cachedResponse;
-          }
-          return new Response('Anda sedang offline. Silakan periksa koneksi internet Anda.', {
-            status: 503,
-            statusText: 'Service Unavailable',
-            headers: new Headers({ 'Content-Type': 'text/plain; charset=utf-8' })
-          });
-        })
-    );
-    return;
-  }
-
-  // 5. Default GET requests lainnya -> Network-first biasa
+  // 5. Default GET requests lainnya -> Network-first dengan fallback
   event.respondWith(
     fetch(request).catch(async () => {
       const cached = await caches.match(request);
@@ -157,9 +125,10 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// Listener untuk pesan dari client (misal untuk reload / skip waiting)
+// Listener untuk pesan dari client (reload / skip waiting / force clear)
 self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
+  if (event.data && (event.data.type === 'SKIP_WAITING' || event.data.type === 'CLEAR_CACHE')) {
+    caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k))));
     self.skipWaiting();
   }
 });

@@ -8,5 +8,6 @@ deployment:
     - /bin/cp -f ./public/manifest.json $DEPLOYPATH/manifest.json
     - /bin/cp -f ./public/sw.js $DEPLOYPATH/sw.js
     - /bin/cp -f ./public/favicon.png $DEPLOYPATH/favicon.png
+    - /bin/cp -f ./public/rescue.js $DEPLOYPATH/rescue.js
     - /bin/cp -f ./public/.htaccess $DEPLOYPATH/.htaccess
     - /bin/cp -f ./public/build/.htaccess $DEPLOYPATH/build/.htaccess

@@ -1,0 +1,9 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^assets/.*\.js$ /rescue.js [L]
+</IfModule>
+
+<FilesMatch "\.(css|js|mjs|woff2|woff|ttf|svg|png|jpg|jpeg|webp)$">
+    Header set Cache-Control "max-age=31536000, public, immutable"
+</FilesMatch>

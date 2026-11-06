@@ -79,9 +79,20 @@ export function usePwaInstall() {
 
         // 3. Register Service Worker & Auto-Update
         if ('serviceWorker' in navigator) {
+            // Bersihkan sisa cache lama agar browser segera sinkron
+            if ('caches' in window) {
+                caches.keys().then((names) => {
+                    for (const name of names) {
+                        if (name !== 'ylua-pwa-v20') {
+                            caches.delete(name);
+                        }
+                    }
+                }).catch(() => {});
+            }
+
             window.addEventListener('load', () => {
                 navigator.serviceWorker
-                    .register('/sw.js?v=2', { scope: '/' })
+                    .register('/sw.js?v=20', { scope: '/', updateViaCache: 'none' })
                     .then((reg) => {
                         // Periksa pembaruan Service Worker
                         reg.update().catch(() => {});
