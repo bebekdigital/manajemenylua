@@ -172,8 +172,8 @@ class EmployeePermitController extends Controller
         $permit = $employee->permits()->findOrFail($permitId);
         $user = auth()->user();
 
-        if ($user?->isTeacher() && $permit->status !== 'diajukan') {
-            abort(403, 'Akses ditolak: Perizinan yang sudah diproses tidak dapat diubah.');
+        if (! $user?->canApprovePermitFor($employee) && ($permit->status === 'disetujui' || $permit->status !== 'diajukan')) {
+            abort(403, 'Akses ditolak: Perizinan yang sudah disetujui atau diproses tidak dapat diubah oleh pemohon. Hanya Atasan Langsung dan Superadmin yang dapat mengubahnya.');
         }
 
         $validated = $request->validate([
@@ -279,8 +279,8 @@ class EmployeePermitController extends Controller
         $permit = $employee->permits()->findOrFail($permitId);
         $user = auth()->user();
 
-        if ($user?->isTeacher() && $permit->status !== 'diajukan') {
-            abort(403, 'Akses ditolak: Perizinan yang sudah diproses tidak dapat dihapus.');
+        if (! $user?->canApprovePermitFor($employee) && ($permit->status === 'disetujui' || $permit->status !== 'diajukan')) {
+            abort(403, 'Akses ditolak: Perizinan yang sudah disetujui atau diproses tidak dapat dihapus oleh pemohon. Hanya Atasan Langsung dan Superadmin yang dapat menghapusnya.');
         }
 
         if ($permit->lampiran_path && Storage::disk('local')->exists($permit->lampiran_path)) {

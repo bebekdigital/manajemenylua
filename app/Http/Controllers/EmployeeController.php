@@ -765,8 +765,8 @@ class EmployeeController extends Controller
                         if (! empty($permitItem['id'])) {
                             $existingPermit = $employee->permits()->find($permitItem['id']);
                             if ($existingPermit) {
-                                if (! $canApprove && $user?->isTeacher() && $existingPermit->status !== 'diajukan') {
-                                    // Perizinan yang sudah disetujui / ditolak tidak dapat diubah oleh Guru
+                                if (! $canApprove && ($existingPermit->status === 'disetujui' || $existingPermit->status !== 'diajukan')) {
+                                    // Perizinan yang sudah disetujui / diproses tidak dapat diubah oleh pemohon
                                     $keptPermitIds[] = $existingPermit->id;
 
                                     continue;
@@ -794,8 +794,8 @@ class EmployeeController extends Controller
 
                 $permitsToDelete = $employee->permits()->whereNotIn('id', $keptPermitIds)->get();
                 foreach ($permitsToDelete as $delPermit) {
-                    if (! $canApprove && $user?->isTeacher() && $delPermit->status !== 'diajukan') {
-                        // Guru tidak dapat menghapus perizinan yang sudah disetujui / ditolak
+                    if (! $canApprove && ($delPermit->status === 'disetujui' || $delPermit->status !== 'diajukan')) {
+                        // Pemohon tidak dapat menghapus perizinan yang sudah disetujui / diproses
                         continue;
                     }
                     if ($delPermit->lampiran_path && Storage::disk('local')->exists($delPermit->lampiran_path)) {

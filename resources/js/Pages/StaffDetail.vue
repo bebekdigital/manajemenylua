@@ -1544,8 +1544,20 @@ const perizinanModalForm = reactive({
 });
 
 function canModifyPermit(item) {
+    if (!item) return false;
+    // 1. Atasan langsung (yang menyetujui izin) atau Superadmin/Admin selalu berhak
     if (canApprovePermit.value) return true;
-    if (isTeacher.value && item && item.id && item.status !== 'diajukan') return false;
+
+    // 2. Baris lokal baru yang belum tersimpan di database
+    if (!item.id) return true;
+
+    // 3. Bagi orang yang mengajukan (pemohon / bukan atasan & bukan superadmin):
+    // Jika status sudah disetujui (atau sudah diproses/bukan diajukan),
+    // pemohon TIDAK BISA edit dan TIDAK BISA hapus!
+    if (item.status === 'disetujui' || item.status !== 'diajukan') {
+        return false;
+    }
+
     return true;
 }
 
@@ -1581,7 +1593,7 @@ function openAddPerizinanModal() {
 
 function openEditPerizinanModal(record, index) {
     if (!canModifyPermit(record)) {
-        alert('Perizinan yang sudah diproses tidak dapat diubah.');
+        alert('Perizinan yang sudah disetujui tidak dapat diubah oleh pemohon. Hanya Atasan Langsung dan Superadmin yang dapat mengubahnya.');
         return;
     }
     modalPerizinanMode.value = 'edit';
@@ -1684,7 +1696,7 @@ function submitPerizinanModal() {
 
 function deletePerizinanRecord(item, index) {
     if (!canModifyPermit(item)) {
-        alert('Perizinan yang sudah diproses tidak dapat dihapus.');
+        alert('Perizinan yang sudah disetujui tidak dapat dihapus oleh pemohon. Hanya Atasan Langsung dan Superadmin yang dapat menghapusnya.');
         return;
     }
 
@@ -6008,7 +6020,7 @@ function handleBackClick(e) {
                                                             ? 'text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 cursor-pointer active:scale-95'
                                                             : 'text-slate-300 border border-transparent cursor-not-allowed opacity-40'
                                                     ]"
-                                                    :title="canModifyPermit(item) ? 'Hapus catatan perizinan ini' : 'Perizinan yang sudah diproses tidak dapat dihapus'"
+                                                    :title="canModifyPermit(item) ? 'Hapus catatan perizinan ini' : 'Perizinan yang sudah disetujui tidak dapat dihapus oleh pemohon'"
                                                     :disabled="!canModifyPermit(item) || isSavingPerizinan"
                                                 >
                                                     <span class="material-symbols-outlined text-[18px]">delete</span>
@@ -6093,7 +6105,7 @@ function handleBackClick(e) {
                                                             ? 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 cursor-pointer'
                                                             : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-50'
                                                     ]"
-                                                    :title="canModifyPermit(item) ? 'Edit data perizinan ini' : 'Perizinan yang sudah diproses tidak dapat diubah'"
+                                                    :title="canModifyPermit(item) ? 'Edit data perizinan ini' : 'Perizinan yang sudah disetujui tidak dapat diubah oleh pemohon'"
                                                     :disabled="!canModifyPermit(item) || isSavingPerizinan"
                                                 >
                                                     <span class="material-symbols-outlined text-[15px]">edit</span>
@@ -6209,7 +6221,7 @@ function handleBackClick(e) {
                                                     : 'text-slate-300 border border-slate-200 cursor-not-allowed opacity-40'
                                             ]"
                                             :disabled="!canModifyPermit(item) || isSavingPerizinan"
-                                            :title="canModifyPermit(item) ? 'Hapus catatan perizinan ini' : 'Perizinan yang sudah diproses tidak dapat dihapus'"
+                                            :title="canModifyPermit(item) ? 'Hapus catatan perizinan ini' : 'Perizinan yang sudah disetujui tidak dapat dihapus oleh pemohon'"
                                         >
                                             <span class="material-symbols-outlined text-[16px]">delete</span>
                                             <span>Hapus</span>
@@ -6224,7 +6236,7 @@ function handleBackClick(e) {
                                                     : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-50'
                                             ]"
                                             :disabled="!canModifyPermit(item) || isSavingPerizinan"
-                                            :title="canModifyPermit(item) ? 'Edit data perizinan ini' : 'Perizinan yang sudah diproses tidak dapat diubah'"
+                                            :title="canModifyPermit(item) ? 'Edit data perizinan ini' : 'Perizinan yang sudah disetujui tidak dapat diubah oleh pemohon'"
                                         >
                                             <span class="material-symbols-outlined text-[16px]">edit</span>
                                             <span>Edit</span>
