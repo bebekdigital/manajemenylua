@@ -283,8 +283,6 @@ function getStatusStyle(status) {
                                     <div class="flex items-center gap-1.5">
                                         <Link
                                             :href="`/staff/${emp.id}`"
-                                            prefetch
-                                            cache-for="1m"
                                             class="text-[13.5px] font-semibold text-slate-900 hover:text-emerald-800 transition-colors truncate"
                                         >
                                             {{ emp.nama }}

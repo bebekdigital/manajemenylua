@@ -254,8 +254,6 @@ function getAlamatLengkap(s) {
                         <td class="py-3.5 px-3 align-middle">
                             <Link
                                 :href="`/students/${student.nisn}`"
-                                prefetch
-                                cache-for="1m"
                                 class="font-bold text-slate-900 hover:text-emerald-700 transition-colors text-[13px] whitespace-nowrap block"
                                 title="Buka Detail Siswa"
                             >

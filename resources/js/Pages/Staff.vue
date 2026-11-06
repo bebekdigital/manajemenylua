@@ -626,8 +626,6 @@ function onPageChange(p) {
                             v-for="emp in paginatedEmployees"
                             :key="emp.id"
                             :href="`/staff/${emp.id}`"
-                            prefetch
-                            cache-for="1m"
                             class="bg-white rounded-2xl border border-slate-200/90 p-3.5 shadow-2xs hover:border-emerald-400 hover:shadow-xs transition-all flex items-center justify-between gap-3 group active:scale-[0.99] cursor-pointer"
                         >
                             <!-- Avatar Kotak Rounded Warna Pastel Halus + Inisial 2 Huruf -->

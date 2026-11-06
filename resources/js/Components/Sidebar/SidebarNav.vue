@@ -28,8 +28,6 @@ const canViewEmployee = computed(() => {
         <div class="px-2 pt-2 pb-5 border-b border-emerald-800/80 shrink-0">
             <Link
                 href="/beranda"
-                :prefetch="['mount', 'hover']"
-                cache-for="5m"
                 class="flex items-center space-x-3 group"
             >
                 <div class="w-10 h-10 rounded-xl bg-yellow-200 flex items-center justify-center text-emerald-950 shadow-sm shrink-0 group-hover:scale-105 transition-transform duration-200">

@@ -224,12 +224,10 @@ const navItems = computed(() => {
                     </span>
                 </a>
 
-                <!-- Internal Link dengan SPA Instant Prefetch & Cache -->
+                <!-- Internal Link -->
                 <Link
                     v-else
                     :href="item.href"
-                    :prefetch="['mount', 'hover']"
-                    cache-for="5m"
                     class="flex flex-col items-center justify-center flex-1 py-1 transition-all duration-200 relative group cursor-pointer"
                     :class="item.active ? 'text-emerald-950 font-bold' : 'text-slate-500 hover:text-emerald-900'"
                 >

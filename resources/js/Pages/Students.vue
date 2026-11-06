@@ -691,8 +691,6 @@ const downloadTemplate = async () => {
                             v-for="student in paginatedStudents"
                             :key="student.id"
                             :href="`/students/${student.nisn || student.id}`"
-                            :prefetch="['mount', 'hover']"
-                            cache-for="5m"
                             class="bg-white rounded-2xl border border-slate-200/90 p-3.5 shadow-2xs hover:border-emerald-400 hover:shadow-xs transition-all flex items-center justify-between gap-3 group active:scale-[0.99] cursor-pointer"
                         >
                             <!-- Avatar Siswa -->
@@ -1043,8 +1041,6 @@ const downloadTemplate = async () => {
                                 <!-- 3. Edit Massal Siswa -->
                                 <Link
                                     href="/students/inline-edit"
-                                    :prefetch="['mount', 'hover']"
-                                    cache-for="5m"
                                     @click="isKelolaOpen = false"
                                     class="w-full flex items-center gap-3 p-3.5 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/50 bg-white transition-all cursor-pointer group shadow-2xs text-left"
                                 >
@@ -1061,8 +1057,6 @@ const downloadTemplate = async () => {
                                 <!-- 4. Petakan Riwayat (Bulking) -->
                                 <Link
                                     href="/students/mapping"
-                                    :prefetch="['mount', 'hover']"
-                                    cache-for="5m"
                                     @click="isKelolaOpen = false"
                                     class="w-full flex items-center gap-3 p-3.5 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/50 bg-white transition-all cursor-pointer group shadow-2xs text-left"
                                 >

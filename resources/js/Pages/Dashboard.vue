@@ -46,8 +46,6 @@ const canViewEmployee = computed(() => {
                     <!-- 1. Section: Database Siswa (Langsung ke Data Siswa) -->
                     <Link
                         href="/students"
-                        :prefetch="['mount', 'hover']"
-                        cache-for="5m"
                         class="flex flex-col items-center group cursor-pointer text-center"
                     >
                         <div class="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-200/80 flex items-center justify-center text-emerald-800 group-hover:bg-emerald-100 group-active:scale-95 transition-all shadow-2xs">
@@ -60,8 +58,6 @@ const canViewEmployee = computed(() => {
                     <Link
                         v-if="canViewEmployee"
                         href="/staff"
-                        :prefetch="['mount', 'hover']"
-                        cache-for="5m"
                         class="flex flex-col items-center group cursor-pointer text-center"
                     >
                         <div class="w-12 h-12 rounded-2xl bg-teal-50 border border-teal-200/80 flex items-center justify-center text-teal-800 group-hover:bg-teal-100 group-active:scale-95 transition-all shadow-2xs">
@@ -73,8 +69,6 @@ const canViewEmployee = computed(() => {
                     <!-- 3. Section: Administrasi & Aset (Langsung ke Administrasi) -->
                     <Link
                         href="/administration"
-                        :prefetch="['mount', 'hover']"
-                        cache-for="5m"
                         class="flex flex-col items-center group cursor-pointer text-center"
                     >
                         <div class="w-12 h-12 rounded-2xl bg-sky-50 border border-sky-200/80 flex items-center justify-center text-sky-800 group-hover:bg-sky-100 group-active:scale-95 transition-all shadow-2xs">
@@ -86,8 +80,6 @@ const canViewEmployee = computed(() => {
                     <!-- 4. Section: Akademik (Langsung ke Pembelajaran) -->
                     <Link
                         href="/pembelajaran/kelas"
-                        :prefetch="['mount', 'hover']"
-                        cache-for="5m"
                         class="flex flex-col items-center group cursor-pointer text-center"
                     >
                         <div class="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200/80 flex items-center justify-center text-amber-800 group-hover:bg-amber-100 group-active:scale-95 transition-all shadow-2xs">
@@ -99,8 +91,6 @@ const canViewEmployee = computed(() => {
                     <!-- 5. Pengaturan Sistem -->
                     <Link
                         href="/portal"
-                        :prefetch="['mount', 'hover']"
-                        cache-for="5m"
                         class="flex flex-col items-center group cursor-pointer text-center"
                     >
                         <div class="w-12 h-12 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700 group-hover:bg-slate-200 group-active:scale-95 transition-all shadow-2xs">
