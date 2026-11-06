@@ -201,6 +201,6 @@ const submit = () => {
 
 <style scoped>
 .font-inter {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 </style>
