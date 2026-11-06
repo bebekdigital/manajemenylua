@@ -2,6 +2,7 @@ import '../css/app.css';
 import { createApp, h } from 'vue';
 import { createInertiaApp, router } from '@inertiajs/vue3';
 import { usePwaInstall } from './Composables/usePwaInstall';
+import Login from './Pages/Auth/Login.vue';
 
 // Pastikan tema status bar mobile selalu putih saat berpindah halaman SPA
 router.on('navigate', () => {
@@ -13,9 +14,15 @@ router.on('navigate', () => {
     }
 });
 
+const pages = import.meta.glob('./Pages/**/*.vue');
+
 createInertiaApp({
     resolve: async (name) => {
-        const pages = import.meta.glob('./Pages/**/*.vue');
+        // Eager-resolve Login page to eliminate secondary roundtrip on initial landing
+        if (name === 'Auth/Login') {
+            return Login;
+        }
+
         const page = await pages[`./Pages/${name}.vue`]();
 
         // Use AppLayout as default layout if not explicitly set
