@@ -14,9 +14,9 @@ router.on('navigate', () => {
 });
 
 createInertiaApp({
-    resolve: (name) => {
-        const pages = import.meta.glob('./Pages/**/*.vue', { eager: true });
-        const page = pages[`./Pages/${name}.vue`];
+    resolve: async (name) => {
+        const pages = import.meta.glob('./Pages/**/*.vue');
+        const page = await pages[`./Pages/${name}.vue`]();
 
         // Use AppLayout as default layout if not explicitly set
         if (page && page.default && page.default.layout === undefined) {
