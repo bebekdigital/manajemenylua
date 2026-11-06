@@ -1390,9 +1390,10 @@ onUnmounted(() => {
                 </div>
             </div>
 
-            <!-- TAB 2: UNIT & BIDANG -->
+            <!-- TAB 2: ORGANISASI -->
             <div v-show="activeTab === 'unit_bidang'" class="space-y-6">
                 <OrgChartDiagram
+                    :is-active="activeTab === 'unit_bidang'"
                     :positions="organizationPositions"
                     :departments="departments"
                     :organization-levels="organizationLevels"

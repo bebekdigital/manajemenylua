@@ -155,7 +155,7 @@ const hasSubordinates = computed(() => {
         </div>
 
         <!-- BAWAHAN DI LEVEL YANG SAMA (TAMPIL DI BAWAH KARTU ATASANNYA DI CONTAINER INI) -->
-        <div v-if="intraChildren.length > 0" class="flex flex-col items-center mt-3.5 sm:mt-4 w-max">
+        <div v-if="intraChildren.length > 0" class="flex flex-col items-center mt-10 sm:mt-12 w-max">
             <!-- Jika memiliki garis komando lurus ke level bawah, bagi ke sayap kiri dan sayap kanan dengan koridor tengah terbuka -->
             <div v-if="hasCenterTrunkLine" class="grid grid-cols-2 w-max mx-auto">
                 <!-- SAYAP KIRI -->

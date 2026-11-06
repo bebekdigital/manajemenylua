@@ -16,6 +16,10 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    isActive: {
+        type: Boolean,
+        default: true,
+    },
 });
 
 const emit = defineEmits([
@@ -42,6 +46,20 @@ const svgHeight = ref(600);
 const zoomScale = ref(1);
 const isAutoFit = ref(true);
 const isEditMode = ref(false);
+
+watch(
+    () => props.isActive,
+    (active) => {
+        if (active) {
+            nextTick(() => {
+                updateConnectionLines();
+                setTimeout(updateConnectionLines, 80);
+                setTimeout(updateConnectionLines, 250);
+            });
+        }
+    },
+    { immediate: true }
+);
 
 function setEditMode(val) {
     isEditMode.value = val;
@@ -674,33 +692,24 @@ function updateConnectionLines() {
             }
             // 3. KASUS LEVEL DI BAWAHNYA LANGSUNG (childLevel === parentLevel + 1)
             else {
-                // Titik tengah alami tepat di antara bagian bawah kartu atasan dan bagian atas kartu bawahan
-                const naturalMid = Math.round(y1 + (y2 - y1) * 0.5);
-                // Jamin jarak vertikal garis cabang proporsional minimal 22px dari kartu atasan dan 22px dari kartu bawahan
-                const midY = Math.min(y2 - 22, Math.max(y1 + 22, naturalMid));
+                // Taruh garis horizontal tepat di perbatasan antar level (border pemisah row)
+                const parentRowEl = document.getElementById(`level-row-${parentLevel}`);
+                let midY;
+                if (parentRowEl) {
+                    const rowRect = parentRowEl.getBoundingClientRect();
+                    midY = toY(rowRect.bottom);
+                } else {
+                    midY = Math.round(y1 + (y2 - y1) * 0.5);
+                }
 
-                // Pisahkan pengecekan rintangan di level atasan (y1..midY) dan di level bawahan (midY..y2)
-                const obstacleInParent = findObstacleCard(x1, y1, midY, [pos.parent_id, pos.id]);
-                const obstacleInChild = findObstacleCard(x2, midY, y2, [pos.parent_id, pos.id]);
-
-                if (obstacleInParent) {
-                    const x_detour = computeDetourX(obstacleInParent, x2, pos.parent_id, pos.id);
-                    const y_above = Math.round(y1 + Math.max(8, (obstacleInParent.top - y1) * 0.5));
-                    const y_below = Math.max(Math.round(obstacleInParent.bottom + 10), midY);
-                    path = `M ${x1} ${y1} L ${x1} ${y_above} L ${x_detour} ${y_above} L ${x_detour} ${y_below} L ${x2} ${y_below} L ${x2} ${y2}`;
-                } else if (obstacleInChild) {
-                    // Belok di garis batas antar level (midY) agar tidak pernah memotong kartu di level atas maupun bawah
-                    const x_detour = computeDetourX(obstacleInChild, x2, pos.parent_id, pos.id);
-                    const y_below = Math.round(obstacleInChild.bottom + Math.max(8, (y2 - obstacleInChild.bottom) * 0.5));
-                    path = `M ${x1} ${y1} L ${x1} ${midY} L ${x_detour} ${midY} L ${x_detour} ${y_below} L ${x2} ${y_below} L ${x2} ${y2}`;
-                } else if (Math.abs(x1 - x2) <= 4) {
+                if (Math.abs(x1 - x2) <= 4) {
                     path = `M ${x2} ${y1} L ${x2} ${y2}`;
                 } else {
                     path = `M ${x1} ${y1} L ${x1} ${midY} L ${x2} ${midY} L ${x2} ${y2}`;
                 }
 
                 // Junction dot pada titik percabangan horizontal di batas level
-                if (!obstacleInParent && (directChildrenByParent.get(pos.parent_id) || 0) > 1) {
+                if ((directChildrenByParent.get(pos.parent_id) || 0) > 1) {
                     const dotKey = `${pos.parent_id}-${midY}`;
                     if (!dotsMap.has(dotKey)) {
                         dotsMap.set(dotKey, {
@@ -747,10 +756,12 @@ watch(
 );
 
 let resizeObserver = null;
+let intersectionObserver = null;
 onMounted(() => {
     nextTick(() => {
         updateConnectionLines();
-        setTimeout(updateConnectionLines, 150);
+        setTimeout(updateConnectionLines, 80);
+        setTimeout(updateConnectionLines, 250);
     });
 
     window.addEventListener('resize', updateConnectionLines);
@@ -761,10 +772,22 @@ onMounted(() => {
         });
         resizeObserver.observe(diagramContainerRef.value);
     }
+
+    if (window.IntersectionObserver && diagramContainerRef.value) {
+        intersectionObserver = new IntersectionObserver((entries) => {
+            const entry = entries[0];
+            if (entry && entry.isIntersecting) {
+                updateConnectionLines();
+                setTimeout(updateConnectionLines, 80);
+            }
+        });
+        intersectionObserver.observe(diagramContainerRef.value);
+    }
 });
 
 onUnmounted(() => {
     if (resizeObserver) resizeObserver.disconnect();
+    if (intersectionObserver) intersectionObserver.disconnect();
     window.removeEventListener('resize', updateConnectionLines);
 });
 
@@ -974,24 +997,20 @@ function handleDelete(pos) {
             >
                 <div
                     :style="zoomScale !== 1 && svgHeight > 0
-                        ? { width: `${Math.ceil(svgWidth * zoomScale)}px`, height: `${Math.ceil(svgHeight * zoomScale) + 8}px`, minWidth: '100%' }
+                        ? { width: `${Math.ceil(svgWidth * zoomScale)}px`, height: `${Math.ceil(svgHeight * zoomScale) + 16}px`, minWidth: '100%' }
                         : { minWidth: '100%' }"
                 >
                 <div
                     ref="canvasWrapperRef"
-                    class="relative origin-top-left"
-                    :style="{
-                        width: `${svgWidth}px`,
-                        transform: zoomScale !== 1 ? `scale(${zoomScale})` : undefined,
-                        transformOrigin: 'top left',
-                    }"
+                    class="relative w-full min-w-full origin-top-left"
+                    :style="zoomScale !== 1 ? { transform: `scale(${zoomScale})`, transformOrigin: 'top left' } : {}"
                 >
                 <!-- KANVAS SVG GARIS HIERARKI PENGHUBUNG ANTARA ATASAN DAN BAWAHAN -->
                 <svg
-                    class="absolute inset-0 pointer-events-none z-10 overflow-visible"
+                    class="absolute inset-0 pointer-events-none z-10 w-full h-full overflow-visible"
                     :style="{
-                        width: `${svgWidth}px`,
-                        height: `${svgHeight}px`,
+                        minWidth: '100%',
+                        minHeight: '100%',
                     }"
                 >
                     <!-- Render Setiap Garis Penghubung (Parent -> Child / Peer) bersudut 90 derajat -->
@@ -1041,7 +1060,7 @@ function handleDelete(pos) {
                             class="border-b border-slate-200/80 last:border-b-0 hover:bg-slate-50/15 transition-colors relative"
                         >
                             <!-- CONTAINER LEVEL: POSISI LEVEL DI POJOK KIRI ATAS CONTAINER -->
-                            <td class="px-2.5 pt-2 pb-2.5 sm:px-4 sm:pt-2.5 sm:pb-3 align-top relative" :class="def.rowHeaderBg">
+                            <td class="px-3 pt-6 pb-12 sm:px-6 sm:pt-8 sm:pb-14 align-top relative" :class="def.rowHeaderBg">
                                 <!-- BARIS LABEL LEVEL DI KIRI ATAS (RAPI & TIDAK MENABRAK CARD) -->
                                 <div class="mb-2 inline-flex items-center gap-1.5 flex-wrap select-none bg-white/90 backdrop-blur-2xs px-2 py-0.5 rounded-lg border border-slate-200/80 shadow-2xs relative z-20">
                                     <span :class="['text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded border shadow-2xs', def.badgeClass]">
@@ -1080,7 +1099,7 @@ function handleDelete(pos) {
                                 <!-- SETIAP CARD JABATAN DIMULAI DARI TENGAH & SEJAJAR HORIZONTAL (flex-nowrap) -->
                                 <div
                                     v-if="intraRootsByLevel[def.level] && intraRootsByLevel[def.level].length > 0"
-                                    class="flex items-start justify-center gap-3.5 sm:gap-5 flex-nowrap py-1 w-max min-w-full mx-auto"
+                                    class="flex items-start justify-center gap-4 sm:gap-6 flex-nowrap pt-2 pb-1 w-max min-w-full mx-auto"
                                 >
                                     <OrgPositionNode
                                         v-for="rootPos in intraRootsByLevel[def.level]"
