@@ -816,6 +816,220 @@ class EmployeeController extends Controller
     }
 
     /**
+     * Authorize that the current user can update this employee profile or relation.
+     */
+    protected function authorizeEmployeeUpdate(string $id, string $permissionCategory = 'employee_detail_history'): Employee
+    {
+        $user = auth()->user();
+        if (! RolePermission::canAccess($user, $permissionCategory, 'update')) {
+            abort(403, 'Akses ditolak: Role Anda tidak memiliki izin untuk mengubah data ini.');
+        }
+
+        if ($user?->isTeacher()) {
+            $myEmployee = $user->employeeProfile();
+            if (! $myEmployee || (string) $myEmployee->id !== (string) $id) {
+                abort(403, 'Akses ditolak: Sebagai Guru, Anda hanya dapat mengubah data profil pegawai atas nama Anda sendiri.');
+            }
+        }
+
+        return Employee::findOrFail($id);
+    }
+
+    /**
+     * Store or update a position history record for the employee.
+     */
+    public function storePosition(Request $request, string $id): RedirectResponse
+    {
+        $employee = $this->authorizeEmployeeUpdate($id, 'employee_detail_history');
+
+        $validated = $request->validate([
+            'id' => ['nullable', 'integer'],
+            'unit_kerja' => ['nullable', 'string', 'max:100'],
+            'jabatan' => ['nullable', 'string', 'max:100'],
+            'jenis_kepegawaian' => ['nullable', 'string', 'max:100'],
+            'no_sk' => ['nullable', 'string', 'max:100'],
+            'tmt_jabatan' => ['nullable', 'date'],
+            'tst_jabatan' => ['nullable', 'date'],
+        ]);
+
+        if (empty($validated['unit_kerja']) && empty($validated['jabatan'])) {
+            return back()->with('error', 'Unit Kerja atau Nama Jabatan wajib diisi.');
+        }
+
+        if (! empty($validated['id'])) {
+            $pos = $employee->positions()->findOrFail($validated['id']);
+            $pos->update($validated);
+            $msg = 'Riwayat penugasan & jabatan berhasil diperbarui.';
+        } else {
+            $employee->positions()->create($validated);
+            $msg = 'Riwayat penugasan & jabatan berhasil ditambahkan.';
+        }
+
+        Cache::forget('staff_switcher_list_admin');
+        if (auth()->check()) {
+            Cache::forget('staff_switcher_list_'.auth()->id());
+        }
+
+        return back()->with('success', $msg);
+    }
+
+    /**
+     * Delete a position history record.
+     */
+    public function destroyPosition(Request $request, string $id, string $positionId): RedirectResponse
+    {
+        $employee = $this->authorizeEmployeeUpdate($id, 'employee_detail_history');
+        $pos = $employee->positions()->findOrFail($positionId);
+
+        $employee->documents()->where('record_type', 'position')->where('record_id', $pos->id)->delete();
+        $pos->delete();
+
+        Cache::forget('staff_switcher_list_admin');
+        if (auth()->check()) {
+            Cache::forget('staff_switcher_list_'.auth()->id());
+        }
+
+        return back()->with('success', 'Riwayat penugasan & jabatan berhasil dihapus.');
+    }
+
+    /**
+     * Store or update a rank/career history record for the employee.
+     */
+    public function storeRecord(Request $request, string $id): RedirectResponse
+    {
+        $employee = $this->authorizeEmployeeUpdate($id, 'employee_kepegawaian');
+
+        $validated = $request->validate([
+            'id' => ['nullable', 'integer'],
+            'jenjang_kepegawaian' => ['nullable', 'string', 'max:50'],
+            'no_sk' => ['nullable', 'string', 'max:100'],
+            'tmt_kenaikan_jenjang' => ['nullable', 'date'],
+            'tst_kenaikan_jenjang' => ['nullable', 'date'],
+        ]);
+
+        if (empty($validated['jenjang_kepegawaian']) && empty($validated['tmt_kenaikan_jenjang'])) {
+            return back()->with('error', 'Jenjang kepegawaian atau TMT Kenaikan Jenjang wajib diisi.');
+        }
+
+        if (! empty($validated['id'])) {
+            $rec = $employee->records()->findOrFail($validated['id']);
+            $rec->update($validated);
+            $msg = 'Riwayat jenjang kepegawaian berhasil diperbarui.';
+        } else {
+            $employee->records()->create($validated);
+            $msg = 'Riwayat jenjang kepegawaian berhasil ditambahkan.';
+        }
+
+        return back()->with('success', $msg);
+    }
+
+    /**
+     * Delete a rank/career history record.
+     */
+    public function destroyRecord(Request $request, string $id, string $recordId): RedirectResponse
+    {
+        $employee = $this->authorizeEmployeeUpdate($id, 'employee_kepegawaian');
+        $rec = $employee->records()->findOrFail($recordId);
+
+        $employee->documents()->where('record_type', 'record')->where('record_id', $rec->id)->delete();
+        $rec->delete();
+
+        return back()->with('success', 'Riwayat jenjang kepegawaian berhasil dihapus.');
+    }
+
+    /**
+     * Store or update an education history record for the employee.
+     */
+    public function storeEducation(Request $request, string $id): RedirectResponse
+    {
+        $employee = $this->authorizeEmployeeUpdate($id, 'employee_detail_history');
+
+        $validated = $request->validate([
+            'id' => ['nullable', 'integer'],
+            'jenjang_pendidikan' => ['nullable', 'string', 'max:50'],
+            'jurusan' => ['nullable', 'string', 'max:100'],
+            'instansi_pendidikan' => ['nullable', 'string', 'max:150'],
+            'tahun_lulus' => ['nullable', 'string', 'max:20'],
+            'pembiayaan' => ['nullable', 'string', 'max:50'],
+        ]);
+
+        if (empty($validated['jenjang_pendidikan']) && empty($validated['instansi_pendidikan'])) {
+            return back()->with('error', 'Jenjang atau Instansi Pendidikan wajib diisi.');
+        }
+
+        if (! empty($validated['id'])) {
+            $edu = $employee->educationHistories()->findOrFail($validated['id']);
+            $edu->update($validated);
+            $msg = 'Riwayat pendidikan berhasil diperbarui.';
+        } else {
+            $employee->educationHistories()->create($validated);
+            $msg = 'Riwayat pendidikan berhasil ditambahkan.';
+        }
+
+        return back()->with('success', $msg);
+    }
+
+    /**
+     * Delete an education history record.
+     */
+    public function destroyEducation(Request $request, string $id, string $educationId): RedirectResponse
+    {
+        $employee = $this->authorizeEmployeeUpdate($id, 'employee_detail_history');
+        $edu = $employee->educationHistories()->findOrFail($educationId);
+
+        $employee->documents()->where('record_type', 'education')->where('record_id', $edu->id)->delete();
+        $edu->delete();
+
+        return back()->with('success', 'Riwayat pendidikan berhasil dihapus.');
+    }
+
+    /**
+     * Store or update a training history record for the employee.
+     */
+    public function storeTraining(Request $request, string $id): RedirectResponse
+    {
+        $employee = $this->authorizeEmployeeUpdate($id, 'employee_detail_history');
+
+        $validated = $request->validate([
+            'id' => ['nullable', 'integer'],
+            'bidang' => ['nullable', 'string', 'max:150'],
+            'keahlian' => ['nullable', 'string', 'max:150'],
+            'instansi_penyelenggara' => ['nullable', 'string', 'max:150'],
+            'tahun' => ['nullable', 'string', 'max:20'],
+            'pembiayaan' => ['nullable', 'string', 'max:100'],
+        ]);
+
+        if (empty($validated['bidang']) && empty($validated['keahlian']) && empty($validated['instansi_penyelenggara'])) {
+            return back()->with('error', 'Bidang, Keahlian, atau Penyelenggara pelatihan wajib diisi.');
+        }
+
+        if (! empty($validated['id'])) {
+            $t = $employee->trainingHistories()->findOrFail($validated['id']);
+            $t->update($validated);
+            $msg = 'Riwayat pelatihan & nonformal berhasil diperbarui.';
+        } else {
+            $employee->trainingHistories()->create($validated);
+            $msg = 'Riwayat pelatihan & nonformal berhasil ditambahkan.';
+        }
+
+        return back()->with('success', $msg);
+    }
+
+    /**
+     * Delete a training history record.
+     */
+    public function destroyTraining(Request $request, string $id, string $trainingId): RedirectResponse
+    {
+        $employee = $this->authorizeEmployeeUpdate($id, 'employee_detail_history');
+        $t = $employee->trainingHistories()->findOrFail($trainingId);
+
+        $employee->documents()->where('record_type', 'training')->where('record_id', $t->id)->delete();
+        $t->delete();
+
+        return back()->with('success', 'Riwayat pelatihan & nonformal berhasil dihapus.');
+    }
+
+    /**
      * Handle XLSX employee import.
      */
     public function import(Request $request, EmployeeImportService $importService): RedirectResponse

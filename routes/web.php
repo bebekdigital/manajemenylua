@@ -157,6 +157,16 @@ Route::middleware('auth')->group(function () {
     Route::get('/staff/{id}', [EmployeeController::class, 'show'])->name('staff.show');
     Route::match(['put', 'post'], '/staff/{id}', [EmployeeController::class, 'update'])->name('staff.update');
 
+    // Riwayat Sub-Resource Pegawai (Dedicated Lightweight Endpoints)
+    Route::post('/staff/{id}/positions', [EmployeeController::class, 'storePosition'])->name('staff.positions.store');
+    Route::delete('/staff/{id}/positions/{positionId}', [EmployeeController::class, 'destroyPosition'])->name('staff.positions.destroy');
+    Route::post('/staff/{id}/records', [EmployeeController::class, 'storeRecord'])->name('staff.records.store');
+    Route::delete('/staff/{id}/records/{recordId}', [EmployeeController::class, 'destroyRecord'])->name('staff.records.destroy');
+    Route::post('/staff/{id}/education', [EmployeeController::class, 'storeEducation'])->name('staff.education.store');
+    Route::delete('/staff/{id}/education/{educationId}', [EmployeeController::class, 'destroyEducation'])->name('staff.education.destroy');
+    Route::post('/staff/{id}/training', [EmployeeController::class, 'storeTraining'])->name('staff.training.store');
+    Route::delete('/staff/{id}/training/{trainingId}', [EmployeeController::class, 'destroyTraining'])->name('staff.training.destroy');
+
     // Dokumen Pegawai (Private Storage Opsi A)
     Route::post('/staff/{id}/documents', [EmployeeDocumentController::class, 'store'])->name('staff.documents.store');
     Route::get('/staff/{id}/documents/{documentId}/preview', [EmployeeDocumentController::class, 'preview'])->name('staff.documents.preview');

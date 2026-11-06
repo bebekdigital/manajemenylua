@@ -985,33 +985,14 @@ function submitRiwayatModal() {
         return;
     }
 
-    if (!form.riwayat_kepegawaian) {
-        form.riwayat_kepegawaian = JSON.parse(JSON.stringify(props.employee.riwayat_kepegawaian || []));
-    }
-
-    if (modalRiwayatMode.value === 'create') {
-        form.riwayat_kepegawaian.push({
-            id: null,
-            jenjang_kepegawaian: riwayatModalForm.jenjang_kepegawaian,
-            no_sk: riwayatModalForm.no_sk,
-            tmt_kenaikan_jenjang: riwayatModalForm.tmt_kenaikan_jenjang,
-            tst_kenaikan_jenjang: riwayatModalForm.tst_kenaikan_jenjang,
-            document: null,
-        });
-    } else if (modalRiwayatMode.value === 'edit' && editingRiwayatIndex.value !== null) {
-        const item = form.riwayat_kepegawaian[editingRiwayatIndex.value];
-        if (item) {
-            item.jenjang_kepegawaian = riwayatModalForm.jenjang_kepegawaian;
-            item.no_sk = riwayatModalForm.no_sk;
-            item.tmt_kenaikan_jenjang = riwayatModalForm.tmt_kenaikan_jenjang;
-            item.tst_kenaikan_jenjang = riwayatModalForm.tst_kenaikan_jenjang;
-        }
-    }
-
-    syncJenjangKepegawaianFromRecords();
-
     isSavingRiwayat.value = true;
-    form.put(`/staff/${props.employee.id}`, {
+    router.post(`/staff/${props.employee.id}/records`, {
+        id: riwayatModalForm.id || null,
+        jenjang_kepegawaian: riwayatModalForm.jenjang_kepegawaian,
+        no_sk: riwayatModalForm.no_sk,
+        tmt_kenaikan_jenjang: riwayatModalForm.tmt_kenaikan_jenjang,
+        tst_kenaikan_jenjang: riwayatModalForm.tst_kenaikan_jenjang,
+    }, {
         preserveScroll: true,
         only: ['employee', 'flash'],
         onSuccess: () => {
@@ -1025,28 +1006,29 @@ function submitRiwayatModal() {
     });
 }
 
-function deleteRiwayatRecord(index) {
-    if (!confirm('Apakah Anda yakin ingin menghapus catatan riwayat jenjang ini?')) {
+function deleteRiwayatRecord(idxOrItem) {
+    const list = props.employee.riwayat_kepegawaian || form.riwayat_kepegawaian || [];
+    const item = typeof idxOrItem === 'object' ? idxOrItem : list[idxOrItem];
+    if (!item) return;
+
+    if (!confirm(`Apakah Anda yakin ingin menghapus catatan riwayat jenjang "${item.jenjang_kepegawaian || 'ini'}"?`)) {
         return;
     }
-    if (!form.riwayat_kepegawaian) {
-        form.riwayat_kepegawaian = JSON.parse(JSON.stringify(props.employee.riwayat_kepegawaian || []));
-    }
-    form.riwayat_kepegawaian.splice(index, 1);
-    syncJenjangKepegawaianFromRecords();
 
-    isSavingRiwayat.value = true;
-    form.put(`/staff/${props.employee.id}`, {
-        preserveScroll: true,
-        only: ['employee', 'flash'],
-        onSuccess: () => {
-            isSavingRiwayat.value = false;
-            initFormFromProps();
-        },
-        onError: () => {
-            isSavingRiwayat.value = false;
-        }
-    });
+    if (item.id) {
+        isSavingRiwayat.value = true;
+        router.delete(`/staff/${props.employee.id}/records/${item.id}`, {
+            preserveScroll: true,
+            only: ['employee', 'flash'],
+            onSuccess: () => {
+                isSavingRiwayat.value = false;
+                initFormFromProps();
+            },
+            onError: () => {
+                isSavingRiwayat.value = false;
+            }
+        });
+    }
 }
 
 function addRiwayatKepegawaianRow() {
@@ -1175,36 +1157,16 @@ function submitJabatanModal() {
         return;
     }
 
-    if (!form.riwayat_jabatan) {
-        form.riwayat_jabatan = JSON.parse(JSON.stringify(props.employee.riwayat_jabatan || []));
-    }
-
-    if (modalJabatanMode.value === 'create') {
-        form.riwayat_jabatan.push({
-            id: null,
-            unit_kerja: jabatanModalForm.unit_kerja,
-            jabatan: jabatanModalForm.jabatan,
-            jenis_kepegawaian: jabatanModalForm.jenis_kepegawaian,
-            no_sk: jabatanModalForm.no_sk,
-            tmt_jabatan: jabatanModalForm.tmt_jabatan,
-            tst_jabatan: jabatanModalForm.tst_jabatan,
-            document: null,
-            custom_jabatan: false,
-        });
-    } else if (modalJabatanMode.value === 'edit' && editingJabatanIndex.value !== null) {
-        const item = form.riwayat_jabatan[editingJabatanIndex.value];
-        if (item) {
-            item.unit_kerja = jabatanModalForm.unit_kerja;
-            item.jabatan = jabatanModalForm.jabatan;
-            item.jenis_kepegawaian = jabatanModalForm.jenis_kepegawaian;
-            item.no_sk = jabatanModalForm.no_sk;
-            item.tmt_jabatan = jabatanModalForm.tmt_jabatan;
-            item.tst_jabatan = jabatanModalForm.tst_jabatan;
-        }
-    }
-
     isSavingJabatan.value = true;
-    form.put(`/staff/${props.employee.id}`, {
+    router.post(`/staff/${props.employee.id}/positions`, {
+        id: jabatanModalForm.id || null,
+        unit_kerja: jabatanModalForm.unit_kerja,
+        jabatan: jabatanModalForm.jabatan,
+        jenis_kepegawaian: jabatanModalForm.jenis_kepegawaian,
+        no_sk: jabatanModalForm.no_sk,
+        tmt_jabatan: jabatanModalForm.tmt_jabatan,
+        tst_jabatan: jabatanModalForm.tst_jabatan,
+    }, {
         preserveScroll: true,
         only: ['employee', 'flash'],
         onSuccess: () => {
@@ -1218,27 +1180,29 @@ function submitJabatanModal() {
     });
 }
 
-function deleteJabatanRecord(index) {
-    if (!confirm('Apakah Anda yakin ingin menghapus catatan riwayat penugasan ini?')) {
+function deleteJabatanRecord(idxOrItem) {
+    const list = currentJabatanList.value || [];
+    const item = typeof idxOrItem === 'object' ? idxOrItem : list[idxOrItem];
+    if (!item) return;
+
+    if (!confirm(`Apakah Anda yakin ingin menghapus catatan riwayat penugasan "${item.jabatan || item.unit_kerja || 'ini'}"?`)) {
         return;
     }
-    if (!form.riwayat_jabatan) {
-        form.riwayat_jabatan = JSON.parse(JSON.stringify(props.employee.riwayat_jabatan || []));
-    }
-    form.riwayat_jabatan.splice(index, 1);
 
-    isSavingJabatan.value = true;
-    form.put(`/staff/${props.employee.id}`, {
-        preserveScroll: true,
-        only: ['employee', 'flash'],
-        onSuccess: () => {
-            isSavingJabatan.value = false;
-            initFormFromProps();
-        },
-        onError: () => {
-            isSavingJabatan.value = false;
-        }
-    });
+    if (item.id) {
+        isSavingJabatan.value = true;
+        router.delete(`/staff/${props.employee.id}/positions/${item.id}`, {
+            preserveScroll: true,
+            only: ['employee', 'flash'],
+            onSuccess: () => {
+                isSavingJabatan.value = false;
+                initFormFromProps();
+            },
+            onError: () => {
+                isSavingJabatan.value = false;
+            }
+        });
+    }
 }
 
 function addRiwayatJabatanRow() {
@@ -1333,33 +1297,15 @@ function submitPendidikanModal() {
         return;
     }
 
-    if (!form.riwayat_pendidikan) {
-        form.riwayat_pendidikan = JSON.parse(JSON.stringify(props.employee.riwayat_pendidikan || []));
-    }
-
-    if (modalPendidikanMode.value === 'create') {
-        form.riwayat_pendidikan.push({
-            id: null,
-            jenjang_pendidikan: pendidikanModalForm.jenjang_pendidikan,
-            jurusan: pendidikanModalForm.jurusan,
-            instansi_pendidikan: pendidikanModalForm.instansi_pendidikan,
-            tahun_lulus: pendidikanModalForm.tahun_lulus,
-            pembiayaan: pendidikanModalForm.pembiayaan,
-            document: null,
-        });
-    } else if (modalPendidikanMode.value === 'edit' && editingPendidikanIndex.value !== null) {
-        const item = form.riwayat_pendidikan[editingPendidikanIndex.value];
-        if (item) {
-            item.jenjang_pendidikan = pendidikanModalForm.jenjang_pendidikan;
-            item.jurusan = pendidikanModalForm.jurusan;
-            item.instansi_pendidikan = pendidikanModalForm.instansi_pendidikan;
-            item.tahun_lulus = pendidikanModalForm.tahun_lulus;
-            item.pembiayaan = pendidikanModalForm.pembiayaan;
-        }
-    }
-
     isSavingPendidikan.value = true;
-    form.put(`/staff/${props.employee.id}`, {
+    router.post(`/staff/${props.employee.id}/education`, {
+        id: pendidikanModalForm.id || null,
+        jenjang_pendidikan: pendidikanModalForm.jenjang_pendidikan,
+        jurusan: pendidikanModalForm.jurusan,
+        instansi_pendidikan: pendidikanModalForm.instansi_pendidikan,
+        tahun_lulus: pendidikanModalForm.tahun_lulus,
+        pembiayaan: pendidikanModalForm.pembiayaan,
+    }, {
         preserveScroll: true,
         only: ['employee', 'flash'],
         onSuccess: () => {
@@ -1373,27 +1319,29 @@ function submitPendidikanModal() {
     });
 }
 
-function deletePendidikanRecord(index) {
-    if (!confirm('Apakah Anda yakin ingin menghapus catatan riwayat pendidikan ini?')) {
+function deletePendidikanRecord(idxOrItem) {
+    const list = props.employee.riwayat_pendidikan || form.riwayat_pendidikan || [];
+    const item = typeof idxOrItem === 'object' ? idxOrItem : list[idxOrItem];
+    if (!item) return;
+
+    if (!confirm(`Apakah Anda yakin ingin menghapus catatan riwayat pendidikan "${item.jenjang_pendidikan || 'ini'}"?`)) {
         return;
     }
-    if (!form.riwayat_pendidikan) {
-        form.riwayat_pendidikan = JSON.parse(JSON.stringify(props.employee.riwayat_pendidikan || []));
-    }
-    form.riwayat_pendidikan.splice(index, 1);
 
-    isSavingPendidikan.value = true;
-    form.put(`/staff/${props.employee.id}`, {
-        preserveScroll: true,
-        only: ['employee', 'flash'],
-        onSuccess: () => {
-            isSavingPendidikan.value = false;
-            initFormFromProps();
-        },
-        onError: () => {
-            isSavingPendidikan.value = false;
-        }
-    });
+    if (item.id) {
+        isSavingPendidikan.value = true;
+        router.delete(`/staff/${props.employee.id}/education/${item.id}`, {
+            preserveScroll: true,
+            only: ['employee', 'flash'],
+            onSuccess: () => {
+                isSavingPendidikan.value = false;
+                initFormFromProps();
+            },
+            onError: () => {
+                isSavingPendidikan.value = false;
+            }
+        });
+    }
 }
 
 function addEducationRow() {
@@ -1469,33 +1417,15 @@ function submitPelatihanModal() {
         return;
     }
 
-    if (!form.riwayat_pelatihan) {
-        form.riwayat_pelatihan = JSON.parse(JSON.stringify(props.employee.riwayat_pelatihan || []));
-    }
-
-    if (modalPelatihanMode.value === 'create') {
-        form.riwayat_pelatihan.push({
-            id: null,
-            bidang: pelatihanModalForm.bidang,
-            keahlian: pelatihanModalForm.keahlian,
-            instansi_penyelenggara: pelatihanModalForm.instansi_penyelenggara,
-            tahun: pelatihanModalForm.tahun,
-            pembiayaan: pelatihanModalForm.pembiayaan,
-            document: null,
-        });
-    } else if (modalPelatihanMode.value === 'edit' && editingPelatihanIndex.value !== null) {
-        const item = form.riwayat_pelatihan[editingPelatihanIndex.value];
-        if (item) {
-            item.bidang = pelatihanModalForm.bidang;
-            item.keahlian = pelatihanModalForm.keahlian;
-            item.instansi_penyelenggara = pelatihanModalForm.instansi_penyelenggara;
-            item.tahun = pelatihanModalForm.tahun;
-            item.pembiayaan = pelatihanModalForm.pembiayaan;
-        }
-    }
-
     isSavingPelatihan.value = true;
-    form.put(`/staff/${props.employee.id}`, {
+    router.post(`/staff/${props.employee.id}/training`, {
+        id: pelatihanModalForm.id || null,
+        bidang: pelatihanModalForm.bidang,
+        keahlian: pelatihanModalForm.keahlian,
+        instansi_penyelenggara: pelatihanModalForm.instansi_penyelenggara,
+        tahun: pelatihanModalForm.tahun,
+        pembiayaan: pelatihanModalForm.pembiayaan,
+    }, {
         preserveScroll: true,
         only: ['employee', 'flash'],
         onSuccess: () => {
@@ -1509,27 +1439,29 @@ function submitPelatihanModal() {
     });
 }
 
-function deletePelatihanRecord(index) {
-    if (!confirm('Apakah Anda yakin ingin menghapus catatan riwayat pelatihan ini?')) {
+function deletePelatihanRecord(idxOrItem) {
+    const list = props.employee.riwayat_pelatihan || form.riwayat_pelatihan || [];
+    const item = typeof idxOrItem === 'object' ? idxOrItem : list[idxOrItem];
+    if (!item) return;
+
+    if (!confirm(`Apakah Anda yakin ingin menghapus catatan riwayat pelatihan "${item.bidang || 'ini'}"?`)) {
         return;
     }
-    if (!form.riwayat_pelatihan) {
-        form.riwayat_pelatihan = JSON.parse(JSON.stringify(props.employee.riwayat_pelatihan || []));
-    }
-    form.riwayat_pelatihan.splice(index, 1);
 
-    isSavingPelatihan.value = true;
-    form.put(`/staff/${props.employee.id}`, {
-        preserveScroll: true,
-        only: ['employee', 'flash'],
-        onSuccess: () => {
-            isSavingPelatihan.value = false;
-            initFormFromProps();
-        },
-        onError: () => {
-            isSavingPelatihan.value = false;
-        }
-    });
+    if (item.id) {
+        isSavingPelatihan.value = true;
+        router.delete(`/staff/${props.employee.id}/training/${item.id}`, {
+            preserveScroll: true,
+            only: ['employee', 'flash'],
+            onSuccess: () => {
+                isSavingPelatihan.value = false;
+                initFormFromProps();
+            },
+            onError: () => {
+                isSavingPelatihan.value = false;
+            }
+        });
+    }
 }
 
 function addTrainingRow() {
@@ -2450,6 +2382,11 @@ function selectTab(id) {
         return;
     }
     activeTab.value = id;
+    if (typeof window !== 'undefined') {
+        const url = new URL(window.location.href);
+        url.searchParams.set('tab', id);
+        window.history.replaceState({}, '', url.toString());
+    }
     nextTick(() => {
         const activeBtn = tabsContainerRef.value?.querySelector(`[data-tab-id="${id}"]`);
         if (activeBtn) {
