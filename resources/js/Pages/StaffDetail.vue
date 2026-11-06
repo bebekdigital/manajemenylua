@@ -6456,635 +6456,1111 @@ function handleBackClick(e) {
                 </div>
 
                 <!-- TAB 8: DOKUMEN -->
-                <div v-if="activeTab === 'dokumen'" class="space-y-8">
-                    <!-- 1. TABEL DOKUMEN PRIBADI -->
-                    <div class="space-y-3">
-                        <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
-                            <h4 class="text-xs sm:text-sm font-bold text-primary flex items-center gap-2">
-                                <span class="material-symbols-outlined text-[18px]">badge</span>
-                                Dokumen Pribadi
-                            </h4>
+                <div v-if="activeTab === 'dokumen'" class="space-y-6 mb-8">
+                    <!-- 1. KOTAK SECTION: DOKUMEN PRIBADI -->
+                    <div class="bg-white rounded-3xl border border-slate-200/90 p-4 sm:p-7 shadow-xs">
+                        <!-- Header Section -->
+                        <div class="flex items-center justify-between gap-3 pb-3 mb-4 border-b border-slate-100">
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <div class="inline-flex items-center gap-2">
+                                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 shrink-0"></span>
+                                        <h4 class="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider leading-tight">
+                                            Dokumen Pribadi
+                                        </h4>
+                                    </div>
+                                    <span class="text-[10px] sm:text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 shrink-0">
+                                        {{ dokumenPribadiList.length }} Dokumen
+                                    </span>
+                                </div>
+                                <p class="text-[11px] sm:text-xs text-slate-500 font-medium mt-1">
+                                    Berkas identitas resmi seperti Kartu Tanda Penduduk (KTP) dan Kartu Keluarga (KK)
+                                </p>
+                            </div>
                         </div>
 
-                        <div class="overflow-x-auto rounded-xl border border-outline-variant/60 bg-white shadow-2xs">
-                            <table class="w-full text-xs sm:text-sm border-collapse border border-outline-variant/60">
-                                <thead>
-                                    <tr class="bg-white text-on-surface-variant font-bold text-[10px] sm:text-xs uppercase tracking-wider">
-                                        <th class="border border-outline-variant/60 px-4 py-3 text-center w-12">No</th>
-                                        <th class="border border-outline-variant/60 px-4 py-3 text-left">Nama Dokumen</th>
-                                        <th class="border border-outline-variant/60 px-4 py-3 text-center">Status Unggah</th>
-                                        <th class="border border-outline-variant/60 px-4 py-3 text-center">Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr
-                                        v-for="item in dokumenPribadiList"
-                                        :key="item.id"
-                                        class="hover:bg-slate-50 transition-colors"
+                        <!-- 1.A. DESKTOP VIEW: TABEL DOKUMEN PRIBADI -->
+                        <div class="hidden md:block">
+                            <div v-if="dokumenPribadiList.length > 0" class="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-2xs">
+                                <table class="w-full text-xs sm:text-sm border-collapse">
+                                    <thead>
+                                        <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold text-[11px] uppercase tracking-wider">
+                                            <th class="px-4 py-3 text-center w-12">No</th>
+                                            <th class="px-4 py-3 text-left">Nama Dokumen</th>
+                                            <th class="px-4 py-3 text-center w-36">Status Unggah</th>
+                                            <th class="px-4 py-3 text-center w-52">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-100">
+                                        <tr
+                                            v-for="item in dokumenPribadiList"
+                                            :key="item.id"
+                                            class="hover:bg-slate-50/80 transition-colors"
+                                        >
+                                            <td class="px-4 py-3 text-center text-slate-500 font-mono text-xs">{{ item.no }}</td>
+                                            <td class="px-4 py-3 font-semibold text-slate-800">
+                                                <div>{{ item.nama }}</div>
+                                                <div v-if="item.keterangan" class="text-[11px] text-slate-500 font-normal mt-0.5">
+                                                    {{ item.keterangan }}
+                                                </div>
+                                            </td>
+                                            <td class="px-4 py-3 text-center">
+                                                <span
+                                                    v-if="item.document"
+                                                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                                >
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                    Sudah Diunggah
+                                                </span>
+                                                <span
+                                                    v-else
+                                                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200"
+                                                >
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                                    Belum Diunggah
+                                                </span>
+                                            </td>
+                                            <td class="px-4 py-3 text-center">
+                                                <div v-if="item.document" class="inline-flex items-center gap-1.5 justify-center flex-wrap">
+                                                    <button
+                                                        type="button"
+                                                        @click="openPreview(item.document)"
+                                                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors border border-emerald-200 cursor-pointer"
+                                                        title="Lihat Pratinjau Dokumen"
+                                                    >
+                                                        <span class="material-symbols-outlined text-[15px]">visibility</span>
+                                                        <span>Lihat</span>
+                                                    </button>
+                                                    <a
+                                                        v-if="item.document.download_url"
+                                                        :href="item.document.download_url"
+                                                        target="_blank"
+                                                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 transition-colors cursor-pointer"
+                                                        title="Unduh Berkas"
+                                                    >
+                                                        <span class="material-symbols-outlined text-[15px]">download</span>
+                                                        <span>Unduh</span>
+                                                    </a>
+                                                    <button
+                                                        type="button"
+                                                        @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
+                                                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 transition-colors cursor-pointer"
+                                                        title="Unggah Ulang / Ganti Berkas"
+                                                    >
+                                                        <span class="material-symbols-outlined text-[15px]">sync</span>
+                                                        <span>Ganti</span>
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        @click="deleteDocument(item.document)"
+                                                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                                                        title="Hapus Berkas Dokumen"
+                                                    >
+                                                        <span class="material-symbols-outlined text-[15px]">delete</span>
+                                                        <span>Hapus</span>
+                                                    </button>
+                                                </div>
+                                                <div v-else class="inline-flex items-center gap-1.5 justify-center flex-wrap">
+                                                    <button
+                                                        type="button"
+                                                        @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
+                                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-900 hover:bg-emerald-800 text-yellow-200 shadow-xs border border-emerald-950/30 transition-all cursor-pointer active:scale-95"
+                                                        title="Unggah Dokumen"
+                                                    >
+                                                        <span class="material-symbols-outlined text-[15px]">upload_file</span>
+                                                        <span>Unggah</span>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div v-else class="py-10 text-center border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
+                                <span class="material-symbols-outlined text-4xl text-slate-300 block mb-2">badge</span>
+                                <p class="text-sm font-semibold text-slate-700">Belum ada dokumen pribadi</p>
+                            </div>
+                        </div>
+
+                        <!-- 1.B. MOBILE CARD VIEW: DOKUMEN PRIBADI -->
+                        <div class="md:hidden space-y-3">
+                            <div
+                                v-for="item in dokumenPribadiList"
+                                :key="item.id"
+                                class="bg-white rounded-2xl border border-slate-200 p-4 shadow-2xs space-y-3"
+                            >
+                                <div class="flex items-start justify-between gap-2 border-b border-slate-100 pb-2.5">
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200/80 flex items-center justify-center shrink-0">
+                                            <span class="material-symbols-outlined text-[16px]">badge</span>
+                                        </span>
+                                        <div>
+                                            <h5 class="text-xs sm:text-sm font-bold text-slate-900 leading-snug">{{ item.nama }}</h5>
+                                            <span class="text-[10px] text-slate-400 font-mono">No. {{ item.no }}</span>
+                                        </div>
+                                    </div>
+                                    <span
+                                        v-if="item.document"
+                                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0"
                                     >
-                                        <td class="border border-outline-variant/60 px-4 py-3 text-center text-on-surface-variant font-mono">{{ item.no }}</td>
-                                        <td class="border border-outline-variant/60 px-4 py-3 font-semibold text-on-surface">
-                                            {{ item.nama }}
-                                        </td>
-                                        <td class="border border-outline-variant/60 px-4 py-3 text-center">
-                                            <span
-                                                v-if="item.document"
-                                                class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800"
-                                            >
-                                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
-                                                Sudah Diunggah
-                                            </span>
-                                            <span
-                                                v-else
-                                                class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800"
-                                            >
-                                                <span class="w-1.5 h-1.5 rounded-full bg-amber-600"></span>
-                                                Belum Diunggah
-                                            </span>
-                                        </td>
-                                        <td class="border border-outline-variant/60 px-4 py-3 text-center">
-                                            <div v-if="item.document" class="inline-flex items-center gap-1.5 justify-center flex-wrap">
-                                                <button
-                                                    type="button"
-                                                    @click="openPreview(item.document)"
-                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors border border-emerald-200 cursor-pointer"
-                                                    title="Lihat Pratinjau Dokumen"
-                                                >
-                                                    <span class="material-symbols-outlined text-[15px]">visibility</span>
-                                                    <span>Lihat</span>
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
-                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-outline-variant/60 hover:bg-slate-100 text-slate-700 transition-colors cursor-pointer"
-                                                    title="Unggah Ulang / Ganti Berkas"
-                                                >
-                                                    <span class="material-symbols-outlined text-[15px]">sync</span>
-                                                    <span>Unggah</span>
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    @click="deleteDocument(item.document)"
-                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                                                    title="Hapus Berkas Dokumen"
-                                                >
-                                                    <span class="material-symbols-outlined text-[15px]">delete</span>
-                                                    <span>Hapus</span>
-                                                </button>
-                                            </div>
-                                            <div v-else class="inline-flex items-center gap-1.5 justify-center flex-wrap">
-                                                <button
-                                                    type="button"
-                                                    @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
-                                                    class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"
-                                                    title="Upload Dokumen"
-                                                >
-                                                    <span class="material-symbols-outlined text-[15px]">upload_file</span>
-                                                    <span>Unggah</span>
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    disabled
-                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60"
-                                                    title="Belum ada berkas untuk dilihat"
-                                                >
-                                                    <span class="material-symbols-outlined text-[15px]">visibility_off</span>
-                                                    <span>Lihat</span>
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    disabled
-                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60"
-                                                    title="Belum ada berkas untuk dihapus"
-                                                >
-                                                    <span class="material-symbols-outlined text-[15px]">delete</span>
-                                                    <span>Hapus</span>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr v-if="dokumenPribadiList.length === 0">
-                                        <td colspan="4" class="border border-outline-variant/60 px-4 py-8 text-center text-xs text-on-surface-variant">
-                                            Belum ada dokumen pribadi.
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                        Sudah Ada
+                                    </span>
+                                    <span
+                                        v-else
+                                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 shrink-0"
+                                    >
+                                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                        Belum Ada
+                                    </span>
+                                </div>
+
+                                <div v-if="item.keterangan" class="bg-slate-50 rounded-xl p-2.5 border border-slate-100">
+                                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Keterangan / Rincian</span>
+                                    <p class="text-xs font-semibold text-slate-700 mt-0.5 break-words">{{ item.keterangan }}</p>
+                                </div>
+
+                                <div class="pt-2 border-t border-slate-100 flex items-center justify-end gap-2 flex-wrap">
+                                    <template v-if="item.document">
+                                        <button
+                                            type="button"
+                                            @click="openPreview(item.document)"
+                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition-colors cursor-pointer"
+                                        >
+                                            <span class="material-symbols-outlined text-[15px]">visibility</span>
+                                            <span>Lihat</span>
+                                        </button>
+                                        <a
+                                            v-if="item.document.download_url"
+                                            :href="item.document.download_url"
+                                            target="_blank"
+                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 transition-colors cursor-pointer"
+                                        >
+                                            <span class="material-symbols-outlined text-[15px]">download</span>
+                                            <span>Unduh</span>
+                                        </a>
+                                        <button
+                                            type="button"
+                                            @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
+                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 transition-colors cursor-pointer"
+                                        >
+                                            <span class="material-symbols-outlined text-[15px]">sync</span>
+                                            <span>Ganti</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            @click="deleteDocument(item.document)"
+                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200 transition-colors cursor-pointer"
+                                        >
+                                            <span class="material-symbols-outlined text-[15px]">delete</span>
+                                            <span>Hapus</span>
+                                        </button>
+                                    </template>
+                                    <template v-else>
+                                        <button
+                                            type="button"
+                                            @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
+                                            class="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-emerald-900 hover:bg-emerald-800 text-yellow-200 border border-emerald-950/30 transition-all cursor-pointer"
+                                        >
+                                            <span class="material-symbols-outlined text-[16px]">upload_file</span>
+                                            <span>Unggah Dokumen</span>
+                                        </button>
+                                    </template>
+                                </div>
+                            </div>
+
+                            <div v-if="dokumenPribadiList.length === 0" class="py-8 text-center border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
+                                <span class="material-symbols-outlined text-3xl text-slate-300 block mb-1.5">badge</span>
+                                <p class="text-xs font-semibold text-slate-600">Belum ada dokumen pribadi</p>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- 2. TABEL DOKUMEN RIWAYAT KEPEGAWAIAN -->
-                    <div class="space-y-3">
-                        <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
-                            <h4 class="text-xs sm:text-sm font-bold text-primary flex items-center gap-2">
-                                <span class="material-symbols-outlined text-[18px]">work_history</span>
-                                Dokumen Riwayat Kepegawaian
-                            </h4>
+                    <!-- 2. KOTAK SECTION: DOKUMEN RIWAYAT KEPEGAWAIAN -->
+                    <div class="bg-white rounded-3xl border border-slate-200/90 p-4 sm:p-7 shadow-xs">
+                        <!-- Header Section -->
+                        <div class="flex items-center justify-between gap-3 pb-3 mb-4 border-b border-slate-100">
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <div class="inline-flex items-center gap-2">
+                                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 shrink-0"></span>
+                                        <h4 class="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider leading-tight">
+                                            Dokumen Riwayat Kepegawaian
+                                        </h4>
+                                    </div>
+                                    <span class="text-[10px] sm:text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 shrink-0">
+                                        {{ dokumenKepegawaianList.length }} Dokumen
+                                    </span>
+                                </div>
+                                <p class="text-[11px] sm:text-xs text-slate-500 font-medium mt-1">
+                                    Surat Keputusan (SK) pengangkatan awal dan kenaikan jenjang kepegawaian
+                                </p>
+                            </div>
                         </div>
 
-                        <div class="overflow-x-auto rounded-xl border border-outline-variant/60 bg-white shadow-2xs">
-                            <table class="w-full text-xs sm:text-sm border-collapse border border-outline-variant/60">
-                                <thead>
-                                    <tr class="bg-white text-on-surface-variant font-bold text-[10px] sm:text-xs uppercase tracking-wider">
-                                        <th class="border border-outline-variant/60 px-4 py-3 text-center w-12">No</th>
-                                        <th class="border border-outline-variant/60 px-4 py-3 text-left">Nama Dokumen</th>
-                                        <th class="border border-outline-variant/60 px-4 py-3 text-left">Keterangan / Rincian</th>
-                                        <th class="border border-outline-variant/60 px-4 py-3 text-center">Status Unggah</th>
-                                        <th class="border border-outline-variant/60 px-4 py-3 text-center">Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr
-                                        v-for="item in dokumenKepegawaianList"
-                                        :key="item.id"
-                                        class="hover:bg-slate-50 transition-colors"
+                        <!-- 2.A. DESKTOP VIEW: TABEL DOKUMEN RIWAYAT KEPEGAWAIAN -->
+                        <div class="hidden md:block">
+                            <div v-if="dokumenKepegawaianList.length > 0" class="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-2xs">
+                                <table class="w-full text-xs sm:text-sm border-collapse">
+                                    <thead>
+                                        <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold text-[11px] uppercase tracking-wider">
+                                            <th class="px-4 py-3 text-center w-12">No</th>
+                                            <th class="px-4 py-3 text-left">Nama Dokumen</th>
+                                            <th class="px-4 py-3 text-left">Keterangan / Rincian</th>
+                                            <th class="px-4 py-3 text-center w-36">Status Unggah</th>
+                                            <th class="px-4 py-3 text-center w-52">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-100">
+                                        <tr
+                                            v-for="item in dokumenKepegawaianList"
+                                            :key="item.id"
+                                            class="hover:bg-slate-50/80 transition-colors"
+                                        >
+                                            <td class="px-4 py-3 text-center text-slate-500 font-mono text-xs">{{ item.no }}</td>
+                                            <td class="px-4 py-3 font-semibold text-slate-800">
+                                                {{ item.nama }}
+                                            </td>
+                                            <td class="px-4 py-3 text-slate-600">
+                                                {{ item.keterangan || '-' }}
+                                            </td>
+                                            <td class="px-4 py-3 text-center">
+                                                <span
+                                                    v-if="item.document"
+                                                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                                >
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                    Sudah Diunggah
+                                                </span>
+                                                <span
+                                                    v-else
+                                                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200"
+                                                >
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                                    Belum Diunggah
+                                                </span>
+                                            </td>
+                                            <td class="px-4 py-3 text-center">
+                                                <div v-if="item.document" class="inline-flex items-center gap-1.5 justify-center flex-wrap">
+                                                    <button
+                                                        type="button"
+                                                        @click="openPreview(item.document)"
+                                                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors border border-emerald-200 cursor-pointer"
+                                                        title="Lihat Pratinjau Dokumen"
+                                                    >
+                                                        <span class="material-symbols-outlined text-[15px]">visibility</span>
+                                                        <span>Lihat</span>
+                                                    </button>
+                                                    <a
+                                                        v-if="item.document.download_url"
+                                                        :href="item.document.download_url"
+                                                        target="_blank"
+                                                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 transition-colors cursor-pointer"
+                                                        title="Unduh Berkas"
+                                                    >
+                                                        <span class="material-symbols-outlined text-[15px]">download</span>
+                                                        <span>Unduh</span>
+                                                    </a>
+                                                    <button
+                                                        v-if="!item.isAdditional"
+                                                        type="button"
+                                                        @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
+                                                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 transition-colors cursor-pointer"
+                                                        title="Ganti Berkas Dokumen"
+                                                    >
+                                                        <span class="material-symbols-outlined text-[15px]">sync</span>
+                                                        <span>Ganti</span>
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        @click="deleteDocument(item.document)"
+                                                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                                                        title="Hapus Berkas Dokumen"
+                                                    >
+                                                        <span class="material-symbols-outlined text-[15px]">delete</span>
+                                                        <span>Hapus</span>
+                                                    </button>
+                                                </div>
+                                                <div v-else class="inline-flex items-center gap-1.5 justify-center flex-wrap">
+                                                    <button
+                                                        type="button"
+                                                        @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
+                                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-900 hover:bg-emerald-800 text-yellow-200 shadow-xs border border-emerald-950/30 transition-all cursor-pointer active:scale-95"
+                                                        title="Unggah Dokumen"
+                                                    >
+                                                        <span class="material-symbols-outlined text-[15px]">upload_file</span>
+                                                        <span>Unggah</span>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div v-else class="py-10 text-center border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
+                                <span class="material-symbols-outlined text-4xl text-slate-300 block mb-2">work_history</span>
+                                <p class="text-sm font-semibold text-slate-700">Belum ada dokumen riwayat kepegawaian</p>
+                            </div>
+                        </div>
+
+                        <!-- 2.B. MOBILE CARD VIEW: DOKUMEN RIWAYAT KEPEGAWAIAN -->
+                        <div class="md:hidden space-y-3">
+                            <div
+                                v-for="item in dokumenKepegawaianList"
+                                :key="item.id"
+                                class="bg-white rounded-2xl border border-slate-200 p-4 shadow-2xs space-y-3"
+                            >
+                                <div class="flex items-start justify-between gap-2 border-b border-slate-100 pb-2.5">
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200/80 flex items-center justify-center shrink-0">
+                                            <span class="material-symbols-outlined text-[16px]">work_history</span>
+                                        </span>
+                                        <div>
+                                            <h5 class="text-xs sm:text-sm font-bold text-slate-900 leading-snug">{{ item.nama }}</h5>
+                                            <span class="text-[10px] text-slate-400 font-mono">No. {{ item.no }}</span>
+                                        </div>
+                                    </div>
+                                    <span
+                                        v-if="item.document"
+                                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0"
                                     >
-                                        <td class="border border-outline-variant/60 px-4 py-3 text-center text-on-surface-variant font-mono">{{ item.no }}</td>
-                                        <td class="border border-outline-variant/60 px-4 py-3 font-semibold text-on-surface">
-                                            {{ item.nama }}
-                                        </td>
-                                        <td class="border border-outline-variant/60 px-4 py-3 text-on-surface-variant">
-                                            {{ item.keterangan || '-' }}
-                                        </td>
-                                        <td class="border border-outline-variant/60 px-4 py-3 text-center">
-                                            <span
-                                                v-if="item.document"
-                                                class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800"
-                                            >
-                                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
-                                                Sudah Diunggah
-                                            </span>
-                                            <span
-                                                v-else
-                                                class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800"
-                                            >
-                                                <span class="w-1.5 h-1.5 rounded-full bg-amber-600"></span>
-                                                Belum Diunggah
-                                            </span>
-                                        </td>
-                                        <td class="border border-outline-variant/60 px-4 py-3 text-center">
-                                            <div v-if="item.document" class="inline-flex items-center gap-1.5 justify-center flex-wrap">
-                                                <button
-                                                    type="button"
-                                                    @click="openPreview(item.document)"
-                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors border border-emerald-200 cursor-pointer"
-                                                    title="Lihat Pratinjau Dokumen"
-                                                >
-                                                    <span class="material-symbols-outlined text-[15px]">visibility</span>
-                                                    <span>Lihat</span>
-                                                </button>
-                                                <a
-                                                    :href="item.document.download_url"
-                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-outline-variant/60 hover:bg-slate-100 text-on-surface transition-colors cursor-pointer"
-                                                    title="Unduh Berkas"
-                                                >
-                                                    <span class="material-symbols-outlined text-[15px]">download</span>
-                                                    <span>Unduh</span>
-                                                </a>
-                                                <button
-                                                    v-if="!item.isAdditional"
-                                                    type="button"
-                                                    @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
-                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-outline-variant/60 hover:bg-slate-100 text-slate-700 transition-colors cursor-pointer"
-                                                    title="Ganti Berkas Dokumen"
-                                                >
-                                                    <span class="material-symbols-outlined text-[15px]">sync</span>
-                                                    <span>Unggah</span>
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    @click="deleteDocument(item.document)"
-                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                                                    title="Hapus Berkas Dokumen"
-                                                >
-                                                    <span class="material-symbols-outlined text-[15px]">delete</span>
-                                                    <span>Hapus</span>
-                                                </button>
-                                            </div>
-                                            <div v-else class="inline-flex items-center gap-1.5 justify-center flex-wrap">
-                                                <button
-                                                    type="button"
-                                                    @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
-                                                    class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"
-                                                    title="Upload Dokumen"
-                                                >
-                                                    <span class="material-symbols-outlined text-[15px]">upload_file</span>
-                                                    <span>Unggah</span>
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    disabled
-                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60"
-                                                    title="Belum ada berkas untuk dilihat"
-                                                >
-                                                    <span class="material-symbols-outlined text-[15px]">visibility_off</span>
-                                                    <span>Lihat</span>
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    disabled
-                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60"
-                                                    title="Belum ada berkas untuk dihapus"
-                                                >
-                                                    <span class="material-symbols-outlined text-[15px]">delete</span>
-                                                    <span>Hapus</span>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr v-if="dokumenKepegawaianList.length === 0">
-                                        <td colspan="5" class="border border-outline-variant/60 px-4 py-8 text-center text-xs text-on-surface-variant">
-                                            Belum ada dokumen riwayat kepegawaian.
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                        Sudah Ada
+                                    </span>
+                                    <span
+                                        v-else
+                                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 shrink-0"
+                                    >
+                                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                        Belum Ada
+                                    </span>
+                                </div>
+
+                                <div v-if="item.keterangan" class="bg-slate-50 rounded-xl p-2.5 border border-slate-100">
+                                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Keterangan / Rincian</span>
+                                    <p class="text-xs font-semibold text-slate-700 mt-0.5 break-words">{{ item.keterangan }}</p>
+                                </div>
+
+                                <div class="pt-2 border-t border-slate-100 flex items-center justify-end gap-2 flex-wrap">
+                                    <template v-if="item.document">
+                                        <button
+                                            type="button"
+                                            @click="openPreview(item.document)"
+                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition-colors cursor-pointer"
+                                        >
+                                            <span class="material-symbols-outlined text-[15px]">visibility</span>
+                                            <span>Lihat</span>
+                                        </button>
+                                        <a
+                                            v-if="item.document.download_url"
+                                            :href="item.document.download_url"
+                                            target="_blank"
+                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 transition-colors cursor-pointer"
+                                        >
+                                            <span class="material-symbols-outlined text-[15px]">download</span>
+                                            <span>Unduh</span>
+                                        </a>
+                                        <button
+                                            v-if="!item.isAdditional"
+                                            type="button"
+                                            @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
+                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 transition-colors cursor-pointer"
+                                        >
+                                            <span class="material-symbols-outlined text-[15px]">sync</span>
+                                            <span>Ganti</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            @click="deleteDocument(item.document)"
+                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200 transition-colors cursor-pointer"
+                                        >
+                                            <span class="material-symbols-outlined text-[15px]">delete</span>
+                                            <span>Hapus</span>
+                                        </button>
+                                    </template>
+                                    <template v-else>
+                                        <button
+                                            type="button"
+                                            @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
+                                            class="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-emerald-900 hover:bg-emerald-800 text-yellow-200 border border-emerald-950/30 transition-all cursor-pointer"
+                                        >
+                                            <span class="material-symbols-outlined text-[16px]">upload_file</span>
+                                            <span>Unggah Dokumen</span>
+                                        </button>
+                                    </template>
+                                </div>
+                            </div>
+
+                            <div v-if="dokumenKepegawaianList.length === 0" class="py-8 text-center border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
+                                <span class="material-symbols-outlined text-3xl text-slate-300 block mb-1.5">work_history</span>
+                                <p class="text-xs font-semibold text-slate-600">Belum ada dokumen riwayat kepegawaian</p>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- 3. TABEL DOKUMEN RIWAYAT JABATAN -->
-                    <div class="space-y-3">
-                        <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
-                            <h4 class="text-xs sm:text-sm font-bold text-primary flex items-center gap-2">
-                                <span class="material-symbols-outlined text-[18px]">assignment_turned_in</span>
-                                Dokumen Riwayat Jabatan
-                            </h4>
+                    <!-- 3. KOTAK SECTION: DOKUMEN RIWAYAT PENUGASAN & JABATAN -->
+                    <div class="bg-white rounded-3xl border border-slate-200/90 p-4 sm:p-7 shadow-xs">
+                        <!-- Header Section -->
+                        <div class="flex items-center justify-between gap-3 pb-3 mb-4 border-b border-slate-100">
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <div class="inline-flex items-center gap-2">
+                                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 shrink-0"></span>
+                                        <h4 class="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider leading-tight">
+                                            Dokumen Riwayat Penugasan &amp; Jabatan
+                                        </h4>
+                                    </div>
+                                    <span class="text-[10px] sm:text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 shrink-0">
+                                        {{ dokumenJabatanList.length }} Dokumen
+                                    </span>
+                                </div>
+                                <p class="text-[11px] sm:text-xs text-slate-500 font-medium mt-1">
+                                    Surat Keputusan (SK) penugasan dan riwayat jabatan struktural atau fungsional
+                                </p>
+                            </div>
                         </div>
 
-                        <div class="overflow-x-auto rounded-xl border border-outline-variant/60 bg-white shadow-2xs">
-                            <table class="w-full text-xs sm:text-sm border-collapse border border-outline-variant/60">
-                                <thead>
-                                    <tr class="bg-white text-on-surface-variant font-bold text-[10px] sm:text-xs uppercase tracking-wider">
-                                        <th class="border border-outline-variant/60 px-4 py-3 text-center w-12">No</th>
-                                        <th class="border border-outline-variant/60 px-4 py-3 text-left">Nama Dokumen</th>
-                                        <th class="border border-outline-variant/60 px-4 py-3 text-left">Keterangan / Rincian</th>
-                                        <th class="border border-outline-variant/60 px-4 py-3 text-center">Status Unggah</th>
-                                        <th class="border border-outline-variant/60 px-4 py-3 text-center">Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr
-                                        v-for="item in dokumenJabatanList"
-                                        :key="item.id"
-                                        class="hover:bg-slate-50 transition-colors"
+                        <!-- 3.A. DESKTOP VIEW: TABEL DOKUMEN RIWAYAT JABATAN -->
+                        <div class="hidden md:block">
+                            <div v-if="dokumenJabatanList.length > 0" class="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-2xs">
+                                <table class="w-full text-xs sm:text-sm border-collapse">
+                                    <thead>
+                                        <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold text-[11px] uppercase tracking-wider">
+                                            <th class="px-4 py-3 text-center w-12">No</th>
+                                            <th class="px-4 py-3 text-left">Nama Dokumen</th>
+                                            <th class="px-4 py-3 text-left">Keterangan / Rincian</th>
+                                            <th class="px-4 py-3 text-center w-36">Status Unggah</th>
+                                            <th class="px-4 py-3 text-center w-52">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-100">
+                                        <tr
+                                            v-for="item in dokumenJabatanList"
+                                            :key="item.id"
+                                            class="hover:bg-slate-50/80 transition-colors"
+                                        >
+                                            <td class="px-4 py-3 text-center text-slate-500 font-mono text-xs">{{ item.no }}</td>
+                                            <td class="px-4 py-3 font-semibold text-slate-800">
+                                                {{ item.nama }}
+                                            </td>
+                                            <td class="px-4 py-3 text-slate-600">
+                                                {{ item.keterangan || '-' }}
+                                            </td>
+                                            <td class="px-4 py-3 text-center">
+                                                <span
+                                                    v-if="item.document"
+                                                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                                >
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                    Sudah Diunggah
+                                                </span>
+                                                <span
+                                                    v-else
+                                                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200"
+                                                >
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                                    Belum Diunggah
+                                                </span>
+                                            </td>
+                                            <td class="px-4 py-3 text-center">
+                                                <div v-if="item.document" class="inline-flex items-center gap-1.5 justify-center flex-wrap">
+                                                    <button
+                                                        type="button"
+                                                        @click="openPreview(item.document)"
+                                                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors border border-emerald-200 cursor-pointer"
+                                                        title="Lihat Pratinjau Dokumen"
+                                                    >
+                                                        <span class="material-symbols-outlined text-[15px]">visibility</span>
+                                                        <span>Lihat</span>
+                                                    </button>
+                                                    <a
+                                                        v-if="item.document.download_url"
+                                                        :href="item.document.download_url"
+                                                        target="_blank"
+                                                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 transition-colors cursor-pointer"
+                                                        title="Unduh Berkas"
+                                                    >
+                                                        <span class="material-symbols-outlined text-[15px]">download</span>
+                                                        <span>Unduh</span>
+                                                    </a>
+                                                    <button
+                                                        v-if="!item.isAdditional"
+                                                        type="button"
+                                                        @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
+                                                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 transition-colors cursor-pointer"
+                                                        title="Ganti Berkas Dokumen"
+                                                    >
+                                                        <span class="material-symbols-outlined text-[15px]">sync</span>
+                                                        <span>Ganti</span>
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        @click="deleteDocument(item.document)"
+                                                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                                                        title="Hapus Berkas Dokumen"
+                                                    >
+                                                        <span class="material-symbols-outlined text-[15px]">delete</span>
+                                                        <span>Hapus</span>
+                                                    </button>
+                                                </div>
+                                                <div v-else class="inline-flex items-center gap-1.5 justify-center flex-wrap">
+                                                    <button
+                                                        type="button"
+                                                        @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
+                                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-900 hover:bg-emerald-800 text-yellow-200 shadow-xs border border-emerald-950/30 transition-all cursor-pointer active:scale-95"
+                                                        title="Unggah Dokumen"
+                                                    >
+                                                        <span class="material-symbols-outlined text-[15px]">upload_file</span>
+                                                        <span>Unggah</span>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div v-else class="py-10 text-center border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
+                                <span class="material-symbols-outlined text-4xl text-slate-300 block mb-2">assignment_turned_in</span>
+                                <p class="text-sm font-semibold text-slate-700">Belum ada data riwayat jabatan</p>
+                            </div>
+                        </div>
+
+                        <!-- 3.B. MOBILE CARD VIEW: DOKUMEN RIWAYAT JABATAN -->
+                        <div class="md:hidden space-y-3">
+                            <div
+                                v-for="item in dokumenJabatanList"
+                                :key="item.id"
+                                class="bg-white rounded-2xl border border-slate-200 p-4 shadow-2xs space-y-3"
+                            >
+                                <div class="flex items-start justify-between gap-2 border-b border-slate-100 pb-2.5">
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200/80 flex items-center justify-center shrink-0">
+                                            <span class="material-symbols-outlined text-[16px]">assignment_turned_in</span>
+                                        </span>
+                                        <div>
+                                            <h5 class="text-xs sm:text-sm font-bold text-slate-900 leading-snug">{{ item.nama }}</h5>
+                                            <span class="text-[10px] text-slate-400 font-mono">No. {{ item.no }}</span>
+                                        </div>
+                                    </div>
+                                    <span
+                                        v-if="item.document"
+                                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0"
                                     >
-                                        <td class="border border-outline-variant/60 px-4 py-3 text-center text-on-surface-variant font-mono">{{ item.no }}</td>
-                                        <td class="border border-outline-variant/60 px-4 py-3 font-semibold text-on-surface">
-                                            {{ item.nama }}
-                                        </td>
-                                        <td class="border border-outline-variant/60 px-4 py-3 text-on-surface-variant">
-                                            {{ item.keterangan || '-' }}
-                                        </td>
-                                        <td class="border border-outline-variant/60 px-4 py-3 text-center">
-                                            <span
-                                                v-if="item.document"
-                                                class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800"
-                                            >
-                                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
-                                                Sudah Diunggah
-                                            </span>
-                                            <span
-                                                v-else
-                                                class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800"
-                                            >
-                                                <span class="w-1.5 h-1.5 rounded-full bg-amber-600"></span>
-                                                Belum Diunggah
-                                            </span>
-                                        </td>
-                                        <td class="border border-outline-variant/60 px-4 py-3 text-center">
-                                            <div v-if="item.document" class="inline-flex items-center gap-1.5 justify-center flex-wrap">
-                                                <button
-                                                    type="button"
-                                                    @click="openPreview(item.document)"
-                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors border border-emerald-200 cursor-pointer"
-                                                    title="Lihat Pratinjau Dokumen"
-                                                >
-                                                    <span class="material-symbols-outlined text-[15px]">visibility</span>
-                                                    <span>Lihat</span>
-                                                </button>
-                                                <a
-                                                    :href="item.document.download_url"
-                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-outline-variant/60 hover:bg-slate-100 text-on-surface transition-colors cursor-pointer"
-                                                    title="Unduh Berkas"
-                                                >
-                                                    <span class="material-symbols-outlined text-[15px]">download</span>
-                                                    <span>Unduh</span>
-                                                </a>
-                                                <button
-                                                    v-if="!item.isAdditional"
-                                                    type="button"
-                                                    @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
-                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-outline-variant/60 hover:bg-slate-100 text-slate-700 transition-colors cursor-pointer"
-                                                    title="Ganti Berkas Dokumen"
-                                                >
-                                                    <span class="material-symbols-outlined text-[15px]">sync</span>
-                                                    <span>Unggah</span>
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    @click="deleteDocument(item.document)"
-                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                                                    title="Hapus Berkas Dokumen"
-                                                >
-                                                    <span class="material-symbols-outlined text-[15px]">delete</span>
-                                                    <span>Hapus</span>
-                                                </button>
-                                            </div>
-                                            <div v-else class="inline-flex items-center gap-1.5 justify-center flex-wrap">
-                                                <button
-                                                    type="button"
-                                                    @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
-                                                    class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"
-                                                    title="Upload Dokumen"
-                                                >
-                                                    <span class="material-symbols-outlined text-[15px]">upload_file</span>
-                                                    <span>Unggah</span>
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    disabled
-                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60"
-                                                    title="Belum ada berkas untuk dilihat"
-                                                >
-                                                    <span class="material-symbols-outlined text-[15px]">visibility_off</span>
-                                                    <span>Lihat</span>
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    disabled
-                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60"
-                                                    title="Belum ada berkas untuk dihapus"
-                                                >
-                                                    <span class="material-symbols-outlined text-[15px]">delete</span>
-                                                    <span>Hapus</span>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr v-if="dokumenJabatanList.length === 0">
-                                        <td colspan="5" class="border border-outline-variant/60 px-4 py-8 text-center text-xs text-on-surface-variant">
-                                            Belum ada data riwayat jabatan.
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                        Sudah Ada
+                                    </span>
+                                    <span
+                                        v-else
+                                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 shrink-0"
+                                    >
+                                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                        Belum Ada
+                                    </span>
+                                </div>
+
+                                <div v-if="item.keterangan" class="bg-slate-50 rounded-xl p-2.5 border border-slate-100">
+                                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Keterangan / Rincian</span>
+                                    <p class="text-xs font-semibold text-slate-700 mt-0.5 break-words">{{ item.keterangan }}</p>
+                                </div>
+
+                                <div class="pt-2 border-t border-slate-100 flex items-center justify-end gap-2 flex-wrap">
+                                    <template v-if="item.document">
+                                        <button
+                                            type="button"
+                                            @click="openPreview(item.document)"
+                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition-colors cursor-pointer"
+                                        >
+                                            <span class="material-symbols-outlined text-[15px]">visibility</span>
+                                            <span>Lihat</span>
+                                        </button>
+                                        <a
+                                            v-if="item.document.download_url"
+                                            :href="item.document.download_url"
+                                            target="_blank"
+                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 transition-colors cursor-pointer"
+                                        >
+                                            <span class="material-symbols-outlined text-[15px]">download</span>
+                                            <span>Unduh</span>
+                                        </a>
+                                        <button
+                                            v-if="!item.isAdditional"
+                                            type="button"
+                                            @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
+                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 transition-colors cursor-pointer"
+                                        >
+                                            <span class="material-symbols-outlined text-[15px]">sync</span>
+                                            <span>Ganti</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            @click="deleteDocument(item.document)"
+                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200 transition-colors cursor-pointer"
+                                        >
+                                            <span class="material-symbols-outlined text-[15px]">delete</span>
+                                            <span>Hapus</span>
+                                        </button>
+                                    </template>
+                                    <template v-else>
+                                        <button
+                                            type="button"
+                                            @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
+                                            class="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-emerald-900 hover:bg-emerald-800 text-yellow-200 border border-emerald-950/30 transition-all cursor-pointer"
+                                        >
+                                            <span class="material-symbols-outlined text-[16px]">upload_file</span>
+                                            <span>Unggah Dokumen</span>
+                                        </button>
+                                    </template>
+                                </div>
+                            </div>
+
+                            <div v-if="dokumenJabatanList.length === 0" class="py-8 text-center border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
+                                <span class="material-symbols-outlined text-3xl text-slate-300 block mb-1.5">assignment_turned_in</span>
+                                <p class="text-xs font-semibold text-slate-600">Belum ada data riwayat jabatan</p>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- 4. TABEL DOKUMEN RIWAYAT PENDIDIKAN FORMAL -->
-                    <div class="space-y-3">
-                        <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
-                            <h4 class="text-xs sm:text-sm font-bold text-primary flex items-center gap-2">
-                                <span class="material-symbols-outlined text-[18px]">school</span>
-                                Dokumen Riwayat Pendidikan Formal
-                            </h4>
+                    <!-- 4. KOTAK SECTION: DOKUMEN RIWAYAT PENDIDIKAN FORMAL -->
+                    <div class="bg-white rounded-3xl border border-slate-200/90 p-4 sm:p-7 shadow-xs">
+                        <!-- Header Section -->
+                        <div class="flex items-center justify-between gap-3 pb-3 mb-4 border-b border-slate-100">
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <div class="inline-flex items-center gap-2">
+                                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 shrink-0"></span>
+                                        <h4 class="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider leading-tight">
+                                            Dokumen Riwayat Pendidikan Formal
+                                        </h4>
+                                    </div>
+                                    <span class="text-[10px] sm:text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 shrink-0">
+                                        {{ dokumenPendidikanList.length }} Dokumen
+                                    </span>
+                                </div>
+                                <p class="text-[11px] sm:text-xs text-slate-500 font-medium mt-1">
+                                    Berkas ijazah resmi pendidikan formal dan sertifikat gelar profesi
+                                </p>
+                            </div>
                         </div>
 
-                        <div class="overflow-x-auto rounded-xl border border-outline-variant/60 bg-white shadow-2xs">
-                            <table class="w-full text-xs sm:text-sm border-collapse border border-outline-variant/60">
-                                <thead>
-                                    <tr class="bg-white text-on-surface-variant font-bold text-[10px] sm:text-xs uppercase tracking-wider">
-                                        <th class="border border-outline-variant/60 px-4 py-3 text-center w-12">No</th>
-                                        <th class="border border-outline-variant/60 px-4 py-3 text-left">Nama Dokumen</th>
-                                        <th class="border border-outline-variant/60 px-4 py-3 text-left">Keterangan / Rincian</th>
-                                        <th class="border border-outline-variant/60 px-4 py-3 text-center">Status Unggah</th>
-                                        <th class="border border-outline-variant/60 px-4 py-3 text-center">Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr
-                                        v-for="item in dokumenPendidikanList"
-                                        :key="item.id"
-                                        class="hover:bg-slate-50 transition-colors"
+                        <!-- 4.A. DESKTOP VIEW: TABEL DOKUMEN RIWAYAT PENDIDIKAN FORMAL -->
+                        <div class="hidden md:block">
+                            <div v-if="dokumenPendidikanList.length > 0" class="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-2xs">
+                                <table class="w-full text-xs sm:text-sm border-collapse">
+                                    <thead>
+                                        <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold text-[11px] uppercase tracking-wider">
+                                            <th class="px-4 py-3 text-center w-12">No</th>
+                                            <th class="px-4 py-3 text-left">Nama Dokumen</th>
+                                            <th class="px-4 py-3 text-left">Keterangan / Rincian</th>
+                                            <th class="px-4 py-3 text-center w-36">Status Unggah</th>
+                                            <th class="px-4 py-3 text-center w-52">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-100">
+                                        <tr
+                                            v-for="item in dokumenPendidikanList"
+                                            :key="item.id"
+                                            class="hover:bg-slate-50/80 transition-colors"
+                                        >
+                                            <td class="px-4 py-3 text-center text-slate-500 font-mono text-xs">{{ item.no }}</td>
+                                            <td class="px-4 py-3 font-semibold text-slate-800">
+                                                {{ item.nama }}
+                                            </td>
+                                            <td class="px-4 py-3 text-slate-600">
+                                                {{ item.keterangan || '-' }}
+                                            </td>
+                                            <td class="px-4 py-3 text-center">
+                                                <span
+                                                    v-if="item.document"
+                                                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                                >
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                    Sudah Diunggah
+                                                </span>
+                                                <span
+                                                    v-else
+                                                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200"
+                                                >
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                                    Belum Diunggah
+                                                </span>
+                                            </td>
+                                            <td class="px-4 py-3 text-center">
+                                                <div v-if="item.document" class="inline-flex items-center gap-1.5 justify-center flex-wrap">
+                                                    <button
+                                                        type="button"
+                                                        @click="openPreview(item.document)"
+                                                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors border border-emerald-200 cursor-pointer"
+                                                        title="Lihat Pratinjau Dokumen"
+                                                    >
+                                                        <span class="material-symbols-outlined text-[15px]">visibility</span>
+                                                        <span>Lihat</span>
+                                                    </button>
+                                                    <a
+                                                        v-if="item.document.download_url"
+                                                        :href="item.document.download_url"
+                                                        target="_blank"
+                                                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 transition-colors cursor-pointer"
+                                                        title="Unduh Berkas"
+                                                    >
+                                                        <span class="material-symbols-outlined text-[15px]">download</span>
+                                                        <span>Unduh</span>
+                                                    </a>
+                                                    <button
+                                                        v-if="!item.isAdditional"
+                                                        type="button"
+                                                        @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
+                                                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 transition-colors cursor-pointer"
+                                                        title="Ganti Berkas Dokumen"
+                                                    >
+                                                        <span class="material-symbols-outlined text-[15px]">sync</span>
+                                                        <span>Ganti</span>
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        @click="deleteDocument(item.document)"
+                                                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                                                        title="Hapus Berkas Dokumen"
+                                                    >
+                                                        <span class="material-symbols-outlined text-[15px]">delete</span>
+                                                        <span>Hapus</span>
+                                                    </button>
+                                                </div>
+                                                <div v-else class="inline-flex items-center gap-1.5 justify-center flex-wrap">
+                                                    <button
+                                                        type="button"
+                                                        @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
+                                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-900 hover:bg-emerald-800 text-yellow-200 shadow-xs border border-emerald-950/30 transition-all cursor-pointer active:scale-95"
+                                                        title="Unggah Dokumen"
+                                                    >
+                                                        <span class="material-symbols-outlined text-[15px]">upload_file</span>
+                                                        <span>Unggah</span>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div v-else class="py-10 text-center border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
+                                <span class="material-symbols-outlined text-4xl text-slate-300 block mb-2">school</span>
+                                <p class="text-sm font-semibold text-slate-700">Belum ada dokumen riwayat pendidikan formal</p>
+                            </div>
+                        </div>
+
+                        <!-- 4.B. MOBILE CARD VIEW: DOKUMEN RIWAYAT PENDIDIKAN FORMAL -->
+                        <div class="md:hidden space-y-3">
+                            <div
+                                v-for="item in dokumenPendidikanList"
+                                :key="item.id"
+                                class="bg-white rounded-2xl border border-slate-200 p-4 shadow-2xs space-y-3"
+                            >
+                                <div class="flex items-start justify-between gap-2 border-b border-slate-100 pb-2.5">
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200/80 flex items-center justify-center shrink-0">
+                                            <span class="material-symbols-outlined text-[16px]">school</span>
+                                        </span>
+                                        <div>
+                                            <h5 class="text-xs sm:text-sm font-bold text-slate-900 leading-snug">{{ item.nama }}</h5>
+                                            <span class="text-[10px] text-slate-400 font-mono">No. {{ item.no }}</span>
+                                        </div>
+                                    </div>
+                                    <span
+                                        v-if="item.document"
+                                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0"
                                     >
-                                        <td class="border border-outline-variant/60 px-4 py-3 text-center text-on-surface-variant font-mono">{{ item.no }}</td>
-                                        <td class="border border-outline-variant/60 px-4 py-3 font-semibold text-on-surface">
-                                            {{ item.nama }}
-                                        </td>
-                                        <td class="border border-outline-variant/60 px-4 py-3 text-on-surface-variant">
-                                            {{ item.keterangan || '-' }}
-                                        </td>
-                                        <td class="border border-outline-variant/60 px-4 py-3 text-center">
-                                            <span
-                                                v-if="item.document"
-                                                class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800"
-                                            >
-                                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
-                                                Sudah Diunggah
-                                            </span>
-                                            <span
-                                                v-else
-                                                class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800"
-                                            >
-                                                <span class="w-1.5 h-1.5 rounded-full bg-amber-600"></span>
-                                                Belum Diunggah
-                                            </span>
-                                        </td>
-                                        <td class="border border-outline-variant/60 px-4 py-3 text-center">
-                                            <div v-if="item.document" class="inline-flex items-center gap-1.5 justify-center flex-wrap">
-                                                <button
-                                                    type="button"
-                                                    @click="openPreview(item.document)"
-                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors border border-emerald-200 cursor-pointer"
-                                                    title="Lihat Pratinjau Dokumen"
-                                                >
-                                                    <span class="material-symbols-outlined text-[15px]">visibility</span>
-                                                    <span>Lihat</span>
-                                                </button>
-                                                <a
-                                                    :href="item.document.download_url"
-                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-outline-variant/60 hover:bg-slate-100 text-on-surface transition-colors cursor-pointer"
-                                                    title="Unduh Berkas"
-                                                >
-                                                    <span class="material-symbols-outlined text-[15px]">download</span>
-                                                    <span>Unduh</span>
-                                                </a>
-                                                <button
-                                                    v-if="!item.isAdditional"
-                                                    type="button"
-                                                    @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
-                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-outline-variant/60 hover:bg-slate-100 text-slate-700 transition-colors cursor-pointer"
-                                                    title="Ganti Berkas Dokumen"
-                                                >
-                                                    <span class="material-symbols-outlined text-[15px]">sync</span>
-                                                    <span>Unggah</span>
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    @click="deleteDocument(item.document)"
-                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                                                    title="Hapus Berkas Dokumen"
-                                                >
-                                                    <span class="material-symbols-outlined text-[15px]">delete</span>
-                                                    <span>Hapus</span>
-                                                </button>
-                                            </div>
-                                            <div v-else class="inline-flex items-center gap-1.5 justify-center flex-wrap">
-                                                <button
-                                                    type="button"
-                                                    @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
-                                                    class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"
-                                                    title="Upload Dokumen"
-                                                >
-                                                    <span class="material-symbols-outlined text-[15px]">upload_file</span>
-                                                    <span>Unggah</span>
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    disabled
-                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60"
-                                                    title="Belum ada berkas untuk dilihat"
-                                                >
-                                                    <span class="material-symbols-outlined text-[15px]">visibility_off</span>
-                                                    <span>Lihat</span>
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    disabled
-                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60"
-                                                    title="Belum ada berkas untuk dihapus"
-                                                >
-                                                    <span class="material-symbols-outlined text-[15px]">delete</span>
-                                                    <span>Hapus</span>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr v-if="dokumenPendidikanList.length === 0">
-                                        <td colspan="5" class="border border-outline-variant/60 px-4 py-8 text-center text-xs text-on-surface-variant">
-                                            Belum ada dokumen riwayat pendidikan formal.
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                        Sudah Ada
+                                    </span>
+                                    <span
+                                        v-else
+                                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 shrink-0"
+                                    >
+                                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                        Belum Ada
+                                    </span>
+                                </div>
+
+                                <div v-if="item.keterangan" class="bg-slate-50 rounded-xl p-2.5 border border-slate-100">
+                                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Keterangan / Rincian</span>
+                                    <p class="text-xs font-semibold text-slate-700 mt-0.5 break-words">{{ item.keterangan }}</p>
+                                </div>
+
+                                <div class="pt-2 border-t border-slate-100 flex items-center justify-end gap-2 flex-wrap">
+                                    <template v-if="item.document">
+                                        <button
+                                            type="button"
+                                            @click="openPreview(item.document)"
+                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition-colors cursor-pointer"
+                                        >
+                                            <span class="material-symbols-outlined text-[15px]">visibility</span>
+                                            <span>Lihat</span>
+                                        </button>
+                                        <a
+                                            v-if="item.document.download_url"
+                                            :href="item.document.download_url"
+                                            target="_blank"
+                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 transition-colors cursor-pointer"
+                                        >
+                                            <span class="material-symbols-outlined text-[15px]">download</span>
+                                            <span>Unduh</span>
+                                        </a>
+                                        <button
+                                            v-if="!item.isAdditional"
+                                            type="button"
+                                            @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
+                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 transition-colors cursor-pointer"
+                                        >
+                                            <span class="material-symbols-outlined text-[15px]">sync</span>
+                                            <span>Ganti</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            @click="deleteDocument(item.document)"
+                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200 transition-colors cursor-pointer"
+                                        >
+                                            <span class="material-symbols-outlined text-[15px]">delete</span>
+                                            <span>Hapus</span>
+                                        </button>
+                                    </template>
+                                    <template v-else>
+                                        <button
+                                            type="button"
+                                            @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
+                                            class="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-emerald-900 hover:bg-emerald-800 text-yellow-200 border border-emerald-950/30 transition-all cursor-pointer"
+                                        >
+                                            <span class="material-symbols-outlined text-[16px]">upload_file</span>
+                                            <span>Unggah Dokumen</span>
+                                        </button>
+                                    </template>
+                                </div>
+                            </div>
+
+                            <div v-if="dokumenPendidikanList.length === 0" class="py-8 text-center border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
+                                <span class="material-symbols-outlined text-3xl text-slate-300 block mb-1.5">school</span>
+                                <p class="text-xs font-semibold text-slate-600">Belum ada dokumen riwayat pendidikan formal</p>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- 5. TABEL DOKUMEN RIWAYAT PELATIHAN DAN PENDIDIKAN NONFORMAL -->
-                    <div class="space-y-3">
-                        <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
-                            <h4 class="text-xs sm:text-sm font-bold text-primary flex items-center gap-2">
-                                <span class="material-symbols-outlined text-[18px]">workspace_premium</span>
-                                Dokumen Riwayat Pelatihan dan Sertifikat
-                            </h4>
+                    <!-- 5. KOTAK SECTION: DOKUMEN RIWAYAT PELATIHAN DAN SERTIFIKAT -->
+                    <div class="bg-white rounded-3xl border border-slate-200/90 p-4 sm:p-7 shadow-xs">
+                        <!-- Header Section -->
+                        <div class="flex items-center justify-between gap-3 pb-3 mb-4 border-b border-slate-100">
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <div class="inline-flex items-center gap-2">
+                                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 shrink-0"></span>
+                                        <h4 class="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider leading-tight">
+                                            Dokumen Riwayat Pelatihan &amp; Sertifikat
+                                        </h4>
+                                    </div>
+                                    <span class="text-[10px] sm:text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 shrink-0">
+                                        {{ dokumenPelatihanList.length }} Dokumen
+                                    </span>
+                                </div>
+                                <p class="text-[11px] sm:text-xs text-slate-500 font-medium mt-1">
+                                    Sertifikat pelatihan, workshop, keahlian khusus, dan pendidikan nonformal
+                                </p>
+                            </div>
                         </div>
 
-                        <div class="overflow-x-auto rounded-xl border border-outline-variant/60 bg-white shadow-2xs">
-                            <table class="w-full text-xs sm:text-sm border-collapse border border-outline-variant/60">
-                                <thead>
-                                    <tr class="bg-white text-on-surface-variant font-bold text-[10px] sm:text-xs uppercase tracking-wider">
-                                        <th class="border border-outline-variant/60 px-4 py-3 text-center w-12">No</th>
-                                        <th class="border border-outline-variant/60 px-4 py-3 text-left">Nama Dokumen</th>
-                                        <th class="border border-outline-variant/60 px-4 py-3 text-left">Keterangan / Rincian</th>
-                                        <th class="border border-outline-variant/60 px-4 py-3 text-center">Status Unggah</th>
-                                        <th class="border border-outline-variant/60 px-4 py-3 text-center">Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr
-                                        v-for="item in dokumenPelatihanList"
-                                        :key="item.id"
-                                        class="hover:bg-slate-50 transition-colors"
+                        <!-- 5.A. DESKTOP VIEW: TABEL DOKUMEN RIWAYAT PELATIHAN -->
+                        <div class="hidden md:block">
+                            <div v-if="dokumenPelatihanList.length > 0" class="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-2xs">
+                                <table class="w-full text-xs sm:text-sm border-collapse">
+                                    <thead>
+                                        <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold text-[11px] uppercase tracking-wider">
+                                            <th class="px-4 py-3 text-center w-12">No</th>
+                                            <th class="px-4 py-3 text-left">Nama Dokumen</th>
+                                            <th class="px-4 py-3 text-left">Keterangan / Rincian</th>
+                                            <th class="px-4 py-3 text-center w-36">Status Unggah</th>
+                                            <th class="px-4 py-3 text-center w-52">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-100">
+                                        <tr
+                                            v-for="item in dokumenPelatihanList"
+                                            :key="item.id"
+                                            class="hover:bg-slate-50/80 transition-colors"
+                                        >
+                                            <td class="px-4 py-3 text-center text-slate-500 font-mono text-xs">{{ item.no }}</td>
+                                            <td class="px-4 py-3 font-semibold text-slate-800">
+                                                {{ item.nama }}
+                                            </td>
+                                            <td class="px-4 py-3 text-slate-600">
+                                                {{ item.keterangan || '-' }}
+                                            </td>
+                                            <td class="px-4 py-3 text-center">
+                                                <span
+                                                    v-if="item.document"
+                                                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                                >
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                    Sudah Diunggah
+                                                </span>
+                                                <span
+                                                    v-else
+                                                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200"
+                                                >
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                                    Belum Diunggah
+                                                </span>
+                                            </td>
+                                            <td class="px-4 py-3 text-center">
+                                                <div v-if="item.document" class="inline-flex items-center gap-1.5 justify-center flex-wrap">
+                                                    <button
+                                                        type="button"
+                                                        @click="openPreview(item.document)"
+                                                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors border border-emerald-200 cursor-pointer"
+                                                        title="Lihat Pratinjau Dokumen"
+                                                    >
+                                                        <span class="material-symbols-outlined text-[15px]">visibility</span>
+                                                        <span>Lihat</span>
+                                                    </button>
+                                                    <a
+                                                        v-if="item.document.download_url"
+                                                        :href="item.document.download_url"
+                                                        target="_blank"
+                                                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 transition-colors cursor-pointer"
+                                                        title="Unduh Berkas"
+                                                    >
+                                                        <span class="material-symbols-outlined text-[15px]">download</span>
+                                                        <span>Unduh</span>
+                                                    </a>
+                                                    <button
+                                                        v-if="!item.isAdditional"
+                                                        type="button"
+                                                        @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
+                                                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 transition-colors cursor-pointer"
+                                                        title="Ganti Berkas Dokumen"
+                                                    >
+                                                        <span class="material-symbols-outlined text-[15px]">sync</span>
+                                                        <span>Ganti</span>
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        @click="deleteDocument(item.document)"
+                                                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                                                        title="Hapus Berkas Dokumen"
+                                                    >
+                                                        <span class="material-symbols-outlined text-[15px]">delete</span>
+                                                        <span>Hapus</span>
+                                                    </button>
+                                                </div>
+                                                <div v-else class="inline-flex items-center gap-1.5 justify-center flex-wrap">
+                                                    <button
+                                                        type="button"
+                                                        @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
+                                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-900 hover:bg-emerald-800 text-yellow-200 shadow-xs border border-emerald-950/30 transition-all cursor-pointer active:scale-95"
+                                                        title="Unggah Dokumen"
+                                                    >
+                                                        <span class="material-symbols-outlined text-[15px]">upload_file</span>
+                                                        <span>Unggah</span>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div v-else class="py-10 text-center border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
+                                <span class="material-symbols-outlined text-4xl text-slate-300 block mb-2">workspace_premium</span>
+                                <p class="text-sm font-semibold text-slate-700">Belum ada dokumen riwayat pelatihan</p>
+                            </div>
+                        </div>
+
+                        <!-- 5.B. MOBILE CARD VIEW: DOKUMEN RIWAYAT PELATIHAN -->
+                        <div class="md:hidden space-y-3">
+                            <div
+                                v-for="item in dokumenPelatihanList"
+                                :key="item.id"
+                                class="bg-white rounded-2xl border border-slate-200 p-4 shadow-2xs space-y-3"
+                            >
+                                <div class="flex items-start justify-between gap-2 border-b border-slate-100 pb-2.5">
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200/80 flex items-center justify-center shrink-0">
+                                            <span class="material-symbols-outlined text-[16px]">workspace_premium</span>
+                                        </span>
+                                        <div>
+                                            <h5 class="text-xs sm:text-sm font-bold text-slate-900 leading-snug">{{ item.nama }}</h5>
+                                            <span class="text-[10px] text-slate-400 font-mono">No. {{ item.no }}</span>
+                                        </div>
+                                    </div>
+                                    <span
+                                        v-if="item.document"
+                                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0"
                                     >
-                                        <td class="border border-outline-variant/60 px-4 py-3 text-center text-on-surface-variant font-mono">{{ item.no }}</td>
-                                        <td class="border border-outline-variant/60 px-4 py-3 font-semibold text-on-surface">
-                                            {{ item.nama }}
-                                        </td>
-                                        <td class="border border-outline-variant/60 px-4 py-3 text-on-surface-variant">
-                                            {{ item.keterangan || '-' }}
-                                        </td>
-                                        <td class="border border-outline-variant/60 px-4 py-3 text-center">
-                                            <span
-                                                v-if="item.document"
-                                                class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800"
-                                            >
-                                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
-                                                Sudah Diunggah
-                                            </span>
-                                            <span
-                                                v-else
-                                                class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800"
-                                            >
-                                                <span class="w-1.5 h-1.5 rounded-full bg-amber-600"></span>
-                                                Belum Diunggah
-                                            </span>
-                                        </td>
-                                        <td class="border border-outline-variant/60 px-4 py-3 text-center">
-                                            <div v-if="item.document" class="inline-flex items-center gap-1.5 justify-center flex-wrap">
-                                                <button
-                                                    type="button"
-                                                    @click="openPreview(item.document)"
-                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors border border-emerald-200 cursor-pointer"
-                                                    title="Lihat Pratinjau Dokumen"
-                                                >
-                                                    <span class="material-symbols-outlined text-[15px]">visibility</span>
-                                                    <span>Lihat</span>
-                                                </button>
-                                                <a
-                                                    :href="item.document.download_url"
-                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-outline-variant/60 hover:bg-slate-100 text-on-surface transition-colors cursor-pointer"
-                                                    title="Unduh Berkas"
-                                                >
-                                                    <span class="material-symbols-outlined text-[15px]">download</span>
-                                                    <span>Unduh</span>
-                                                </a>
-                                                <button
-                                                    type="button"
-                                                    @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
-                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-outline-variant/60 hover:bg-slate-100 text-slate-700 transition-colors cursor-pointer"
-                                                    title="Ganti Berkas Dokumen"
-                                                >
-                                                    <span class="material-symbols-outlined text-[15px]">sync</span>
-                                                    <span>Unggah</span>
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    @click="deleteDocument(item.document)"
-                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                                                    title="Hapus Berkas Dokumen"
-                                                >
-                                                    <span class="material-symbols-outlined text-[15px]">delete</span>
-                                                    <span>Hapus</span>
-                                                </button>
-                                            </div>
-                                            <div v-else class="inline-flex items-center gap-1.5 justify-center flex-wrap">
-                                                <button
-                                                    type="button"
-                                                    @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
-                                                    class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"
-                                                    title="Upload Dokumen"
-                                                >
-                                                    <span class="material-symbols-outlined text-[15px]">upload_file</span>
-                                                    <span>Unggah</span>
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    disabled
-                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60"
-                                                    title="Belum ada berkas untuk dilihat"
-                                                >
-                                                    <span class="material-symbols-outlined text-[15px]">visibility_off</span>
-                                                    <span>Lihat</span>
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    disabled
-                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60"
-                                                    title="Belum ada berkas untuk dihapus"
-                                                >
-                                                    <span class="material-symbols-outlined text-[15px]">delete</span>
-                                                    <span>Hapus</span>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr v-if="dokumenPelatihanList.length === 0">
-                                        <td colspan="5" class="border border-outline-variant/60 px-4 py-8 text-center text-xs text-on-surface-variant">
-                                            Belum ada dokumen riwayat pelatihan.
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                        Sudah Ada
+                                    </span>
+                                    <span
+                                        v-else
+                                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 shrink-0"
+                                    >
+                                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                        Belum Ada
+                                    </span>
+                                </div>
+
+                                <div v-if="item.keterangan" class="bg-slate-50 rounded-xl p-2.5 border border-slate-100">
+                                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Keterangan / Rincian</span>
+                                    <p class="text-xs font-semibold text-slate-700 mt-0.5 break-words">{{ item.keterangan }}</p>
+                                </div>
+
+                                <div class="pt-2 border-t border-slate-100 flex items-center justify-end gap-2 flex-wrap">
+                                    <template v-if="item.document">
+                                        <button
+                                            type="button"
+                                            @click="openPreview(item.document)"
+                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition-colors cursor-pointer"
+                                        >
+                                            <span class="material-symbols-outlined text-[15px]">visibility</span>
+                                            <span>Lihat</span>
+                                        </button>
+                                        <a
+                                            v-if="item.document.download_url"
+                                            :href="item.document.download_url"
+                                            target="_blank"
+                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 transition-colors cursor-pointer"
+                                        >
+                                            <span class="material-symbols-outlined text-[15px]">download</span>
+                                            <span>Unduh</span>
+                                        </a>
+                                        <button
+                                            v-if="!item.isAdditional"
+                                            type="button"
+                                            @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
+                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 transition-colors cursor-pointer"
+                                        >
+                                            <span class="material-symbols-outlined text-[15px]">sync</span>
+                                            <span>Ganti</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            @click="deleteDocument(item.document)"
+                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200 transition-colors cursor-pointer"
+                                        >
+                                            <span class="material-symbols-outlined text-[15px]">delete</span>
+                                            <span>Hapus</span>
+                                        </button>
+                                    </template>
+                                    <template v-else>
+                                        <button
+                                            type="button"
+                                            @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
+                                            class="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-emerald-900 hover:bg-emerald-800 text-yellow-200 border border-emerald-950/30 transition-all cursor-pointer"
+                                        >
+                                            <span class="material-symbols-outlined text-[16px]">upload_file</span>
+                                            <span>Unggah Dokumen</span>
+                                        </button>
+                                    </template>
+                                </div>
+                            </div>
+
+                            <div v-if="dokumenPelatihanList.length === 0" class="py-8 text-center border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
+                                <span class="material-symbols-outlined text-3xl text-slate-300 block mb-1.5">workspace_premium</span>
+                                <p class="text-xs font-semibold text-slate-600">Belum ada dokumen riwayat pelatihan</p>
+                            </div>
                         </div>
                     </div>
                 </div>
