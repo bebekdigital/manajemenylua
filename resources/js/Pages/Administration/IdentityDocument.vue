@@ -153,7 +153,7 @@ const clearSelection = () => { selectedStudentIds.value = []; };
 
             <!-- Sticky top bar -->
             <div class="sticky top-0 z-20 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-2xs">
-                <div class="max-w-7xl mx-auto px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+                <div class="max-w-7xl mx-auto px-4 md:px-margin-desktop py-3 flex flex-wrap items-center justify-between gap-3">
                     <!-- Left: Back + Title -->
                     <div class="flex items-center space-x-3">
                         <Link
@@ -187,7 +187,7 @@ const clearSelection = () => { selectedStudentIds.value = []; };
                 </div>
             </div>
 
-            <div class="max-w-7xl mx-auto px-6 py-6 space-y-5 mt-4">
+            <div class="max-w-7xl mx-auto p-4 md:p-margin-desktop space-y-5">
 
                 <!-- Filter & Action Bar -->
                 <StudentToolbar

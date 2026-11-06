@@ -40,7 +40,7 @@ const maxTypeTotal = computed(() => {
 </script>
 
 <template>
-    <div class="flex-grow max-w-6xl mx-auto w-full px-4 py-5 md:py-8">
+    <div class="flex-grow max-w-6xl mx-auto w-full p-4 md:p-margin-desktop">
         <Head title="Statistik Pegawai - Yayasan Li Ulil Albab" />
 
         <!-- Navigation Bar Atas: Tombol Kembali -->

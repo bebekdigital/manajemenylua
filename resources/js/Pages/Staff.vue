@@ -379,7 +379,7 @@ function onPageChange(p) {
 </script>
 
 <template>
-    <div ref="pageContainerRef" class="flex-1 overflow-y-auto px-4 pt-6 pb-12 md:px-8 md:py-7 bg-white min-h-screen">
+    <div ref="pageContainerRef" class="flex-1 overflow-y-auto p-4 md:p-margin-desktop bg-white min-h-screen">
         <Head title="Database Pegawai - Foundation Data Center" />
         <div class="max-w-[1440px] mx-auto">
             <!-- Teacher Role Scoping Notice Banner -->

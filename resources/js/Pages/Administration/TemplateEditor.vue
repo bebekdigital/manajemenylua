@@ -205,7 +205,7 @@ const resetTemplate = () => {
 <template>
     <div class="flex-grow min-h-screen bg-background">
         <Head title="Pengaturan Template Berkas" />
-        <div class="max-w-7xl mx-auto px-6 py-8">
+        <div class="max-w-7xl mx-auto p-4 md:p-margin-desktop">
             
             <!-- Section 1: Header/Aksi -->
             <div class="bg-surface rounded-2xl shadow-sm border border-outline-variant mb-6">

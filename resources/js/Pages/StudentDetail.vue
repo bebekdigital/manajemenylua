@@ -142,7 +142,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <div class="flex-1 overflow-y-auto px-4 pt-6 pb-24 md:px-8 md:py-7 bg-white min-h-screen">
+    <div class="flex-1 overflow-y-auto p-4 md:p-margin-desktop pb-24 md:pb-margin-desktop bg-white min-h-screen">
         <Head :title="`Detail Siswa - ${student.nama}`" />
 
         <div class="max-w-[1440px] mx-auto">

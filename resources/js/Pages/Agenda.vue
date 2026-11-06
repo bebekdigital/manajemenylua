@@ -160,7 +160,7 @@ function handleSaveAgenda() {
 <template>
     <Head title="Agenda Kegiatan - Yayasan Li Ulil Albab" />
 
-    <div class="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+    <div class="p-4 md:p-margin-desktop max-w-7xl mx-auto space-y-6">
         <!-- Header Banner -->
         <div class="bg-gradient-to-r from-emerald-900 via-emerald-800 to-teal-900 rounded-3xl p-6 sm:p-8 text-white shadow-lg relative overflow-hidden">
             <div class="absolute -right-10 -bottom-10 w-64 h-64 bg-emerald-700/30 rounded-full blur-3xl pointer-events-none"></div>

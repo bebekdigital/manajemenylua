@@ -618,7 +618,7 @@ function formatDate(dateStr) {
 </script>
 
 <template>
-    <div class="w-full p-4 md:px-6 md:py-5 bg-white">
+    <div class="w-full p-4 md:p-margin-desktop bg-white">
         <Head title="Manajemen Portal - Foundation Data Center" />
 
         <!-- Page Header -->
