@@ -84,7 +84,7 @@ const { installPwa, isInstalled } = usePwaInstall();
 // Tab definitions
 const allTabs = [
     { id: 'akademik', label: 'Akademik', icon: 'school' },
-    { id: 'unit_bidang', label: 'Unit & Bidang', icon: 'domain' },
+    { id: 'unit_bidang', label: 'Organisasi', icon: 'domain' },
     { id: 'pengguna', label: 'Pengguna', icon: 'manage_accounts', superadminOnly: true },
     { id: 'hak_akses', label: 'Hak Akses', icon: 'shield_person', superadminOnly: true },
     { id: 'aplikasi_pwa', label: 'Aplikasi (PWA)', icon: 'install_mobile' },

@@ -224,7 +224,7 @@ function submit() {
                                     />
                                     <p v-if="!hasSatuanPendidikan" class="text-[11.5px] text-amber-800 bg-amber-50 border border-amber-200/90 p-2.5 rounded-xl flex items-start gap-1.5 mt-1 leading-relaxed">
                                         <span class="material-symbols-outlined text-[16px] text-amber-700 shrink-0 mt-0.5">info</span>
-                                        <span>Belum ada unit dengan kelompok <strong>Satuan Pendidikan</strong> di Diagram Organisasi. Anda dapat menambahkannya terlebih dahulu di tab <em>Unit & Bidang &rarr; Daftar Unit</em> atau ketik nama secara manual di atas.</span>
+                                        <span>Belum ada unit dengan kelompok <strong>Satuan Pendidikan</strong> di Diagram Organisasi. Anda dapat menambahkannya terlebih dahulu di tab <em>Organisasi &rarr; Daftar Unit</em> atau ketik nama secara manual di atas.</span>
                                     </p>
                                 </div>
 

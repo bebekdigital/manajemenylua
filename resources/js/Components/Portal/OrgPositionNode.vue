@@ -19,6 +19,10 @@ const props = defineProps({
         type: [Number, String, null],
         default: null,
     },
+    isEditMode: {
+        type: Boolean,
+        default: false,
+    },
 });
 
 const emit = defineEmits([
@@ -84,6 +88,7 @@ const hasSubordinates = computed(() => {
 
             <!-- NODE + DI BAWAH KARTU (TAMBAH HIERARKI BAWAHAN: LANGSUNG KE MODAL) -->
             <button
+                v-if="isEditMode"
                 type="button"
                 @click.stop="$emit('add-subordinate', pos)"
                 class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 sm:w-4.5 sm:h-4.5 rounded-full border border-white shadow-xs flex items-center justify-center transition-all duration-150 hover:scale-125 z-30 cursor-pointer"
@@ -95,6 +100,7 @@ const hasSubordinates = computed(() => {
 
             <!-- NODE + DI SAMPING KANAN KARTU (TAMBAH HIERARKI SEJAJAR) -->
             <button
+                v-if="isEditMode"
                 type="button"
                 @click.stop="$emit('add-peer', pos)"
                 class="absolute -right-2 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-4.5 sm:h-4.5 rounded-full border border-white shadow-xs flex items-center justify-center transition-all duration-150 hover:scale-125 z-30 cursor-pointer"
@@ -122,7 +128,7 @@ const hasSubordinates = computed(() => {
                 </span>
 
                 <!-- Tombol Edit & Hapus di Pojok Kanan Atas Card -->
-                <div class="flex items-center gap-0.5 shrink-0 ml-auto">
+                <div v-if="isEditMode" class="flex items-center gap-0.5 shrink-0 ml-auto">
                     <button
                         type="button"
                         @click.stop="$emit('edit', pos)"
@@ -162,6 +168,7 @@ const hasSubordinates = computed(() => {
                         :level-def="levelDef"
                         :intra-children-map="intraChildrenMap"
                         :hovered-pos-id="hoveredPosId"
+                        :is-edit-mode="isEditMode"
                         @hover="$emit('hover', $event)"
                         @leave="$emit('leave')"
                         @add-subordinate="$emit('add-subordinate', $event)"
@@ -181,6 +188,7 @@ const hasSubordinates = computed(() => {
                         :level-def="levelDef"
                         :intra-children-map="intraChildrenMap"
                         :hovered-pos-id="hoveredPosId"
+                        :is-edit-mode="isEditMode"
                         @hover="$emit('hover', $event)"
                         @leave="$emit('leave')"
                         @add-subordinate="$emit('add-subordinate', $event)"
@@ -200,6 +208,7 @@ const hasSubordinates = computed(() => {
                     :level-def="levelDef"
                     :intra-children-map="intraChildrenMap"
                     :hovered-pos-id="hoveredPosId"
+                    :is-edit-mode="isEditMode"
                     @hover="$emit('hover', $event)"
                     @leave="$emit('leave')"
                     @add-subordinate="$emit('add-subordinate', $event)"

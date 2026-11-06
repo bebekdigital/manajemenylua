@@ -41,6 +41,12 @@ const svgWidth = ref(800);
 const svgHeight = ref(600);
 const zoomScale = ref(1);
 const isAutoFit = ref(true);
+const isEditMode = ref(false);
+
+function setEditMode(val) {
+    isEditMode.value = val;
+    nextTick(updateConnectionLines);
+}
 
 function setZoom(val) {
     isAutoFit.value = false;
@@ -442,8 +448,8 @@ function updateConnectionLines() {
         }
     }
 
+    const scale = zoomScale.value || 1;
     const wrapperRect = wrapperEl.getBoundingClientRect();
-    const scale = (wrapperEl.offsetWidth > 0 ? wrapperRect.width / wrapperEl.offsetWidth : zoomScale.value) || 1;
 
     // Helper konversi koordinat layar ke koordinat internal canvas (unscaled)
     const toX = (screenX) => Math.round((screenX - wrapperRect.left) / scale);
@@ -462,7 +468,7 @@ function updateConnectionLines() {
         }
     });
 
-    svgWidth.value = Math.max(rawTableWidth, maxCardRight + 48);
+    svgWidth.value = Math.max(availableWidth, rawTableWidth, maxCardRight + 48);
     svgHeight.value = rawTableHeight;
 
     const lines = [];
@@ -668,14 +674,10 @@ function updateConnectionLines() {
             }
             // 3. KASUS LEVEL DI BAWAHNYA LANGSUNG (childLevel === parentLevel + 1)
             else {
-                const parentRowEl = document.getElementById(`level-row-${parentLevel}`);
-                let midY;
-                if (parentRowEl) {
-                    const rowRect = parentRowEl.getBoundingClientRect();
-                    midY = toY(rowRect.bottom);
-                } else {
-                    midY = Math.round(y1 + (y2 - y1) * 0.5);
-                }
+                // Titik tengah alami tepat di antara bagian bawah kartu atasan dan bagian atas kartu bawahan
+                const naturalMid = Math.round(y1 + (y2 - y1) * 0.5);
+                // Jamin jarak vertikal garis cabang proporsional minimal 22px dari kartu atasan dan 22px dari kartu bawahan
+                const midY = Math.min(y2 - 22, Math.max(y1 + 22, naturalMid));
 
                 // Pisahkan pengecekan rintangan di level atasan (y1..midY) dan di level bawahan (midY..y2)
                 const obstacleInParent = findObstacleCard(x1, y1, midY, [pos.parent_id, pos.id]);
@@ -691,8 +693,8 @@ function updateConnectionLines() {
                     const x_detour = computeDetourX(obstacleInChild, x2, pos.parent_id, pos.id);
                     const y_below = Math.round(obstacleInChild.bottom + Math.max(8, (y2 - obstacleInChild.bottom) * 0.5));
                     path = `M ${x1} ${y1} L ${x1} ${midY} L ${x_detour} ${midY} L ${x_detour} ${y_below} L ${x2} ${y_below} L ${x2} ${y2}`;
-                } else if (Math.abs(x1 - x2) <= 6) {
-                    path = `M ${x1} ${y1} L ${x1} ${y2}`;
+                } else if (Math.abs(x1 - x2) <= 4) {
+                    path = `M ${x2} ${y1} L ${x2} ${y2}`;
                 } else {
                     path = `M ${x1} ${y1} L ${x1} ${midY} L ${x2} ${midY} L ${x2} ${y2}`;
                 }
@@ -835,17 +837,34 @@ function handleDelete(pos) {
                         </div>
                     </div>
 
-                    <!-- Top Action Buttons -->
+                    <!-- Top Action Buttons: Mode View / Edit Switcher -->
                     <div class="flex items-center gap-2.5 flex-wrap">
-                        <button
-                            type="button"
-                            @click="$emit('add-department')"
-                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-outline-variant/60 hover:bg-surface-container-high text-on-surface font-semibold text-xs transition-all cursor-pointer"
-                            title="Tambah bidang kerja yayasan"
-                        >
-                            <span class="material-symbols-outlined text-[16px]">add_business</span>
-                            <span>Tambah Bidang</span>
-                        </button>
+                        <div v-if="activeTab === 'diagram'" class="inline-flex items-center p-1 bg-slate-100 border border-slate-200 rounded-xl shrink-0">
+                            <button
+                                type="button"
+                                @click="setEditMode(false)"
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer"
+                                :class="!isEditMode
+                                    ? 'bg-emerald-900 text-yellow-200 shadow-2xs'
+                                    : 'text-slate-600 hover:text-slate-900 border border-transparent'"
+                                title="Mode Lihat Struktur Organisasi"
+                            >
+                                <span class="material-symbols-outlined text-[16px]">visibility</span>
+                                <span>Mode Lihat</span>
+                            </button>
+                            <button
+                                type="button"
+                                @click="setEditMode(true)"
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer"
+                                :class="isEditMode
+                                    ? 'bg-emerald-900 text-yellow-200 shadow-2xs'
+                                    : 'text-slate-600 hover:text-slate-900 border border-transparent'"
+                                title="Mode Edit Organisasi (kelola posisi & hierarki)"
+                            >
+                                <span class="material-symbols-outlined text-[16px]">edit</span>
+                                <span>Mode Edit</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -952,45 +971,29 @@ function handleDelete(pos) {
                 v-if="activeTab === 'diagram'"
                 ref="diagramContainerRef"
                 class="relative overflow-x-auto overflow-y-hidden w-full"
-                @scroll="updateConnectionLines"
             >
                 <div
                     :style="zoomScale !== 1 && svgHeight > 0
-                        ? { width: `${Math.ceil(svgWidth * zoomScale)}px`, height: `${Math.ceil(svgHeight * zoomScale) + 4}px`, minWidth: '100%' }
+                        ? { width: `${Math.ceil(svgWidth * zoomScale)}px`, height: `${Math.ceil(svgHeight * zoomScale) + 8}px`, minWidth: '100%' }
                         : { minWidth: '100%' }"
                 >
                 <div
                     ref="canvasWrapperRef"
-                    class="relative w-max min-w-full origin-top-left transition-transform duration-150"
-                    :style="zoomScale !== 1 ? { transform: `scale(${zoomScale})` } : {}"
+                    class="relative origin-top-left"
+                    :style="{
+                        width: `${svgWidth}px`,
+                        transform: zoomScale !== 1 ? `scale(${zoomScale})` : undefined,
+                        transformOrigin: 'top left',
+                    }"
                 >
                 <!-- KANVAS SVG GARIS HIERARKI PENGHUBUNG ANTARA ATASAN DAN BAWAHAN -->
                 <svg
-                    class="absolute inset-0 pointer-events-none z-10 overflow-visible transition-all"
+                    class="absolute inset-0 pointer-events-none z-10 overflow-visible"
                     :style="{
                         width: `${svgWidth}px`,
                         height: `${svgHeight}px`,
-                        minWidth: '100%',
-                        minHeight: '100%',
                     }"
                 >
-                    <defs>
-                        <!-- Marker Arrowhead untuk masing-masing level warna -->
-                        <marker
-                            v-for="d in levelDefinitions"
-                            :key="`arrow-${d.level}`"
-                            :id="`arrow-${d.level}`"
-                            viewBox="0 0 10 10"
-                            refX="7"
-                            refY="5"
-                            markerWidth="5.5"
-                            markerHeight="5.5"
-                            orient="auto-start-reverse"
-                        >
-                            <path d="M 0 1.5 L 8 5 L 0 8.5 z" :fill="d.strokeColor" />
-                        </marker>
-                    </defs>
-
                     <!-- Render Setiap Garis Penghubung (Parent -> Child / Peer) bersudut 90 derajat -->
                     <g v-for="line in connectionLines" :key="line.id">
                         <!-- Glow / Shadow Line saat di-hover -->
@@ -1000,7 +1003,7 @@ function handleDelete(pos) {
                             :stroke-width="hoveredPosId === line.parentId || hoveredPosId === line.childId ? 6 : 3"
                             fill="none"
                             stroke-linejoin="miter"
-                            class="transition-all duration-150"
+                            class="transition-colors duration-150"
                         />
                         <!-- Garis Utama Penghubung (Bersudut 90 Derajat / Sejajar Horizontal) -->
                         <path
@@ -1010,8 +1013,7 @@ function handleDelete(pos) {
                             :stroke-opacity="hoveredPosId && hoveredPosId !== line.parentId && hoveredPosId !== line.childId ? 0.25 : 0.9"
                             fill="none"
                             stroke-linejoin="miter"
-                            :marker-end="line.isPeer ? '' : `url(#arrow-${line.parentLevel || 1})`"
-                            class="transition-all duration-150"
+                            class="transition-colors duration-150"
                         />
                     </g>
 
@@ -1051,8 +1053,9 @@ function handleDelete(pos) {
                                     <span class="text-[9.5px] sm:text-[10px] text-slate-500 font-medium">
                                         ({{ positionsByLevel[def.level]?.length || 0 }})
                                     </span>
-                                    <!-- Tombol Edit Ringkas -->
+                                    <!-- Tombol Edit Ringkas (Hanya di Mode Edit) -->
                                     <button
+                                        v-if="isEditMode"
                                         type="button"
                                         @click="openEditLevelModal(def.level)"
                                         class="inline-flex items-center p-0.5 text-slate-500 hover:text-primary rounded hover:bg-slate-100 transition-colors cursor-pointer"
@@ -1060,8 +1063,9 @@ function handleDelete(pos) {
                                     >
                                         <span class="material-symbols-outlined text-[12px] sm:text-[13px]">edit</span>
                                     </button>
-                                    <!-- Tombol Tambah Ringkas -->
+                                    <!-- Tombol Tambah Ringkas (Hanya di Mode Edit) -->
                                     <button
+                                        v-if="isEditMode"
                                         type="button"
                                         @click="handleAddAtLevel(def.level)"
                                         class="ml-0.5 inline-flex items-center gap-0.5 px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-semibold text-white transition-all shadow-2xs hover:shadow cursor-pointer"
@@ -1085,6 +1089,7 @@ function handleDelete(pos) {
                                         :level-def="def"
                                         :intra-children-map="intraChildrenMapByLevel"
                                         :hovered-pos-id="hoveredPosId"
+                                        :is-edit-mode="isEditMode"
                                         @hover="hoveredPosId = $event"
                                         @leave="hoveredPosId = null"
                                         @add-subordinate="handleAddSubordinate"
@@ -1103,6 +1108,7 @@ function handleDelete(pos) {
                                         Belum ada jabatan di Level {{ def.level }}.
                                     </p>
                                     <button
+                                        v-if="isEditMode"
                                         type="button"
                                         @click="handleAddAtLevel(def.level)"
                                         class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold transition-all shadow-xs cursor-pointer shrink-0"
@@ -1120,9 +1126,9 @@ function handleDelete(pos) {
                 </div>
             </div>
 
-            <!-- Baris Tambah Level Selanjutnya (Jika belum sampai Level 5) -->
+            <!-- Baris Tambah Level Selanjutnya (Jika belum sampai Level 5 dan di Mode Edit) -->
             <div
-                v-if="activeTab === 'diagram' && maxActiveLevel < 5"
+                v-if="activeTab === 'diagram' && isEditMode && maxActiveLevel < 5"
                 class="px-5 py-2.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs"
             >
                 <span class="text-slate-600 font-medium">
