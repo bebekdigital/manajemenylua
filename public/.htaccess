@@ -20,7 +20,7 @@
 
     # Rescue missing or stale JavaScript chunks (prevents blank screen/freeze)
     RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteRule ^build/assets/.*\.js$ /rescue.js [L]
+    RewriteRule ^build/assets/.*\.js$ /build/rescue.js [L]
 
     # Send Requests To Front Controller...
     RewriteCond %{REQUEST_FILENAME} !-d
@@ -64,13 +64,6 @@
 
 # Never cache Service Worker or root manifest
 <Files "sw.js">
-    Header set Cache-Control "no-cache, no-store, must-revalidate, max-age=0"
-    Header always set Cache-Control "no-cache, no-store, must-revalidate, max-age=0"
-    Header set Pragma "no-cache"
-    Header set Expires "0"
-</Files>
-
-<Files "rescue.js">
     Header set Cache-Control "no-cache, no-store, must-revalidate, max-age=0"
     Header always set Cache-Control "no-cache, no-store, must-revalidate, max-age=0"
     Header set Pragma "no-cache"

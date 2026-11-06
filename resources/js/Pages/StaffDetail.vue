@@ -4642,701 +4642,1291 @@ function handleBackClick(e) {
                 </div>
 
                 <!-- TAB 6: PENDIDIKAN FORMAL & NONFORMAL -->
-                <div v-if="activeTab === 'pendidikan'" class="space-y-8">
-                    <!-- 1. TABEL RIWAYAT PENDIDIKAN FORMAL -->
-                    <div>
-                        <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
-                            <div>
-                                <h4 class="text-xs sm:text-sm font-bold text-primary flex items-center gap-2">
-                                    <span class="material-symbols-outlined text-[18px]">school</span>
-                                    Riwayat Pendidikan Formal
-                                </h4>
-                                <p v-if="isEditing" class="text-xs text-on-surface-variant mt-0.5">
-                                    Edit data langsung di baris tabel atau klik tombol di baris paling bawah untuk menambah riwayat pendidikan formal baru
+                <div v-if="activeTab === 'pendidikan'" class="space-y-6 mb-8">
+                    <!-- Validation Error Alert in Edit Mode -->
+                    <div v-if="isEditing && Object.keys(form.errors).length > 0" class="p-4 rounded-2xl bg-error/10 border border-error/20 flex items-start gap-3 text-error">
+                        <span class="material-symbols-outlined shrink-0 text-xl">error</span>
+                        <div class="text-xs sm:text-sm">
+                            <span class="font-bold">Terdapat kesalahan pada isian form:</span>
+                            <ul class="list-disc list-inside mt-1 space-y-0.5">
+                                <li v-for="(err, key) in form.errors" :key="key">{{ err }}</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- 1. KOTAK SECTION: RIWAYAT PENDIDIKAN FORMAL -->
+                    <div class="bg-white rounded-3xl border border-slate-200/90 p-4 sm:p-7 shadow-xs">
+                        <div class="flex items-center justify-between gap-3 pb-3 mb-4 border-b border-slate-100 flex-wrap">
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <div class="inline-flex items-center gap-2">
+                                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 shrink-0"></span>
+                                        <h4 class="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider leading-tight">
+                                            Riwayat Pendidikan Formal
+                                        </h4>
+                                    </div>
+                                    <span class="text-[10px] sm:text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 shrink-0">
+                                        {{ (isEditing ? form.riwayat_pendidikan?.length : employee.riwayat_pendidikan?.length) || 0 }} Riwayat
+                                    </span>
+                                </div>
+                                <p v-if="isEditing" class="text-xs text-slate-500 mt-1">
+                                    Ubah data pendidikan pada baris tabel (desktop) atau formulir kartu (mobile) di bawah ini
                                 </p>
                             </div>
-                            <span class="text-xs text-outline font-medium">
-                                {{ (isEditing ? form.riwayat_pendidikan?.length : employee.riwayat_pendidikan?.length) || 0 }} Catatan
-                            </span>
+
+                            <!-- Tombol Edit / Simpan di Pojok Kanan Atas Section -->
+                            <div class="flex items-center gap-2 shrink-0">
+                                <button
+                                    v-if="!isEditing"
+                                    type="button"
+                                    @click="startEdit"
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold shadow-xs transition-all whitespace-nowrap shrink-0 bg-emerald-900 hover:bg-emerald-800 text-yellow-200 border border-emerald-950/30 cursor-pointer active:scale-95"
+                                    title="Edit data riwayat pendidikan"
+                                >
+                                    <span class="material-symbols-outlined text-[16px] sm:text-[18px]">edit_note</span>
+                                    <span>Edit Data</span>
+                                </button>
+                                <template v-else>
+                                    <button
+                                        type="button"
+                                        @click="cancelEdit"
+                                        class="px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-100 border border-slate-300 transition-all cursor-pointer shadow-2xs whitespace-nowrap shrink-0"
+                                        :disabled="form.processing"
+                                        title="Batalkan perubahan"
+                                    >
+                                        Batal
+                                    </button>
+                                    <button
+                                        type="button"
+                                        @click="saveChanges"
+                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-5 sm:py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-bold text-xs sm:text-sm shadow-xs border border-emerald-950/30 active:scale-95 cursor-pointer disabled:opacity-60 transition-all whitespace-nowrap shrink-0"
+                                        :disabled="form.processing"
+                                        title="Simpan perubahan riwayat pendidikan"
+                                    >
+                                        <span v-if="form.processing" class="material-symbols-outlined text-[16px] animate-spin">sync</span>
+                                        <span v-else class="material-symbols-outlined text-[16px]">save</span>
+                                        <span>{{ form.processing ? 'Menyimpan...' : 'Simpan' }}</span>
+                                    </button>
+                                </template>
+                            </div>
                         </div>
 
-                        <!-- VIEW MODE (Ketika tidak sedang edit) -->
-                        <div v-if="!isEditing">
-                            <div v-if="employee.riwayat_pendidikan && employee.riwayat_pendidikan.length > 0" class="overflow-x-auto rounded-xl border border-outline-variant/60 bg-white shadow-2xs">
-                                <table class="w-full text-xs sm:text-sm border-collapse border border-outline-variant/60">
+                        <!-- 1.A. DESKTOP VIEW: TABEL PENDIDIKAN FORMAL -->
+                        <div class="hidden md:block">
+                            <!-- View Mode -->
+                            <div v-if="!isEditing">
+                                <div v-if="employee.riwayat_pendidikan && employee.riwayat_pendidikan.length > 0" class="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-2xs">
+                                    <table class="w-full text-xs sm:text-sm border-collapse">
+                                        <thead>
+                                            <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold text-[11px] uppercase tracking-wider">
+                                                <th class="px-4 py-3 text-center w-12">No</th>
+                                                <th class="px-4 py-3 text-left">Jenjang</th>
+                                                <th class="px-4 py-3 text-left">Jurusan</th>
+                                                <th class="px-4 py-3 text-left">Instansi Pendidikan</th>
+                                                <th class="px-4 py-3 text-center">Tahun Lulus</th>
+                                                <th class="px-4 py-3 text-left">Pembiayaan</th>
+                                                <th class="px-4 py-3 text-center">Berkas Ijazah</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-slate-100">
+                                            <tr
+                                                v-for="(edu, idx) in employee.riwayat_pendidikan"
+                                                :key="edu.id || idx"
+                                                class="hover:bg-slate-50/80 transition-colors"
+                                            >
+                                                <td class="px-4 py-3.5 text-center text-slate-400 font-mono">{{ idx + 1 }}</td>
+                                                <td class="px-4 py-3.5">
+                                                    <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200/80 shadow-2xs">
+                                                        {{ edu.jenjang_pendidikan || '-' }}
+                                                    </span>
+                                                </td>
+                                                <td class="px-4 py-3.5 text-slate-800 font-medium">{{ edu.jurusan || '-' }}</td>
+                                                <td class="px-4 py-3.5 text-slate-800 font-semibold">{{ edu.instansi_pendidikan || '-' }}</td>
+                                                <td class="px-4 py-3.5 text-center font-bold text-slate-900 font-mono">{{ edu.tahun_lulus || '-' }}</td>
+                                                <td class="px-4 py-3.5 text-slate-600 text-xs">{{ edu.pembiayaan || '-' }}</td>
+                                                <td class="px-4 py-3.5 text-center">
+                                                    <div v-if="edu.document" class="inline-flex items-center justify-center">
+                                                        <button
+                                                            type="button"
+                                                            @click="openPreview(edu.document)"
+                                                            class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-800 hover:bg-emerald-100 transition-colors border border-emerald-200 cursor-pointer"
+                                                            title="Lihat Berkas Ijazah"
+                                                        >
+                                                            <span class="material-symbols-outlined text-[15px]">visibility</span>
+                                                            <span>Lihat Ijazah</span>
+                                                        </button>
+                                                    </div>
+                                                    <span v-else class="text-slate-400 text-xs">-</span>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div v-else class="py-10 text-center border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
+                                    <span class="material-symbols-outlined text-4xl text-slate-300 block mb-2">school</span>
+                                    <p class="text-sm font-semibold text-slate-700">Belum ada riwayat pendidikan formal</p>
+                                    <p class="text-xs text-slate-400 mt-0.5">Klik tombol Edit Data di atas untuk menambahkan riwayat pendidikan</p>
+                                </div>
+                            </div>
+
+                            <!-- Edit Mode (Desktop Table) -->
+                            <div v-else class="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-2xs">
+                                <table class="w-full text-xs sm:text-sm border-collapse">
                                     <thead>
-                                        <tr class="bg-white text-on-surface-variant font-bold text-[10px] sm:text-xs uppercase tracking-wider">
-                                            <th class="border border-outline-variant/60 px-4 py-3 text-center w-12">No</th>
-                                            <th class="border border-outline-variant/60 px-4 py-3 text-left">Jenjang</th>
-                                            <th class="border border-outline-variant/60 px-4 py-3 text-left">Jurusan</th>
-                                            <th class="border border-outline-variant/60 px-4 py-3 text-left">Instansi Pendidikan</th>
-                                            <th class="border border-outline-variant/60 px-4 py-3 text-center">Tahun Lulus</th>
-                                            <th class="border border-outline-variant/60 px-4 py-3 text-left">Pembiayaan</th>
-                                            <th class="border border-outline-variant/60 px-4 py-3 text-center">Berkas Ijazah</th>
+                                        <tr class="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold text-[11px] uppercase tracking-wider">
+                                            <th class="px-3 py-3 text-center w-12">No</th>
+                                            <th class="px-3 py-3 text-left w-36">Jenjang</th>
+                                            <th class="px-3 py-3 text-left">Jurusan</th>
+                                            <th class="px-3 py-3 text-left">Instansi / Universitas</th>
+                                            <th class="px-3 py-3 text-center w-28">Tahun Lulus</th>
+                                            <th class="px-3 py-3 text-left w-36">Pembiayaan</th>
+                                            <th class="px-3 py-3 text-center w-28">Berkas</th>
+                                            <th class="px-3 py-3 text-center w-14">Aksi</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
-                                        <tr
-                                            v-for="(edu, idx) in employee.riwayat_pendidikan"
-                                            :key="edu.id || idx"
-                                            class="hover:bg-slate-50 transition-colors"
-                                        >
-                                            <td class="border border-outline-variant/60 px-4 py-3 text-center text-on-surface-variant font-mono">{{ idx + 1 }}</td>
-                                            <td class="border border-outline-variant/60 px-4 py-3">
-                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-primary/10 text-primary">
-                                                    {{ edu.jenjang_pendidikan || '-' }}
-                                                </span>
+                                    <tbody class="divide-y divide-slate-100">
+                                        <tr v-if="!form.riwayat_pendidikan || form.riwayat_pendidikan.length === 0">
+                                            <td colspan="8" class="p-8 text-center text-xs text-slate-500 italic">
+                                                <span class="material-symbols-outlined text-3xl text-slate-300 block mb-1">school</span>
+                                                Belum ada riwayat pendidikan formal. Klik tombol di bawah untuk menambah data baru.
                                             </td>
-                                            <td class="border border-outline-variant/60 px-4 py-3 text-on-surface">{{ edu.jurusan || '-' }}</td>
-                                            <td class="border border-outline-variant/60 px-4 py-3 text-on-surface">{{ edu.instansi_pendidikan || '-' }}</td>
-                                            <td class="border border-outline-variant/60 px-4 py-3 text-center font-semibold text-on-surface">{{ edu.tahun_lulus || '-' }}</td>
-                                            <td class="border border-outline-variant/60 px-4 py-3 text-on-surface">{{ edu.pembiayaan || '-' }}</td>
-                                            <td class="border border-outline-variant/60 px-4 py-3 text-center">
+                                        </tr>
+                                        <tr
+                                            v-for="(edu, idx) in form.riwayat_pendidikan"
+                                            :key="edu.id || idx"
+                                            class="hover:bg-slate-50/60 transition-colors"
+                                        >
+                                            <td class="px-3 py-2.5 text-center text-slate-400 font-mono font-bold">{{ idx + 1 }}</td>
+                                            <td class="px-3 py-2.5">
+                                                <select
+                                                    v-model="edu.jenjang_pendidikan"
+                                                    class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-800 font-semibold focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 cursor-pointer"
+                                                >
+                                                    <option value="">-- Pilih --</option>
+                                                    <option value="SD">SD / Sederajat</option>
+                                                    <option value="SMP">SMP / MTs</option>
+                                                    <option value="SMA">SMA / SMK / MA</option>
+                                                    <option value="D1">D1</option>
+                                                    <option value="D2">D2</option>
+                                                    <option value="D3">D3</option>
+                                                    <option value="D4">D4</option>
+                                                    <option value="S1">S1 (Sarjana)</option>
+                                                    <option value="S2">S2 (Magister)</option>
+                                                    <option value="S3">S3 (Doktor)</option>
+                                                </select>
+                                            </td>
+                                            <td class="px-3 py-2.5">
+                                                <input
+                                                    v-model="edu.jurusan"
+                                                    type="text"
+                                                    placeholder="Contoh: Pendidikan Matematika"
+                                                    class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
+                                                />
+                                            </td>
+                                            <td class="px-3 py-2.5">
+                                                <input
+                                                    v-model="edu.instansi_pendidikan"
+                                                    type="text"
+                                                    placeholder="Contoh: UNS Surakarta"
+                                                    class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
+                                                />
+                                            </td>
+                                            <td class="px-3 py-2.5">
+                                                <input
+                                                    v-model="edu.tahun_lulus"
+                                                    type="text"
+                                                    placeholder="2018"
+                                                    class="w-full px-2.5 py-2 text-center bg-white border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-800 font-mono focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
+                                                />
+                                            </td>
+                                            <td class="px-3 py-2.5">
+                                                <input
+                                                    v-model="edu.pembiayaan"
+                                                    type="text"
+                                                    placeholder="Mandiri / Beasiswa"
+                                                    class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
+                                                />
+                                            </td>
+                                            <td class="px-3 py-2.5 text-center">
                                                 <div v-if="edu.document" class="inline-flex items-center justify-center">
                                                     <button
                                                         type="button"
                                                         @click="openPreview(edu.document)"
-                                                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors border border-emerald-200 cursor-pointer"
+                                                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-800 hover:bg-emerald-100 transition-colors border border-emerald-200 cursor-pointer"
                                                         title="Lihat Berkas Ijazah"
                                                     >
                                                         <span class="material-symbols-outlined text-[15px]">visibility</span>
-                                                        <span>Lihat Ijazah</span>
+                                                        <span>Lihat</span>
                                                     </button>
                                                 </div>
-                                                <span v-else class="text-outline text-xs">-</span>
+                                                <span v-else class="text-[11px] text-slate-400 italic">Tab Dokumen</span>
+                                            </td>
+                                            <td class="px-3 py-2.5 text-center">
+                                                <button
+                                                    type="button"
+                                                    @click="removeEducationRow(idx)"
+                                                    class="w-8 h-8 rounded-lg text-rose-500 hover:bg-rose-50 flex items-center justify-center mx-auto transition-colors cursor-pointer active:scale-95"
+                                                    title="Hapus baris ini"
+                                                >
+                                                    <span class="material-symbols-outlined text-[18px]">delete</span>
+                                                </button>
                                             </td>
                                         </tr>
                                     </tbody>
                                 </table>
-                            </div>
-
-                            <div v-else class="py-10 text-center border-2 border-dashed border-outline-variant/30 rounded-2xl">
-                                <span class="material-symbols-outlined text-4xl text-outline/60 block mb-2">school</span>
-                                <p class="text-sm text-on-surface-variant">Belum ada riwayat pendidikan formal</p>
+                                <div class="p-3 bg-slate-50 border-t border-slate-200">
+                                    <button
+                                        type="button"
+                                        @click="addEducationRow"
+                                        class="w-full py-2.5 px-4 rounded-xl border border-dashed border-emerald-400 hover:border-emerald-600 bg-white hover:bg-emerald-50 text-emerald-900 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-[0.99]"
+                                    >
+                                        <span class="material-symbols-outlined text-[18px]">add_circle</span>
+                                        <span>Tambah Riwayat Pendidikan Formal</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- EDIT MODE (Edit langsung di tabel dan tombol tambah di baris paling bawah) -->
-                        <div v-else class="overflow-x-auto rounded-xl border border-primary/30 bg-white shadow-2xs">
-                            <table class="w-full text-xs sm:text-sm border-collapse border border-outline-variant/60 min-w-[850px]">
-                                <thead>
-                                    <tr class="bg-primary/5 text-primary font-bold text-[10px] sm:text-xs uppercase tracking-wider">
-                                        <th class="border border-outline-variant/60 px-3 py-2.5 text-center w-12">No</th>
-                                        <th class="border border-outline-variant/60 px-3 py-2.5 text-left min-w-[140px]">Jenjang</th>
-                                        <th class="border border-outline-variant/60 px-3 py-2.5 text-left min-w-[170px]">Jurusan</th>
-                                        <th class="border border-outline-variant/60 px-3 py-2.5 text-left min-w-[190px]">Instansi / Universitas</th>
-                                        <th class="border border-outline-variant/60 px-3 py-2.5 text-center w-28">Tahun Lulus</th>
-                                        <th class="border border-outline-variant/60 px-3 py-2.5 text-left min-w-[140px]">Pembiayaan</th>
-                                        <th class="border border-outline-variant/60 px-3 py-2.5 text-center min-w-[110px]">Berkas Ijazah</th>
-                                        <th class="border border-outline-variant/60 px-3 py-2.5 text-center w-16">Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr v-if="!form.riwayat_pendidikan || form.riwayat_pendidikan.length === 0">
-                                        <td colspan="8" class="border border-outline-variant/60 p-6 text-center text-xs text-on-surface-variant italic">
-                                            <span class="material-symbols-outlined text-2xl text-outline/60 block mb-1">school</span>
-                                            Belum ada riwayat pendidikan formal. Klik tombol di bawah untuk menambah riwayat baru.
-                                        </td>
-                                    </tr>
-                                    <tr
-                                        v-for="(edu, idx) in form.riwayat_pendidikan"
-                                        :key="edu.id || idx"
-                                        class="hover:bg-slate-50/70 transition-colors"
-                                    >
-                                        <td class="border border-outline-variant/60 px-3 py-2.5 text-center text-on-surface-variant font-mono font-bold">
-                                            {{ idx + 1 }}
-                                        </td>
-                                        <td class="border border-outline-variant/60 px-3 py-2.5">
-                                            <select
-                                                v-model="edu.jenjang_pendidikan"
-                                                class="w-full px-3 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface font-semibold focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
-                                            >
-                                                <option value="">-- Pilih --</option>
-                                                <option value="SD">SD / Sederajat</option>
-                                                <option value="SMP">SMP / MTs</option>
-                                                <option value="SMA">SMA / SMK / MA</option>
-                                                <option value="D1">D1</option>
-                                                <option value="D2">D2</option>
-                                                <option value="D3">D3</option>
-                                                <option value="D4">D4</option>
-                                                <option value="S1">S1 (Sarjana)</option>
-                                                <option value="S2">S2 (Magister)</option>
-                                                <option value="S3">S3 (Doktor)</option>
-                                            </select>
-                                        </td>
-                                        <td class="border border-outline-variant/60 px-3 py-2.5">
-                                            <input
-                                                v-model="edu.jurusan"
-                                                type="text"
-                                                placeholder="Contoh: Pendidikan Matematika"
-                                                class="w-full px-3 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                                            />
-                                        </td>
-                                        <td class="border border-outline-variant/60 px-3 py-2.5">
+                        <!-- 1.B. MOBILE CARD VIEW: PENDIDIKAN FORMAL -->
+                        <div class="md:hidden space-y-3">
+                            <!-- Mobile View Mode -->
+                            <div v-if="!isEditing" class="space-y-3">
+                                <div
+                                    v-for="(edu, idx) in employee.riwayat_pendidikan"
+                                    :key="edu.id || idx"
+                                    class="bg-slate-50/70 rounded-2xl border border-slate-200/80 p-4 space-y-3 shadow-2xs"
+                                >
+                                    <div class="flex items-center justify-between gap-2 pb-2.5 border-b border-slate-200/60">
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200/80 shadow-2xs">
+                                            {{ edu.jenjang_pendidikan || '-' }}
+                                        </span>
+                                        <span class="text-xs font-bold text-slate-700 font-mono bg-white px-2 py-0.5 rounded-md border border-slate-200">
+                                            Lulus: {{ edu.tahun_lulus || '-' }}
+                                        </span>
+                                    </div>
+                                    <div class="space-y-1.5 text-xs">
+                                        <div>
+                                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Instansi / Universitas</span>
+                                            <span class="font-bold text-slate-900 text-sm">{{ edu.instansi_pendidikan || '-' }}</span>
+                                        </div>
+                                        <div class="grid grid-cols-2 gap-2 pt-1">
+                                            <div>
+                                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Jurusan</span>
+                                                <span class="text-slate-700 font-medium">{{ edu.jurusan || '-' }}</span>
+                                            </div>
+                                            <div>
+                                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Pembiayaan</span>
+                                                <span class="text-slate-700">{{ edu.pembiayaan || '-' }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div v-if="edu.document" class="pt-2 border-t border-slate-200/60 flex items-center justify-end">
+                                        <button
+                                            type="button"
+                                            @click="openPreview(edu.document)"
+                                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition-colors cursor-pointer"
+                                        >
+                                            <span class="material-symbols-outlined text-[16px]">visibility</span>
+                                            <span>Lihat Ijazah</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div v-if="!employee.riwayat_pendidikan || employee.riwayat_pendidikan.length === 0" class="py-8 text-center border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
+                                    <span class="material-symbols-outlined text-4xl text-slate-300 block mb-2">school</span>
+                                    <p class="text-xs font-semibold text-slate-600">Belum ada riwayat pendidikan formal</p>
+                                </div>
+                            </div>
+
+                            <!-- Mobile Edit Mode (Card Form) -->
+                            <div v-else class="space-y-3">
+                                <div
+                                    v-for="(edu, idx) in form.riwayat_pendidikan"
+                                    :key="edu.id || idx"
+                                    class="bg-slate-50/60 rounded-2xl border border-slate-200/80 p-4 space-y-3 shadow-2xs"
+                                >
+                                    <div class="flex items-center justify-between pb-2 border-b border-slate-200/60">
+                                        <span class="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                                            Pendidikan #{{ idx + 1 }}
+                                        </span>
+                                        <button
+                                            type="button"
+                                            @click="removeEducationRow(idx)"
+                                            class="text-xs font-bold text-rose-600 hover:text-rose-800 flex items-center gap-1 p-1 cursor-pointer"
+                                        >
+                                            <span class="material-symbols-outlined text-[16px]">delete</span>
+                                            <span>Hapus</span>
+                                        </button>
+                                    </div>
+
+                                    <div class="space-y-3">
+                                        <div class="grid grid-cols-2 gap-2">
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Jenjang</label>
+                                                <select
+                                                    v-model="edu.jenjang_pendidikan"
+                                                    class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 font-semibold focus:outline-none focus:border-emerald-600"
+                                                >
+                                                    <option value="">Pilih</option>
+                                                    <option value="SD">SD</option>
+                                                    <option value="SMP">SMP</option>
+                                                    <option value="SMA">SMA</option>
+                                                    <option value="D1">D1</option>
+                                                    <option value="D2">D2</option>
+                                                    <option value="D3">D3</option>
+                                                    <option value="D4">D4</option>
+                                                    <option value="S1">S1</option>
+                                                    <option value="S2">S2</option>
+                                                    <option value="S3">S3</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Tahun Lulus</label>
+                                                <input
+                                                    v-model="edu.tahun_lulus"
+                                                    type="text"
+                                                    placeholder="2018"
+                                                    class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 font-mono focus:outline-none focus:border-emerald-600"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Instansi / Kampus</label>
                                             <input
                                                 v-model="edu.instansi_pendidikan"
                                                 type="text"
-                                                placeholder="Contoh: UNS Surakarta"
-                                                class="w-full px-3 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                                placeholder="Nama instansi pendidikan"
+                                                class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-emerald-600"
                                             />
-                                        </td>
-                                        <td class="border border-outline-variant/60 px-3 py-2.5">
-                                            <input
-                                                v-model="edu.tahun_lulus"
-                                                type="text"
-                                                placeholder="2018"
-                                                class="w-full px-2.5 py-2 text-center bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                                            />
-                                        </td>
-                                        <td class="border border-outline-variant/60 px-3 py-2.5">
-                                            <input
-                                                v-model="edu.pembiayaan"
-                                                type="text"
-                                                placeholder="Mandiri / Beasiswa"
-                                                class="w-full px-3 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                                            />
-                                        </td>
-                                        <td class="border border-outline-variant/60 px-3 py-2.5 text-center">
-                                            <div v-if="edu.document" class="inline-flex items-center justify-center">
-                                                <button
-                                                    type="button"
-                                                    @click="openPreview(edu.document)"
-                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors border border-emerald-200 cursor-pointer"
-                                                    title="Lihat Berkas Ijazah"
-                                                >
-                                                    <span class="material-symbols-outlined text-[15px]">visibility</span>
-                                                    <span>Lihat Ijazah</span>
-                                                </button>
-                                            </div>
-                                            <span v-else class="text-[11px] text-outline italic">Tab Dokumen</span>
-                                        </td>
-                                        <td class="border border-outline-variant/60 px-3 py-2.5 text-center">
-                                            <button
-                                                type="button"
-                                                @click="removeEducationRow(idx)"
-                                                class="w-8 h-8 rounded-lg text-error hover:bg-error/10 flex items-center justify-center mx-auto transition-colors cursor-pointer"
-                                                title="Hapus baris riwayat pendidikan ini"
-                                            >
-                                                <span class="material-symbols-outlined text-[18px]">delete</span>
-                                            </button>
-                                        </td>
-                                    </tr>
+                                        </div>
 
-                                    <!-- BARIS PALING BAWAH: TOMBOL TAMBAH RIWAYAT PENDIDIKAN -->
-                                    <tr class="bg-slate-50/70 hover:bg-slate-100/70 transition-colors">
-                                        <td colspan="8" class="border border-outline-variant/60 p-2.5 text-center">
-                                            <button
-                                                type="button"
-                                                @click="addEducationRow"
-                                                class="w-full py-2.5 px-4 rounded-xl border border-dashed border-primary/50 hover:border-primary bg-primary/5 hover:bg-primary/10 text-primary font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-[0.99]"
-                                            >
-                                                <span class="material-symbols-outlined text-[18px]">add_circle</span>
-                                                <span>Tambah Riwayat Pendidikan Formal</span>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                                        <div class="grid grid-cols-2 gap-2">
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Jurusan</label>
+                                                <input
+                                                    v-model="edu.jurusan"
+                                                    type="text"
+                                                    placeholder="Jurusan"
+                                                    class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-emerald-600"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Pembiayaan</label>
+                                                <input
+                                                    v-model="edu.pembiayaan"
+                                                    type="text"
+                                                    placeholder="Mandiri / Beasiswa"
+                                                    class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-emerald-600"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    @click="addEducationRow"
+                                    class="w-full py-2.5 px-4 rounded-xl border border-dashed border-emerald-400 hover:border-emerald-600 bg-emerald-50/60 hover:bg-emerald-100/60 text-emerald-900 font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-[0.99]"
+                                >
+                                    <span class="material-symbols-outlined text-[18px]">add_circle</span>
+                                    <span>Tambah Riwayat Pendidikan Formal</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- 2. TABEL RIWAYAT PELATIHAN DAN PENDIDIKAN NONFORMAL -->
-                    <div>
-                        <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
-                            <div>
-                                <h4 class="text-xs sm:text-sm font-bold text-primary flex items-center gap-2">
-                                    <span class="material-symbols-outlined text-[18px]">workspace_premium</span>
-                                    Riwayat Pelatihan dan Pendidikan Nonformal
-                                </h4>
-                                <p v-if="isEditing" class="text-xs text-on-surface-variant mt-0.5">
-                                    Edit data langsung di baris tabel atau klik tombol di baris paling bawah untuk menambah riwayat pelatihan baru
+                    <!-- 2. KOTAK SECTION: RIWAYAT PELATIHAN DAN PENDIDIKAN NONFORMAL -->
+                    <div class="bg-white rounded-3xl border border-slate-200/90 p-4 sm:p-7 shadow-xs">
+                        <div class="flex items-center justify-between gap-3 pb-3 mb-4 border-b border-slate-100 flex-wrap">
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <div class="inline-flex items-center gap-2">
+                                        <span class="w-2.5 h-2.5 rounded-full bg-teal-600 shrink-0"></span>
+                                        <h4 class="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider leading-tight">
+                                            Riwayat Pelatihan &amp; Pendidikan Nonformal
+                                        </h4>
+                                    </div>
+                                    <span class="text-[10px] sm:text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 shrink-0">
+                                        {{ (isEditing ? form.riwayat_pelatihan?.length : employee.riwayat_pelatihan?.length) || 0 }} Catatan
+                                    </span>
+                                </div>
+                                <p v-if="isEditing" class="text-xs text-slate-500 mt-1">
+                                    Ubah data pelatihan pada baris tabel (desktop) atau formulir kartu (mobile) di bawah ini
                                 </p>
                             </div>
-                            <span class="text-xs text-outline font-medium">
-                                {{ (isEditing ? form.riwayat_pelatihan?.length : employee.riwayat_pelatihan?.length) || 0 }} Catatan
-                            </span>
+
+                            <!-- Tombol Edit / Simpan di Pojok Kanan Atas Section -->
+                            <div class="flex items-center gap-2 shrink-0">
+                                <button
+                                    v-if="!isEditing"
+                                    type="button"
+                                    @click="startEdit"
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold shadow-xs transition-all whitespace-nowrap shrink-0 bg-emerald-900 hover:bg-emerald-800 text-yellow-200 border border-emerald-950/30 cursor-pointer active:scale-95"
+                                    title="Edit data pelatihan &amp; nonformal"
+                                >
+                                    <span class="material-symbols-outlined text-[16px] sm:text-[18px]">edit_note</span>
+                                    <span>Edit Data</span>
+                                </button>
+                                <template v-else>
+                                    <button
+                                        type="button"
+                                        @click="cancelEdit"
+                                        class="px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-100 border border-slate-300 transition-all cursor-pointer shadow-2xs whitespace-nowrap shrink-0"
+                                        :disabled="form.processing"
+                                        title="Batalkan perubahan"
+                                    >
+                                        Batal
+                                    </button>
+                                    <button
+                                        type="button"
+                                        @click="saveChanges"
+                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-5 sm:py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-bold text-xs sm:text-sm shadow-xs border border-emerald-950/30 active:scale-95 cursor-pointer disabled:opacity-60 transition-all whitespace-nowrap shrink-0"
+                                        :disabled="form.processing"
+                                        title="Simpan perubahan pelatihan"
+                                    >
+                                        <span v-if="form.processing" class="material-symbols-outlined text-[16px] animate-spin">sync</span>
+                                        <span v-else class="material-symbols-outlined text-[16px]">save</span>
+                                        <span>{{ form.processing ? 'Menyimpan...' : 'Simpan' }}</span>
+                                    </button>
+                                </template>
+                            </div>
                         </div>
 
-                        <!-- VIEW MODE (Ketika tidak sedang edit) -->
-                        <div v-if="!isEditing">
-                            <div v-if="employee.riwayat_pelatihan && employee.riwayat_pelatihan.length > 0" class="overflow-x-auto rounded-xl border border-outline-variant/60 bg-white shadow-2xs">
-                                <table class="w-full text-xs sm:text-sm border-collapse border border-outline-variant/60">
+                        <!-- 2.A. DESKTOP VIEW: TABEL PELATIHAN -->
+                        <div class="hidden md:block">
+                            <!-- View Mode -->
+                            <div v-if="!isEditing">
+                                <div v-if="employee.riwayat_pelatihan && employee.riwayat_pelatihan.length > 0" class="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-2xs">
+                                    <table class="w-full text-xs sm:text-sm border-collapse">
+                                        <thead>
+                                            <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold text-[11px] uppercase tracking-wider">
+                                                <th class="px-4 py-3 text-center w-12">No</th>
+                                                <th class="px-4 py-3 text-left">Bidang</th>
+                                                <th class="px-4 py-3 text-left">Keahlian</th>
+                                                <th class="px-4 py-3 text-left">Instansi Penyelenggara</th>
+                                                <th class="px-4 py-3 text-center">Tahun</th>
+                                                <th class="px-4 py-3 text-left">Pembiayaan</th>
+                                                <th class="px-4 py-3 text-center">Berkas Sertifikat</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-slate-100">
+                                            <tr
+                                                v-for="(tr, idx) in employee.riwayat_pelatihan"
+                                                :key="tr.id || idx"
+                                                class="hover:bg-slate-50/80 transition-colors"
+                                            >
+                                                <td class="px-4 py-3.5 text-center text-slate-400 font-mono">{{ idx + 1 }}</td>
+                                                <td class="px-4 py-3.5">
+                                                    <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-teal-50 text-teal-800 border border-teal-200/80 shadow-2xs">
+                                                        {{ tr.bidang || '-' }}
+                                                    </span>
+                                                </td>
+                                                <td class="px-4 py-3.5 text-slate-800 font-bold">{{ tr.keahlian || '-' }}</td>
+                                                <td class="px-4 py-3.5 text-slate-700 font-medium">{{ tr.instansi_penyelenggara || '-' }}</td>
+                                                <td class="px-4 py-3.5 text-center font-bold text-slate-900 font-mono">{{ tr.tahun || '-' }}</td>
+                                                <td class="px-4 py-3.5 text-slate-600 text-xs">{{ tr.pembiayaan || '-' }}</td>
+                                                <td class="px-4 py-3.5 text-center">
+                                                    <div v-if="tr.document" class="inline-flex items-center justify-center">
+                                                        <button
+                                                            type="button"
+                                                            @click="openPreview(tr.document)"
+                                                            class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-800 hover:bg-emerald-100 transition-colors border border-emerald-200 cursor-pointer"
+                                                            title="Lihat Berkas Sertifikat"
+                                                        >
+                                                            <span class="material-symbols-outlined text-[15px]">visibility</span>
+                                                            <span>Lihat</span>
+                                                        </button>
+                                                    </div>
+                                                    <span v-else class="text-slate-400 text-xs">-</span>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div v-else class="py-10 text-center border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
+                                    <span class="material-symbols-outlined text-4xl text-slate-300 block mb-2">workspace_premium</span>
+                                    <p class="text-sm font-semibold text-slate-700">Belum ada riwayat pelatihan dan nonformal</p>
+                                    <p class="text-xs text-slate-400 mt-0.5">Klik tombol Edit Data di atas untuk menambahkan riwayat pelatihan</p>
+                                </div>
+                            </div>
+
+                            <!-- Edit Mode (Desktop Table) -->
+                            <div v-else class="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-2xs">
+                                <table class="w-full text-xs sm:text-sm border-collapse">
                                     <thead>
-                                        <tr class="bg-white text-on-surface-variant font-bold text-[10px] sm:text-xs uppercase tracking-wider">
-                                            <th class="border border-outline-variant/60 px-4 py-3 text-center w-12">No</th>
-                                            <th class="border border-outline-variant/60 px-4 py-3 text-left">Bidang</th>
-                                            <th class="border border-outline-variant/60 px-4 py-3 text-left">Keahlian</th>
-                                            <th class="border border-outline-variant/60 px-4 py-3 text-left">Instansi Penyelenggara</th>
-                                            <th class="border border-outline-variant/60 px-4 py-3 text-center">Tahun</th>
-                                            <th class="border border-outline-variant/60 px-4 py-3 text-left">Pembiayaan</th>
-                                            <th class="border border-outline-variant/60 px-4 py-3 text-center">Berkas Sertifikat</th>
+                                        <tr class="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold text-[11px] uppercase tracking-wider">
+                                            <th class="px-3 py-3 text-center w-12">No</th>
+                                            <th class="px-3 py-3 text-left w-40">Bidang</th>
+                                            <th class="px-3 py-3 text-left">Keahlian</th>
+                                            <th class="px-3 py-3 text-left">Instansi Penyelenggara</th>
+                                            <th class="px-3 py-3 text-center w-28">Tahun</th>
+                                            <th class="px-3 py-3 text-left w-36">Pembiayaan</th>
+                                            <th class="px-3 py-3 text-center w-28">Berkas</th>
+                                            <th class="px-3 py-3 text-center w-14">Aksi</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
-                                        <tr
-                                            v-for="(tr, idx) in employee.riwayat_pelatihan"
-                                            :key="tr.id || idx"
-                                            class="hover:bg-slate-50 transition-colors"
-                                        >
-                                            <td class="border border-outline-variant/60 px-4 py-3 text-center text-on-surface-variant font-mono">{{ idx + 1 }}</td>
-                                            <td class="border border-outline-variant/60 px-4 py-3 font-semibold text-on-surface">
-                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-semibold bg-primary/10 text-primary">
-                                                    {{ tr.bidang || '-' }}
-                                                </span>
+                                    <tbody class="divide-y divide-slate-100">
+                                        <tr v-if="!form.riwayat_pelatihan || form.riwayat_pelatihan.length === 0">
+                                            <td colspan="8" class="p-8 text-center text-xs text-slate-500 italic">
+                                                <span class="material-symbols-outlined text-3xl text-slate-300 block mb-1">workspace_premium</span>
+                                                Belum ada riwayat pelatihan. Klik tombol di bawah untuk menambah riwayat baru.
                                             </td>
-                                            <td class="border border-outline-variant/60 px-4 py-3 text-on-surface font-medium">{{ tr.keahlian || '-' }}</td>
-                                            <td class="border border-outline-variant/60 px-4 py-3 text-on-surface">{{ tr.instansi_penyelenggara || '-' }}</td>
-                                            <td class="border border-outline-variant/60 px-4 py-3 text-center font-semibold text-on-surface">{{ tr.tahun || '-' }}</td>
-                                            <td class="border border-outline-variant/60 px-4 py-3 text-on-surface">{{ tr.pembiayaan || '-' }}</td>
-                                            <td class="border border-outline-variant/60 px-4 py-3 text-center">
+                                        </tr>
+                                        <tr
+                                            v-for="(tr, idx) in form.riwayat_pelatihan"
+                                            :key="tr.id || idx"
+                                            class="hover:bg-slate-50/60 transition-colors"
+                                        >
+                                            <td class="px-3 py-2.5 text-center text-slate-400 font-mono font-bold">{{ idx + 1 }}</td>
+                                            <td class="px-3 py-2.5">
+                                                <input
+                                                    v-model="tr.bidang"
+                                                    type="text"
+                                                    placeholder="IT / Pedagogik"
+                                                    class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
+                                                />
+                                            </td>
+                                            <td class="px-3 py-2.5">
+                                                <input
+                                                    v-model="tr.keahlian"
+                                                    type="text"
+                                                    placeholder="Desain Kurikulum"
+                                                    class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-800 font-semibold focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
+                                                />
+                                            </td>
+                                            <td class="px-3 py-2.5">
+                                                <input
+                                                    v-model="tr.instansi_penyelenggara"
+                                                    type="text"
+                                                    placeholder="Balai Diklat / Kemdikbud"
+                                                    class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
+                                                />
+                                            </td>
+                                            <td class="px-3 py-2.5">
+                                                <input
+                                                    v-model="tr.tahun"
+                                                    type="text"
+                                                    placeholder="2024"
+                                                    class="w-full px-2.5 py-2 text-center bg-white border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-800 font-mono focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
+                                                />
+                                            </td>
+                                            <td class="px-3 py-2.5">
+                                                <input
+                                                    v-model="tr.pembiayaan"
+                                                    type="text"
+                                                    placeholder="Mandiri / Yayasan"
+                                                    class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
+                                                />
+                                            </td>
+                                            <td class="px-3 py-2.5 text-center">
                                                 <div v-if="tr.document" class="inline-flex items-center justify-center">
                                                     <button
                                                         type="button"
                                                         @click="openPreview(tr.document)"
-                                                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors border border-emerald-200 cursor-pointer"
+                                                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-800 hover:bg-emerald-100 transition-colors border border-emerald-200 cursor-pointer"
                                                         title="Lihat Berkas Sertifikat"
                                                     >
                                                         <span class="material-symbols-outlined text-[15px]">visibility</span>
-                                                        <span>Lihat Sertifikat</span>
+                                                        <span>Lihat</span>
                                                     </button>
                                                 </div>
-                                                <span v-else class="text-outline text-xs">-</span>
+                                                <span v-else class="text-[11px] text-slate-400 italic">Tab Dokumen</span>
+                                            </td>
+                                            <td class="px-3 py-2.5 text-center">
+                                                <button
+                                                    type="button"
+                                                    @click="removeTrainingRow(idx)"
+                                                    class="w-8 h-8 rounded-lg text-rose-500 hover:bg-rose-50 flex items-center justify-center mx-auto transition-colors cursor-pointer active:scale-95"
+                                                    title="Hapus baris ini"
+                                                >
+                                                    <span class="material-symbols-outlined text-[18px]">delete</span>
+                                                </button>
                                             </td>
                                         </tr>
                                     </tbody>
                                 </table>
-                            </div>
-
-                            <div v-else class="py-10 text-center border-2 border-dashed border-outline-variant/30 rounded-2xl">
-                                <span class="material-symbols-outlined text-4xl text-outline/60 block mb-2">workspace_premium</span>
-                                <p class="text-sm text-on-surface-variant">Belum ada riwayat pelatihan dan pendidikan nonformal</p>
+                                <div class="p-3 bg-slate-50 border-t border-slate-200">
+                                    <button
+                                        type="button"
+                                        @click="addTrainingRow"
+                                        class="w-full py-2.5 px-4 rounded-xl border border-dashed border-emerald-400 hover:border-emerald-600 bg-white hover:bg-emerald-50 text-emerald-900 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-[0.99]"
+                                    >
+                                        <span class="material-symbols-outlined text-[18px]">add_circle</span>
+                                        <span>Tambah Riwayat Pelatihan dan Nonformal</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- EDIT MODE (Edit langsung di tabel dan tombol tambah di baris paling bawah) -->
-                        <div v-else class="overflow-x-auto rounded-xl border border-primary/30 bg-white shadow-2xs">
-                            <table class="w-full text-xs sm:text-sm border-collapse border border-outline-variant/60 min-w-[850px]">
-                                <thead>
-                                    <tr class="bg-primary/5 text-primary font-bold text-[10px] sm:text-xs uppercase tracking-wider">
-                                        <th class="border border-outline-variant/60 px-3 py-2.5 text-center w-12">No</th>
-                                        <th class="border border-outline-variant/60 px-3 py-2.5 text-left min-w-[150px]">Bidang</th>
-                                        <th class="border border-outline-variant/60 px-3 py-2.5 text-left min-w-[170px]">Keahlian</th>
-                                        <th class="border border-outline-variant/60 px-3 py-2.5 text-left min-w-[190px]">Instansi Penyelenggara</th>
-                                        <th class="border border-outline-variant/60 px-3 py-2.5 text-center w-28">Tahun</th>
-                                        <th class="border border-outline-variant/60 px-3 py-2.5 text-left min-w-[140px]">Pembiayaan</th>
-                                        <th class="border border-outline-variant/60 px-3 py-2.5 text-center min-w-[110px]">Berkas Sertifikat</th>
-                                        <th class="border border-outline-variant/60 px-3 py-2.5 text-center w-16">Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr v-if="!form.riwayat_pelatihan || form.riwayat_pelatihan.length === 0">
-                                        <td colspan="8" class="border border-outline-variant/60 p-6 text-center text-xs text-on-surface-variant italic">
-                                            <span class="material-symbols-outlined text-2xl text-outline/60 block mb-1">workspace_premium</span>
-                                            Belum ada riwayat pelatihan dan pendidikan nonformal. Klik tombol di bawah untuk menambah riwayat baru.
-                                        </td>
-                                    </tr>
-                                    <tr
-                                        v-for="(tr, idx) in form.riwayat_pelatihan"
-                                        :key="tr.id || idx"
-                                        class="hover:bg-slate-50/70 transition-colors"
-                                    >
-                                        <td class="border border-outline-variant/60 px-3 py-2.5 text-center text-on-surface-variant font-mono font-bold">
-                                            {{ idx + 1 }}
-                                        </td>
-                                        <td class="border border-outline-variant/60 px-3 py-2.5">
-                                            <input
-                                                v-model="tr.bidang"
-                                                type="text"
-                                                placeholder="Contoh: IT / Pedagogik / Bahasa"
-                                                class="w-full px-3 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                                            />
-                                        </td>
-                                        <td class="border border-outline-variant/60 px-3 py-2.5">
+                        <!-- 2.B. MOBILE CARD VIEW: PELATIHAN -->
+                        <div class="md:hidden space-y-3">
+                            <!-- View Mode -->
+                            <div v-if="!isEditing" class="space-y-3">
+                                <div
+                                    v-for="(tr, idx) in employee.riwayat_pelatihan"
+                                    :key="tr.id || idx"
+                                    class="bg-slate-50/70 rounded-2xl border border-slate-200/80 p-4 space-y-3 shadow-2xs"
+                                >
+                                    <div class="flex items-center justify-between gap-2 pb-2.5 border-b border-slate-200/60">
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-teal-50 text-teal-800 border border-teal-200/80 shadow-2xs">
+                                            {{ tr.bidang || '-' }}
+                                        </span>
+                                        <span class="text-xs font-bold text-slate-700 font-mono bg-white px-2 py-0.5 rounded-md border border-slate-200">
+                                            Tahun: {{ tr.tahun || '-' }}
+                                        </span>
+                                    </div>
+                                    <div class="space-y-1.5 text-xs">
+                                        <div>
+                                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Keahlian</span>
+                                            <span class="font-bold text-slate-900 text-sm">{{ tr.keahlian || '-' }}</span>
+                                        </div>
+                                        <div class="grid grid-cols-2 gap-2 pt-1">
+                                            <div>
+                                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Penyelenggara</span>
+                                                <span class="text-slate-700 font-medium">{{ tr.instansi_penyelenggara || '-' }}</span>
+                                            </div>
+                                            <div>
+                                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Pembiayaan</span>
+                                                <span class="text-slate-700">{{ tr.pembiayaan || '-' }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div v-if="tr.document" class="pt-2 border-t border-slate-200/60 flex items-center justify-end">
+                                        <button
+                                            type="button"
+                                            @click="openPreview(tr.document)"
+                                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition-colors cursor-pointer"
+                                        >
+                                            <span class="material-symbols-outlined text-[16px]">visibility</span>
+                                            <span>Lihat Sertifikat</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div v-if="!employee.riwayat_pelatihan || employee.riwayat_pelatihan.length === 0" class="py-8 text-center border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
+                                    <span class="material-symbols-outlined text-4xl text-slate-300 block mb-2">workspace_premium</span>
+                                    <p class="text-xs font-semibold text-slate-600">Belum ada riwayat pelatihan dan nonformal</p>
+                                </div>
+                            </div>
+
+                            <!-- Mobile Edit Mode (Card Form) -->
+                            <div v-else class="space-y-3">
+                                <div
+                                    v-for="(tr, idx) in form.riwayat_pelatihan"
+                                    :key="tr.id || idx"
+                                    class="bg-slate-50/60 rounded-2xl border border-slate-200/80 p-4 space-y-3 shadow-2xs"
+                                >
+                                    <div class="flex items-center justify-between pb-2 border-b border-slate-200/60">
+                                        <span class="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                                            Pelatihan #{{ idx + 1 }}
+                                        </span>
+                                        <button
+                                            type="button"
+                                            @click="removeTrainingRow(idx)"
+                                            class="text-xs font-bold text-rose-600 hover:text-rose-800 flex items-center gap-1 p-1 cursor-pointer"
+                                        >
+                                            <span class="material-symbols-outlined text-[16px]">delete</span>
+                                            <span>Hapus</span>
+                                        </button>
+                                    </div>
+
+                                    <div class="space-y-3">
+                                        <div class="grid grid-cols-2 gap-2">
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Bidang</label>
+                                                <input
+                                                    v-model="tr.bidang"
+                                                    type="text"
+                                                    placeholder="IT / Bahasa"
+                                                    class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-emerald-600"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Tahun</label>
+                                                <input
+                                                    v-model="tr.tahun"
+                                                    type="text"
+                                                    placeholder="2024"
+                                                    class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 font-mono focus:outline-none focus:border-emerald-600"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Keahlian / Materi</label>
                                             <input
                                                 v-model="tr.keahlian"
                                                 type="text"
-                                                placeholder="Contoh: Desain Kurikulum / Robotik"
-                                                class="w-full px-3 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                                placeholder="Nama keahlian / materi pelatihan"
+                                                class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 font-semibold focus:outline-none focus:border-emerald-600"
                                             />
-                                        </td>
-                                        <td class="border border-outline-variant/60 px-3 py-2.5">
-                                            <input
-                                                v-model="tr.instansi_penyelenggara"
-                                                type="text"
-                                                placeholder="Contoh: Balai Diklat / Kemdikbud"
-                                                class="w-full px-3 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                                            />
-                                        </td>
-                                        <td class="border border-outline-variant/60 px-3 py-2.5">
-                                            <input
-                                                v-model="tr.tahun"
-                                                type="text"
-                                                placeholder="2024"
-                                                class="w-full px-2.5 py-2 text-center bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                                            />
-                                        </td>
-                                        <td class="border border-outline-variant/60 px-3 py-2.5">
-                                            <input
-                                                v-model="tr.pembiayaan"
-                                                type="text"
-                                                placeholder="Mandiri / Beasiswa / Yayasan"
-                                                class="w-full px-3 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                                            />
-                                        </td>
-                                        <td class="border border-outline-variant/60 px-3 py-2.5 text-center">
-                                            <div v-if="tr.document" class="inline-flex items-center justify-center">
-                                                <button
-                                                    type="button"
-                                                    @click="openPreview(tr.document)"
-                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors border border-emerald-200 cursor-pointer"
-                                                    title="Lihat Berkas Sertifikat"
-                                                >
-                                                    <span class="material-symbols-outlined text-[15px]">visibility</span>
-                                                    <span>Lihat Sertifikat</span>
-                                                </button>
-                                            </div>
-                                            <span v-else class="text-[11px] text-outline italic">Tab Dokumen</span>
-                                        </td>
-                                        <td class="border border-outline-variant/60 px-3 py-2.5 text-center">
-                                            <button
-                                                type="button"
-                                                @click="removeTrainingRow(idx)"
-                                                class="w-8 h-8 rounded-lg text-error hover:bg-error/10 flex items-center justify-center mx-auto transition-colors cursor-pointer"
-                                                title="Hapus baris riwayat pelatihan ini"
-                                            >
-                                                <span class="material-symbols-outlined text-[18px]">delete</span>
-                                            </button>
-                                        </td>
-                                    </tr>
+                                        </div>
 
-                                    <!-- BARIS PALING BAWAH: TOMBOL TAMBAH RIWAYAT PELATIHAN -->
-                                    <tr class="bg-slate-50/70 hover:bg-slate-100/70 transition-colors">
-                                        <td colspan="8" class="border border-outline-variant/60 p-2.5 text-center">
-                                            <button
-                                                type="button"
-                                                @click="addTrainingRow"
-                                                class="w-full py-2.5 px-4 rounded-xl border border-dashed border-primary/50 hover:border-primary bg-primary/5 hover:bg-primary/10 text-primary font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-[0.99]"
-                                            >
-                                                <span class="material-symbols-outlined text-[18px]">add_circle</span>
-                                                <span>Tambah Riwayat Pelatihan dan Nonformal</span>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                                        <div class="grid grid-cols-2 gap-2">
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Penyelenggara</label>
+                                                <input
+                                                    v-model="tr.instansi_penyelenggara"
+                                                    type="text"
+                                                    placeholder="Instansi penyelenggara"
+                                                    class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-emerald-600"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Pembiayaan</label>
+                                                <input
+                                                    v-model="tr.pembiayaan"
+                                                    type="text"
+                                                    placeholder="Mandiri / Yayasan"
+                                                    class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-emerald-600"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    @click="addTrainingRow"
+                                    class="w-full py-2.5 px-4 rounded-xl border border-dashed border-emerald-400 hover:border-emerald-600 bg-emerald-50/60 hover:bg-emerald-100/60 text-emerald-900 font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-[0.99]"
+                                >
+                                    <span class="material-symbols-outlined text-[18px]">add_circle</span>
+                                    <span>Tambah Riwayat Pelatihan dan Nonformal</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- TAB 7: PERIZINAN -->
-                <div v-if="activeTab === 'perizinan'" class="space-y-6">
-                    <div>
-                        <!-- Header Section -->
-                        <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
-                            <div>
-                                <h4 class="text-xs sm:text-sm font-bold text-primary flex items-center gap-2">
-                                    <span class="material-symbols-outlined text-[18px]">assignment_turned_in</span>
-                                    Riwayat Perizinan
-                                </h4>
-                                <p v-if="isEditing" class="text-xs text-on-surface-variant mt-0.5">
-                                    Edit data langsung di baris tabel atau klik tombol di baris paling bawah untuk menambah riwayat perizinan baru
+                <div v-if="activeTab === 'perizinan'" class="space-y-6 mb-8">
+                    <!-- Validation Error Alert in Edit Mode -->
+                    <div v-if="isEditing && Object.keys(form.errors).length > 0" class="p-4 rounded-2xl bg-error/10 border border-error/20 flex items-start gap-3 text-error">
+                        <span class="material-symbols-outlined shrink-0 text-xl">error</span>
+                        <div class="text-xs sm:text-sm">
+                            <span class="font-bold">Terdapat kesalahan pada isian form:</span>
+                            <ul class="list-disc list-inside mt-1 space-y-0.5">
+                                <li v-for="(err, key) in form.errors" :key="key">{{ err }}</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- KOTAK SECTION UTAMA: RIWAYAT PERIZINAN -->
+                    <div class="bg-white rounded-3xl border border-slate-200/90 p-4 sm:p-7 shadow-xs">
+                        <div class="flex items-center justify-between gap-3 pb-3 mb-4 border-b border-slate-100 flex-wrap">
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <div class="inline-flex items-center gap-2">
+                                        <span class="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0"></span>
+                                        <h4 class="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider leading-tight">
+                                            Riwayat Perizinan &amp; Ketidakhadiran
+                                        </h4>
+                                    </div>
+                                    <span class="text-[10px] sm:text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 shrink-0">
+                                        {{ (isEditing ? form.riwayat_perizinan?.length : perizinanList?.length) || 0 }} Perizinan
+                                    </span>
+                                </div>
+                                <p v-if="isEditing" class="text-xs text-slate-500 mt-1">
+                                    Kelola atau ajukan perizinan pada baris tabel (desktop) atau formulir kartu (mobile) di bawah ini
                                 </p>
-                                <p v-else-if="permissions?.permit_supervisor_position" class="text-xs text-on-surface-variant mt-0.5 flex items-center gap-1.5">
-                                    <span class="material-symbols-outlined text-[15px] text-primary">account_tree</span>
-                                    <span>Approval: <strong class="text-primary">{{ permissions.permit_supervisor_position }}</strong> ({{ permissions.permit_supervisor_dept || 'Unit' }}) &amp; Superadmin</span>
+                                <p v-else-if="permissions?.permit_supervisor_position" class="text-xs text-slate-500 mt-1 flex items-center gap-1.5">
+                                    <span class="material-symbols-outlined text-[15px] text-emerald-600">account_tree</span>
+                                    <span>Approval: <strong class="text-slate-800 font-semibold">{{ permissions.permit_supervisor_position }}</strong> ({{ permissions.permit_supervisor_dept || 'Unit' }}) &amp; Superadmin</span>
                                 </p>
                             </div>
-                            <span class="text-xs text-outline font-medium">
-                                {{ (isEditing ? form.riwayat_perizinan?.length : perizinanList?.length) || 0 }} Perizinan
-                            </span>
+
+                            <!-- Tombol Edit / Simpan di Pojok Kanan Atas Section -->
+                            <div class="flex items-center gap-2 shrink-0">
+                                <button
+                                    v-if="!isEditing"
+                                    type="button"
+                                    @click="startEdit"
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold shadow-xs transition-all whitespace-nowrap shrink-0 bg-emerald-900 hover:bg-emerald-800 text-yellow-200 border border-emerald-950/30 cursor-pointer active:scale-95"
+                                    title="Kelola atau ajukan perizinan"
+                                >
+                                    <span class="material-symbols-outlined text-[16px] sm:text-[18px]">add_task</span>
+                                    <span>Ajukan / Kelola Izin</span>
+                                </button>
+                                <template v-else>
+                                    <button
+                                        type="button"
+                                        @click="cancelEdit"
+                                        class="px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-100 border border-slate-300 transition-all cursor-pointer shadow-2xs whitespace-nowrap shrink-0"
+                                        :disabled="form.processing"
+                                        title="Batalkan perubahan"
+                                    >
+                                        Batal
+                                    </button>
+                                    <button
+                                        type="button"
+                                        @click="saveChanges"
+                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-5 sm:py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-bold text-xs sm:text-sm shadow-xs border border-emerald-950/30 active:scale-95 cursor-pointer disabled:opacity-60 transition-all whitespace-nowrap shrink-0"
+                                        :disabled="form.processing"
+                                        title="Simpan pengajuan / perubahan perizinan"
+                                    >
+                                        <span v-if="form.processing" class="material-symbols-outlined text-[16px] animate-spin">sync</span>
+                                        <span v-else class="material-symbols-outlined text-[16px]">save</span>
+                                        <span>{{ form.processing ? 'Menyimpan...' : 'Simpan' }}</span>
+                                    </button>
+                                </template>
+                            </div>
                         </div>
 
-                        <!-- VIEW MODE (Ketika tidak sedang edit) -->
-                        <div v-if="!isEditing">
-                            <div v-if="perizinanList && perizinanList.length > 0" class="overflow-x-auto rounded-xl border border-outline-variant/60 bg-white shadow-2xs">
-                                <table class="w-full text-xs sm:text-sm border-collapse border border-outline-variant/60">
-                                    <thead>
-                                        <tr class="bg-white text-on-surface-variant font-bold text-[10px] sm:text-xs uppercase tracking-wider">
-                                            <th class="border border-outline-variant/60 px-4 py-3 text-center w-12">No</th>
-                                            <th class="border border-outline-variant/60 px-4 py-3 text-left min-w-[140px]">Tgl</th>
-                                            <th class="border border-outline-variant/60 px-4 py-3 text-left min-w-[120px]">Jenis</th>
-                                            <th class="border border-outline-variant/60 px-4 py-3 text-left min-w-[150px]">Detail</th>
-                                            <th class="border border-outline-variant/60 px-4 py-3 text-left min-w-[180px]">Keterangan</th>
-                                            <th class="border border-outline-variant/60 px-4 py-3 text-center min-w-[110px]">Lampiran</th>
-                                            <th class="border border-outline-variant/60 px-4 py-3 text-center min-w-[110px]">Status</th>
-                                            <th class="border border-outline-variant/60 px-4 py-3 text-center min-w-[100px]">Aksi</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr
-                                            v-for="(item, idx) in perizinanList"
-                                            :key="item.id || idx"
-                                            class="hover:bg-slate-50 transition-colors"
-                                        >
-                                            <td class="border border-outline-variant/60 px-4 py-3 text-center text-on-surface-variant font-mono">{{ idx + 1 }}</td>
-                                            <td class="border border-outline-variant/60 px-4 py-3 text-on-surface font-medium whitespace-nowrap">
-                                                {{ item.formatted_tanggal || formatTanggalIndo(item.tanggal) || '-' }}
-                                            </td>
-                                            <td class="border border-outline-variant/60 px-4 py-3 font-bold text-on-surface">
-                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-semibold bg-primary/10 text-primary">
-                                                    {{ item.jenis || '-' }}
-                                                </span>
-                                            </td>
-                                            <td class="border border-outline-variant/60 px-4 py-3 text-on-surface">
-                                                {{ item.detail || '-' }}
-                                            </td>
-                                            <td class="border border-outline-variant/60 px-4 py-3 text-on-surface max-w-[220px] truncate" :title="item.keterangan || ''">
-                                                {{ item.keterangan || '-' }}
-                                            </td>
-                                            <td class="border border-outline-variant/60 px-4 py-3 text-center">
-                                                <div v-if="item.preview_url" class="inline-flex items-center justify-center gap-1">
+                        <!-- 1. DESKTOP VIEW: TABEL PERIZINAN -->
+                        <div class="hidden md:block">
+                            <!-- View Mode -->
+                            <div v-if="!isEditing">
+                                <div v-if="perizinanList && perizinanList.length > 0" class="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-2xs">
+                                    <table class="w-full text-xs sm:text-sm border-collapse">
+                                        <thead>
+                                            <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold text-[11px] uppercase tracking-wider">
+                                                <th class="px-4 py-3 text-center w-12">No</th>
+                                                <th class="px-4 py-3 text-left">Tanggal</th>
+                                                <th class="px-4 py-3 text-left">Jenis</th>
+                                                <th class="px-4 py-3 text-left">Detail</th>
+                                                <th class="px-4 py-3 text-left">Keterangan</th>
+                                                <th class="px-4 py-3 text-center">Lampiran</th>
+                                                <th class="px-4 py-3 text-center">Status</th>
+                                                <th class="px-4 py-3 text-center">Aksi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-slate-100">
+                                            <tr
+                                                v-for="(item, idx) in perizinanList"
+                                                :key="item.id || idx"
+                                                class="hover:bg-slate-50/80 transition-colors"
+                                            >
+                                                <td class="px-4 py-3.5 text-center text-slate-400 font-mono">{{ idx + 1 }}</td>
+                                                <td class="px-4 py-3.5 text-slate-900 font-semibold whitespace-nowrap">
+                                                    {{ item.formatted_tanggal || formatTanggalIndo(item.tanggal) || '-' }}
+                                                </td>
+                                                <td class="px-4 py-3.5">
+                                                    <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200/80 shadow-2xs">
+                                                        {{ item.jenis || '-' }}
+                                                    </span>
+                                                </td>
+                                                <td class="px-4 py-3.5 text-slate-800 font-medium">{{ item.detail || '-' }}</td>
+                                                <td class="px-4 py-3.5 text-slate-600 max-w-[220px] truncate" :title="item.keterangan || ''">
+                                                    {{ item.keterangan || '-' }}
+                                                </td>
+                                                <td class="px-4 py-3.5 text-center">
+                                                    <div v-if="item.preview_url" class="inline-flex items-center justify-center gap-1">
+                                                        <button
+                                                            type="button"
+                                                            @click="openPermitPreview(item)"
+                                                            class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-800 hover:bg-emerald-100 transition-colors border border-emerald-200 cursor-pointer"
+                                                            title="Lihat Berkas Lampiran"
+                                                        >
+                                                            <span class="material-symbols-outlined text-[15px]">visibility</span>
+                                                            <span>Lihat</span>
+                                                        </button>
+                                                        <a
+                                                            :href="item.download_url"
+                                                            class="inline-flex items-center justify-center p-1 rounded-lg text-xs font-semibold bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 transition-colors cursor-pointer"
+                                                            title="Unduh Berkas Lampiran"
+                                                        >
+                                                            <span class="material-symbols-outlined text-[15px]">download</span>
+                                                        </a>
+                                                    </div>
+                                                    <span v-else class="text-slate-400 text-xs">-</span>
+                                                </td>
+                                                <td class="px-4 py-3.5 text-center">
+                                                    <span
+                                                        :class="[
+                                                            'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border shadow-2xs',
+                                                            item.status === 'disetujui' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                                                            item.status === 'ditolak' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                                                            'bg-amber-50 text-amber-700 border-amber-200'
+                                                        ]"
+                                                    >
+                                                        <span
+                                                            :class="[
+                                                                'w-1.5 h-1.5 rounded-full',
+                                                                item.status === 'disetujui' ? 'bg-emerald-500' :
+                                                                item.status === 'ditolak' ? 'bg-rose-500' :
+                                                                'bg-amber-500'
+                                                            ]"
+                                                        ></span>
+                                                        {{ item.status === 'disetujui' ? 'Disetujui' : item.status === 'ditolak' ? 'Ditolak' : 'Diajukan' }}
+                                                    </span>
+                                                </td>
+                                                <td class="px-4 py-3.5 text-center">
                                                     <button
                                                         type="button"
-                                                        @click="openPermitPreview(item)"
-                                                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors border border-emerald-200 cursor-pointer"
-                                                        title="Lihat Berkas Lampiran"
+                                                        @click="openPermitNoteModal(item)"
+                                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200/80 transition-colors cursor-pointer"
+                                                        :title="item.catatan ? 'Lihat Catatan: ' + item.catatan : 'Buka Persetujuan Perizinan'"
                                                     >
-                                                        <span class="material-symbols-outlined text-[15px]">visibility</span>
-                                                        <span>Lihat</span>
+                                                        <span class="material-symbols-outlined text-[16px] text-slate-600">sticky_note_2</span>
+                                                        <span>Persetujuan</span>
+                                                        <span v-if="item.catatan" class="w-1.5 h-1.5 rounded-full bg-emerald-600" title="Ada catatan"></span>
                                                     </button>
-                                                    <a
-                                                        :href="item.download_url"
-                                                        class="inline-flex items-center justify-center p-1 rounded-lg text-xs font-semibold bg-white border border-outline-variant/60 hover:bg-slate-100 text-on-surface transition-colors cursor-pointer"
-                                                        title="Unduh Berkas Lampiran"
-                                                    >
-                                                        <span class="material-symbols-outlined text-[15px]">download</span>
-                                                    </a>
-                                                </div>
-                                                <span v-else class="text-outline text-xs">-</span>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div v-else class="py-10 text-center border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
+                                    <span class="material-symbols-outlined text-4xl text-slate-300 block mb-2">assignment_late</span>
+                                    <p class="text-sm font-semibold text-slate-700">Belum ada riwayat perizinan untuk pegawai ini</p>
+                                    <p class="text-xs text-slate-400 mt-0.5">Klik tombol Ajukan / Kelola Izin di atas untuk mengajukan perizinan</p>
+                                </div>
+                            </div>
+
+                            <!-- Edit Mode (Desktop Table) -->
+                            <div v-else class="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-2xs">
+                                <table class="w-full text-xs sm:text-sm border-collapse">
+                                    <thead>
+                                        <tr class="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold text-[11px] uppercase tracking-wider">
+                                            <th class="px-3 py-3 text-center w-12">No</th>
+                                            <th class="px-3 py-3 text-left w-64">Tanggal (Mulai - Selesai)</th>
+                                            <th class="px-3 py-3 text-left w-36">Jenis</th>
+                                            <th class="px-3 py-3 text-left">Detail</th>
+                                            <th class="px-3 py-3 text-left">Keterangan</th>
+                                            <th class="px-3 py-3 text-center w-40">Lampiran</th>
+                                            <th class="px-3 py-3 text-center w-28">Status</th>
+                                            <th class="px-3 py-3 text-center w-14">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-100">
+                                        <tr v-if="!form.riwayat_perizinan || form.riwayat_perizinan.length === 0">
+                                            <td colspan="8" class="p-8 text-center text-xs text-slate-500 italic">
+                                                <span class="material-symbols-outlined text-3xl text-slate-300 block mb-1">assignment_late</span>
+                                                Belum ada riwayat perizinan. Klik tombol di bawah untuk menambah pengajuan perizinan baru.
                                             </td>
-                                            <td class="border border-outline-variant/60 px-4 py-3 text-center">
+                                        </tr>
+                                        <tr
+                                            v-for="(row, idx) in form.riwayat_perizinan"
+                                            :key="row.id || 'new_' + idx"
+                                            class="hover:bg-slate-50/60 transition-colors"
+                                        >
+                                            <td class="px-3 py-2.5 text-center text-slate-400 font-mono font-bold">{{ idx + 1 }}</td>
+                                            <td class="px-3 py-2.5">
+                                                <div class="flex items-center gap-1.5">
+                                                    <input
+                                                        v-model="row.tanggal"
+                                                        type="date"
+                                                        :disabled="!canApprovePermit && row.id && (row.status === 'disetujui' || (isTeacher && row.status !== 'diajukan'))"
+                                                        class="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 cursor-pointer disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+                                                        title="Tanggal Mulai"
+                                                    />
+                                                    <span class="text-slate-400 text-xs font-semibold shrink-0">s/d</span>
+                                                    <input
+                                                        v-model="row.tanggal_selesai"
+                                                        type="date"
+                                                        :disabled="!canApprovePermit && row.id && (row.status === 'disetujui' || (isTeacher && row.status !== 'diajukan'))"
+                                                        class="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 cursor-pointer disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+                                                        title="Tanggal Akhir (Kosongkan jika 1 hari)"
+                                                    />
+                                                </div>
+                                                <span class="text-[10px] text-slate-400 mt-0.5 block">Tgl Selesai kosong = 1 hari</span>
+                                            </td>
+                                            <td class="px-3 py-2.5">
+                                                <input
+                                                    v-model="row.jenis"
+                                                    type="text"
+                                                    placeholder="Izin, Sakit, Cuti..."
+                                                    :disabled="!canApprovePermit && row.id && (row.status === 'disetujui' || (isTeacher && row.status !== 'diajukan'))"
+                                                    class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+                                                />
+                                            </td>
+                                            <td class="px-3 py-2.5">
+                                                <input
+                                                    v-model="row.detail"
+                                                    type="text"
+                                                    placeholder="Detail perizinan..."
+                                                    :disabled="!canApprovePermit && row.id && (row.status === 'disetujui' || (isTeacher && row.status !== 'diajukan'))"
+                                                    class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+                                                />
+                                            </td>
+                                            <td class="px-3 py-2.5">
+                                                <input
+                                                    v-model="row.keterangan"
+                                                    type="text"
+                                                    placeholder="Keterangan / alasan..."
+                                                    :disabled="!canApprovePermit && row.id && (row.status === 'disetujui' || (isTeacher && row.status !== 'diajukan'))"
+                                                    class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+                                                />
+                                            </td>
+                                            <td class="px-3 py-2.5 text-center">
+                                                <div class="flex flex-col items-center gap-1.5 justify-center">
+                                                    <div v-if="row.preview_url" class="inline-flex items-center gap-1">
+                                                        <button
+                                                            type="button"
+                                                            @click="openPermitPreview(row)"
+                                                            class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-800 hover:bg-emerald-100 transition-colors border border-emerald-200 cursor-pointer"
+                                                            title="Lihat Berkas"
+                                                        >
+                                                            <span class="material-symbols-outlined text-[15px]">visibility</span>
+                                                            <span>Lihat</span>
+                                                        </button>
+                                                    </div>
+                                                    <input
+                                                        type="file"
+                                                        @change="e => onPermitFileChange(row, e)"
+                                                        accept=".pdf,.jpg,.jpeg,.png,.webp"
+                                                        :disabled="!canApprovePermit && row.id && (row.status === 'disetujui' || (isTeacher && row.status !== 'diajukan'))"
+                                                        class="w-full max-w-[140px] text-[10px] text-slate-500 file:mr-1 file:py-0.5 file:px-1.5 file:rounded-md file:border-0 file:text-[10px] file:font-semibold file:bg-emerald-50 file:text-emerald-800 cursor-pointer border border-slate-200 rounded-lg p-0.5 bg-white disabled:opacity-40 disabled:cursor-not-allowed"
+                                                        :title="row.lampiran_nama ? 'Ganti berkas: ' + row.lampiran_nama : 'Pilih berkas lampiran'"
+                                                    />
+                                                </div>
+                                            </td>
+                                            <td class="px-3 py-2.5 text-center">
                                                 <span
                                                     :class="[
-                                                        'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border',
-                                                        item.status === 'disetujui' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                                                        item.status === 'ditolak' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                                                        'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border shadow-2xs',
+                                                        row.status === 'disetujui' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                                                        row.status === 'ditolak' ? 'bg-rose-50 text-rose-700 border-rose-200' :
                                                         'bg-amber-50 text-amber-700 border-amber-200'
                                                     ]"
                                                 >
                                                     <span
                                                         :class="[
                                                             'w-1.5 h-1.5 rounded-full',
-                                                            item.status === 'disetujui' ? 'bg-emerald-500' :
-                                                            item.status === 'ditolak' ? 'bg-rose-500' :
+                                                            row.status === 'disetujui' ? 'bg-emerald-500' :
+                                                            row.status === 'ditolak' ? 'bg-rose-500' :
                                                             'bg-amber-500'
                                                         ]"
                                                     ></span>
-                                                    {{ item.status === 'disetujui' ? 'Disetujui' : item.status === 'ditolak' ? 'Ditolak' : 'Diajukan' }}
+                                                    {{ row.status === 'disetujui' ? 'Disetujui' : row.status === 'ditolak' ? 'Ditolak' : 'Diajukan' }}
                                                 </span>
                                             </td>
-                                            <td class="border border-outline-variant/60 px-4 py-3 text-center">
+                                            <td class="px-3 py-2.5 text-center">
                                                 <button
                                                     type="button"
-                                                    @click="openPermitNoteModal(item)"
-                                                    class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-primary/5 hover:bg-primary/10 text-primary border border-primary/20 transition-colors cursor-pointer"
-                                                    :title="item.catatan ? 'Lihat Catatan: ' + item.catatan : 'Buka Persetujuan Perizinan'"
+                                                    @click="removeRiwayatPerizinanRow(idx)"
+                                                    :disabled="!canApprovePermit && row.id && (row.status === 'disetujui' || (isTeacher && row.status !== 'diajukan'))"
+                                                    :class="[
+                                                        'w-8 h-8 rounded-lg flex items-center justify-center mx-auto transition-colors',
+                                                        (canApprovePermit || !row.id || (row.status !== 'disetujui' && (!isTeacher || row.status === 'diajukan')))
+                                                            ? 'text-rose-500 hover:bg-rose-50 cursor-pointer active:scale-95'
+                                                            : 'text-slate-300 cursor-not-allowed opacity-40'
+                                                    ]"
+                                                    :title="(!canApprovePermit && row.status === 'disetujui') ? 'Perizinan yang sudah disetujui tidak dapat dihapus' : ((!canApprovePermit && isTeacher && row.id && row.status !== 'diajukan') ? 'Hanya dapat dihapus saat status masih Diajukan' : 'Hapus baris perizinan ini')"
                                                 >
-                                                    <span class="material-symbols-outlined text-[15px]">sticky_note_2</span>
-                                                    <span>Persetujuan</span>
-                                                    <span v-if="item.catatan" class="w-1.5 h-1.5 rounded-full bg-primary" title="Ada catatan"></span>
+                                                    <span class="material-symbols-outlined text-[18px]">delete</span>
                                                 </button>
                                             </td>
                                         </tr>
                                     </tbody>
                                 </table>
-                            </div>
-
-                            <div v-else class="py-10 text-center border-2 border-dashed border-outline-variant/30 rounded-2xl">
-                                <span class="material-symbols-outlined text-4xl text-outline/60 block mb-2">assignment_late</span>
-                                <p class="text-sm text-on-surface-variant">Belum ada riwayat perizinan untuk pegawai ini</p>
+                                <div class="p-3 bg-slate-50 border-t border-slate-200">
+                                    <button
+                                        type="button"
+                                        @click="addRiwayatPerizinanRow"
+                                        class="w-full py-2.5 px-4 rounded-xl border border-dashed border-emerald-400 hover:border-emerald-600 bg-white hover:bg-emerald-50 text-emerald-900 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-[0.99]"
+                                    >
+                                        <span class="material-symbols-outlined text-[18px]">add_circle</span>
+                                        <span>Tambah Riwayat Perizinan</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- EDIT MODE (Edit langsung di tabel dan tombol tambah di baris paling bawah) -->
-                        <div v-else class="overflow-x-auto rounded-xl border border-primary/30 bg-white shadow-2xs">
-                            <table class="w-full text-xs sm:text-sm border-collapse border border-outline-variant/60 min-w-[950px]">
-                                <thead>
-                                    <tr class="bg-primary/5 text-primary font-bold text-[10px] sm:text-xs uppercase tracking-wider">
-                                        <th class="border border-outline-variant/60 px-3 py-2.5 text-center w-12">No</th>
-                                        <th class="border border-outline-variant/60 px-3 py-2.5 text-left min-w-[260px]">Tgl</th>
-                                        <th class="border border-outline-variant/60 px-3 py-2.5 text-left min-w-[140px]">Jenis</th>
-                                        <th class="border border-outline-variant/60 px-3 py-2.5 text-left min-w-[160px]">Detail</th>
-                                        <th class="border border-outline-variant/60 px-3 py-2.5 text-left min-w-[180px]">Keterangan</th>
-                                        <th class="border border-outline-variant/60 px-3 py-2.5 text-center min-w-[140px]">Lampiran</th>
-                                        <th class="border border-outline-variant/60 px-3 py-2.5 text-center min-w-[130px]">Status</th>
-                                        <th class="border border-outline-variant/60 px-3 py-2.5 text-center w-16">Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr v-if="!form.riwayat_perizinan || form.riwayat_perizinan.length === 0">
-                                        <td colspan="8" class="border border-outline-variant/60 p-6 text-center text-xs text-on-surface-variant italic">
-                                            <span class="material-symbols-outlined text-2xl text-outline/60 block mb-1">assignment_late</span>
-                                            Belum ada riwayat perizinan. Klik tombol di bawah untuk menambah riwayat perizinan baru.
-                                        </td>
-                                    </tr>
-                                    <tr
-                                        v-for="(row, idx) in form.riwayat_perizinan"
-                                        :key="row.id || 'new_' + idx"
-                                        class="hover:bg-slate-50/70 transition-colors"
-                                    >
-                                        <td class="border border-outline-variant/60 px-3 py-2.5 text-center text-on-surface-variant font-mono font-bold">
-                                            {{ idx + 1 }}
-                                        </td>
-                                        <!-- TGL (MULAI & AKHIR) -->
-                                        <td class="border border-outline-variant/60 px-3 py-2.5">
-                                            <div class="flex items-center gap-1.5">
-                                                <input
-                                                    v-model="row.tanggal"
-                                                    type="date"
-                                                    :disabled="!canApprovePermit && row.id && (row.status === 'disetujui' || (isTeacher && row.status !== 'diajukan'))"
-                                                    :class="[
-                                                        'w-full px-2.5 py-1.5 border rounded-xl text-xs focus:outline-none focus:ring-2 cursor-pointer',
-                                                        (!canApprovePermit && row.id && (row.status === 'disetujui' || (isTeacher && row.status !== 'diajukan')))
-                                                            ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
-                                                            : 'bg-white border-outline-variant/60 text-on-surface focus:border-primary focus:ring-primary/20'
-                                                    ]"
-                                                    title="Tgl Mulai"
-                                                />
-                                                <span class="text-outline text-xs font-semibold shrink-0">s/d</span>
-                                                <input
-                                                    v-model="row.tanggal_selesai"
-                                                    type="date"
-                                                    :disabled="!canApprovePermit && row.id && (row.status === 'disetujui' || (isTeacher && row.status !== 'diajukan'))"
-                                                    :class="[
-                                                        'w-full px-2.5 py-1.5 border rounded-xl text-xs focus:outline-none focus:ring-2 cursor-pointer',
-                                                        (!canApprovePermit && row.id && (row.status === 'disetujui' || (isTeacher && row.status !== 'diajukan')))
-                                                            ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
-                                                            : 'bg-white border-outline-variant/60 text-on-surface focus:border-primary focus:ring-primary/20'
-                                                    ]"
-                                                    title="Tgl Akhir (Kosongkan jika 1 hari)"
-                                                />
-                                            </div>
-                                            <span class="text-[10px] text-outline mt-0.5 block">Tgl Akhir kosong = 1 hari</span>
-                                        </td>
-                                        <!-- JENIS -->
-                                        <td class="border border-outline-variant/60 px-3 py-2.5">
-                                            <input
-                                                v-model="row.jenis"
-                                                type="text"
-                                                placeholder="Izin, Sakit, Cuti..."
-                                                :disabled="!canApprovePermit && row.id && (row.status === 'disetujui' || (isTeacher && row.status !== 'diajukan'))"
-                                                :class="[
-                                                    'w-full px-3 py-2 border rounded-xl text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2',
-                                                    (!canApprovePermit && row.id && (row.status === 'disetujui' || (isTeacher && row.status !== 'diajukan')))
-                                                        ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
-                                                        : 'bg-white border-outline-variant/60 text-on-surface focus:border-primary focus:ring-primary/20'
-                                                ]"
-                                            />
-                                        </td>
-                                        <!-- DETAIL -->
-                                        <td class="border border-outline-variant/60 px-3 py-2.5">
-                                            <input
-                                                v-model="row.detail"
-                                                type="text"
-                                                placeholder="Detail perizinan..."
-                                                :disabled="!canApprovePermit && row.id && (row.status === 'disetujui' || (isTeacher && row.status !== 'diajukan'))"
-                                                :class="[
-                                                    'w-full px-3 py-2 border rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2',
-                                                    (!canApprovePermit && row.id && (row.status === 'disetujui' || (isTeacher && row.status !== 'diajukan')))
-                                                        ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
-                                                        : 'bg-white border-outline-variant/60 text-on-surface focus:border-primary focus:ring-primary/20'
-                                                ]"
-                                            />
-                                        </td>
-                                        <!-- KETERANGAN -->
-                                        <td class="border border-outline-variant/60 px-3 py-2.5">
-                                            <input
-                                                v-model="row.keterangan"
-                                                type="text"
-                                                placeholder="Keterangan / alasan..."
-                                                :disabled="!canApprovePermit && row.id && (row.status === 'disetujui' || (isTeacher && row.status !== 'diajukan'))"
-                                                :class="[
-                                                    'w-full px-3 py-2 border rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2',
-                                                    (!canApprovePermit && row.id && (row.status === 'disetujui' || (isTeacher && row.status !== 'diajukan')))
-                                                        ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
-                                                        : 'bg-white border-outline-variant/60 text-on-surface focus:border-primary focus:ring-primary/20'
-                                                ]"
-                                            />
-                                        </td>
-                                        <!-- LAMPIRAN -->
-                                        <td class="border border-outline-variant/60 px-3 py-2.5 text-center">
-                                            <div class="flex flex-col items-center gap-1.5 justify-center">
-                                                <div v-if="row.preview_url" class="inline-flex items-center gap-1">
-                                                    <button
-                                                        type="button"
-                                                        @click="openPermitPreview(row)"
-                                                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors border border-emerald-200 cursor-pointer"
-                                                        title="Lihat Berkas"
-                                                    >
-                                                        <span class="material-symbols-outlined text-[15px]">visibility</span>
-                                                        <span>Lihat</span>
-                                                    </button>
-                                                </div>
-                                                <input
-                                                    type="file"
-                                                    @change="e => onPermitFileChange(row, e)"
-                                                    accept=".pdf,.jpg,.jpeg,.png,.webp"
-                                                    :disabled="!canApprovePermit && row.id && (row.status === 'disetujui' || (isTeacher && row.status !== 'diajukan'))"
-                                                    class="w-full max-w-[140px] text-[10px] text-on-surface-variant file:mr-1 file:py-0.5 file:px-1.5 file:rounded-md file:border-0 file:text-[10px] file:font-semibold file:bg-primary/10 file:text-primary cursor-pointer border border-outline-variant/40 rounded-lg p-0.5 bg-white disabled:opacity-40 disabled:cursor-not-allowed"
-                                                    :title="row.lampiran_nama ? 'Ganti berkas: ' + row.lampiran_nama : 'Pilih berkas lampiran'"
-                                                />
-                                            </div>
-                                        </td>
-                                        <!-- STATUS: BADGE ONLY -->
-                                        <td class="border border-outline-variant/60 px-3 py-2.5 text-center">
+                        <!-- 2. MOBILE CARD VIEW: PERIZINAN -->
+                        <div class="md:hidden space-y-3">
+                            <!-- View Mode -->
+                            <div v-if="!isEditing" class="space-y-3">
+                                <div
+                                    v-for="(item, idx) in perizinanList"
+                                    :key="item.id || idx"
+                                    class="bg-slate-50/70 rounded-2xl border border-slate-200/80 p-4 space-y-3 shadow-2xs"
+                                >
+                                    <div class="flex items-center justify-between gap-2 pb-2.5 border-b border-slate-200/60">
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200/80 shadow-2xs">
+                                            {{ item.jenis || '-' }}
+                                        </span>
+                                        <span
+                                            :class="[
+                                                'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold border shadow-2xs',
+                                                item.status === 'disetujui' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                                                item.status === 'ditolak' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                                                'bg-amber-50 text-amber-700 border-amber-200'
+                                            ]"
+                                        >
                                             <span
                                                 :class="[
-                                                    'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border',
+                                                    'w-1.5 h-1.5 rounded-full',
+                                                    item.status === 'disetujui' ? 'bg-emerald-500' :
+                                                    item.status === 'ditolak' ? 'bg-rose-500' :
+                                                    'bg-amber-500'
+                                                ]"
+                                            ></span>
+                                            {{ item.status === 'disetujui' ? 'Disetujui' : item.status === 'ditolak' ? 'Ditolak' : 'Diajukan' }}
+                                        </span>
+                                    </div>
+
+                                    <div class="space-y-1.5 text-xs">
+                                        <div>
+                                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Tanggal Izin</span>
+                                            <span class="font-bold text-slate-900 text-sm">{{ item.formatted_tanggal || formatTanggalIndo(item.tanggal) || '-' }}</span>
+                                        </div>
+                                        <div>
+                                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Detail</span>
+                                            <span class="text-slate-800 font-semibold">{{ item.detail || '-' }}</span>
+                                        </div>
+                                        <div v-if="item.keterangan">
+                                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Keterangan / Alasan</span>
+                                            <span class="text-slate-600">{{ item.keterangan }}</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="pt-2.5 border-t border-slate-200/60 flex items-center justify-between gap-2 flex-wrap">
+                                        <div v-if="item.preview_url" class="inline-flex items-center gap-1">
+                                            <button
+                                                type="button"
+                                                @click="openPermitPreview(item)"
+                                                class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition-colors cursor-pointer"
+                                            >
+                                                <span class="material-symbols-outlined text-[15px]">visibility</span>
+                                                <span>Lampiran</span>
+                                            </button>
+                                        </div>
+                                        <div v-else class="text-[11px] text-slate-400 italic">Tanpa lampiran</div>
+
+                                        <button
+                                            type="button"
+                                            @click="openPermitNoteModal(item)"
+                                            class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200/80 transition-colors cursor-pointer"
+                                        >
+                                            <span class="material-symbols-outlined text-[16px] text-slate-600">sticky_note_2</span>
+                                            <span>Persetujuan</span>
+                                            <span v-if="item.catatan" class="w-1.5 h-1.5 rounded-full bg-emerald-600" title="Ada catatan"></span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div v-if="!perizinanList || perizinanList.length === 0" class="py-8 text-center border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
+                                    <span class="material-symbols-outlined text-4xl text-slate-300 block mb-2">assignment_late</span>
+                                    <p class="text-xs font-semibold text-slate-600">Belum ada riwayat perizinan</p>
+                                </div>
+                            </div>
+
+                            <!-- Mobile Edit Mode (Card Form) -->
+                            <div v-else class="space-y-3">
+                                <div
+                                    v-for="(row, idx) in form.riwayat_perizinan"
+                                    :key="row.id || 'new_' + idx"
+                                    class="bg-slate-50/60 rounded-2xl border border-slate-200/80 p-4 space-y-3 shadow-2xs"
+                                >
+                                    <div class="flex items-center justify-between pb-2 border-b border-slate-200/60">
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                                                Perizinan #{{ idx + 1 }}
+                                            </span>
+                                            <span
+                                                :class="[
+                                                    'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border',
                                                     row.status === 'disetujui' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
                                                     row.status === 'ditolak' ? 'bg-rose-50 text-rose-700 border-rose-200' :
                                                     'bg-amber-50 text-amber-700 border-amber-200'
                                                 ]"
                                             >
-                                                <span
-                                                    :class="[
-                                                        'w-1.5 h-1.5 rounded-full',
-                                                        row.status === 'disetujui' ? 'bg-emerald-500' :
-                                                        row.status === 'ditolak' ? 'bg-rose-500' :
-                                                        'bg-amber-500'
-                                                    ]"
-                                                ></span>
                                                 {{ row.status === 'disetujui' ? 'Disetujui' : row.status === 'ditolak' ? 'Ditolak' : 'Diajukan' }}
                                             </span>
-                                        </td>
-                                        <!-- AKSI: HANYA TOMBOL HAPUS (TIDAK BISA DIHAPUS JIKA SUDAH DISETUJUI KECUALI APPROVER) -->
-                                        <td class="border border-outline-variant/60 px-3 py-2.5 text-center">
-                                            <button
-                                                type="button"
-                                                @click="removeRiwayatPerizinanRow(idx)"
-                                                :disabled="!canApprovePermit && row.id && (row.status === 'disetujui' || (isTeacher && row.status !== 'diajukan'))"
-                                                :class="[
-                                                    'w-8 h-8 rounded-lg flex items-center justify-center mx-auto transition-colors',
-                                                    (canApprovePermit || !row.id || (row.status !== 'disetujui' && (!isTeacher || row.status === 'diajukan')))
-                                                        ? 'text-error hover:bg-error/10 cursor-pointer active:scale-95'
-                                                        : 'text-slate-300 cursor-not-allowed opacity-40'
-                                                ]"
-                                                :title="(!canApprovePermit && row.status === 'disetujui') ? 'Perizinan yang sudah disetujui tidak dapat dihapus' : ((!canApprovePermit && isTeacher && row.id && row.status !== 'diajukan') ? 'Hanya dapat dihapus saat status masih Diajukan' : 'Hapus baris perizinan ini')"
-                                            >
-                                                <span class="material-symbols-outlined text-[18px]">delete</span>
-                                            </button>
-                                        </td>
-                                    </tr>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            @click="removeRiwayatPerizinanRow(idx)"
+                                            :disabled="!canApprovePermit && row.id && (row.status === 'disetujui' || (isTeacher && row.status !== 'diajukan'))"
+                                            :class="[
+                                                'text-xs font-bold flex items-center gap-1 p-1',
+                                                (canApprovePermit || !row.id || (row.status !== 'disetujui' && (!isTeacher || row.status === 'diajukan')))
+                                                    ? 'text-rose-600 hover:text-rose-800 cursor-pointer'
+                                                    : 'text-slate-300 cursor-not-allowed opacity-40'
+                                            ]"
+                                        >
+                                            <span class="material-symbols-outlined text-[16px]">delete</span>
+                                            <span>Hapus</span>
+                                        </button>
+                                    </div>
 
-                                    <!-- BARIS PALING BAWAH: TOMBOL TAMBAH RIWAYAT PERIZINAN -->
-                                    <tr class="bg-slate-50/70 hover:bg-slate-100/70 transition-colors">
-                                        <td colspan="8" class="border border-outline-variant/60 p-2.5 text-center">
-                                            <button
-                                                type="button"
-                                                @click="addRiwayatPerizinanRow"
-                                                class="w-full py-2.5 px-4 rounded-xl border border-dashed border-primary/50 hover:border-primary bg-primary/5 hover:bg-primary/10 text-primary font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-[0.99]"
-                                            >
-                                                <span class="material-symbols-outlined text-[18px]">add_circle</span>
-                                                <span>Tambah Riwayat Perizinan</span>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                                    <div class="space-y-3">
+                                        <div class="grid grid-cols-2 gap-2">
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Tgl Mulai</label>
+                                                <input
+                                                    v-model="row.tanggal"
+                                                    type="date"
+                                                    :disabled="!canApprovePermit && row.id && (row.status === 'disetujui' || (isTeacher && row.status !== 'diajukan'))"
+                                                    class="w-full px-2.5 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-emerald-600 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Tgl Selesai</label>
+                                                <input
+                                                    v-model="row.tanggal_selesai"
+                                                    type="date"
+                                                    :disabled="!canApprovePermit && row.id && (row.status === 'disetujui' || (isTeacher && row.status !== 'diajukan'))"
+                                                    class="w-full px-2.5 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-emerald-600 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Jenis Perizinan</label>
+                                            <input
+                                                v-model="row.jenis"
+                                                type="text"
+                                                placeholder="Contoh: Izin, Sakit, Cuti..."
+                                                :disabled="!canApprovePermit && row.id && (row.status === 'disetujui' || (isTeacher && row.status !== 'diajukan'))"
+                                                class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 font-semibold focus:outline-none focus:border-emerald-600 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Detail Perizinan</label>
+                                            <input
+                                                v-model="row.detail"
+                                                type="text"
+                                                placeholder="Contoh: Acara keluarga di luar kota"
+                                                :disabled="!canApprovePermit && row.id && (row.status === 'disetujui' || (isTeacher && row.status !== 'diajukan'))"
+                                                class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-emerald-600 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Keterangan / Alasan</label>
+                                            <input
+                                                v-model="row.keterangan"
+                                                type="text"
+                                                placeholder="Keterangan tambahan..."
+                                                :disabled="!canApprovePermit && row.id && (row.status === 'disetujui' || (isTeacher && row.status !== 'diajukan'))"
+                                                class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-emerald-600 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Berkas Lampiran</label>
+                                            <div class="flex items-center gap-2">
+                                                <input
+                                                    type="file"
+                                                    @change="e => onPermitFileChange(row, e)"
+                                                    accept=".pdf,.jpg,.jpeg,.png,.webp"
+                                                    :disabled="!canApprovePermit && row.id && (row.status === 'disetujui' || (isTeacher && row.status !== 'diajukan'))"
+                                                    class="flex-1 text-xs text-slate-500 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-800 border border-slate-200 rounded-xl p-1 bg-white disabled:opacity-40"
+                                                />
+                                                <button
+                                                    v-if="row.preview_url"
+                                                    type="button"
+                                                    @click="openPermitPreview(row)"
+                                                    class="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 shrink-0"
+                                                >
+                                                    Lihat
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    @click="addRiwayatPerizinanRow"
+                                    class="w-full py-2.5 px-4 rounded-xl border border-dashed border-emerald-400 hover:border-emerald-600 bg-emerald-50/60 hover:bg-emerald-100/60 text-emerald-900 font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-[0.99]"
+                                >
+                                    <span class="material-symbols-outlined text-[18px]">add_circle</span>
+                                    <span>Tambah Riwayat Perizinan</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
