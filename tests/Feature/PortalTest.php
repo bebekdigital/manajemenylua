@@ -48,6 +48,7 @@ class PortalTest extends TestCase
     public function test_superadmin_can_create_user_with_jabatan_role(): void
     {
         $superadmin = User::factory()->create([
+            'name' => 'Admin Utama',
             'role' => 'superadmin',
         ]);
 
@@ -69,6 +70,7 @@ class PortalTest extends TestCase
     public function test_superadmin_can_batch_generate_user_accounts_for_employees(): void
     {
         $superadmin = User::factory()->create([
+            'name' => 'Admin Utama',
             'role' => 'superadmin',
         ]);
 
@@ -115,6 +117,7 @@ class PortalTest extends TestCase
     public function test_superadmin_can_update_user_role(): void
     {
         $superadmin = User::factory()->create([
+            'name' => 'Admin Utama',
             'role' => 'superadmin',
         ]);
 
@@ -140,6 +143,7 @@ class PortalTest extends TestCase
     public function test_superadmin_can_get_permissions_matrix(): void
     {
         $superadmin = User::factory()->create([
+            'name' => 'Admin Utama',
             'role' => 'superadmin',
         ]);
 
@@ -153,6 +157,7 @@ class PortalTest extends TestCase
     public function test_superadmin_can_update_role_permissions(): void
     {
         $superadmin = User::factory()->create([
+            'name' => 'Admin Utama',
             'role' => 'superadmin',
         ]);
 
@@ -198,6 +203,7 @@ class PortalTest extends TestCase
     public function test_portal_index_returns_pass_default_and_is_active_for_users(): void
     {
         $superadmin = User::factory()->create([
+            'name' => 'Admin Utama',
             'role' => 'superadmin',
         ]);
 
@@ -228,6 +234,7 @@ class PortalTest extends TestCase
     public function test_superadmin_can_toggle_user_active_status(): void
     {
         $superadmin = User::factory()->create([
+            'name' => 'Admin Utama',
             'role' => 'superadmin',
         ]);
 
@@ -287,6 +294,7 @@ class PortalTest extends TestCase
     public function test_superadmin_can_reset_user_password_to_default(): void
     {
         $superadmin = User::factory()->create([
+            'name' => 'Admin Utama',
             'role' => 'superadmin',
         ]);
 
