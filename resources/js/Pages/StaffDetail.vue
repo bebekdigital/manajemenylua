@@ -885,9 +885,16 @@ const modalPelatihanMode = ref('create'); // 'create' | 'edit'
 const editingPelatihanIndex = ref(null);
 const isSavingPelatihan = ref(false);
 
+// State & fungsi Kelola Riwayat Perizinan (Tab 7)
+const isManagingPerizinan = ref(false);
+const isPerizinanModalOpen = ref(false);
+const modalPerizinanMode = ref('create'); // 'create' | 'edit'
+const editingPerizinanIndex = ref(null);
+const isSavingPerizinan = ref(false);
+
 // Global state check untuk mencegah navigasi saat ada section kelola yang aktif
 const isAnyManaging = computed(() => {
-    return isManagingRiwayat.value || isManagingJabatan.value || isManagingPendidikan.value || isManagingPelatihan.value;
+    return isManagingRiwayat.value || isManagingJabatan.value || isManagingPendidikan.value || isManagingPelatihan.value || isManagingPerizinan.value;
 });
 
 const riwayatModalForm = reactive({
@@ -1521,37 +1528,198 @@ function removeTrainingRow(index) {
     deletePelatihanRecord(index);
 }
 
+const perizinanModalForm = reactive({
+    id: null,
+    tanggal: new Date().toISOString().split('T')[0],
+    tanggal_selesai: '',
+    jenis: '',
+    detail: '',
+    keterangan: '',
+    status: 'diajukan',
+    catatan: '',
+    lampiran: null,
+    lampiran_nama: '',
+    preview_url: '',
+    download_url: '',
+});
+
+function canModifyPermit(item) {
+    if (canApprovePermit.value) return true;
+    if (isTeacher.value && item && item.id && item.status !== 'diajukan') return false;
+    return true;
+}
+
+function startManagePerizinan() {
+    if (isEditing.value) {
+        alert('Anda sedang dalam mode edit Informasi Umum. Selesaikan (Simpan) atau batalkan (Batal) perubahan terlebih dahulu sebelum mengelola riwayat perizinan.');
+        return;
+    }
+    isManagingPerizinan.value = true;
+}
+
+function finishManagePerizinan() {
+    isManagingPerizinan.value = false;
+}
+
+function openAddPerizinanModal() {
+    modalPerizinanMode.value = 'create';
+    editingPerizinanIndex.value = null;
+    perizinanModalForm.id = null;
+    perizinanModalForm.tanggal = new Date().toISOString().split('T')[0];
+    perizinanModalForm.tanggal_selesai = '';
+    perizinanModalForm.jenis = '';
+    perizinanModalForm.detail = '';
+    perizinanModalForm.keterangan = '';
+    perizinanModalForm.status = 'diajukan';
+    perizinanModalForm.catatan = '';
+    perizinanModalForm.lampiran = null;
+    perizinanModalForm.lampiran_nama = '';
+    perizinanModalForm.preview_url = '';
+    perizinanModalForm.download_url = '';
+    isPerizinanModalOpen.value = true;
+}
+
+function openEditPerizinanModal(record, index) {
+    if (!canModifyPermit(record)) {
+        alert('Perizinan yang sudah diproses tidak dapat diubah.');
+        return;
+    }
+    modalPerizinanMode.value = 'edit';
+    editingPerizinanIndex.value = index;
+    perizinanModalForm.id = record.id || null;
+    perizinanModalForm.tanggal = record.tanggal || '';
+    perizinanModalForm.tanggal_selesai = record.tanggal_selesai || '';
+    perizinanModalForm.jenis = record.jenis || '';
+    perizinanModalForm.detail = record.detail || '';
+    perizinanModalForm.keterangan = record.keterangan || '';
+    perizinanModalForm.status = record.status || 'diajukan';
+    perizinanModalForm.catatan = record.catatan || '';
+    perizinanModalForm.lampiran = null;
+    perizinanModalForm.lampiran_nama = record.lampiran_nama || '';
+    perizinanModalForm.preview_url = record.preview_url || '';
+    perizinanModalForm.download_url = record.download_url || '';
+    isPerizinanModalOpen.value = true;
+}
+
+function closePerizinanModal() {
+    isPerizinanModalOpen.value = false;
+}
+
+function onModalPermitFileChange(event) {
+    const file = event.target.files?.[0] || null;
+    perizinanModalForm.lampiran = file;
+}
+
+function submitPerizinanModal() {
+    if (!perizinanModalForm.jenis) {
+        alert('Mohon pilih atau isi Jenis Perizinan.');
+        return;
+    }
+    if (!perizinanModalForm.tanggal) {
+        alert('Mohon tentukan Tanggal Mulai.');
+        return;
+    }
+    if (perizinanModalForm.tanggal_selesai && perizinanModalForm.tanggal_selesai < perizinanModalForm.tanggal) {
+        alert('Tanggal Selesai harus sama atau setelah Tanggal Mulai.');
+        return;
+    }
+
+    isSavingPerizinan.value = true;
+
+    const formData = new FormData();
+    formData.append('tanggal', perizinanModalForm.tanggal || '');
+    if (perizinanModalForm.tanggal_selesai) {
+        formData.append('tanggal_selesai', perizinanModalForm.tanggal_selesai);
+    }
+    formData.append('jenis', perizinanModalForm.jenis || '');
+    if (perizinanModalForm.detail) {
+        formData.append('detail', perizinanModalForm.detail);
+    }
+    if (perizinanModalForm.keterangan) {
+        formData.append('keterangan', perizinanModalForm.keterangan);
+    }
+    if (canApprovePermit.value) {
+        formData.append('status', perizinanModalForm.status || 'diajukan');
+        if (perizinanModalForm.catatan) {
+            formData.append('catatan', perizinanModalForm.catatan);
+        }
+    }
+    if (perizinanModalForm.lampiran instanceof File) {
+        formData.append('lampiran', perizinanModalForm.lampiran);
+    }
+
+    if (modalPerizinanMode.value === 'edit' && perizinanModalForm.id) {
+        formData.append('_method', 'put');
+        router.post(`/staff/${props.employee.id}/permits/${perizinanModalForm.id}`, formData, {
+            preserveScroll: true,
+            forceFormData: true,
+            onSuccess: () => {
+                isSavingPerizinan.value = false;
+                isPerizinanModalOpen.value = false;
+                fetchPermitsRealtime();
+            },
+            onError: (errors) => {
+                isSavingPerizinan.value = false;
+                const errMsg = Object.values(errors).join('\n');
+                alert('Gagal menyimpan perizinan:\n' + errMsg);
+            },
+        });
+    } else {
+        router.post(`/staff/${props.employee.id}/permits`, formData, {
+            preserveScroll: true,
+            forceFormData: true,
+            onSuccess: () => {
+                isSavingPerizinan.value = false;
+                isPerizinanModalOpen.value = false;
+                fetchPermitsRealtime();
+            },
+            onError: (errors) => {
+                isSavingPerizinan.value = false;
+                const errMsg = Object.values(errors).join('\n');
+                alert('Gagal mengajukan perizinan:\n' + errMsg);
+            },
+        });
+    }
+}
+
+function deletePerizinanRecord(item, index) {
+    if (!canModifyPermit(item)) {
+        alert('Perizinan yang sudah diproses tidak dapat dihapus.');
+        return;
+    }
+
+    if (!confirm(`Apakah Anda yakin ingin menghapus catatan perizinan "${item.jenis || 'ini'}"?`)) {
+        return;
+    }
+
+    if (item && item.id) {
+        isSavingPerizinan.value = true;
+        router.delete(`/staff/${props.employee.id}/permits/${item.id}`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                isSavingPerizinan.value = false;
+                fetchPermitsRealtime();
+            },
+            onError: (errors) => {
+                isSavingPerizinan.value = false;
+                const errMsg = Object.values(errors).join('\n');
+                alert('Gagal menghapus perizinan:\n' + errMsg);
+            }
+        });
+    } else {
+        perizinanList.value.splice(index, 1);
+    }
+}
+
 function addRiwayatPerizinanRow() {
-    const todayStr = new Date().toISOString().split('T')[0];
-    form.riwayat_perizinan.push({
-        id: null,
-        tanggal: todayStr,
-        tanggal_selesai: '',
-        jenis: '',
-        detail: '',
-        keterangan: '',
-        status: 'diajukan',
-        catatan: '',
-        lampiran: null,
-        lampiran_nama: '',
-        preview_url: '',
-        download_url: '',
-    });
+    openAddPerizinanModal();
 }
 
 function removeRiwayatPerizinanRow(index) {
-    const row = form.riwayat_perizinan[index];
-    if (!canApprovePermit.value) {
-        if (row && row.id && row.status === 'disetujui') {
-            alert('Perizinan yang sudah disetujui tidak dapat dihapus.');
-            return;
-        }
-        if (isTeacher.value && row && row.id && row.status !== 'diajukan') {
-            alert('Perizinan yang sudah diproses tidak dapat dihapus.');
-            return;
-        }
+    const item = perizinanList.value[index];
+    if (item) {
+        deletePerizinanRecord(item, index);
     }
-    form.riwayat_perizinan.splice(index, 1);
 }
 
 function onPermitFileChange(row, event) {
@@ -1617,8 +1785,8 @@ function submitPermitNote() {
 let permitPollInterval = null;
 
 async function fetchPermitsRealtime() {
-    // Hindari reload jika sedang mode edit form profil utama atau sedang mengisi form approval
-    if (isEditing.value) return;
+    // Hindari reload jika sedang mode edit form profil utama atau sedang membuka modal kelola izin
+    if (isEditing.value || isPerizinanModalOpen.value) return;
 
     // Jika pihak approval sedang membuka modal untuk memberi status/catatan, jangan fetch agar input tidak terganggu
     if (showPermitNoteModal.value && canApprovePermit.value) return;
@@ -1630,6 +1798,7 @@ async function fetchPermitsRealtime() {
             if (props.employee) {
                 props.employee.perizinan = response.data.permits;
             }
+            form.riwayat_perizinan = response.data.permits.map((p) => ({ ...p }));
 
             // Auto-sinkronisasi data di modal HANYA jika modal sedang dibuka oleh penerima respon (bukan approver)
             if (showPermitNoteModal.value && permitNoteForm.id && !canApprovePermit.value) {
@@ -1653,7 +1822,7 @@ function startPermitPolling() {
     fetchPermitsRealtime();
     // Interval 3 detik HANYA saat tab perizinan aktif
     permitPollInterval = setInterval(() => {
-        if (activeTab.value === 'perizinan' && !isEditing.value && !(showPermitNoteModal.value && canApprovePermit.value)) {
+        if (activeTab.value === 'perizinan' && !isEditing.value && !isPerizinanModalOpen.value && !(showPermitNoteModal.value && canApprovePermit.value)) {
             fetchPermitsRealtime();
         }
     }, 3000);
@@ -1667,7 +1836,7 @@ function stopPermitPolling() {
 }
 
 function onWindowFocus() {
-    if (activeTab.value === 'perizinan' && !isEditing.value && !(showPermitNoteModal.value && canApprovePermit.value)) {
+    if (activeTab.value === 'perizinan' && !isEditing.value && !isPerizinanModalOpen.value && !(showPermitNoteModal.value && canApprovePermit.value)) {
         fetchPermitsRealtime();
     }
 }
@@ -5737,17 +5906,6 @@ function handleBackClick(e) {
 
                 <!-- TAB 7: PERIZINAN -->
                 <div v-if="activeTab === 'perizinan'" class="space-y-6 mb-8">
-                    <!-- Validation Error Alert in Edit Mode -->
-                    <div v-if="isEditing && Object.keys(form.errors).length > 0" class="p-4 rounded-2xl bg-error/10 border border-error/20 flex items-start gap-3 text-error">
-                        <span class="material-symbols-outlined shrink-0 text-xl">error</span>
-                        <div class="text-xs sm:text-sm">
-                            <span class="font-bold">Terdapat kesalahan pada isian form:</span>
-                            <ul class="list-disc list-inside mt-1 space-y-0.5">
-                                <li v-for="(err, key) in form.errors" :key="key">{{ err }}</li>
-                            </ul>
-                        </div>
-                    </div>
-
                     <!-- KOTAK SECTION UTAMA: RIWAYAT PERIZINAN -->
                     <div class="bg-white rounded-3xl border border-slate-200/90 p-4 sm:p-7 shadow-xs">
                         <div class="flex items-center justify-between gap-3 pb-3 mb-4 border-b border-slate-100 flex-wrap">
@@ -5760,11 +5918,11 @@ function handleBackClick(e) {
                                         </h4>
                                     </div>
                                     <span class="text-[10px] sm:text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 shrink-0">
-                                        {{ (isEditing ? form.riwayat_perizinan?.length : perizinanList?.length) || 0 }} Perizinan
+                                        {{ perizinanList?.length || 0 }} Perizinan
                                     </span>
                                 </div>
-                                <p v-if="isEditing" class="text-xs text-slate-500 mt-1">
-                                    Kelola atau ajukan perizinan pada baris tabel (desktop) atau formulir kartu (mobile) di bawah ini
+                                <p v-if="isManagingPerizinan" class="text-xs text-slate-500 mt-1">
+                                    Gunakan tombol hapus di kolom pertama atau tombol edit untuk mengubah data perizinan
                                 </p>
                                 <p v-else-if="permissions?.permit_supervisor_position" class="text-xs text-slate-500 mt-1 flex items-center gap-1.5">
                                     <span class="material-symbols-outlined text-[15px] text-emerald-600">account_tree</span>
@@ -5772,304 +5930,211 @@ function handleBackClick(e) {
                                 </p>
                             </div>
 
-                            <!-- Tombol Edit / Simpan di Pojok Kanan Atas Section -->
+                            <!-- Tombol Kelola / Selesai Kelola di Pojok Kanan Atas Section -->
                             <div class="flex items-center gap-2 shrink-0">
                                 <button
-                                    v-if="!isEditing"
+                                    v-if="!isManagingPerizinan"
                                     type="button"
-                                    @click="startEdit"
-                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold shadow-xs transition-all whitespace-nowrap shrink-0 bg-emerald-900 hover:bg-emerald-800 text-yellow-200 border border-emerald-950/30 cursor-pointer active:scale-95"
-                                    title="Kelola atau ajukan perizinan"
+                                    @click="startManagePerizinan"
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold shadow-xs transition-all whitespace-nowrap shrink-0 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 cursor-pointer active:scale-95"
+                                    title="Kelola data perizinan"
                                 >
-                                    <span class="material-symbols-outlined text-[16px] sm:text-[18px]">add_task</span>
-                                    <span>Ajukan / Kelola Izin</span>
+                                    <span class="material-symbols-outlined text-[16px] sm:text-[18px] text-slate-600">tune</span>
+                                    <span>Kelola</span>
                                 </button>
-                                <template v-else>
-                                    <button
-                                        type="button"
-                                        @click="cancelEdit"
-                                        class="px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-100 border border-slate-300 transition-all cursor-pointer shadow-2xs whitespace-nowrap shrink-0"
-                                        :disabled="form.processing"
-                                        title="Batalkan perubahan"
-                                    >
-                                        Batal
-                                    </button>
-                                    <button
-                                        type="button"
-                                        @click="saveChanges"
-                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-5 sm:py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-bold text-xs sm:text-sm shadow-xs border border-emerald-950/30 active:scale-95 cursor-pointer disabled:opacity-60 transition-all whitespace-nowrap shrink-0"
-                                        :disabled="form.processing"
-                                        title="Simpan pengajuan / perubahan perizinan"
-                                    >
-                                        <span v-if="form.processing" class="material-symbols-outlined text-[16px] animate-spin">sync</span>
-                                        <span v-else class="material-symbols-outlined text-[16px]">save</span>
-                                        <span>{{ form.processing ? 'Menyimpan...' : 'Simpan' }}</span>
-                                    </button>
-                                </template>
+                                <button
+                                    v-else
+                                    type="button"
+                                    @click="finishManagePerizinan"
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-emerald-950 hover:bg-emerald-900 text-emerald-300 font-bold text-xs sm:text-sm shadow-xs border border-emerald-800 transition-all cursor-pointer active:scale-95 whitespace-nowrap shrink-0"
+                                    title="Selesai kelola data perizinan"
+                                >
+                                    <span class="material-symbols-outlined text-[16px] sm:text-[18px]">check</span>
+                                    <span>Selesai Kelola</span>
+                                </button>
                             </div>
                         </div>
 
-                        <!-- 1. DESKTOP VIEW: TABEL PERIZINAN -->
+                        <!-- 1. TAMPILAN DESKTOP (TABLE VIEW) -->
                         <div class="hidden md:block">
-                            <!-- View Mode -->
-                            <div v-if="!isEditing">
-                                <div v-if="perizinanList && perizinanList.length > 0" class="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-2xs">
-                                    <table class="w-full text-xs sm:text-sm border-collapse">
-                                        <thead>
-                                            <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold text-[11px] uppercase tracking-wider">
-                                                <th class="px-4 py-3 text-center w-12">No</th>
-                                                <th class="px-4 py-3 text-left">Tanggal</th>
-                                                <th class="px-4 py-3 text-left">Jenis</th>
-                                                <th class="px-4 py-3 text-left">Detail</th>
-                                                <th class="px-4 py-3 text-left">Keterangan</th>
-                                                <th class="px-4 py-3 text-center">Lampiran</th>
-                                                <th class="px-4 py-3 text-center">Status</th>
-                                                <th class="px-4 py-3 text-center">Aksi</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody class="divide-y divide-slate-100">
-                                            <tr
-                                                v-for="(item, idx) in perizinanList"
-                                                :key="item.id || idx"
-                                                class="hover:bg-slate-50/80 transition-colors"
-                                            >
-                                                <td class="px-4 py-3.5 text-center text-slate-400 font-mono">{{ idx + 1 }}</td>
-                                                <td class="px-4 py-3.5 text-slate-900 font-semibold whitespace-nowrap">
-                                                    {{ item.formatted_tanggal || formatTanggalIndo(item.tanggal) || '-' }}
-                                                </td>
-                                                <td class="px-4 py-3.5">
-                                                    <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200/80 shadow-2xs">
-                                                        {{ item.jenis || '-' }}
-                                                    </span>
-                                                </td>
-                                                <td class="px-4 py-3.5 text-slate-800 font-medium">{{ item.detail || '-' }}</td>
-                                                <td class="px-4 py-3.5 text-slate-600 max-w-[220px] truncate" :title="item.keterangan || ''">
-                                                    {{ item.keterangan || '-' }}
-                                                </td>
-                                                <td class="px-4 py-3.5 text-center">
-                                                    <div v-if="item.preview_url" class="inline-flex items-center justify-center gap-1">
-                                                        <button
-                                                            type="button"
-                                                            @click="openPermitPreview(item)"
-                                                            class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-800 hover:bg-emerald-100 transition-colors border border-emerald-200 cursor-pointer"
-                                                            title="Lihat Berkas Lampiran"
-                                                        >
-                                                            <span class="material-symbols-outlined text-[15px]">visibility</span>
-                                                            <span>Lihat</span>
-                                                        </button>
-                                                        <a
-                                                            :href="item.download_url"
-                                                            class="inline-flex items-center justify-center p-1 rounded-lg text-xs font-semibold bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 transition-colors cursor-pointer"
-                                                            title="Unduh Berkas Lampiran"
-                                                        >
-                                                            <span class="material-symbols-outlined text-[15px]">download</span>
-                                                        </a>
-                                                    </div>
-                                                    <span v-else class="text-slate-400 text-xs">-</span>
-                                                </td>
-                                                <td class="px-4 py-3.5 text-center">
-                                                    <span
-                                                        :class="[
-                                                            'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border shadow-2xs',
-                                                            item.status === 'disetujui' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                                                            item.status === 'ditolak' ? 'bg-rose-50 text-rose-700 border-rose-200' :
-                                                            'bg-amber-50 text-amber-700 border-amber-200'
-                                                        ]"
-                                                    >
-                                                        <span
-                                                            :class="[
-                                                                'w-1.5 h-1.5 rounded-full',
-                                                                item.status === 'disetujui' ? 'bg-emerald-500' :
-                                                                item.status === 'ditolak' ? 'bg-rose-500' :
-                                                                'bg-amber-500'
-                                                            ]"
-                                                        ></span>
-                                                        {{ item.status === 'disetujui' ? 'Disetujui' : item.status === 'ditolak' ? 'Ditolak' : 'Diajukan' }}
-                                                    </span>
-                                                </td>
-                                                <td class="px-4 py-3.5 text-center">
-                                                    <button
-                                                        type="button"
-                                                        @click="openPermitNoteModal(item)"
-                                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200/80 transition-colors cursor-pointer"
-                                                        :title="item.catatan ? 'Lihat Catatan: ' + item.catatan : 'Buka Persetujuan Perizinan'"
-                                                    >
-                                                        <span class="material-symbols-outlined text-[16px] text-slate-600">sticky_note_2</span>
-                                                        <span>Persetujuan</span>
-                                                        <span v-if="item.catatan" class="w-1.5 h-1.5 rounded-full bg-emerald-600" title="Ada catatan"></span>
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                                <div v-else class="py-10 text-center border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
-                                    <span class="material-symbols-outlined text-4xl text-slate-300 block mb-2">assignment_late</span>
-                                    <p class="text-sm font-semibold text-slate-700">Belum ada riwayat perizinan untuk pegawai ini</p>
-                                    <p class="text-xs text-slate-400 mt-0.5">Klik tombol Ajukan / Kelola Izin di atas untuk mengajukan perizinan</p>
-                                </div>
+                            <!-- Tombol Tambah Riwayat di Atas Tabel (Saat Kelola Aktif) -->
+                            <div v-if="isManagingPerizinan" class="mb-3.5 flex items-center justify-between gap-3">
+                                <button
+                                    type="button"
+                                    @click="openAddPerizinanModal"
+                                    class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-bold text-xs sm:text-sm shadow-xs border border-emerald-950/30 transition-all cursor-pointer active:scale-95"
+                                >
+                                    <span class="material-symbols-outlined text-[18px]">add_circle</span>
+                                    <span>Ajukan / Tambah Perizinan</span>
+                                </button>
+                                <span class="text-xs text-slate-500 font-medium">
+                                    Gunakan tombol hapus di kolom pertama atau tombol edit untuk mengubah data
+                                </span>
                             </div>
 
-                            <!-- Edit Mode (Desktop Table) -->
-                            <div v-else class="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-2xs">
+                            <!-- Table Container -->
+                            <div v-if="perizinanList && perizinanList.length > 0" class="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-2xs">
                                 <table class="w-full text-xs sm:text-sm border-collapse">
                                     <thead>
-                                        <tr class="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold text-[11px] uppercase tracking-wider">
-                                            <th class="px-3 py-3 text-center w-12">No</th>
-                                            <th class="px-3 py-3 text-left w-64">Tanggal (Mulai - Selesai)</th>
-                                            <th class="px-3 py-3 text-left w-36">Jenis</th>
-                                            <th class="px-3 py-3 text-left">Detail</th>
-                                            <th class="px-3 py-3 text-left">Keterangan</th>
-                                            <th class="px-3 py-3 text-center w-40">Lampiran</th>
-                                            <th class="px-3 py-3 text-center w-28">Status</th>
-                                            <th class="px-3 py-3 text-center w-14">Aksi</th>
+                                        <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold text-[11px] uppercase tracking-wider">
+                                            <!-- Kolom Hapus di Kolom Pertama (Saat Kelola Aktif) -->
+                                            <th v-if="isManagingPerizinan" class="px-3 py-3 text-center w-14">Hapus</th>
+                                            <th class="px-4 py-3 text-center w-12">No</th>
+                                            <th class="px-4 py-3 text-left">Tanggal</th>
+                                            <th class="px-4 py-3 text-left">Jenis</th>
+                                            <th class="px-4 py-3 text-left">Detail</th>
+                                            <th class="px-4 py-3 text-left">Keterangan</th>
+                                            <th class="px-4 py-3 text-center">Lampiran</th>
+                                            <th class="px-4 py-3 text-center">Status</th>
+                                            <th class="px-4 py-3 text-center">Persetujuan</th>
+                                            <!-- Kolom Edit di Kolom Terakhir (Saat Kelola Aktif) -->
+                                            <th v-if="isManagingPerizinan" class="px-4 py-3 text-center w-20">Aksi</th>
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-slate-100">
-                                        <tr v-if="!form.riwayat_perizinan || form.riwayat_perizinan.length === 0">
-                                            <td colspan="8" class="p-8 text-center text-xs text-slate-500 italic">
-                                                <span class="material-symbols-outlined text-3xl text-slate-300 block mb-1">assignment_late</span>
-                                                Belum ada riwayat perizinan. Klik tombol di bawah untuk menambah pengajuan perizinan baru.
-                                            </td>
-                                        </tr>
                                         <tr
-                                            v-for="(row, idx) in form.riwayat_perizinan"
-                                            :key="row.id || 'new_' + idx"
-                                            class="hover:bg-slate-50/60 transition-colors"
+                                            v-for="(item, idx) in perizinanList"
+                                            :key="item.id || idx"
+                                            class="hover:bg-slate-50/80 transition-colors"
                                         >
-                                            <td class="px-3 py-2.5 text-center text-slate-400 font-mono font-bold">{{ idx + 1 }}</td>
-                                            <td class="px-3 py-2.5">
-                                                <div class="flex items-center gap-1.5">
-                                                    <input
-                                                        v-model="row.tanggal"
-                                                        type="date"
-                                                        :disabled="!canApprovePermit && row.id && (row.status === 'disetujui' || (isTeacher && row.status !== 'diajukan'))"
-                                                        class="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 cursor-pointer disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
-                                                        title="Tanggal Mulai"
-                                                    />
-                                                    <span class="text-slate-400 text-xs font-semibold shrink-0">s/d</span>
-                                                    <input
-                                                        v-model="row.tanggal_selesai"
-                                                        type="date"
-                                                        :disabled="!canApprovePermit && row.id && (row.status === 'disetujui' || (isTeacher && row.status !== 'diajukan'))"
-                                                        class="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 cursor-pointer disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
-                                                        title="Tanggal Akhir (Kosongkan jika 1 hari)"
-                                                    />
+                                            <!-- Tombol Hapus Baris -->
+                                            <td v-if="isManagingPerizinan" class="px-3 py-3 text-center">
+                                                <button
+                                                    type="button"
+                                                    @click="deletePerizinanRecord(item, idx)"
+                                                    :class="[
+                                                        'w-8 h-8 rounded-lg flex items-center justify-center mx-auto transition-colors',
+                                                        canModifyPermit(item)
+                                                            ? 'text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 cursor-pointer active:scale-95'
+                                                            : 'text-slate-300 border border-transparent cursor-not-allowed opacity-40'
+                                                    ]"
+                                                    :title="canModifyPermit(item) ? 'Hapus catatan perizinan ini' : 'Perizinan yang sudah diproses tidak dapat dihapus'"
+                                                    :disabled="!canModifyPermit(item) || isSavingPerizinan"
+                                                >
+                                                    <span class="material-symbols-outlined text-[18px]">delete</span>
+                                                </button>
+                                            </td>
+
+                                            <td class="px-4 py-3.5 text-center text-slate-400 font-mono">{{ idx + 1 }}</td>
+                                            <td class="px-4 py-3.5 text-slate-900 font-semibold whitespace-nowrap">
+                                                {{ item.formatted_tanggal || formatTanggalIndo(item.tanggal) || '-' }}
+                                            </td>
+                                            <td class="px-4 py-3.5">
+                                                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200/80 shadow-2xs">
+                                                    {{ item.jenis || '-' }}
+                                                </span>
+                                            </td>
+                                            <td class="px-4 py-3.5 text-slate-800 font-medium">{{ item.detail || '-' }}</td>
+                                            <td class="px-4 py-3.5 text-slate-600 max-w-[220px] truncate" :title="item.keterangan || ''">
+                                                {{ item.keterangan || '-' }}
+                                            </td>
+                                            <td class="px-4 py-3.5 text-center">
+                                                <div v-if="item.preview_url" class="inline-flex items-center justify-center gap-1">
+                                                    <button
+                                                        type="button"
+                                                        @click="openPermitPreview(item)"
+                                                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-800 hover:bg-emerald-100 transition-colors border border-emerald-200 cursor-pointer shadow-2xs"
+                                                        title="Lihat Berkas Lampiran"
+                                                    >
+                                                        <span class="material-symbols-outlined text-[15px]">visibility</span>
+                                                        <span>Lihat</span>
+                                                    </button>
+                                                    <a
+                                                        :href="item.download_url"
+                                                        class="inline-flex items-center justify-center p-1 rounded-lg text-xs font-semibold bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 transition-colors cursor-pointer shadow-2xs"
+                                                        title="Unduh Berkas Lampiran"
+                                                    >
+                                                        <span class="material-symbols-outlined text-[15px]">download</span>
+                                                    </a>
                                                 </div>
-                                                <span class="text-[10px] text-slate-400 mt-0.5 block">Tgl Selesai kosong = 1 hari</span>
+                                                <span v-else class="text-slate-400 text-xs">-</span>
                                             </td>
-                                            <td class="px-3 py-2.5">
-                                                <input
-                                                    v-model="row.jenis"
-                                                    type="text"
-                                                    placeholder="Izin, Sakit, Cuti..."
-                                                    :disabled="!canApprovePermit && row.id && (row.status === 'disetujui' || (isTeacher && row.status !== 'diajukan'))"
-                                                    class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
-                                                />
-                                            </td>
-                                            <td class="px-3 py-2.5">
-                                                <input
-                                                    v-model="row.detail"
-                                                    type="text"
-                                                    placeholder="Detail perizinan..."
-                                                    :disabled="!canApprovePermit && row.id && (row.status === 'disetujui' || (isTeacher && row.status !== 'diajukan'))"
-                                                    class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
-                                                />
-                                            </td>
-                                            <td class="px-3 py-2.5">
-                                                <input
-                                                    v-model="row.keterangan"
-                                                    type="text"
-                                                    placeholder="Keterangan / alasan..."
-                                                    :disabled="!canApprovePermit && row.id && (row.status === 'disetujui' || (isTeacher && row.status !== 'diajukan'))"
-                                                    class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
-                                                />
-                                            </td>
-                                            <td class="px-3 py-2.5 text-center">
-                                                <div class="flex flex-col items-center gap-1.5 justify-center">
-                                                    <div v-if="row.preview_url" class="inline-flex items-center gap-1">
-                                                        <button
-                                                            type="button"
-                                                            @click="openPermitPreview(row)"
-                                                            class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-800 hover:bg-emerald-100 transition-colors border border-emerald-200 cursor-pointer"
-                                                            title="Lihat Berkas"
-                                                        >
-                                                            <span class="material-symbols-outlined text-[15px]">visibility</span>
-                                                            <span>Lihat</span>
-                                                        </button>
-                                                    </div>
-                                                    <input
-                                                        type="file"
-                                                        @change="e => onPermitFileChange(row, e)"
-                                                        accept=".pdf,.jpg,.jpeg,.png,.webp"
-                                                        :disabled="!canApprovePermit && row.id && (row.status === 'disetujui' || (isTeacher && row.status !== 'diajukan'))"
-                                                        class="w-full max-w-[140px] text-[10px] text-slate-500 file:mr-1 file:py-0.5 file:px-1.5 file:rounded-md file:border-0 file:text-[10px] file:font-semibold file:bg-emerald-50 file:text-emerald-800 cursor-pointer border border-slate-200 rounded-lg p-0.5 bg-white disabled:opacity-40 disabled:cursor-not-allowed"
-                                                        :title="row.lampiran_nama ? 'Ganti berkas: ' + row.lampiran_nama : 'Pilih berkas lampiran'"
-                                                    />
-                                                </div>
-                                            </td>
-                                            <td class="px-3 py-2.5 text-center">
+                                            <td class="px-4 py-3.5 text-center">
                                                 <span
                                                     :class="[
                                                         'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border shadow-2xs',
-                                                        row.status === 'disetujui' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                                                        row.status === 'ditolak' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                                                        item.status === 'disetujui' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                                                        item.status === 'ditolak' ? 'bg-rose-50 text-rose-700 border-rose-200' :
                                                         'bg-amber-50 text-amber-700 border-amber-200'
                                                     ]"
                                                 >
                                                     <span
                                                         :class="[
                                                             'w-1.5 h-1.5 rounded-full',
-                                                            row.status === 'disetujui' ? 'bg-emerald-500' :
-                                                            row.status === 'ditolak' ? 'bg-rose-500' :
+                                                            item.status === 'disetujui' ? 'bg-emerald-500' :
+                                                            item.status === 'ditolak' ? 'bg-rose-500' :
                                                             'bg-amber-500'
                                                         ]"
                                                     ></span>
-                                                    {{ row.status === 'disetujui' ? 'Disetujui' : row.status === 'ditolak' ? 'Ditolak' : 'Diajukan' }}
+                                                    {{ item.status === 'disetujui' ? 'Disetujui' : item.status === 'ditolak' ? 'Ditolak' : 'Diajukan' }}
                                                 </span>
                                             </td>
-                                            <td class="px-3 py-2.5 text-center">
+                                            <td class="px-4 py-3.5 text-center">
                                                 <button
                                                     type="button"
-                                                    @click="removeRiwayatPerizinanRow(idx)"
-                                                    :disabled="!canApprovePermit && row.id && (row.status === 'disetujui' || (isTeacher && row.status !== 'diajukan'))"
-                                                    :class="[
-                                                        'w-8 h-8 rounded-lg flex items-center justify-center mx-auto transition-colors',
-                                                        (canApprovePermit || !row.id || (row.status !== 'disetujui' && (!isTeacher || row.status === 'diajukan')))
-                                                            ? 'text-rose-500 hover:bg-rose-50 cursor-pointer active:scale-95'
-                                                            : 'text-slate-300 cursor-not-allowed opacity-40'
-                                                    ]"
-                                                    :title="(!canApprovePermit && row.status === 'disetujui') ? 'Perizinan yang sudah disetujui tidak dapat dihapus' : ((!canApprovePermit && isTeacher && row.id && row.status !== 'diajukan') ? 'Hanya dapat dihapus saat status masih Diajukan' : 'Hapus baris perizinan ini')"
+                                                    @click="openPermitNoteModal(item)"
+                                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200/80 transition-colors cursor-pointer shadow-2xs"
+                                                    :title="item.catatan ? 'Lihat Catatan: ' + item.catatan : 'Buka Persetujuan Perizinan'"
                                                 >
-                                                    <span class="material-symbols-outlined text-[18px]">delete</span>
+                                                    <span class="material-symbols-outlined text-[16px] text-slate-600">sticky_note_2</span>
+                                                    <span>Persetujuan</span>
+                                                    <span v-if="item.catatan" class="w-1.5 h-1.5 rounded-full bg-emerald-600" title="Ada catatan"></span>
+                                                </button>
+                                            </td>
+
+                                            <!-- Tombol Edit Baris -->
+                                            <td v-if="isManagingPerizinan" class="px-4 py-3 text-center">
+                                                <button
+                                                    type="button"
+                                                    @click="openEditPerizinanModal(item, idx)"
+                                                    :class="[
+                                                        'inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors shadow-2xs',
+                                                        canModifyPermit(item)
+                                                            ? 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 cursor-pointer'
+                                                            : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-50'
+                                                    ]"
+                                                    :title="canModifyPermit(item) ? 'Edit data perizinan ini' : 'Perizinan yang sudah diproses tidak dapat diubah'"
+                                                    :disabled="!canModifyPermit(item) || isSavingPerizinan"
+                                                >
+                                                    <span class="material-symbols-outlined text-[15px]">edit</span>
+                                                    <span>Edit</span>
                                                 </button>
                                             </td>
                                         </tr>
                                     </tbody>
                                 </table>
-                                <div class="p-3 bg-slate-50 border-t border-slate-200">
-                                    <button
-                                        type="button"
-                                        @click="addRiwayatPerizinanRow"
-                                        class="w-full py-2.5 px-4 rounded-xl border border-dashed border-emerald-400 hover:border-emerald-600 bg-white hover:bg-emerald-50 text-emerald-900 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-[0.99]"
-                                    >
-                                        <span class="material-symbols-outlined text-[18px]">add_circle</span>
-                                        <span>Tambah Riwayat Perizinan</span>
-                                    </button>
-                                </div>
+                            </div>
+
+                            <div v-else class="py-10 text-center border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
+                                <span class="material-symbols-outlined text-4xl text-slate-300 block mb-2">assignment_late</span>
+                                <p class="text-sm font-semibold text-slate-700">Belum ada riwayat perizinan untuk pegawai ini</p>
+                                <p class="text-xs text-slate-400 mt-0.5">Klik tombol Kelola di atas untuk mengajukan perizinan</p>
                             </div>
                         </div>
 
-                        <!-- 2. MOBILE CARD VIEW: PERIZINAN -->
-                        <div class="md:hidden space-y-3">
-                            <!-- View Mode -->
-                            <div v-if="!isEditing" class="space-y-3">
+                        <!-- 2. TAMPILAN MOBILE (CARD VIEW) -->
+                        <div class="md:hidden">
+                            <!-- Tombol Tambah Riwayat di Atas Kumpulan Card (Saat Kelola Aktif) -->
+                            <div v-if="isManagingPerizinan" class="mb-4">
+                                <button
+                                    type="button"
+                                    @click="openAddPerizinanModal"
+                                    class="w-full py-2.5 px-4 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs border border-emerald-950/30 transition-all cursor-pointer active:scale-[0.99]"
+                                >
+                                    <span class="material-symbols-outlined text-[18px]">add_circle</span>
+                                    <span>Ajukan / Tambah Perizinan</span>
+                                </button>
+                            </div>
+
+                            <!-- Kumpulan Card Riwayat Perizinan -->
+                            <div class="space-y-3">
                                 <div
                                     v-for="(item, idx) in perizinanList"
                                     :key="item.id || idx"
-                                    class="bg-slate-50/70 rounded-2xl border border-slate-200/80 p-4 space-y-3 shadow-2xs"
+                                    class="bg-white rounded-2xl border border-slate-200 p-4 shadow-2xs space-y-3"
                                 >
-                                    <div class="flex items-center justify-between gap-2 pb-2.5 border-b border-slate-200/60">
+                                    <!-- Header Card: Jenis Badge & Status Badge -->
+                                    <div class="flex items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
                                         <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200/80 shadow-2xs">
                                             {{ item.jenis || '-' }}
                                         </span>
@@ -6093,179 +6158,288 @@ function handleBackClick(e) {
                                         </span>
                                     </div>
 
-                                    <div class="space-y-1.5 text-xs">
+                                    <!-- Isi Data Card -->
+                                    <div class="space-y-2">
                                         <div>
-                                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Tanggal Izin</span>
-                                            <span class="font-bold text-slate-900 text-sm">{{ item.formatted_tanggal || formatTanggalIndo(item.tanggal) || '-' }}</span>
+                                            <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Tanggal Izin</label>
+                                            <p class="text-sm font-bold text-slate-900 mt-0.5">{{ item.formatted_tanggal || formatTanggalIndo(item.tanggal) || '-' }}</p>
                                         </div>
                                         <div>
-                                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Detail</span>
-                                            <span class="text-slate-800 font-semibold">{{ item.detail || '-' }}</span>
+                                            <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Detail</label>
+                                            <p class="text-xs sm:text-sm font-semibold text-slate-800 mt-0.5">{{ item.detail || '-' }}</p>
                                         </div>
                                         <div v-if="item.keterangan">
-                                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Keterangan / Alasan</span>
-                                            <span class="text-slate-600">{{ item.keterangan }}</span>
+                                            <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Keterangan / Alasan</label>
+                                            <p class="text-xs text-slate-600 mt-0.5">{{ item.keterangan }}</p>
                                         </div>
-                                    </div>
+                                        <div class="flex items-center justify-between gap-2 pt-1 flex-wrap">
+                                            <div v-if="item.preview_url">
+                                                <button
+                                                    type="button"
+                                                    @click="openPermitPreview(item)"
+                                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition-colors shadow-2xs"
+                                                >
+                                                    <span class="material-symbols-outlined text-[16px]">visibility</span>
+                                                    <span>Lampiran</span>
+                                                </button>
+                                            </div>
+                                            <span v-else class="text-[11px] text-slate-400 italic">Tanpa lampiran</span>
 
-                                    <div class="pt-2.5 border-t border-slate-200/60 flex items-center justify-between gap-2 flex-wrap">
-                                        <div v-if="item.preview_url" class="inline-flex items-center gap-1">
                                             <button
                                                 type="button"
-                                                @click="openPermitPreview(item)"
-                                                class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition-colors cursor-pointer"
+                                                @click="openPermitNoteModal(item)"
+                                                class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200/80 transition-colors shadow-2xs"
                                             >
-                                                <span class="material-symbols-outlined text-[15px]">visibility</span>
-                                                <span>Lampiran</span>
+                                                <span class="material-symbols-outlined text-[16px] text-slate-600">sticky_note_2</span>
+                                                <span>Persetujuan</span>
+                                                <span v-if="item.catatan" class="w-1.5 h-1.5 rounded-full bg-emerald-600" title="Ada catatan"></span>
                                             </button>
                                         </div>
-                                        <div v-else class="text-[11px] text-slate-400 italic">Tanpa lampiran</div>
-
-                                        <button
-                                            type="button"
-                                            @click="openPermitNoteModal(item)"
-                                            class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200/80 transition-colors cursor-pointer"
-                                        >
-                                            <span class="material-symbols-outlined text-[16px] text-slate-600">sticky_note_2</span>
-                                            <span>Persetujuan</span>
-                                            <span v-if="item.catatan" class="w-1.5 h-1.5 rounded-full bg-emerald-600" title="Ada catatan"></span>
-                                        </button>
                                     </div>
-                                </div>
 
-                                <div v-if="!perizinanList || perizinanList.length === 0" class="py-8 text-center border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
-                                    <span class="material-symbols-outlined text-4xl text-slate-300 block mb-2">assignment_late</span>
-                                    <p class="text-xs font-semibold text-slate-600">Belum ada riwayat perizinan</p>
-                                </div>
-                            </div>
-
-                            <!-- Mobile Edit Mode (Card Form) -->
-                            <div v-else class="space-y-3">
-                                <div
-                                    v-for="(row, idx) in form.riwayat_perizinan"
-                                    :key="row.id || 'new_' + idx"
-                                    class="bg-slate-50/60 rounded-2xl border border-slate-200/80 p-4 space-y-3 shadow-2xs"
-                                >
-                                    <div class="flex items-center justify-between pb-2 border-b border-slate-200/60">
-                                        <div class="flex items-center gap-2">
-                                            <span class="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                                                Perizinan #{{ idx + 1 }}
-                                            </span>
-                                            <span
-                                                :class="[
-                                                    'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border',
-                                                    row.status === 'disetujui' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                                                    row.status === 'ditolak' ? 'bg-rose-50 text-rose-700 border-rose-200' :
-                                                    'bg-amber-50 text-amber-700 border-amber-200'
-                                                ]"
-                                            >
-                                                {{ row.status === 'disetujui' ? 'Disetujui' : row.status === 'ditolak' ? 'Ditolak' : 'Diajukan' }}
-                                            </span>
-                                        </div>
+                                    <!-- Tombol Hapus & Edit di Bawah Masing-masing Card (Saat Kelola Aktif) -->
+                                    <div v-if="isManagingPerizinan" class="pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2">
                                         <button
                                             type="button"
-                                            @click="removeRiwayatPerizinanRow(idx)"
-                                            :disabled="!canApprovePermit && row.id && (row.status === 'disetujui' || (isTeacher && row.status !== 'diajukan'))"
+                                            @click="deletePerizinanRecord(item, idx)"
                                             :class="[
-                                                'text-xs font-bold flex items-center gap-1 p-1',
-                                                (canApprovePermit || !row.id || (row.status !== 'disetujui' && (!isTeacher || row.status === 'diajukan')))
-                                                    ? 'text-rose-600 hover:text-rose-800 cursor-pointer'
-                                                    : 'text-slate-300 cursor-not-allowed opacity-40'
+                                                'inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer',
+                                                canModifyPermit(item)
+                                                    ? 'text-rose-600 hover:bg-rose-50 border border-rose-200'
+                                                    : 'text-slate-300 border border-slate-200 cursor-not-allowed opacity-40'
                                             ]"
+                                            :disabled="!canModifyPermit(item) || isSavingPerizinan"
+                                            :title="canModifyPermit(item) ? 'Hapus catatan perizinan ini' : 'Perizinan yang sudah diproses tidak dapat dihapus'"
                                         >
                                             <span class="material-symbols-outlined text-[16px]">delete</span>
                                             <span>Hapus</span>
                                         </button>
-                                    </div>
-
-                                    <div class="space-y-3">
-                                        <div class="grid grid-cols-2 gap-2">
-                                            <div>
-                                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Tgl Mulai</label>
-                                                <input
-                                                    v-model="row.tanggal"
-                                                    type="date"
-                                                    :disabled="!canApprovePermit && row.id && (row.status === 'disetujui' || (isTeacher && row.status !== 'diajukan'))"
-                                                    class="w-full px-2.5 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-emerald-600 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Tgl Selesai</label>
-                                                <input
-                                                    v-model="row.tanggal_selesai"
-                                                    type="date"
-                                                    :disabled="!canApprovePermit && row.id && (row.status === 'disetujui' || (isTeacher && row.status !== 'diajukan'))"
-                                                    class="w-full px-2.5 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-emerald-600 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div>
-                                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Jenis Perizinan</label>
-                                            <input
-                                                v-model="row.jenis"
-                                                type="text"
-                                                placeholder="Contoh: Izin, Sakit, Cuti..."
-                                                :disabled="!canApprovePermit && row.id && (row.status === 'disetujui' || (isTeacher && row.status !== 'diajukan'))"
-                                                class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 font-semibold focus:outline-none focus:border-emerald-600 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
-                                            />
-                                        </div>
-
-                                        <div>
-                                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Detail Perizinan</label>
-                                            <input
-                                                v-model="row.detail"
-                                                type="text"
-                                                placeholder="Contoh: Acara keluarga di luar kota"
-                                                :disabled="!canApprovePermit && row.id && (row.status === 'disetujui' || (isTeacher && row.status !== 'diajukan'))"
-                                                class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-emerald-600 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
-                                            />
-                                        </div>
-
-                                        <div>
-                                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Keterangan / Alasan</label>
-                                            <input
-                                                v-model="row.keterangan"
-                                                type="text"
-                                                placeholder="Keterangan tambahan..."
-                                                :disabled="!canApprovePermit && row.id && (row.status === 'disetujui' || (isTeacher && row.status !== 'diajukan'))"
-                                                class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-emerald-600 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
-                                            />
-                                        </div>
-
-                                        <div>
-                                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Berkas Lampiran</label>
-                                            <div class="flex items-center gap-2">
-                                                <input
-                                                    type="file"
-                                                    @change="e => onPermitFileChange(row, e)"
-                                                    accept=".pdf,.jpg,.jpeg,.png,.webp"
-                                                    :disabled="!canApprovePermit && row.id && (row.status === 'disetujui' || (isTeacher && row.status !== 'diajukan'))"
-                                                    class="flex-1 text-xs text-slate-500 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-800 border border-slate-200 rounded-xl p-1 bg-white disabled:opacity-40"
-                                                />
-                                                <button
-                                                    v-if="row.preview_url"
-                                                    type="button"
-                                                    @click="openPermitPreview(row)"
-                                                    class="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 shrink-0"
-                                                >
-                                                    Lihat
-                                                </button>
-                                            </div>
-                                        </div>
+                                        <button
+                                            type="button"
+                                            @click="openEditPerizinanModal(item, idx)"
+                                            :class="[
+                                                'inline-flex items-center gap-1 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer shadow-2xs',
+                                                canModifyPermit(item)
+                                                    ? 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200'
+                                                    : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-50'
+                                            ]"
+                                            :disabled="!canModifyPermit(item) || isSavingPerizinan"
+                                            :title="canModifyPermit(item) ? 'Edit data perizinan ini' : 'Perizinan yang sudah diproses tidak dapat diubah'"
+                                        >
+                                            <span class="material-symbols-outlined text-[16px]">edit</span>
+                                            <span>Edit</span>
+                                        </button>
                                     </div>
                                 </div>
 
-                                <button
-                                    type="button"
-                                    @click="addRiwayatPerizinanRow"
-                                    class="w-full py-2.5 px-4 rounded-xl border border-dashed border-emerald-400 hover:border-emerald-600 bg-emerald-50/60 hover:bg-emerald-100/60 text-emerald-900 font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-[0.99]"
-                                >
-                                    <span class="material-symbols-outlined text-[18px]">add_circle</span>
-                                    <span>Tambah Riwayat Perizinan</span>
-                                </button>
+                                <div v-if="!perizinanList || perizinanList.length === 0" class="py-10 text-center border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
+                                    <span class="material-symbols-outlined text-4xl text-slate-300 block mb-2">assignment_late</span>
+                                    <p class="text-xs font-semibold text-slate-600">Belum ada riwayat perizinan</p>
+                                </div>
                             </div>
                         </div>
+
+                        <!-- POP-UP MODAL TAMBAH & EDIT RIWAYAT PERIZINAN -->
+                        <Teleport to="body">
+                            <div
+                                v-if="isPerizinanModalOpen"
+                                class="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200"
+                                @click.self="closePerizinanModal"
+                            >
+                                <div class="w-full max-w-lg bg-white rounded-3xl p-6 shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+                                    <!-- Modal Header -->
+                                    <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
+                                        <div class="flex items-center gap-2.5">
+                                            <div class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center">
+                                                <span class="material-symbols-outlined text-[20px]">
+                                                    {{ modalPerizinanMode === 'create' ? 'add_circle' : 'edit' }}
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <h3 class="text-base font-extrabold text-slate-900">
+                                                    {{ modalPerizinanMode === 'create' ? 'Ajukan / Tambah Perizinan' : 'Edit Data Perizinan' }}
+                                                </h3>
+                                                <p class="text-xs text-slate-400 mt-0.5">
+                                                    {{ modalPerizinanMode === 'create' ? 'Ajukan izin ketidakhadiran atau cuti pegawai' : 'Perbarui data catatan perizinan pegawai' }}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            @click="closePerizinanModal"
+                                            class="w-8 h-8 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 flex items-center justify-center transition-colors cursor-pointer"
+                                        >
+                                            <span class="material-symbols-outlined text-[20px]">close</span>
+                                        </button>
+                                    </div>
+
+                                    <!-- Modal Form -->
+                                    <form @submit.prevent="submitPerizinanModal" class="space-y-4">
+                                        <!-- Tanggal Mulai & Tanggal Selesai -->
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                                                    Tanggal Mulai <span class="text-rose-500">*</span>
+                                                </label>
+                                                <input
+                                                    v-model="perizinanModalForm.tanggal"
+                                                    type="date"
+                                                    required
+                                                    class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 cursor-pointer"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                                                    Tanggal Selesai
+                                                </label>
+                                                <input
+                                                    v-model="perizinanModalForm.tanggal_selesai"
+                                                    type="date"
+                                                    :min="perizinanModalForm.tanggal"
+                                                    class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 cursor-pointer"
+                                                />
+                                                <span class="text-[10px] text-slate-400 mt-0.5 block">Kosongkan bila hanya 1 hari</span>
+                                            </div>
+                                        </div>
+
+                                        <!-- Jenis Perizinan -->
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                                                Jenis Perizinan <span class="text-rose-500">*</span>
+                                            </label>
+                                            <div class="space-y-2">
+                                                <div class="flex items-center gap-1.5 flex-wrap">
+                                                    <button
+                                                        v-for="opt in ['Izin', 'Sakit', 'Cuti Tahunan', 'Cuti Melahirkan', 'Dinas Luar']"
+                                                        :key="opt"
+                                                        type="button"
+                                                        @click="perizinanModalForm.jenis = opt"
+                                                        :class="[
+                                                            'px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer',
+                                                            perizinanModalForm.jenis === opt
+                                                                ? 'bg-emerald-900 text-yellow-200 border border-emerald-950 font-bold shadow-2xs'
+                                                                : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200'
+                                                        ]"
+                                                    >
+                                                        {{ opt }}
+                                                    </button>
+                                                </div>
+                                                <input
+                                                    v-model="perizinanModalForm.jenis"
+                                                    type="text"
+                                                    placeholder="Contoh: Izin, Sakit, Cuti Tahunan, dll."
+                                                    required
+                                                    class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <!-- Detail / Keperluan -->
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                                                Detail / Keperluan
+                                            </label>
+                                            <input
+                                                v-model="perizinanModalForm.detail"
+                                                type="text"
+                                                placeholder="Contoh: Acara keluarga, medical check-up, dll."
+                                                class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
+                                            />
+                                        </div>
+
+                                        <!-- Keterangan / Alasan -->
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                                                Keterangan / Alasan
+                                            </label>
+                                            <textarea
+                                                v-model="perizinanModalForm.keterangan"
+                                                rows="3"
+                                                placeholder="Tuliskan keterangan atau alasan lebih rinci..."
+                                                class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 resize-none"
+                                            ></textarea>
+                                        </div>
+
+                                        <!-- Berkas Lampiran -->
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                                                Berkas Lampiran <span class="text-[10px] text-slate-400 font-normal">(Surat dokter, undangan, bukti dinas - Opsional)</span>
+                                            </label>
+                                            <div v-if="perizinanModalForm.preview_url" class="mb-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-2">
+                                                <div class="flex items-center gap-2 min-w-0">
+                                                    <span class="material-symbols-outlined text-emerald-600 text-[18px] shrink-0">attach_file</span>
+                                                    <span class="text-xs text-slate-700 font-medium truncate">{{ perizinanModalForm.lampiran_nama || 'Berkas Lampiran Tersimpan' }}</span>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    @click="openPermitPreview(perizinanModalForm)"
+                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition-colors shrink-0"
+                                                >
+                                                    <span class="material-symbols-outlined text-[14px]">visibility</span>
+                                                    <span>Lihat</span>
+                                                </button>
+                                            </div>
+                                            <input
+                                                type="file"
+                                                @change="onModalPermitFileChange"
+                                                accept=".pdf,.jpg,.jpeg,.png,.webp"
+                                                class="w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-800 border border-slate-200 rounded-xl p-1 bg-white cursor-pointer"
+                                            />
+                                            <p class="text-[10px] text-slate-400 mt-1">Format: PDF, JPG, PNG, WEBP (Maksimal 10MB)</p>
+                                        </div>
+
+                                        <!-- Status & Catatan (Tampil jika Pengguna Memiliki Hak Approval / Admin) -->
+                                        <div v-if="canApprovePermit" class="pt-3 border-t border-slate-100 space-y-3 bg-amber-50/50 p-3 rounded-2xl border border-amber-200/60">
+                                            <div>
+                                                <label class="block text-xs font-bold text-amber-900 uppercase tracking-wider mb-1">
+                                                    Status Pengajuan
+                                                </label>
+                                                <select
+                                                    v-model="perizinanModalForm.status"
+                                                    class="w-full px-3 py-2 bg-white border border-amber-300 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 focus:outline-none focus:border-amber-500"
+                                                >
+                                                    <option value="diajukan">Diajukan (Menunggu Persetujuan)</option>
+                                                    <option value="disetujui">Disetujui</option>
+                                                    <option value="ditolak">Ditolak</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-bold text-amber-900 uppercase tracking-wider mb-1">
+                                                    Catatan Atasan / Sekolah
+                                                </label>
+                                                <textarea
+                                                    v-model="perizinanModalForm.catatan"
+                                                    rows="2"
+                                                    placeholder="Catatan dari atasan atau reviewer..."
+                                                    class="w-full px-3 py-2 bg-white border border-amber-300 rounded-xl text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-amber-500 resize-none"
+                                                ></textarea>
+                                            </div>
+                                        </div>
+
+                                        <!-- Modal Actions -->
+                                        <div class="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100">
+                                            <button
+                                                type="button"
+                                                @click="closePerizinanModal"
+                                                class="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-100 border border-slate-200 transition-colors cursor-pointer"
+                                                :disabled="isSavingPerizinan"
+                                            >
+                                                Batal
+                                            </button>
+                                            <button
+                                                type="submit"
+                                                class="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-bold text-xs sm:text-sm shadow-xs border border-emerald-950/30 transition-all cursor-pointer disabled:opacity-60 active:scale-95"
+                                                :disabled="isSavingPerizinan"
+                                            >
+                                                <span v-if="isSavingPerizinan" class="material-symbols-outlined text-[16px] animate-spin">sync</span>
+                                                <span v-else class="material-symbols-outlined text-[16px]">save</span>
+                                                <span>{{ isSavingPerizinan ? 'Menyimpan...' : 'Simpan' }}</span>
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </Teleport>
                     </div>
                 </div>
 
