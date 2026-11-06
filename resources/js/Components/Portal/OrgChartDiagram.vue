@@ -47,6 +47,113 @@ const zoomScale = ref(1);
 const isAutoFit = ref(true);
 const isEditMode = ref(false);
 
+// State Pan & Zoom Canvas
+const panX = ref(0);
+const panY = ref(0);
+const isDragging = ref(false);
+const dragStart = ref({ x: 0, y: 0 });
+const hasDragged = ref(false);
+
+let touchStartX = 0;
+let touchStartY = 0;
+let initialPinchDistance = null;
+let initialPinchZoom = 1;
+
+function startPan(e) {
+    if (e.button !== 0) return;
+    if (e.target.closest('button, input, select, a, [role="button"]')) return;
+    isDragging.value = true;
+    hasDragged.value = false;
+    dragStart.value = {
+        x: e.clientX - panX.value,
+        y: e.clientY - panY.value,
+    };
+}
+
+function onPan(e) {
+    if (!isDragging.value) return;
+    hasDragged.value = true;
+    panX.value = Math.round(e.clientX - dragStart.value.x);
+    panY.value = Math.round(e.clientY - dragStart.value.y);
+}
+
+function endPan() {
+    isDragging.value = false;
+}
+
+function handleTouchStart(e) {
+    if (e.touches.length === 1) {
+        if (e.target.closest('button, input, select, a, [role="button"]')) return;
+        isDragging.value = true;
+        touchStartX = e.touches[0].clientX - panX.value;
+        touchStartY = e.touches[0].clientY - panY.value;
+    } else if (e.touches.length === 2) {
+        isDragging.value = false;
+        initialPinchDistance = Math.hypot(
+            e.touches[0].clientX - e.touches[1].clientX,
+            e.touches[0].clientY - e.touches[1].clientY
+        );
+        initialPinchZoom = zoomScale.value;
+    }
+}
+
+function handleTouchMove(e) {
+    if (e.touches.length === 1 && isDragging.value) {
+        e.preventDefault();
+        panX.value = Math.round(e.touches[0].clientX - touchStartX);
+        panY.value = Math.round(e.touches[0].clientY - touchStartY);
+    } else if (e.touches.length === 2 && initialPinchDistance) {
+        e.preventDefault();
+        const dist = Math.hypot(
+            e.touches[0].clientX - e.touches[1].clientX,
+            e.touches[0].clientY - e.touches[1].clientY
+        );
+        const factor = dist / initialPinchDistance;
+        zoomScale.value = Math.min(1.5, Math.max(0.5, Number((initialPinchZoom * factor).toFixed(2))));
+    }
+}
+
+function handleTouchEnd() {
+    isDragging.value = false;
+    initialPinchDistance = null;
+}
+
+function handleWheel(e) {
+    if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        const delta = e.deltaY < 0 ? 0.05 : -0.05;
+        zoomScale.value = Math.min(1.5, Math.max(0.5, Number((zoomScale.value + delta).toFixed(2))));
+    } else {
+        panY.value = Math.round(panY.value - e.deltaY * 0.7);
+        panX.value = Math.round(panX.value - e.deltaX * 0.7);
+    }
+}
+
+function setZoom(val) {
+    isAutoFit.value = false;
+    zoomScale.value = Math.min(1.5, Math.max(0.5, Number(val.toFixed(2))));
+}
+
+function resetView() {
+    panX.value = 0;
+    panY.value = 0;
+    zoomScale.value = 1;
+    isAutoFit.value = false;
+}
+
+function fitToView() {
+    panX.value = 0;
+    panY.value = 0;
+    if (!diagramContainerRef.value || !tableRef.value) return;
+    const containerWidth = diagramContainerRef.value.clientWidth;
+    const tableWidth = tableRef.value.offsetWidth || 1000;
+    if (tableWidth > containerWidth && containerWidth > 200) {
+        zoomScale.value = Math.max(0.55, Math.min(1, Number(((containerWidth - 32) / tableWidth).toFixed(2))));
+    } else {
+        zoomScale.value = 1;
+    }
+}
+
 watch(
     () => props.isActive,
     (active) => {
@@ -66,15 +173,8 @@ function setEditMode(val) {
     nextTick(updateConnectionLines);
 }
 
-function setZoom(val) {
-    isAutoFit.value = false;
-    zoomScale.value = Math.min(1.2, Math.max(0.5, Number(val.toFixed(2))));
-    nextTick(updateConnectionLines);
-}
-
 function toggleAutoFit() {
-    isAutoFit.value = true;
-    nextTick(updateConnectionLines);
+    fitToView();
 }
 
 const levelDefinitions = [
@@ -988,30 +1088,79 @@ function handleDelete(pos) {
             </div>
 
             <!-- ======================================================== -->
-            <!-- TABEL 5 BARIS LEVEL MENYATU DENGAN GARIS HIERARKI DINAMIS -->
+            <!-- CANVAS INTERAKTIF: BEBAS GESER (PAN) & ZOOM TANPA BATAS -->
             <!-- ======================================================== -->
             <div
                 v-if="activeTab === 'diagram'"
                 ref="diagramContainerRef"
-                class="relative overflow-x-auto overflow-y-hidden w-full"
+                class="relative overflow-hidden w-full min-h-[620px] h-[72vh] max-h-[840px] bg-slate-50/60 select-none border-b border-slate-200/80"
+                :class="isDragging ? 'cursor-grabbing' : 'cursor-grab'"
+                style="background-image: radial-gradient(rgba(148, 163, 184, 0.28) 1.25px, transparent 1.25px); background-size: 24px 24px;"
+                @mousedown="startPan"
+                @mousemove="onPan"
+                @mouseup="endPan"
+                @mouseleave="endPan"
+                @touchstart="handleTouchStart"
+                @touchmove="handleTouchMove"
+                @touchend="handleTouchEnd"
+                @wheel="handleWheel"
             >
-                <div
-                    :style="zoomScale !== 1 && svgHeight > 0
-                        ? { width: `${Math.ceil(svgWidth * zoomScale)}px`, height: `${Math.ceil(svgHeight * zoomScale) + 16}px`, minWidth: '100%' }
-                        : { minWidth: '100%' }"
-                >
+                <!-- Floating Canvas Controls (Bottom Right) -->
+                <div class="absolute bottom-4 right-4 z-30 inline-flex items-center gap-1 p-1 bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200 shadow-md">
+                    <button
+                        type="button"
+                        @click.stop="setZoom(zoomScale - 0.1)"
+                        class="w-7 h-7 rounded-xl flex items-center justify-center text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                        title="Perkecil Canvas"
+                    >
+                        <span class="material-symbols-outlined text-[16px]">remove</span>
+                    </button>
+                    <button
+                        type="button"
+                        @click.stop="resetView"
+                        class="px-2.5 py-1 rounded-xl text-xs font-bold text-slate-800 hover:bg-slate-100 transition-colors cursor-pointer"
+                        title="Reset ke 100% dan posisi tengah"
+                    >
+                        {{ Math.round(zoomScale * 100) }}%
+                    </button>
+                    <button
+                        type="button"
+                        @click.stop="setZoom(zoomScale + 0.1)"
+                        class="w-7 h-7 rounded-xl flex items-center justify-center text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                        title="Perbesar Canvas"
+                    >
+                        <span class="material-symbols-outlined text-[16px]">add</span>
+                    </button>
+                    <div class="h-4 w-px bg-slate-200 mx-0.5"></div>
+                    <button
+                        type="button"
+                        @click.stop="fitToView"
+                        class="w-7 h-7 rounded-xl flex items-center justify-center text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                        title="Pusatkan Diagram (Fit View)"
+                    >
+                        <span class="material-symbols-outlined text-[17px]">fit_screen</span>
+                    </button>
+                </div>
+
+                <!-- Floating Canvas Hint (Bottom Left) -->
+                <div class="absolute bottom-4 left-4 z-20 hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/90 backdrop-blur-md border border-slate-200/80 shadow-xs text-[11px] text-slate-600 font-medium pointer-events-none">
+                    <span class="material-symbols-outlined text-[15px] text-primary">drag_pan</span>
+                    <span>Klik & geser canvas untuk berpindah area</span>
+                </div>
+
+                <!-- CANVAS STAGE: PAPAN DIAGRAM LENGKAP DENGAN SVG & TABEL KARTU -->
                 <div
                     ref="canvasWrapperRef"
-                    class="relative w-full min-w-full origin-top-left"
-                    :style="zoomScale !== 1 ? { transform: `scale(${zoomScale})`, transformOrigin: 'top left' } : {}"
+                    class="relative w-max min-w-full origin-top-center"
+                    :style="{
+                        transform: `translate(${panX}px, ${panY}px) scale(${zoomScale})`,
+                        transformOrigin: 'top center',
+                        transition: isDragging ? 'none' : 'transform 75ms ease-out',
+                    }"
                 >
                 <!-- KANVAS SVG GARIS HIERARKI PENGHUBUNG ANTARA ATASAN DAN BAWAHAN -->
                 <svg
                     class="absolute inset-0 pointer-events-none z-10 w-full h-full overflow-visible"
-                    :style="{
-                        minWidth: '100%',
-                        minHeight: '100%',
-                    }"
                 >
                     <!-- Render Setiap Garis Penghubung (Parent -> Child / Peer) bersudut 90 derajat -->
                     <g v-for="line in connectionLines" :key="line.id">
@@ -1141,7 +1290,6 @@ function handleDelete(pos) {
                         </tr>
                     </tbody>
                 </table>
-                </div>
                 </div>
             </div>
 
