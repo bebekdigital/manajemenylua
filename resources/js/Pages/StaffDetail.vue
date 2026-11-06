@@ -4720,13 +4720,10 @@ function handleBackClick(e) {
                     </div>
                 </div>
 
-            <!-- Card Konten Tab Pegawai (Tab 5, 6, 7, 8) -->
-            <div
-                v-else
-                class="bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-7 shadow-xs mb-8"
-            >
-                <!-- Validation Error Alert in Edit Mode -->
-                <div v-if="isEditing && Object.keys(form.errors).length > 0" class="mb-6 p-4 rounded-xl bg-error/10 border border-error/20 flex items-start gap-3 text-error">
+            <!-- TAB 5: PENUGASAN (RIWAYAT JABATAN) -->
+            <div v-else-if="activeTab === 'penugasan'" class="space-y-6 mb-8">
+                <!-- Validation Error Alert in Edit Mode (Jika form penugasan ada error) -->
+                <div v-if="isEditing && Object.keys(form.errors).length > 0" class="p-4 rounded-2xl bg-error/10 border border-error/20 flex items-start gap-3 text-error">
                     <span class="material-symbols-outlined shrink-0 text-xl">error</span>
                     <div class="text-xs sm:text-sm">
                         <span class="font-bold">Terdapat kesalahan pada isian form:</span>
@@ -4735,19 +4732,6 @@ function handleBackClick(e) {
                         </ul>
                     </div>
                 </div>
-
-                <!-- TAB 5: PENUGASAN (RIWAYAT JABATAN) -->
-                <div v-if="activeTab === 'penugasan'" class="space-y-6 mb-8">
-                    <!-- Validation Error Alert in Edit Mode (Jika form penugasan ada error) -->
-                    <div v-if="isEditing && Object.keys(form.errors).length > 0" class="p-4 rounded-2xl bg-error/10 border border-error/20 flex items-start gap-3 text-error">
-                        <span class="material-symbols-outlined shrink-0 text-xl">error</span>
-                        <div class="text-xs sm:text-sm">
-                            <span class="font-bold">Terdapat kesalahan pada isian form:</span>
-                            <ul class="list-disc list-inside mt-1 space-y-0.5">
-                                <li v-for="(err, key) in form.errors" :key="key">{{ err }}</li>
-                            </ul>
-                        </div>
-                    </div>
 
                     <!-- WADAH UTAMA: RIWAYAT PENUGASAN & JABATAN -->
                     <div class="bg-white rounded-3xl border border-slate-200/90 p-4 sm:p-7 shadow-xs">
@@ -5235,7 +5219,7 @@ function handleBackClick(e) {
                 </div>
 
                 <!-- TAB 6: PENDIDIKAN FORMAL & NONFORMAL -->
-                <div v-if="activeTab === 'pendidikan'" class="space-y-6 mb-8">
+                <div v-else-if="activeTab === 'pendidikan'" class="space-y-6 mb-8">
                     <!-- Validation Error Alert in Edit Mode -->
                     <div v-if="isEditing && Object.keys(form.errors).length > 0" class="p-4 rounded-2xl bg-error/10 border border-error/20 flex items-start gap-3 text-error">
                         <span class="material-symbols-outlined shrink-0 text-xl">error</span>
@@ -6009,7 +5993,7 @@ function handleBackClick(e) {
                 </div>
 
                 <!-- TAB 7: PERIZINAN -->
-                <div v-if="activeTab === 'perizinan'" class="space-y-6 mb-8">
+                <div v-else-if="activeTab === 'perizinan'" class="space-y-6 mb-8">
                     <!-- KOTAK SECTION UTAMA: RIWAYAT PERIZINAN -->
                     <div class="bg-white rounded-3xl border border-slate-200/90 p-4 sm:p-7 shadow-xs">
                         <div class="flex items-center justify-between gap-3 pb-3 mb-4 border-b border-slate-100 flex-wrap">
@@ -6548,7 +6532,7 @@ function handleBackClick(e) {
                 </div>
 
                 <!-- TAB 8: DOKUMEN -->
-                <div v-if="activeTab === 'dokumen'" class="space-y-6 mb-8">
+                <div v-else-if="activeTab === 'dokumen'" class="space-y-6 mb-8">
                     <!-- 1. KOTAK SECTION: DOKUMEN PRIBADI -->
                     <div class="bg-white rounded-3xl border border-slate-200/90 p-4 sm:p-7 shadow-xs">
                         <!-- Header Section -->
@@ -7657,7 +7641,6 @@ function handleBackClick(e) {
                     </div>
                 </div>
 
-            </div>
         </div>
 
 
