@@ -841,17 +841,21 @@ function saveChanges() {
         })).post(`/staff/${props.employee.id}`, {
             preserveScroll: true,
             forceFormData: true,
+            only: ['employee', 'flash'],
             onSuccess: () => {
                 isEditing.value = false;
                 dismissedFlash.value = false;
+                initFormFromProps();
             },
         });
     } else {
         form.put(`/staff/${props.employee.id}`, {
             preserveScroll: true,
+            only: ['employee', 'flash'],
             onSuccess: () => {
                 isEditing.value = false;
                 dismissedFlash.value = false;
+                initFormFromProps();
             },
         });
     }
@@ -1009,6 +1013,7 @@ function submitRiwayatModal() {
     isSavingRiwayat.value = true;
     form.put(`/staff/${props.employee.id}`, {
         preserveScroll: true,
+        only: ['employee', 'flash'],
         onSuccess: () => {
             isRiwayatModalOpen.value = false;
             isSavingRiwayat.value = false;
@@ -1033,6 +1038,7 @@ function deleteRiwayatRecord(index) {
     isSavingRiwayat.value = true;
     form.put(`/staff/${props.employee.id}`, {
         preserveScroll: true,
+        only: ['employee', 'flash'],
         onSuccess: () => {
             isSavingRiwayat.value = false;
             initFormFromProps();
@@ -1200,6 +1206,7 @@ function submitJabatanModal() {
     isSavingJabatan.value = true;
     form.put(`/staff/${props.employee.id}`, {
         preserveScroll: true,
+        only: ['employee', 'flash'],
         onSuccess: () => {
             isJabatanModalOpen.value = false;
             isSavingJabatan.value = false;
@@ -1223,6 +1230,7 @@ function deleteJabatanRecord(index) {
     isSavingJabatan.value = true;
     form.put(`/staff/${props.employee.id}`, {
         preserveScroll: true,
+        only: ['employee', 'flash'],
         onSuccess: () => {
             isSavingJabatan.value = false;
             initFormFromProps();
@@ -1353,6 +1361,7 @@ function submitPendidikanModal() {
     isSavingPendidikan.value = true;
     form.put(`/staff/${props.employee.id}`, {
         preserveScroll: true,
+        only: ['employee', 'flash'],
         onSuccess: () => {
             isPendidikanModalOpen.value = false;
             isSavingPendidikan.value = false;
@@ -1376,6 +1385,7 @@ function deletePendidikanRecord(index) {
     isSavingPendidikan.value = true;
     form.put(`/staff/${props.employee.id}`, {
         preserveScroll: true,
+        only: ['employee', 'flash'],
         onSuccess: () => {
             isSavingPendidikan.value = false;
             initFormFromProps();
@@ -1487,6 +1497,7 @@ function submitPelatihanModal() {
     isSavingPelatihan.value = true;
     form.put(`/staff/${props.employee.id}`, {
         preserveScroll: true,
+        only: ['employee', 'flash'],
         onSuccess: () => {
             isPelatihanModalOpen.value = false;
             isSavingPelatihan.value = false;
@@ -1510,6 +1521,7 @@ function deletePelatihanRecord(index) {
     isSavingPelatihan.value = true;
     form.put(`/staff/${props.employee.id}`, {
         preserveScroll: true,
+        only: ['employee', 'flash'],
         onSuccess: () => {
             isSavingPelatihan.value = false;
             initFormFromProps();
@@ -1665,6 +1677,7 @@ function submitPerizinanModal() {
         router.post(`/staff/${props.employee.id}/permits/${perizinanModalForm.id}`, formData, {
             preserveScroll: true,
             forceFormData: true,
+            only: ['employee', 'flash'],
             onSuccess: () => {
                 isSavingPerizinan.value = false;
                 isPerizinanModalOpen.value = false;
@@ -1680,6 +1693,7 @@ function submitPerizinanModal() {
         router.post(`/staff/${props.employee.id}/permits`, formData, {
             preserveScroll: true,
             forceFormData: true,
+            only: ['employee', 'flash'],
             onSuccess: () => {
                 isSavingPerizinan.value = false;
                 isPerizinanModalOpen.value = false;
@@ -1708,6 +1722,7 @@ function deletePerizinanRecord(item, index) {
         isSavingPerizinan.value = true;
         router.delete(`/staff/${props.employee.id}/permits/${item.id}`, {
             preserveScroll: true,
+            only: ['employee', 'flash'],
             onSuccess: () => {
                 isSavingPerizinan.value = false;
                 fetchPermitsRealtime();
@@ -1786,6 +1801,7 @@ function submitPermitNote() {
     if (!permitNoteForm.id) return;
     permitNoteForm.patch(`/staff/${props.employee.id}/permits/${permitNoteForm.id}/note`, {
         preserveScroll: true,
+        only: ['employee', 'flash'],
         onSuccess: () => {
             closePermitNoteModal();
             fetchPermitsRealtime();
@@ -2313,6 +2329,7 @@ function submitDocument() {
     router.post(`/staff/${props.employee.id}/documents`, formData, {
         forceFormData: true,
         preserveScroll: true,
+        only: ['employee', 'flash'],
         onSuccess: () => {
             showUploadModal.value = false;
             uploadFile.value = null;
@@ -2343,6 +2360,7 @@ function deleteDocument(doc) {
     }
     router.delete(`/staff/${props.employee.id}/documents/${doc.id}`, {
         preserveScroll: true,
+        only: ['employee', 'flash'],
     });
 }
 function getInitials(name) {

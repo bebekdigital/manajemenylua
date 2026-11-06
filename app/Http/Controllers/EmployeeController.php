@@ -11,6 +11,7 @@ use App\Models\SchoolUnit;
 use App\Services\EmployeeImportService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
@@ -127,8 +128,6 @@ class EmployeeController extends Controller
 
         $latestPosition = $employee->positions->sortByDesc('tmt_jabatan')->first();
         $latestRecord = $employee->records->sortByDesc('tmt_kenaikan_jenjang')->first();
-
-        $allYears = AcademicYear::orderByDesc('name')->orderByDesc('semester')->get();
 
         $employeeData = [
             'id' => $employee->id,
@@ -292,93 +291,69 @@ class EmployeeController extends Controller
             ])->toArray(),
         ];
 
-        $departments = Schema::hasTable('departments') && Schema::hasTable('department_positions')
-            ? Department::with('positions')->orderBy('order')->orderBy('name')->get()->map(fn ($dept) => [
-                'id' => $dept->id,
-                'name' => $dept->name,
-                'positions' => $dept->relationLoaded('positions')
-                    ? $dept->positions->pluck('name')->values()->toArray()
-                    : [],
-            ])->toArray()
-            : [];
-
-        $deptKeyed = collect($departments)->keyBy('name');
-
-        $schoolUnits = Schema::hasTable('school_units')
-            ? SchoolUnit::orderBy('name')->get()->map(function ($unit) use ($deptKeyed) {
-                $dept = $deptKeyed->get($unit->name);
-
-                return [
-                    'id' => $unit->id,
-                    'name' => $unit->name,
-                    'positions' => $dept ? $dept['positions'] : [],
-                ];
-            })->toArray()
-            : [];
-
-        $units = array_column($schoolUnits, 'name');
-        $deptNames = array_column($departments, 'name');
-        $posUnits = EmployeePosition::whereNotNull('unit_kerja')->distinct()->pluck('unit_kerja')->toArray();
-        $availableUnits = array_values(array_unique(array_filter(array_merge($units, $deptNames, $posUnits))));
-        sort($availableUnits);
-
         $isTeacher = $user?->isTeacher() ?? false;
         $myEmployee = $isTeacher ? $user?->employeeProfile() : null;
 
-        $employeeListQuery = Employee::query()->orderBy('nama');
-        if ($isTeacher) {
-            if ($myEmployee) {
-                $employeeListQuery->where('id', $myEmployee->id);
-            } else {
-                $employeeListQuery->whereRaw('1 = 0');
-            }
-        }
-
-        $allAccessibleEmployees = $employeeListQuery
-            ->with(['positions' => fn ($q) => $q->latest('tmt_jabatan')])
-            ->select(['id', 'nama', 'nipy'])
-            ->get()
-            ->map(function ($emp) {
-                $latestPos = $emp->positions->first();
-
-                return [
-                    'id' => $emp->id,
-                    'nama' => $emp->nama,
-                    'nipy' => $emp->nipy,
-                    'jabatan' => $latestPos?->jabatan,
-                    'unit_kerja' => $latestPos?->unit_kerja,
-                ];
-            })
-            ->toArray();
-
-        $supervisorInfo = $employee->getDirectSupervisorPosition();
-        $canApprovePermit = $user ? $user->canApprovePermitFor($employee) : false;
-
         return Inertia::render('StaffDetail', [
             'employee' => $employeeData,
-            'allEmployees' => $allAccessibleEmployees,
-            'permissions' => [
-                'can_update' => RolePermission::canAccess($user, 'employee_detail_history', 'update'),
-                'can_delete' => RolePermission::canAccess($user, 'employee_detail_history', 'delete'),
-                'can_view_kepegawaian' => RolePermission::canAccess($user, 'employee_kepegawaian', 'view'),
-                'can_update_kepegawaian' => RolePermission::canAccess($user, 'employee_kepegawaian', 'update'),
-                'can_approve_permit' => $canApprovePermit,
-                'permit_supervisor_position' => $supervisorInfo['parent_position_name'],
-                'permit_supervisor_dept' => $supervisorInfo['parent_department_name'],
-            ],
-            'selectedAcademicYear' => $selectedYear ? [
+            'allEmployees' => function () use ($user, $isTeacher, $myEmployee) {
+                $cacheKey = 'staff_switcher_list_'.($isTeacher ? ($user?->id ?? 'guest') : 'admin');
+
+                return Cache::remember($cacheKey, 300, function () use ($isTeacher, $myEmployee) {
+                    $employeeListQuery = Employee::query()->orderBy('nama');
+                    if ($isTeacher) {
+                        if ($myEmployee) {
+                            $employeeListQuery->where('id', $myEmployee->id);
+                        } else {
+                            $employeeListQuery->whereRaw('1 = 0');
+                        }
+                    }
+
+                    return $employeeListQuery
+                        ->with(['positions' => fn ($q) => $q->select(['id', 'employee_id', 'jabatan', 'unit_kerja'])->latest('tmt_jabatan')])
+                        ->select(['id', 'nama', 'nipy'])
+                        ->get()
+                        ->map(function ($emp) {
+                            $latestPos = $emp->positions->first();
+
+                            return [
+                                'id' => $emp->id,
+                                'nama' => $emp->nama,
+                                'nipy' => $emp->nipy,
+                                'jabatan' => $latestPos?->jabatan,
+                                'unit_kerja' => $latestPos?->unit_kerja,
+                            ];
+                        })
+                        ->toArray();
+                });
+            },
+            'permissions' => function () use ($user, $employee) {
+                $supervisorInfo = $employee->getDirectSupervisorPosition();
+                $canApprovePermit = $user ? $user->canApprovePermitFor($employee) : false;
+
+                return [
+                    'can_update' => RolePermission::canAccess($user, 'employee_detail_history', 'update'),
+                    'can_delete' => RolePermission::canAccess($user, 'employee_detail_history', 'delete'),
+                    'can_view_kepegawaian' => RolePermission::canAccess($user, 'employee_kepegawaian', 'view'),
+                    'can_update_kepegawaian' => RolePermission::canAccess($user, 'employee_kepegawaian', 'update'),
+                    'can_approve_permit' => $canApprovePermit,
+                    'permit_supervisor_position' => $supervisorInfo['parent_position_name'],
+                    'permit_supervisor_dept' => $supervisorInfo['parent_department_name'],
+                ];
+            },
+            'selectedAcademicYear' => fn () => $selectedYear ? [
                 'id' => $selectedYear->id,
                 'name' => $selectedYear->name,
                 'semester' => $selectedYear->semester,
             ] : null,
-            'allAcademicYears' => $allYears->map(fn ($y) => [
+            'allAcademicYears' => fn () => Cache::remember('all_academic_years_list', 300, fn () => AcademicYear::orderByDesc('name')->orderByDesc('semester')->get()->map(fn ($y) => [
                 'id' => $y->id,
                 'name' => $y->name,
                 'semester' => $y->semester,
-            ])->toArray(),
-            'availableUnits' => $availableUnits,
-            'schoolUnits' => $schoolUnits,
-            'departments' => $departments,
+            ])->toArray()),
+            'availableUnits' => fn () => $this->getAvailableUnits(),
+            'schoolUnits' => fn () => $this->getSchoolUnits(),
+            'departments' => fn () => $this->getDepartments(),
         ]);
     }
 
@@ -551,6 +526,8 @@ class EmployeeController extends Controller
         }
 
         DB::transaction(function () use ($employee, $validated, $user, $request) {
+            $employee->loadMissing(['positions', 'records', 'educationHistories', 'trainingHistories']);
+
             $employee->update(collect($validated)->only([
                 'nama', 'gelar_depan', 'gelar_belakang', 'nipy', 'nik', 'jk', 'tempat_lahir', 'tanggal_lahir', 'no_wa', 'email', 'skill',
                 'jalan_domisili', 'rt_rw_domisili', 'dusun_domisili', 'desa_domisili', 'kecamatan_domisili', 'kab_domisili', 'provinsi_domisili',
@@ -564,6 +541,8 @@ class EmployeeController extends Controller
             // Handle Jabatan / Penugasan (Sheet 4)
             if (isset($validated['riwayat_jabatan']) && is_array($validated['riwayat_jabatan'])) {
                 $keptPositionIds = [];
+                $existingPositions = $employee->positions->keyBy('id');
+
                 foreach ($validated['riwayat_jabatan'] as $pos) {
                     if (! empty($pos['unit_kerja']) || ! empty($pos['jabatan']) || ! empty($pos['tmt_jabatan'])) {
                         $posData = [
@@ -576,9 +555,12 @@ class EmployeeController extends Controller
                         ];
 
                         if (! empty($pos['id'])) {
-                            $existingPos = $employee->positions()->find($pos['id']);
+                            $existingPos = $existingPositions->get($pos['id']);
                             if ($existingPos) {
-                                $existingPos->update($posData);
+                                $existingPos->fill($posData);
+                                if ($existingPos->isDirty()) {
+                                    $existingPos->save();
+                                }
                                 $keptPositionIds[] = $existingPos->id;
 
                                 continue;
@@ -590,10 +572,11 @@ class EmployeeController extends Controller
                     }
                 }
 
-                $positionsToDelete = $employee->positions()->whereNotIn('id', $keptPositionIds)->get();
-                foreach ($positionsToDelete as $delPos) {
-                    $employee->documents()->where('record_type', 'position')->where('record_id', $delPos->id)->delete();
-                    $delPos->delete();
+                $positionsToDelete = $employee->positions->whereNotIn('id', $keptPositionIds);
+                if ($positionsToDelete->isNotEmpty()) {
+                    $delIds = $positionsToDelete->pluck('id')->toArray();
+                    $employee->documents()->where('record_type', 'position')->whereIn('record_id', $delIds)->delete();
+                    $employee->positions()->whereIn('id', $delIds)->delete();
                 }
             } elseif (! empty($validated['unit_kerja']) || ! empty($validated['jabatan']) || ! empty($validated['tmt_jabatan'])) {
                 $latestPos = $employee->positions()->latest('tmt_jabatan')->first();
@@ -620,6 +603,8 @@ class EmployeeController extends Controller
             $tstJenjangVal = $validated['tst_kenaikan_jenjang'] ?? ($validated['tst_jenjang'] ?? null);
             if (isset($validated['riwayat_kepegawaian']) && is_array($validated['riwayat_kepegawaian'])) {
                 $keptRecordIds = [];
+                $existingRecords = $employee->records->keyBy('id');
+
                 foreach ($validated['riwayat_kepegawaian'] as $rec) {
                     if (! empty($rec['jenjang_kepegawaian']) || ! empty($rec['tmt_kenaikan_jenjang'])) {
                         $recordData = [
@@ -630,9 +615,12 @@ class EmployeeController extends Controller
                         ];
 
                         if (! empty($rec['id'])) {
-                            $existingRecord = $employee->records()->find($rec['id']);
+                            $existingRecord = $existingRecords->get($rec['id']);
                             if ($existingRecord) {
-                                $existingRecord->update($recordData);
+                                $existingRecord->fill($recordData);
+                                if ($existingRecord->isDirty()) {
+                                    $existingRecord->save();
+                                }
                                 $keptRecordIds[] = $existingRecord->id;
 
                                 continue;
@@ -645,10 +633,11 @@ class EmployeeController extends Controller
                 }
 
                 // Delete records that were removed by the user
-                $recordsToDelete = $employee->records()->whereNotIn('id', $keptRecordIds)->get();
-                foreach ($recordsToDelete as $delRec) {
-                    $employee->documents()->where('record_type', 'record')->where('record_id', $delRec->id)->delete();
-                    $delRec->delete();
+                $recordsToDelete = $employee->records->whereNotIn('id', $keptRecordIds);
+                if ($recordsToDelete->isNotEmpty()) {
+                    $delIds = $recordsToDelete->pluck('id')->toArray();
+                    $employee->documents()->where('record_type', 'record')->whereIn('record_id', $delIds)->delete();
+                    $employee->records()->whereIn('id', $delIds)->delete();
                 }
             } elseif (! empty($validated['jenjang_kepegawaian']) || ! empty($validated['tmt_kenaikan_jenjang'])) {
                 $latestRec = $employee->records()->latest('tmt_kenaikan_jenjang')->first();
@@ -670,6 +659,8 @@ class EmployeeController extends Controller
             // Handle Pendidikan (Sheet 2)
             if (isset($validated['riwayat_pendidikan']) && is_array($validated['riwayat_pendidikan'])) {
                 $keptEducationIds = [];
+                $existingEducations = $employee->educationHistories->keyBy('id');
+
                 foreach ($validated['riwayat_pendidikan'] as $edu) {
                     if (! empty($edu['jenjang_pendidikan']) || ! empty($edu['instansi_pendidikan']) || ! empty($edu['jurusan'])) {
                         $eduData = [
@@ -681,9 +672,12 @@ class EmployeeController extends Controller
                         ];
 
                         if (! empty($edu['id'])) {
-                            $existingEdu = $employee->educationHistories()->find($edu['id']);
+                            $existingEdu = $existingEducations->get($edu['id']);
                             if ($existingEdu) {
-                                $existingEdu->update($eduData);
+                                $existingEdu->fill($eduData);
+                                if ($existingEdu->isDirty()) {
+                                    $existingEdu->save();
+                                }
                                 $keptEducationIds[] = $existingEdu->id;
 
                                 continue;
@@ -695,16 +689,19 @@ class EmployeeController extends Controller
                     }
                 }
 
-                $educationToDelete = $employee->educationHistories()->whereNotIn('id', $keptEducationIds)->get();
-                foreach ($educationToDelete as $delEdu) {
-                    $employee->documents()->where('record_type', 'education')->where('record_id', $delEdu->id)->delete();
-                    $delEdu->delete();
+                $educationToDelete = $employee->educationHistories->whereNotIn('id', $keptEducationIds);
+                if ($educationToDelete->isNotEmpty()) {
+                    $delIds = $educationToDelete->pluck('id')->toArray();
+                    $employee->documents()->where('record_type', 'education')->whereIn('record_id', $delIds)->delete();
+                    $employee->educationHistories()->whereIn('id', $delIds)->delete();
                 }
             }
 
             // Handle Pelatihan dan Pendidikan Nonformal
             if (isset($validated['riwayat_pelatihan']) && is_array($validated['riwayat_pelatihan'])) {
                 $keptTrainingIds = [];
+                $existingTrainings = $employee->trainingHistories->keyBy('id');
+
                 foreach ($validated['riwayat_pelatihan'] as $training) {
                     if (! empty($training['bidang']) || ! empty($training['keahlian']) || ! empty($training['instansi_penyelenggara']) || ! empty($training['tahun'])) {
                         $trainingData = [
@@ -716,9 +713,12 @@ class EmployeeController extends Controller
                         ];
 
                         if (! empty($training['id'])) {
-                            $existingTraining = $employee->trainingHistories()->find($training['id']);
+                            $existingTraining = $existingTrainings->get($training['id']);
                             if ($existingTraining) {
-                                $existingTraining->update($trainingData);
+                                $existingTraining->fill($trainingData);
+                                if ($existingTraining->isDirty()) {
+                                    $existingTraining->save();
+                                }
                                 $keptTrainingIds[] = $existingTraining->id;
 
                                 continue;
@@ -730,10 +730,11 @@ class EmployeeController extends Controller
                     }
                 }
 
-                $trainingsToDelete = $employee->trainingHistories()->whereNotIn('id', $keptTrainingIds)->get();
-                foreach ($trainingsToDelete as $delTraining) {
-                    $employee->documents()->where('record_type', 'training')->where('record_id', $delTraining->id)->delete();
-                    $delTraining->delete();
+                $trainingsToDelete = $employee->trainingHistories->whereNotIn('id', $keptTrainingIds);
+                if ($trainingsToDelete->isNotEmpty()) {
+                    $delIds = $trainingsToDelete->pluck('id')->toArray();
+                    $employee->documents()->where('record_type', 'training')->whereIn('record_id', $delIds)->delete();
+                    $employee->trainingHistories()->whereIn('id', $delIds)->delete();
                 }
             }
 
@@ -805,6 +806,11 @@ class EmployeeController extends Controller
                 }
             }
         });
+
+        Cache::forget('staff_switcher_list_admin');
+        if ($user) {
+            Cache::forget('staff_switcher_list_'.$user->id);
+        }
 
         return back()->with('success', "Data pegawai '{$employee->nama}' berhasil diperbarui.");
     }
@@ -1130,5 +1136,64 @@ class EmployeeController extends Controller
         $spreadsheet->setActiveSheetIndex(0);
 
         return $spreadsheet;
+    }
+
+    /**
+     * Get departments with positions (cached for 180s).
+     */
+    protected function getDepartments(): array
+    {
+        return Cache::remember('departments_with_positions', 180, function () {
+            return Schema::hasTable('departments') && Schema::hasTable('department_positions')
+                ? Department::with('positions')->orderBy('order')->orderBy('name')->get()->map(fn ($dept) => [
+                    'id' => $dept->id,
+                    'name' => $dept->name,
+                    'positions' => $dept->relationLoaded('positions')
+                        ? $dept->positions->pluck('name')->values()->toArray()
+                        : [],
+                ])->toArray()
+                : [];
+        });
+    }
+
+    /**
+     * Get school units with departments (cached for 180s).
+     */
+    protected function getSchoolUnits(): array
+    {
+        return Cache::remember('school_units_list', 180, function () {
+            $departments = $this->getDepartments();
+            $deptKeyed = collect($departments)->keyBy('name');
+
+            return Schema::hasTable('school_units')
+                ? SchoolUnit::orderBy('name')->get()->map(function ($unit) use ($deptKeyed) {
+                    $dept = $deptKeyed->get($unit->name);
+
+                    return [
+                        'id' => $unit->id,
+                        'name' => $unit->name,
+                        'positions' => $dept ? $dept['positions'] : [],
+                    ];
+                })->toArray()
+                : [];
+        });
+    }
+
+    /**
+     * Get available distinct units (cached for 180s).
+     */
+    protected function getAvailableUnits(): array
+    {
+        return Cache::remember('available_units_list', 180, function () {
+            $schoolUnits = $this->getSchoolUnits();
+            $departments = $this->getDepartments();
+            $units = array_column($schoolUnits, 'name');
+            $deptNames = array_column($departments, 'name');
+            $posUnits = EmployeePosition::whereNotNull('unit_kerja')->distinct()->pluck('unit_kerja')->toArray();
+            $availableUnits = array_values(array_unique(array_filter(array_merge($units, $deptNames, $posUnits))));
+            sort($availableUnits);
+
+            return $availableUnits;
+        });
     }
 }
