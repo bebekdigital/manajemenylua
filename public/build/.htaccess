@@ -1,9 +1,20 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
+
+    # Fallback missing js chunks in /build/assets/ to rescue.js so old browser caches reload cleanly
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^assets/.*\.js$ /rescue.js [L]
 </IfModule>
 
-<FilesMatch "\.(css|js|mjs|woff2|woff|ttf|svg|png|jpg|jpeg|webp)$">
-    Header set Cache-Control "max-age=31536000, public, immutable"
-</FilesMatch>
+<IfModule mod_headers.c>
+    # Built immutable assets can be cached for 1 year
+    <FilesMatch "\.(css|js|woff2?|ttf|eot|png|jpg|jpeg|gif|svg|webp|ico)$">
+        Header set Cache-Control "max-age=31536000, public, immutable"
+    </FilesMatch>
+
+    # Manifest should revalidate
+    <FilesMatch "manifest\.json$">
+        Header set Cache-Control "no-cache, must-revalidate"
+    </FilesMatch>
+</IfModule>
+
