@@ -1,6 +1,6 @@
+import '../css/app.css';
 import { createApp, h } from 'vue';
 import { createInertiaApp, router } from '@inertiajs/vue3';
-import AppLayout from './Layouts/AppLayout.vue';
 import { usePwaInstall } from './Composables/usePwaInstall';
 
 // Pastikan tema status bar mobile selalu putih saat berpindah halaman SPA
@@ -20,6 +20,7 @@ createInertiaApp({
 
         // Use AppLayout as default layout if not explicitly set
         if (page && page.default && page.default.layout === undefined) {
+            const AppLayout = (await import('./Layouts/AppLayout.vue')).default;
             page.default.layout = AppLayout;
         }
 
