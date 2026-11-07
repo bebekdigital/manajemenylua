@@ -161,7 +161,6 @@ class EmployeeDocumentController extends Controller
             'Cache-Control' => 'public, max-age=86400',
         ]);
     }
-    }
 
     /**
      * Download an employee document securely.
