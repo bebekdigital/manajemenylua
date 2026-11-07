@@ -69,9 +69,9 @@ class RolePermission extends Model
                 'group' => 'employee_documents',
                 'name' => 'Dokumen Kepegawaian',
                 'category' => 'Database Pegawai',
-                'description' => 'Akses unggah, lihat, unduh, dan kelola dokumen berkas pegawai (KTP, KK, SK, Ijazah, Sertifikat di Tab Dokumen).',
+                'description' => 'Akses berkas: Lihat (pratinjau) • Tambah (unggah berkas baru) • Ubah (ganti/unggah ulang) • Hapus (hapus berkas) • Ekspor (unduh berkas fisik). Kolom Impor dinonaktifkan.',
                 'parent_group' => 'employee_detail_history',
-                'supported_actions' => ['view', 'create', 'update', 'delete', 'export', 'import'],
+                'supported_actions' => ['view', 'create', 'update', 'delete', 'export'],
             ],
         ];
     }
@@ -105,8 +105,8 @@ class RolePermission extends Model
                 'can_create' => $isSuper || (bool) ($perm?->can_create),
                 'can_update' => $isSuper || (bool) ($perm?->can_update),
                 'can_delete' => $isSuper || (bool) ($perm?->can_delete),
-                'can_export' => $isSuper || (bool) ($perm?->can_export),
-                'can_import' => $isSuper || (bool) ($perm?->can_import),
+                'can_export' => in_array('export', $feat['supported_actions']) && ($isSuper || (bool) ($perm?->can_export)),
+                'can_import' => in_array('import', $feat['supported_actions']) && ($isSuper || (bool) ($perm?->can_import)),
             ];
         }, $features);
     }

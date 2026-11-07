@@ -268,7 +268,11 @@ function getActionState(item, act) {
         return item[`can_${act}`] ? 'checked' : 'unchecked';
     }
 
-    const children = getChildren(item);
+    const children = getChildren(item).filter((c) => (c.supported_actions || []).includes(act));
+    if (children.length === 0) {
+        return item[`can_${act}`] ? 'checked' : 'unchecked';
+    }
+
     const checkedChildren = children.filter((c) => Boolean(c[`can_${act}`])).length;
     const isParentChecked = Boolean(item[`can_${act}`]);
 
@@ -296,7 +300,7 @@ function toggleParentAction(item, act) {
     const targetState = currentState !== 'checked';
 
     item[`can_${act}`] = targetState;
-    const children = getChildren(item);
+    const children = getChildren(item).filter((c) => (c.supported_actions || []).includes(act));
     children.forEach((c) => {
         c[`can_${act}`] = targetState;
     });
@@ -780,7 +784,7 @@ function savePermissions() {
                                         class="rounded border-outline-variant text-primary focus:ring-primary/20 cursor-pointer disabled:opacity-60 w-4 h-4"
                                     />
                                 </template>
-                                <span v-else class="text-outline-variant">-</span>
+                                <span v-else class="text-outline-variant/50 font-mono text-xs select-none" title="Aksi tidak berlaku untuk modul ini">-</span>
                             </td>
 
                             <!-- Aksi Cepat Baris -->
