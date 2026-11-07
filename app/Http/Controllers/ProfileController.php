@@ -54,23 +54,98 @@ class ProfileController extends Controller
     }
 
     /**
-     * Update the user's profile photo (dummy - stores base64 or path).
+     * Update the user's profile photo (compressed and saved as JPG).
      */
     public function updatePhoto(Request $request)
     {
         $request->validate([
-            'foto' => 'required|image|mimes:jpeg,png,jpg,webp|max:2048',
+            'foto' => 'required|image|mimes:jpeg,png,jpg,webp|max:5120',
         ]);
 
         $user = Auth::user();
 
-        // Store dummy path for now (no real storage setup needed)
         if ($request->hasFile('foto')) {
-            $filename = 'profile_'.$user->id.'_'.time().'.'.$request->file('foto')->getClientOriginalExtension();
-            $request->file('foto')->move(public_path('uploads/profiles'), $filename);
+            $file = $request->file('foto');
+            $uploadDir = public_path('uploads/profiles');
+            if (! is_dir($uploadDir)) {
+                @mkdir($uploadDir, 0755, true);
+            }
+
+            // Hapus foto profil lama jika ada
+            if ($user->foto) {
+                $oldPath = public_path(ltrim($user->foto, '/'));
+                if (file_exists($oldPath)) {
+                    @unlink($oldPath);
+                }
+            }
+
+            $filename = 'profile_'.$user->id.'_'.time().'.jpg';
+            $targetPath = $uploadDir.'/'.$filename;
+
+            $this->compressAndSaveAsJpeg($file->getRealPath(), $targetPath, 800, 800, 82);
+
             $user->update(['foto' => '/uploads/profiles/'.$filename]);
         }
 
         return back()->with('success', 'Foto profil berhasil diperbarui.');
+    }
+
+    /**
+     * Kompres dan simpan gambar sebagai format JPEG (.jpg) menggunakan PHP GD jika tersedia.
+     */
+    private function compressAndSaveAsJpeg(string $sourcePath, string $targetPath, int $maxWidth = 800, int $maxHeight = 800, int $quality = 82): bool
+    {
+        $dir = dirname($targetPath);
+        if (! is_dir($dir)) {
+            @mkdir($dir, 0755, true);
+        }
+
+        if (! extension_loaded('gd') || ! file_exists($sourcePath)) {
+            return @copy($sourcePath, $targetPath);
+        }
+
+        $imageInfo = @getimagesize($sourcePath);
+        if (! $imageInfo) {
+            return @copy($sourcePath, $targetPath);
+        }
+
+        [$origWidth, $origHeight, $imageType] = $imageInfo;
+
+        $sourceImage = match ($imageType) {
+            IMAGETYPE_JPEG => @imagecreatefromjpeg($sourcePath),
+            IMAGETYPE_PNG => @imagecreatefrompng($sourcePath),
+            IMAGETYPE_WEBP => function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($sourcePath) : null,
+            default => null,
+        };
+
+        if (! $sourceImage) {
+            return @copy($sourcePath, $targetPath);
+        }
+
+        $width = $origWidth;
+        $height = $origHeight;
+        if ($width > $maxWidth || $height > $maxHeight) {
+            if ($width / $height > $maxWidth / $maxHeight) {
+                $height = (int) round(($height * $maxWidth) / $width);
+                $width = $maxWidth;
+            } else {
+                $width = (int) round(($width * $maxHeight) / $height);
+                $height = $maxHeight;
+            }
+        }
+
+        $targetImage = imagecreatetruecolor($width, $height);
+
+        $white = imagecolorallocate($targetImage, 255, 255, 255);
+        imagefilledrectangle($targetImage, 0, 0, $width, $height, $white);
+
+        imagecopyresampled($targetImage, $sourceImage, 0, 0, 0, 0, $width, $height, $origWidth, $origHeight);
+
+        $saved = imagejpeg($targetImage, $targetPath, $quality);
+
+        imagedestroy($sourceImage);
+        imagedestroy($targetImage);
+
+        return $saved;
     }
 }

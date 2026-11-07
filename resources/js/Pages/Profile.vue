@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import { compressImageToJpeg } from '@/Utils/imageCompressor';
 
 defineOptions({
     layout: AppLayout,
@@ -65,19 +66,26 @@ function selectPhoto() {
     photoInput.value?.click();
 }
 
-function onPhotoSelected(event) {
+async function onPhotoSelected(event) {
     const file = event.target.files[0];
     if (!file) return;
+
+    // Kompres foto ke JPEG (maks 800x800, kualitas 82%) di browser sebelum upload
+    const compressedFile = await compressImageToJpeg(file, {
+        maxWidth: 800,
+        maxHeight: 800,
+        quality: 0.82,
+    });
 
     // Preview
     const reader = new FileReader();
     reader.onload = (e) => {
         photoPreview.value = e.target.result;
     };
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(compressedFile);
 
-    // Upload
-    photoForm.foto = file;
+    // Upload file hasil kompresi yang ringan
+    photoForm.foto = compressedFile;
     dismissedFlash.value = false;
     photoForm.post('/profile/photo', {
         preserveScroll: true,

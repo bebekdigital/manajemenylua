@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { router } from '@inertiajs/vue3';
+import { compressImageToJpeg } from '@/Utils/imageCompressor';
 
 defineProps({
     show: { type: Boolean, default: false },
@@ -14,6 +15,7 @@ const files = ref([]);
 const zipFile = ref(null);
 const isDragging = ref(false);
 const isUploading = ref(false);
+const isCompressing = ref(false);
 const uploadProgress = ref(0);
 
 const fileCount = computed(() => files.value.length);
@@ -61,13 +63,24 @@ function handleZipDrop(fileList) {
     if (zip) zipFile.value = zip;
 }
 
-function addImages(fileList) {
-    const allowed = ['image/jpeg', 'image/png', 'image/webp'];
-    for (const file of fileList) {
-        if (allowed.includes(file.type)) {
-            const dup = files.value.some(f => f.name === file.name && f.size === file.size);
-            if (!dup) files.value.push(file);
+async function addImages(fileList) {
+    const allowed = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
+    isCompressing.value = true;
+    try {
+        for (const file of fileList) {
+            if (allowed.includes(file.type) || /\.(jpe?g|png|webp)$/i.test(file.name)) {
+                // Otomatis kompres ke JPEG (.jpg) kualitas tinggi, ukuran hemat sebelum masuk antrean
+                const compressed = await compressImageToJpeg(file, {
+                    maxWidth: 1000,
+                    maxHeight: 1000,
+                    quality: 0.82,
+                });
+                const dup = files.value.some(f => f.name === compressed.name && f.size === compressed.size);
+                if (!dup) files.value.push(compressed);
+            }
         }
+    } finally {
+        isCompressing.value = false;
     }
 }
 
@@ -93,7 +106,7 @@ function extractNisn(filename) {
 }
 
 const canUpload = computed(() => {
-    if (isUploading.value) return false;
+    if (isUploading.value || isCompressing.value) return false;
     if (mode.value === 'zip') return !!zipFile.value;
     return files.value.length > 0;
 });
@@ -357,8 +370,11 @@ function close() {
                                 :disabled="!canUpload"
                                 class="flex items-center gap-2 px-5 py-2 bg-primary hover:bg-primary/90 text-on-primary rounded-xl text-sm font-bold transition-all active:scale-95 cursor-pointer shadow-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
                             >
-                                <span class="material-symbols-outlined text-base">{{ mode === 'zip' ? 'folder_zip' : 'upload' }}</span>
-                                <span v-if="!isUploading">
+                                <span class="material-symbols-outlined text-base" :class="isCompressing ? 'animate-spin' : ''">
+                                    {{ isCompressing ? 'sync' : (mode === 'zip' ? 'folder_zip' : 'upload') }}
+                                </span>
+                                <span v-if="isCompressing">Mengompres Foto...</span>
+                                <span v-else-if="!isUploading">
                                     {{ mode === 'zip' ? (zipFile ? 'Upload ZIP' : 'Upload ZIP') : `Upload ${fileCount} Foto` }}
                                 </span>
                                 <span v-else>Memproses...</span>
