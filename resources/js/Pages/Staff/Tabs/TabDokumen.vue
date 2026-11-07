@@ -2,6 +2,7 @@
 import { ref, computed, inject } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
 import { formatTanggalIndo } from '../staffHelpers';
+import { compressImageToJpeg } from '@/Utils/imageCompressor';
 
 const props = defineProps({
     employee: {
@@ -247,6 +248,7 @@ const uploadTitle = ref('');
 const uploadFile = ref(null);
 const uploadFileError = ref('');
 const isUploading = ref(false);
+const isCompressing = ref(false);
 const isDragging = ref(false);
 const fileInput = ref(null);
 
@@ -257,14 +259,16 @@ function openUploadModal({ category, recordType = null, recordId = null, title =
     uploadTitle.value = title;
     uploadFile.value = null;
     uploadFileError.value = '';
+    isCompressing.value = false;
     showUploadModal.value = true;
 }
 
 function closeUploadModal() {
-    if (isUploading.value) return;
+    if (isUploading.value || isCompressing.value) return;
     showUploadModal.value = false;
     uploadFile.value = null;
     uploadFileError.value = '';
+    isCompressing.value = false;
 }
 
 function handleFileChange(event) {
@@ -278,10 +282,10 @@ function handleDrop(event) {
     validateAndSetFile(file);
 }
 
-function validateAndSetFile(file) {
+async function validateAndSetFile(file) {
     if (!file) return;
-    const allowed = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
-    if (!allowed.includes(file.type)) {
+    const allowed = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
+    if (!allowed.includes(file.type) && !/\.(pdf|jpe?g|png|webp)$/i.test(file.name)) {
         uploadFileError.value = 'Format berkas tidak didukung. Harap pilih berkas PDF, JPG, PNG, atau WEBP.';
         uploadFile.value = null;
         return;
@@ -292,7 +296,26 @@ function validateAndSetFile(file) {
         return;
     }
     uploadFileError.value = '';
-    uploadFile.value = file;
+
+    // Jika berkas adalah gambar (KTP, KK, SK, dsb), kompres otomatis ke JPG beresolusi tinggi (maks 1600px, kualitas 82%)
+    // Teks di dokumen tetap sangat tajam dan jelas terbaca, namun ukuran menyusut dari MB ke KB
+    if (file.type.startsWith('image/') || /\.(jpe?g|png|webp)$/i.test(file.name)) {
+        isCompressing.value = true;
+        try {
+            const compressed = await compressImageToJpeg(file, {
+                maxWidth: 1600,
+                maxHeight: 1600,
+                quality: 0.82,
+            });
+            uploadFile.value = compressed;
+        } catch {
+            uploadFile.value = file;
+        } finally {
+            isCompressing.value = false;
+        }
+    } else {
+        uploadFile.value = file;
+    }
 }
 
 function formatBytes(bytes) {
@@ -1428,7 +1451,12 @@ function deleteDocument(doc) {
                                         @change="handleFileChange"
                                     />
 
-                                    <div v-if="uploadFile" class="flex flex-col items-center">
+                                    <div v-if="isCompressing" class="flex flex-col items-center">
+                                        <span class="material-symbols-outlined text-4xl text-emerald-600 mb-2 animate-spin">sync</span>
+                                        <span class="text-xs font-bold text-slate-800">Mengoptimalkan gambar...</span>
+                                        <span class="text-[11px] text-slate-500 mt-0.5">Memperkecil ukuran tanpa mengurangi ketajaman dokumen</span>
+                                    </div>
+                                    <div v-else-if="uploadFile" class="flex flex-col items-center">
                                         <span class="material-symbols-outlined text-4xl text-emerald-600 mb-2">task_alt</span>
                                         <span class="text-xs font-bold text-slate-800 max-w-full truncate px-2">{{ uploadFile.name }}</span>
                                         <span class="text-[11px] text-slate-500 mt-0.5">{{ formatBytes(uploadFile.size) }}</span>
@@ -1452,17 +1480,17 @@ function deleteDocument(doc) {
                                     type="button"
                                     @click="closeUploadModal"
                                     class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-100 border border-slate-300 transition-colors cursor-pointer"
-                                    :disabled="isUploading"
+                                    :disabled="isUploading || isCompressing"
                                 >
                                     Batal
                                 </button>
                                 <button
                                     type="submit"
-                                    :disabled="isUploading || !uploadFile"
+                                    :disabled="isUploading || isCompressing || !uploadFile"
                                     class="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-bold text-xs shadow-xs transition-all disabled:opacity-50 cursor-pointer"
                                 >
-                                    <span v-if="isUploading" class="material-symbols-outlined text-[16px] animate-spin">sync</span>
-                                    <span>{{ isUploading ? 'Mengunggah...' : 'Unggah Dokumen' }}</span>
+                                    <span v-if="isUploading || isCompressing" class="material-symbols-outlined text-[16px] animate-spin">sync</span>
+                                    <span>{{ isUploading ? 'Mengunggah...' : (isCompressing ? 'Mengompres...' : 'Unggah Dokumen') }}</span>
                                 </button>
                             </div>
                         </form>

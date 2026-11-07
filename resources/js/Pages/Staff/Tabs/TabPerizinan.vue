@@ -3,6 +3,7 @@ import { ref, reactive, computed, onMounted, onUnmounted, inject } from 'vue';
 import { router, usePage, useForm } from '@inertiajs/vue3';
 import axios from 'axios';
 import { formatTanggalIndo } from '../staffHelpers';
+import { compressImageToJpeg } from '@/Utils/imageCompressor';
 
 const props = defineProps({
     employee: {
@@ -124,9 +125,17 @@ function closePerizinanModal() {
     isPerizinanModalOpen.value = false;
 }
 
-function onModalPermitFileChange(event) {
+async function onModalPermitFileChange(event) {
     const file = event.target.files?.[0] || null;
-    perizinanModalForm.lampiran = file;
+    if (file && (file.type.startsWith('image/') || /\.(jpe?g|png|webp)$/i.test(file.name))) {
+        try {
+            perizinanModalForm.lampiran = await compressImageToJpeg(file, { maxWidth: 1600, maxHeight: 1600, quality: 0.82 });
+        } catch {
+            perizinanModalForm.lampiran = file;
+        }
+    } else {
+        perizinanModalForm.lampiran = file;
+    }
 }
 
 function submitPerizinanModal() {

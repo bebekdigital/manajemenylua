@@ -9,6 +9,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -134,8 +135,19 @@ class EmployeePermitController extends Controller
 
         if ($request->hasFile('lampiran')) {
             $file = $request->file('lampiran');
-            $fileName = $file->getClientOriginalName();
-            $filePath = $file->store("employee_permits/{$employee->id}", 'local');
+            $isImage = str_starts_with($file->getMimeType() ?: '', 'image/') ||
+                in_array(strtolower($file->getClientOriginalExtension()), ['jpg', 'jpeg', 'png', 'webp']);
+
+            if ($isImage) {
+                $randomName = Str::random(40).'.jpg';
+                $filePath = "employee_permits/{$employee->id}/{$randomName}";
+                $destAbsolutePath = Storage::disk('local')->path($filePath);
+                $this->compressAndSaveAsJpeg($file->getRealPath(), $destAbsolutePath, 1600, 1600, 82);
+                $fileName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME).'.jpg';
+            } else {
+                $fileName = $file->getClientOriginalName();
+                $filePath = $file->store("employee_permits/{$employee->id}", 'local');
+            }
         }
 
         // Status default adalah 'diajukan'
@@ -225,8 +237,20 @@ class EmployeePermitController extends Controller
             }
 
             $file = $request->file('lampiran');
-            $updateData['lampiran_nama'] = $file->getClientOriginalName();
-            $updateData['lampiran_path'] = $file->store("employee_permits/{$employee->id}", 'local');
+            $isImage = str_starts_with($file->getMimeType() ?: '', 'image/') ||
+                in_array(strtolower($file->getClientOriginalExtension()), ['jpg', 'jpeg', 'png', 'webp']);
+
+            if ($isImage) {
+                $randomName = Str::random(40).'.jpg';
+                $filePath = "employee_permits/{$employee->id}/{$randomName}";
+                $destAbsolutePath = Storage::disk('local')->path($filePath);
+                $this->compressAndSaveAsJpeg($file->getRealPath(), $destAbsolutePath, 1600, 1600, 82);
+                $updateData['lampiran_nama'] = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME).'.jpg';
+                $updateData['lampiran_path'] = $filePath;
+            } else {
+                $updateData['lampiran_nama'] = $file->getClientOriginalName();
+                $updateData['lampiran_path'] = $file->store("employee_permits/{$employee->id}", 'local');
+            }
         }
 
         $permit->update($updateData);
@@ -345,6 +369,7 @@ class EmployeePermitController extends Controller
         return response()->file($absolutePath, [
             'Content-Type' => $mime,
             'Content-Disposition' => 'inline; filename="'.addslashes($permit->lampiran_nama ?? 'lampiran').'"',
+            'Cache-Control' => 'public, max-age=86400',
         ]);
     }
 
@@ -393,5 +418,64 @@ class EmployeePermitController extends Controller
         if (! RolePermission::canAccess($user, 'employee_detail_history', $action)) {
             abort(403, 'Akses ditolak: Role Anda tidak memiliki izin untuk mengelola perizinan pegawai.');
         }
+    }
+
+    /**
+     * Kompres dan simpan gambar sebagai format JPEG (.jpg) menggunakan PHP GD jika tersedia.
+     */
+    private function compressAndSaveAsJpeg(string $sourcePath, string $targetPath, int $maxWidth = 1600, int $maxHeight = 1600, int $quality = 82): bool
+    {
+        $dir = dirname($targetPath);
+        if (! is_dir($dir)) {
+            @mkdir($dir, 0755, true);
+        }
+
+        if (! extension_loaded('gd') || ! file_exists($sourcePath)) {
+            return @copy($sourcePath, $targetPath);
+        }
+
+        $imageInfo = @getimagesize($sourcePath);
+        if (! $imageInfo) {
+            return @copy($sourcePath, $targetPath);
+        }
+
+        [$origWidth, $origHeight, $imageType] = $imageInfo;
+
+        $sourceImage = match ($imageType) {
+            IMAGETYPE_JPEG => @imagecreatefromjpeg($sourcePath),
+            IMAGETYPE_PNG => @imagecreatefrompng($sourcePath),
+            IMAGETYPE_WEBP => function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($sourcePath) : null,
+            default => null,
+        };
+
+        if (! $sourceImage) {
+            return @copy($sourcePath, $targetPath);
+        }
+
+        $width = $origWidth;
+        $height = $origHeight;
+        if ($width > $maxWidth || $height > $maxHeight) {
+            if ($width / $height > $maxWidth / $maxHeight) {
+                $height = (int) round(($height * $maxWidth) / $width);
+                $width = $maxWidth;
+            } else {
+                $width = (int) round(($width * $maxHeight) / $height);
+                $height = $maxHeight;
+            }
+        }
+
+        $targetImage = imagecreatetruecolor($width, $height);
+
+        $white = imagecolorallocate($targetImage, 255, 255, 255);
+        imagefilledrectangle($targetImage, 0, 0, $width, $height, $white);
+
+        imagecopyresampled($targetImage, $sourceImage, 0, 0, 0, 0, $width, $height, $origWidth, $origHeight);
+
+        $saved = imagejpeg($targetImage, $targetPath, $quality);
+
+        imagedestroy($sourceImage);
+        imagedestroy($targetImage);
+
+        return $saved;
     }
 }
