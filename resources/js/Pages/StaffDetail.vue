@@ -104,14 +104,6 @@ const canDeleteDocuments = computed(() => props.permissions?.can_delete_document
 const canExportDocuments = computed(() => props.permissions?.can_export_documents ?? true);
 const canApprovePermit = computed(() => props.permissions?.can_approve_permit ?? false);
 
-const tabs = computed(() => {
-    return allTabs.filter((tab) => {
-        if (tab.id === 'kepegawaian') return canViewKepegawaian.value;
-        if (tab.id === 'dokumen') return canViewDocuments.value;
-        return true;
-    });
-});
-
 // Global state check untuk mencegah navigasi saat ada section kelola yang aktif di tab anak
 const managingState = reactive({
     kepegawaian: false,
@@ -269,14 +261,21 @@ watch(() => page.url, (newUrl) => {
 }, { immediate: true });
 
 const tabs = computed(() => {
-    if (!canViewKepegawaian.value) {
-        return allTabs.filter((t) => t.id !== 'kepegawaian');
-    }
-    return allTabs;
+    return allTabs.filter((tab) => {
+        if (tab.id === 'kepegawaian' && !canViewKepegawaian.value) return false;
+        if (tab.id === 'dokumen' && !canViewDocuments.value) return false;
+        return true;
+    });
 });
 
 watch(canViewKepegawaian, (canView) => {
     if (!canView && activeTab.value === 'kepegawaian') {
+        activeTab.value = 'identitas';
+    }
+});
+
+watch(canViewDocuments, (canView) => {
+    if (!canView && activeTab.value === 'dokumen') {
         activeTab.value = 'identitas';
     }
 });
