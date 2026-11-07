@@ -61,6 +61,10 @@ const props = defineProps({
             can_create_kepegawaian: true,
             can_update_kepegawaian: true,
             can_delete_kepegawaian: true,
+            can_view_penugasan: true,
+            can_create_penugasan: true,
+            can_update_penugasan: true,
+            can_delete_penugasan: true,
             can_view_documents: true,
             can_create_documents: true,
             can_update_documents: true,
@@ -101,6 +105,10 @@ const canViewKepegawaian = computed(() => props.permissions?.can_view_kepegawaia
 const canCreateKepegawaian = computed(() => props.permissions?.can_create_kepegawaian ?? true);
 const canUpdateKepegawaian = computed(() => props.permissions?.can_update_kepegawaian ?? true);
 const canDeleteKepegawaian = computed(() => props.permissions?.can_delete_kepegawaian ?? true);
+const canViewPenugasan = computed(() => props.permissions?.can_view_penugasan ?? true);
+const canCreatePenugasan = computed(() => props.permissions?.can_create_penugasan ?? true);
+const canUpdatePenugasan = computed(() => props.permissions?.can_update_penugasan ?? true);
+const canDeletePenugasan = computed(() => props.permissions?.can_delete_penugasan ?? true);
 const canViewDocuments = computed(() => props.permissions?.can_view_documents ?? true);
 const canCreateDocuments = computed(() => props.permissions?.can_create_documents ?? true);
 const canUpdateDocuments = computed(() => props.permissions?.can_update_documents ?? true);
@@ -267,6 +275,7 @@ watch(() => page.url, (newUrl) => {
 const tabs = computed(() => {
     return allTabs.filter((tab) => {
         if (tab.id === 'kepegawaian' && !canViewKepegawaian.value) return false;
+        if (tab.id === 'penugasan' && !canViewPenugasan.value) return false;
         if (tab.id === 'dokumen' && !canViewDocuments.value) return false;
         return true;
     });
@@ -274,6 +283,12 @@ const tabs = computed(() => {
 
 watch(canViewKepegawaian, (canView) => {
     if (!canView && activeTab.value === 'kepegawaian') {
+        activeTab.value = 'identitas';
+    }
+});
+
+watch(canViewPenugasan, (canView) => {
+    if (!canView && activeTab.value === 'penugasan') {
         activeTab.value = 'identitas';
     }
 });
@@ -1054,7 +1069,10 @@ function handleBackClick(e) {
                 :departments="departments"
                 :school-units="schoolUnits"
                 :is-editing="isEditing"
-                :can-edit="canEdit"
+                :can-view-penugasan="canViewPenugasan"
+                :can-create-penugasan="canCreatePenugasan"
+                :can-update-penugasan="canUpdatePenugasan"
+                :can-delete-penugasan="canDeletePenugasan"
                 @managing-changed="val => setManaging('penugasan', val)"
             />
 

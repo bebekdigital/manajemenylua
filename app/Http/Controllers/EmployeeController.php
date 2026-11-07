@@ -338,6 +338,10 @@ class EmployeeController extends Controller
                     'can_create_kepegawaian' => RolePermission::canAccess($user, 'employee_kepegawaian', 'create'),
                     'can_update_kepegawaian' => RolePermission::canAccess($user, 'employee_kepegawaian', 'update'),
                     'can_delete_kepegawaian' => RolePermission::canAccess($user, 'employee_kepegawaian', 'delete'),
+                    'can_view_penugasan' => RolePermission::canAccess($user, 'employee_positions', 'view'),
+                    'can_create_penugasan' => RolePermission::canAccess($user, 'employee_positions', 'create'),
+                    'can_update_penugasan' => RolePermission::canAccess($user, 'employee_positions', 'update'),
+                    'can_delete_penugasan' => RolePermission::canAccess($user, 'employee_positions', 'delete'),
                     'can_view_documents' => RolePermission::canAccess($user, 'employee_documents', 'view'),
                     'can_create_documents' => RolePermission::canAccess($user, 'employee_documents', 'create'),
                     'can_update_documents' => RolePermission::canAccess($user, 'employee_documents', 'update'),
@@ -530,6 +534,11 @@ class EmployeeController extends Controller
                 $validated['tst_jenjang'],
                 $validated['riwayat_kepegawaian']
             );
+        }
+
+        $canUpdatePositions = RolePermission::canAccess($user, 'employee_positions', 'update');
+        if (! $canUpdatePositions) {
+            unset($validated['riwayat_jabatan']);
         }
 
         DB::transaction(function () use ($employee, $validated, $user, $request) {
@@ -860,7 +869,9 @@ class EmployeeController extends Controller
      */
     public function storePosition(Request $request, string $id): RedirectResponse
     {
-        $employee = $this->authorizeEmployeeUpdate($id, 'employee_detail_history');
+        $isUpdate = ! empty($request->input('id'));
+        $requiredAction = $isUpdate ? 'update' : 'create';
+        $employee = $this->authorizeEmployeeAction($id, 'employee_positions', $requiredAction);
 
         $validated = $request->validate([
             'id' => ['nullable', 'integer'],
@@ -898,7 +909,7 @@ class EmployeeController extends Controller
      */
     public function destroyPosition(Request $request, string $id, string $positionId): RedirectResponse
     {
-        $employee = $this->authorizeEmployeeUpdate($id, 'employee_detail_history');
+        $employee = $this->authorizeEmployeeAction($id, 'employee_positions', 'delete');
         $pos = $employee->positions()->findOrFail($positionId);
 
         $employee->documents()->where('record_type', 'position')->where('record_id', $pos->id)->delete();

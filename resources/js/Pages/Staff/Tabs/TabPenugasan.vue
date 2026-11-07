@@ -20,7 +20,19 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
-    canEdit: {
+    canViewPenugasan: {
+        type: Boolean,
+        default: false,
+    },
+    canCreatePenugasan: {
+        type: Boolean,
+        default: false,
+    },
+    canUpdatePenugasan: {
+        type: Boolean,
+        default: false,
+    },
+    canDeletePenugasan: {
         type: Boolean,
         default: false,
     },
@@ -137,6 +149,15 @@ function submitJabatanModal() {
         return;
     }
 
+    if (!jabatanModalForm.id && !props.canCreatePenugasan) {
+        showToast('error', 'Anda tidak memiliki hak akses untuk menambah riwayat penugasan.');
+        return;
+    }
+    if (jabatanModalForm.id && !props.canUpdatePenugasan) {
+        showToast('error', 'Anda tidak memiliki hak akses untuk mengubah riwayat penugasan.');
+        return;
+    }
+
     isSavingJabatan.value = true;
     router.post(`/staff/${props.employee.id}/positions`, {
         id: jabatanModalForm.id || null,
@@ -164,6 +185,11 @@ function submitJabatanModal() {
 }
 
 function deleteJabatanRecord(idxOrItem) {
+    if (!props.canDeletePenugasan) {
+        showToast('error', 'Anda tidak memiliki hak akses untuk menghapus riwayat penugasan.');
+        return;
+    }
+
     const list = currentJabatanList.value || [];
     const item = typeof idxOrItem === 'object' ? idxOrItem : list[idxOrItem];
     if (!item) return;
@@ -199,7 +225,15 @@ function deleteJabatanRecord(idxOrItem) {
 </script>
 
 <template>
-    <div class="space-y-6 mb-8">
+    <div v-if="canViewPenugasan" class="space-y-6 mb-8">
+        <!-- Banner jika user tidak memiliki izin edit penugasan -->
+        <div v-if="!canUpdatePenugasan" class="p-4 rounded-2xl bg-amber-50/80 border border-amber-200 text-amber-900 text-xs flex items-center gap-2.5">
+            <span class="material-symbols-outlined text-[18px] text-amber-700 shrink-0">lock</span>
+            <div>
+                <strong>Mode Lihat Saja:</strong> Anda tidak memiliki hak akses untuk mengubah Data Penugasan. Data pada tab ini terkunci dan hanya dapat diubah oleh role yang memiliki hak akses Ubah Data Penugasan.
+            </div>
+        </div>
+
         <!-- WADAH UTAMA: RIWAYAT PENUGASAN & JABATAN -->
         <div class="bg-white rounded-3xl border border-slate-200/90 p-4 sm:p-7 shadow-xs">
             <div class="flex items-center justify-between gap-3 pb-3 mb-4 border-b border-slate-100">
@@ -224,7 +258,7 @@ function deleteJabatanRecord(idxOrItem) {
                 </div>
 
                 <!-- Tombol Kelola di Pojok Kanan Atas Section -->
-                <div v-if="canEdit" class="flex items-center gap-2 shrink-0">
+                <div v-if="canUpdatePenugasan || canCreatePenugasan || canDeletePenugasan" class="flex items-center gap-2 shrink-0">
                     <button
                         v-if="!isManagingJabatan"
                         type="button"
@@ -261,6 +295,7 @@ function deleteJabatanRecord(idxOrItem) {
                 <!-- Tombol Tambah Riwayat di Atas Tabel -->
                 <div v-if="isManagingJabatan" class="mb-3.5 flex items-center justify-between gap-3">
                     <button
+                        v-if="canCreatePenugasan"
                         type="button"
                         @click="openAddJabatanModal"
                         class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-bold text-xs sm:text-sm shadow-xs border border-emerald-950/30 transition-all cursor-pointer active:scale-95"
@@ -278,7 +313,7 @@ function deleteJabatanRecord(idxOrItem) {
                     <table class="w-full text-xs sm:text-sm border-collapse">
                         <thead>
                             <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold text-[11px] uppercase tracking-wider">
-                                <th v-if="isManagingJabatan" class="px-3 py-3 text-center w-14">Hapus</th>
+                                <th v-if="isManagingJabatan && canDeletePenugasan" class="px-3 py-3 text-center w-14">Hapus</th>
                                 <th class="px-4 py-3 text-center w-12">No</th>
                                 <th class="px-4 py-3 text-left">Unit Kerja</th>
                                 <th class="px-4 py-3 text-left">Jabatan</th>
@@ -288,7 +323,7 @@ function deleteJabatanRecord(idxOrItem) {
                                 <th class="px-4 py-3 text-left">TST Jabatan</th>
                                 <th class="px-4 py-3 text-left">Status</th>
                                 <th class="px-4 py-3 text-center">Berkas SK</th>
-                                <th v-if="isManagingJabatan" class="px-4 py-3 text-center w-20">Aksi</th>
+                                <th v-if="isManagingJabatan && canUpdatePenugasan" class="px-4 py-3 text-center w-20">Aksi</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
@@ -297,7 +332,7 @@ function deleteJabatanRecord(idxOrItem) {
                                 :key="pos.id || idx"
                                 class="hover:bg-slate-50/80 transition-colors"
                             >
-                                <td v-if="isManagingJabatan" class="px-3 py-3 text-center">
+                                <td v-if="isManagingJabatan && canDeletePenugasan" class="px-3 py-3 text-center">
                                     <button
                                         type="button"
                                         @click="deleteJabatanRecord(idx)"
@@ -354,7 +389,7 @@ function deleteJabatanRecord(idxOrItem) {
                                     <span v-else class="text-slate-400 text-xs">-</span>
                                 </td>
 
-                                <td v-if="isManagingJabatan" class="px-4 py-3 text-center">
+                                <td v-if="isManagingJabatan && canUpdatePenugasan" class="px-4 py-3 text-center">
                                     <button
                                         type="button"
                                         @click="openEditJabatanModal(pos)"
@@ -380,7 +415,7 @@ function deleteJabatanRecord(idxOrItem) {
             <!-- 2. TAMPILAN MOBILE (CARD VIEW) -->
             <div class="md:hidden">
                 <!-- Tombol Tambah Riwayat -->
-                <div v-if="isManagingJabatan" class="mb-4">
+                <div v-if="isManagingJabatan && canCreatePenugasan" class="mb-4">
                     <button
                         type="button"
                         @click="openAddJabatanModal"
@@ -461,8 +496,9 @@ function deleteJabatanRecord(idxOrItem) {
                             </div>
                         </div>
 
-                        <div v-if="isManagingJabatan" class="pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2">
+                        <div v-if="isManagingJabatan && (canDeletePenugasan || canUpdatePenugasan)" class="pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2">
                             <button
+                                v-if="canDeletePenugasan"
                                 type="button"
                                 @click="deleteJabatanRecord(idx)"
                                 class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200 transition-colors cursor-pointer"
@@ -472,9 +508,10 @@ function deleteJabatanRecord(idxOrItem) {
                                 <span>Hapus</span>
                             </button>
                             <button
+                                v-if="canUpdatePenugasan"
                                 type="button"
                                 @click="openEditJabatanModal(pos)"
-                                class="inline-flex items-center gap-1 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 transition-colors cursor-pointer shadow-2xs"
+                                class="inline-flex items-center gap-1 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 transition-colors cursor-pointer shadow-2xs ml-auto"
                                 :disabled="isSavingJabatan"
                             >
                                 <span class="material-symbols-outlined text-[16px]">edit</span>

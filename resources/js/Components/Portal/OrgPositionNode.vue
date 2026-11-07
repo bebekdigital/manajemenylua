@@ -155,11 +155,11 @@ const hasSubordinates = computed(() => {
         </div>
 
         <!-- BAWAHAN DI LEVEL YANG SAMA (TAMPIL DI BAWAH KARTU ATASANNYA DI CONTAINER INI) -->
-        <div v-if="intraChildren.length > 0" class="flex flex-col items-center mt-10 sm:mt-12 w-max">
+        <div v-if="intraChildren.length > 0" class="flex flex-col items-center mt-20 sm:mt-24 w-max">
             <!-- Jika memiliki garis komando lurus ke level bawah, bagi ke sayap kiri dan sayap kanan dengan koridor tengah terbuka -->
             <div v-if="hasCenterTrunkLine" class="grid grid-cols-2 w-max mx-auto">
                 <!-- SAYAP KIRI -->
-                <div class="flex items-start gap-2.5 sm:gap-3.5 justify-end flex-nowrap shrink-0 pr-3.5 sm:pr-5">
+                <div class="flex items-start gap-4 sm:gap-6 justify-end flex-nowrap shrink-0 pr-4 sm:pr-6">
                     <OrgPositionNode
                         v-for="child in intraLeftChildren"
                         :key="child.id"
@@ -179,7 +179,7 @@ const hasSubordinates = computed(() => {
                 </div>
 
                 <!-- SAYAP KANAN -->
-                <div class="flex items-start gap-2.5 sm:gap-3.5 justify-start flex-nowrap shrink-0 pl-3.5 sm:pl-5">
+                <div class="flex items-start gap-4 sm:gap-6 justify-start flex-nowrap shrink-0 pl-4 sm:pl-6">
                     <OrgPositionNode
                         v-for="child in intraRightChildren"
                         :key="child.id"
@@ -200,7 +200,7 @@ const hasSubordinates = computed(() => {
             </div>
 
             <!-- Jika tidak ada garis komando ke level bawah, tampilkan sejajar terpusat tanpa wrap vertikal -->
-            <div v-else class="flex items-start gap-2.5 sm:gap-3.5 justify-center flex-nowrap">
+            <div v-else class="flex items-start gap-4 sm:gap-6 justify-center flex-nowrap">
                 <OrgPositionNode
                     v-for="child in intraChildren"
                     :key="child.id"

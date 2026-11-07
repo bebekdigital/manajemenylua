@@ -139,6 +139,7 @@ function resetView() {
     panY.value = 0;
     zoomScale.value = 1;
     isAutoFit.value = false;
+    nextTick(updateConnectionLines);
 }
 
 function fitToView() {
@@ -159,9 +160,14 @@ watch(
     (active) => {
         if (active) {
             nextTick(() => {
-                updateConnectionLines();
-                setTimeout(updateConnectionLines, 80);
-                setTimeout(updateConnectionLines, 250);
+                if (isAutoFit.value) {
+                    fitToView();
+                }
+                nextTick(() => {
+                    updateConnectionLines();
+                    setTimeout(updateConnectionLines, 80);
+                    setTimeout(updateConnectionLines, 250);
+                });
             });
         }
     },
@@ -174,7 +180,9 @@ function setEditMode(val) {
 }
 
 function toggleAutoFit() {
+    isAutoFit.value = true;
     fitToView();
+    nextTick(updateConnectionLines);
 }
 
 const levelDefinitions = [
@@ -542,6 +550,47 @@ const intraRootsByLevel = computed(() => {
     return roots;
 });
 
+// Helper mengambil koordinat unscaled kartu / baris relatif terhadap canvasWrapperRef
+function getUnscaledRect(el) {
+    if (!el || !canvasWrapperRef.value) return null;
+    const wrapper = canvasWrapperRef.value;
+
+    let x = 0;
+    let y = 0;
+    let curr = el;
+    let reachedWrapper = false;
+    while (curr) {
+        if (curr === wrapper) {
+            reachedWrapper = true;
+            break;
+        }
+        x += curr.offsetLeft;
+        y += curr.offsetTop;
+        curr = curr.offsetParent;
+    }
+
+    if (!reachedWrapper) {
+        const r = el.getBoundingClientRect();
+        const wr = wrapper.getBoundingClientRect();
+        const s = zoomScale.value || 1;
+        x = (r.left - wr.left) / s;
+        y = (r.top - wr.top) / s;
+    }
+
+    const width = el.offsetWidth;
+    const height = el.offsetHeight;
+    return {
+        left: Math.round(x),
+        top: Math.round(y),
+        right: Math.round(x + width),
+        bottom: Math.round(y + height),
+        width,
+        height,
+        centerX: Math.round(x + width / 2),
+        centerY: Math.round(y + height / 2),
+    };
+}
+
 // ========================================================
 // GARIS HIERARKI SVG DINAMIS (ANTAR ATASAN DAN BAWAHAN / SEJAJAR)
 // ========================================================
@@ -552,104 +601,32 @@ function updateConnectionLines() {
     const wrapperEl = canvasWrapperRef.value;
     const tableEl = tableRef.value;
 
-    // Hitung ukuran asli tabel (unscaled) dan sesuaikan Auto-Fit jika aktif
-    const rawTableWidth = tableEl.offsetWidth || 600;
-    const rawTableHeight = tableEl.offsetHeight || 400;
+    const rawTableWidth = tableEl.offsetWidth || 800;
+    const rawTableHeight = tableEl.offsetHeight || 600;
     const availableWidth = containerEl.clientWidth || rawTableWidth;
 
-    if (isAutoFit.value) {
-        if (rawTableWidth > availableWidth && availableWidth > 240) {
-            const fitRatio = Math.max(0.55, Math.min(1, (availableWidth - 8) / rawTableWidth));
-            zoomScale.value = Number(fitRatio.toFixed(2));
-        } else {
-            zoomScale.value = 1;
-        }
-    }
-
-    const scale = zoomScale.value || 1;
-    const wrapperRect = wrapperEl.getBoundingClientRect();
-
-    // Helper konversi koordinat layar ke koordinat internal canvas (unscaled)
-    const toX = (screenX) => Math.round((screenX - wrapperRect.left) / scale);
-    const toY = (screenY) => Math.round((screenY - wrapperRect.top) / scale);
-
-    // Cari koordinat paling kanan dari seluruh kartu untuk jalur koridor kanan (garis lompat level)
+    const lines = [];
+    const dotsMap = new Map();
+    let jumpCount = 0;
     let maxCardRight = 0;
+
+    // Cache unscaled bounding rects seluruh kartu
+    const cardRectsMap = new Map();
     props.positions.forEach(pos => {
         const el = document.getElementById(`pos-card-${pos.id}`);
         if (el) {
-            const r = el.getBoundingClientRect();
-            const rightCoord = toX(r.right);
-            if (rightCoord > maxCardRight) {
-                maxCardRight = rightCoord;
+            const r = getUnscaledRect(el);
+            if (r) {
+                cardRectsMap.set(pos.id, r);
+                if (r.right > maxCardRight) {
+                    maxCardRight = r.right;
+                }
             }
         }
     });
 
     svgWidth.value = Math.max(availableWidth, rawTableWidth, maxCardRight + 48);
     svgHeight.value = rawTableHeight;
-
-    const lines = [];
-    const dotsMap = new Map();
-    let jumpCount = 0;
-
-    // Kumpulkan seluruh bounding box kartu untuk deteksi rintangan / penghalang (obstacle avoidance)
-    const allCardRects = [];
-    props.positions.forEach(p => {
-        const el = document.getElementById(`pos-card-${p.id}`);
-        if (el) {
-            const r = el.getBoundingClientRect();
-            allCardRects.push({
-                id: p.id,
-                name: p.name,
-                level: Number(p.level),
-                parent_id: p.parent_id,
-                left: toX(r.left),
-                right: toX(r.right),
-                top: toY(r.top),
-                bottom: toY(r.bottom),
-                centerX: toX(r.left + r.width / 2),
-                centerY: toY(r.top + r.height / 2),
-            });
-        }
-    });
-
-    function findObstacleCard(x, yA, yB, ignoreIds = []) {
-        const minY = Math.min(yA, yB);
-        const maxY = Math.max(yA, yB);
-        return allCardRects.find(c => {
-            if (ignoreIds.includes(c.id)) return false;
-            const inY = c.top < maxY - 5 && c.bottom > minY + 5;
-            if (!inY) return false;
-            return x >= c.left - 5 && x <= c.right + 5;
-        });
-    }
-
-    function computeDetourX(obstacle, targetX, parentId, childId) {
-        const rightNeighbor = allCardRects.find(o =>
-            o.id !== obstacle.id &&
-            o.id !== parentId &&
-            o.id !== childId &&
-            Math.abs(o.top - obstacle.top) < 30 &&
-            o.left >= obstacle.right - 8
-        );
-        const leftNeighbor = allCardRects.find(o =>
-            o.id !== obstacle.id &&
-            o.id !== parentId &&
-            o.id !== childId &&
-            Math.abs(o.top - obstacle.top) < 30 &&
-            o.right <= obstacle.left + 8
-        );
-
-        if (targetX < obstacle.centerX - 8 && leftNeighbor) {
-            return Math.round((leftNeighbor.right + obstacle.left) / 2);
-        } else if (rightNeighbor) {
-            return Math.round((obstacle.right + rightNeighbor.left) / 2);
-        } else if (leftNeighbor) {
-            return Math.round((leftNeighbor.right + obstacle.left) / 2);
-        }
-        return targetX < obstacle.centerX ? Math.round(obstacle.left - 16) : Math.round(obstacle.right + 16);
-    }
 
     // Hitung bawahan langsung di level bawahnya untuk percabangan T-junction
     const directChildrenByParent = new Map();
@@ -665,13 +642,12 @@ function updateConnectionLines() {
     props.positions.forEach(pos => {
         if (!pos.parent_id) return;
 
+        const childRect = cardRectsMap.get(pos.id);
+        const parentRect = cardRectsMap.get(pos.parent_id);
         const childEl = document.getElementById(`pos-card-${pos.id}`);
         const parentEl = document.getElementById(`pos-card-${pos.parent_id}`);
 
-        if (childEl && parentEl) {
-            const childRect = childEl.getBoundingClientRect();
-            const parentRect = parentEl.getBoundingClientRect();
-
+        if (childRect && parentRect && childEl && parentEl) {
             const parentLevel = Number(parentEl.dataset.level) || 1;
             const childLevel = Number(childEl.dataset.level) || 1;
             const parentLevelDef = levelDefinitions.find(d => d.level === parentLevel) || levelDefinitions[0];
@@ -681,16 +657,17 @@ function updateConnectionLines() {
 
             // 1. KASUS SATU LEVEL (childLevel === parentLevel)
             if (childLevel === parentLevel) {
-                if (toY(childRect.top) > toY(parentRect.bottom) - 8) {
-                    // ATAS-BAWAH DI DALAM 1 CONTAINER LEVEL
-                    const x1 = toX(parentRect.left + parentRect.width / 2);
-                    const y1 = toY(parentRect.bottom);
-                    const x2 = toX(childRect.left + childRect.width / 2);
-                    const y2 = toY(childRect.top);
+                if (childRect.top > parentRect.bottom - 8) {
+                    // ATAS-BAWAH DI DALAM 1 CONTAINER LEVEL (Subordinat internal level yang sama)
+                    const x1 = parentRect.centerX;
+                    const y1 = parentRect.bottom;
+                    const x2 = childRect.centerX;
+                    const y2 = childRect.top;
 
                     if (Math.abs(x1 - x2) < 4) {
                         path = `M ${x1} ${y1} L ${x2} ${y2}`;
                     } else {
+                        // Titik tengah tepat di antara bawah kartu atasan dan atas kartu bawahan
                         const midY = Math.round(y1 + (y2 - y1) * 0.5);
                         path = `M ${x1} ${y1} L ${x1} ${midY} L ${x2} ${midY} L ${x2} ${y2}`;
 
@@ -708,10 +685,9 @@ function updateConnectionLines() {
 
                             const hasFurtherSibling = siblings.some(s => {
                                 if (s.id === pos.id) return false;
-                                const sEl = document.getElementById(`pos-card-${s.id}`);
-                                if (!sEl) return false;
-                                const sRect = sEl.getBoundingClientRect();
-                                const sX = toX(sRect.left + sRect.width / 2);
+                                const sRect = cardRectsMap.get(s.id);
+                                if (!sRect) return false;
+                                const sX = sRect.centerX;
                                 return (x2 > x1 && sX > x2 + 8) || (x2 < x1 && sX < x2 - 8);
                             });
                             if (hasFurtherSibling) {
@@ -746,10 +722,10 @@ function updateConnectionLines() {
                     // SEJAJAR HORIZONTAL DI LEVEL YANG SAMA
                     isPeer = true;
                     const parentIsLeft = parentRect.left < childRect.left;
-                    const x1 = toX(parentIsLeft ? parentRect.right : parentRect.left);
-                    const y1 = toY(parentRect.top + parentRect.height / 2);
-                    const x2 = toX(parentIsLeft ? childRect.left : childRect.right);
-                    const y2 = toY(childRect.top + childRect.height / 2);
+                    const x1 = parentIsLeft ? parentRect.right : parentRect.left;
+                    const y1 = parentRect.centerY;
+                    const x2 = parentIsLeft ? childRect.left : childRect.right;
+                    const y2 = childRect.centerY;
 
                     if (Math.abs(y1 - y2) < 6) {
                         path = `M ${x1} ${y1} L ${x2} ${y2}`;
@@ -772,12 +748,12 @@ function updateConnectionLines() {
             }
 
             // Coordinate from bottom center of parent card
-            const x1 = toX(parentRect.left + parentRect.width / 2);
-            const y1 = toY(parentRect.bottom);
+            const x1 = parentRect.centerX;
+            const y1 = parentRect.bottom;
 
             // Coordinate to top center of child card
-            const x2 = toX(childRect.left + childRect.width / 2);
-            const y2 = toY(childRect.top);
+            const x2 = childRect.centerX;
+            const y2 = childRect.top;
 
             // 2. KASUS LOMPAT LEVEL (childLevel > parentLevel + 1)
             if (childLevel > parentLevel + 1) {
@@ -785,8 +761,8 @@ function updateConnectionLines() {
                 const x_right = Math.round(rightCorridorBase + (jumpCount * 12));
                 jumpCount++;
 
-                const y_exit = y1 + 12;
-                const y_entry = y2 - 12;
+                const y_exit = y1 + 14;
+                const y_entry = y2 - 14;
 
                 path = `M ${x1} ${y1} L ${x1} ${y_exit} L ${x_right} ${y_exit} L ${x_right} ${y_entry} L ${x2} ${y_entry} L ${x2} ${y2}`;
             }
@@ -796,8 +772,8 @@ function updateConnectionLines() {
                 const parentRowEl = document.getElementById(`level-row-${parentLevel}`);
                 let midY;
                 if (parentRowEl) {
-                    const rowRect = parentRowEl.getBoundingClientRect();
-                    midY = toY(rowRect.bottom);
+                    const rowRect = getUnscaledRect(parentRowEl);
+                    midY = rowRect ? rowRect.bottom : Math.round(y1 + (y2 - y1) * 0.5);
                 } else {
                     midY = Math.round(y1 + (y2 - y1) * 0.5);
                 }
@@ -1155,7 +1131,6 @@ function handleDelete(pos) {
                     :style="{
                         transform: `translate(${panX}px, ${panY}px) scale(${zoomScale})`,
                         transformOrigin: 'top center',
-                        transition: isDragging ? 'none' : 'transform 75ms ease-out',
                     }"
                 >
                 <!-- KANVAS SVG GARIS HIERARKI PENGHUBUNG ANTARA ATASAN DAN BAWAHAN -->
@@ -1209,7 +1184,7 @@ function handleDelete(pos) {
                             class="border-b border-slate-200/80 last:border-b-0 hover:bg-slate-50/15 transition-colors relative"
                         >
                             <!-- CONTAINER LEVEL: POSISI LEVEL DI POJOK KIRI ATAS CONTAINER -->
-                            <td class="px-3 pt-6 pb-12 sm:px-6 sm:pt-8 sm:pb-14 align-top relative" :class="def.rowHeaderBg">
+                            <td class="px-3 pt-8 pb-16 sm:px-6 sm:pt-10 sm:pb-20 align-top relative" :class="def.rowHeaderBg">
                                 <!-- BARIS LABEL LEVEL DI KIRI ATAS (RAPI & TIDAK MENABRAK CARD) -->
                                 <div class="mb-2 inline-flex items-center gap-1.5 flex-wrap select-none bg-white/90 backdrop-blur-2xs px-2 py-0.5 rounded-lg border border-slate-200/80 shadow-2xs relative z-20">
                                     <span :class="['text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded border shadow-2xs', def.badgeClass]">

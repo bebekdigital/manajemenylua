@@ -64,6 +64,15 @@ class RolePermission extends Model
                 'parent_group' => 'employee_detail_history',
                 'supported_actions' => ['view', 'create', 'update', 'delete'],
             ],
+            // Kategori: Database Pegawai (Child: Data Penugasan)
+            [
+                'group' => 'employee_positions',
+                'name' => 'Data Penugasan',
+                'category' => 'Database Pegawai',
+                'description' => 'Akses rincian penugasan & jabatan: Lihat (visibilitas Tab Penugasan) • Tambah (tambah riwayat jabatan baru) • Ubah (edit riwayat penugasan) • Hapus (hapus riwayat penugasan). Kolom Ekspor dan Impor terpusat di modul Data Pegawai.',
+                'parent_group' => 'employee_detail_history',
+                'supported_actions' => ['view', 'create', 'update', 'delete'],
+            ],
             // Kategori: Database Pegawai (Child: Dokumen Kepegawaian)
             [
                 'group' => 'employee_documents',
@@ -131,7 +140,7 @@ class RolePermission extends Model
                     || str_contains(strtolower($role), 'sdm')
                     || str_contains(strtolower($role), 'kepegawaian');
 
-                if ($group === 'employee_kepegawaian') {
+                if ($group === 'employee_kepegawaian' || $group === 'employee_positions') {
                     $canView = $parentPerm ? (bool) $parentPerm->can_view : ($defaults['view'] ?? false);
                     $canCreate = $isSDMOrAdmin ? ($defaults['create'] ?? false) : false;
                     $canUpdate = $isSDMOrAdmin ? ($defaults['update'] ?? false) : false;
@@ -190,6 +199,8 @@ class RolePermission extends Model
             $group = 'employee_detail_history';
         } elseif ($group === 'employee_kepegawaian') {
             $group = 'employee_kepegawaian';
+        } elseif ($group === 'employee_positions') {
+            $group = 'employee_positions';
         } elseif ($group === 'employee_documents') {
             $group = 'employee_documents';
         } else {
@@ -209,8 +220,8 @@ class RolePermission extends Model
                 ->first();
         }
 
-        // Fallback untuk child (employee_kepegawaian & employee_documents) jika belum pernah diset di database
-        if (! $perm && ($group === 'employee_kepegawaian' || $group === 'employee_documents')) {
+        // Fallback untuk child (employee_kepegawaian, employee_positions, & employee_documents) jika belum pernah diset di database
+        if (! $perm && ($group === 'employee_kepegawaian' || $group === 'employee_positions' || $group === 'employee_documents')) {
             if ($action === 'view') {
                 $parentPerm = self::where('role', $role)
                     ->where('feature_group', 'employee_detail_history')
@@ -266,6 +277,18 @@ class RolePermission extends Model
 
         // Modul Data Kepegawaian (NIPY, status keaktifan, SK jenjang)
         if ($group === 'employee_kepegawaian') {
+            return [
+                'view' => true,
+                'create' => $isSDM,
+                'update' => $isSDM,
+                'delete' => $isSDM,
+                'export' => false,
+                'import' => false,
+            ];
+        }
+
+        // Modul Data Penugasan (Riwayat Jabatan & Penugasan)
+        if ($group === 'employee_positions') {
             return [
                 'view' => true,
                 'create' => $isSDM,
