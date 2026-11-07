@@ -60,9 +60,9 @@ class RolePermission extends Model
                 'group' => 'employee_kepegawaian',
                 'name' => 'Data Kepegawaian',
                 'category' => 'Database Pegawai',
-                'description' => 'Akses rincian data kepegawaian (NIPY, status keaktifan, TMT/TST, dan riwayat di Tab Kepegawaian).',
+                'description' => 'Akses rincian data kepegawaian: Lihat (visibilitas tab & NIPY) • Tambah (tambah riwayat SK jenjang) • Ubah (edit data kepegawaian & SK) • Hapus (hapus riwayat SK). Kolom Ekspor dan Impor terpusat di modul Data Pegawai.',
                 'parent_group' => 'employee_detail_history',
-                'supported_actions' => ['view', 'create', 'update', 'delete', 'export', 'import'],
+                'supported_actions' => ['view', 'create', 'update', 'delete'],
             ],
             // Kategori: Database Pegawai (Child: Dokumen Kepegawaian)
             [
@@ -136,8 +136,8 @@ class RolePermission extends Model
                     $canCreate = $isSDMOrAdmin ? ($defaults['create'] ?? false) : false;
                     $canUpdate = $isSDMOrAdmin ? ($defaults['update'] ?? false) : false;
                     $canDelete = $isSDMOrAdmin ? ($defaults['delete'] ?? false) : false;
-                    $canExport = $defaults['export'] ?? false;
-                    $canImport = $isSDMOrAdmin ? ($defaults['import'] ?? false) : false;
+                    $canExport = false;
+                    $canImport = false;
                 } elseif ($group === 'employee_documents') {
                     $canView = $parentPerm ? (bool) $parentPerm->can_view : ($defaults['view'] ?? false);
                     $canCreate = $defaults['create'] ?? false;
@@ -270,8 +270,8 @@ class RolePermission extends Model
                 'view' => true,
                 'create' => $isSDM,
                 'update' => $isSDM,
-                'delete' => false,
-                'export' => true,
+                'delete' => $isSDM,
+                'export' => false,
                 'import' => false,
             ];
         }

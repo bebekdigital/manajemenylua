@@ -335,7 +335,9 @@ class EmployeeController extends Controller
                     'can_update' => RolePermission::canAccess($user, 'employee_detail_history', 'update'),
                     'can_delete' => RolePermission::canAccess($user, 'employee_detail_history', 'delete'),
                     'can_view_kepegawaian' => RolePermission::canAccess($user, 'employee_kepegawaian', 'view'),
+                    'can_create_kepegawaian' => RolePermission::canAccess($user, 'employee_kepegawaian', 'create'),
                     'can_update_kepegawaian' => RolePermission::canAccess($user, 'employee_kepegawaian', 'update'),
+                    'can_delete_kepegawaian' => RolePermission::canAccess($user, 'employee_kepegawaian', 'delete'),
                     'can_view_documents' => RolePermission::canAccess($user, 'employee_documents', 'view'),
                     'can_create_documents' => RolePermission::canAccess($user, 'employee_documents', 'create'),
                     'can_update_documents' => RolePermission::canAccess($user, 'employee_documents', 'update'),
@@ -821,23 +823,36 @@ class EmployeeController extends Controller
     }
 
     /**
-     * Authorize that the current user can update this employee profile or relation.
+     * Authorize that the current user can perform an action on this employee profile or relation.
      */
-    protected function authorizeEmployeeUpdate(string $id, string $permissionCategory = 'employee_detail_history'): Employee
+    protected function authorizeEmployeeAction(string $id, string $permissionCategory = 'employee_detail_history', string $action = 'update'): Employee
     {
         $user = auth()->user();
-        if (! RolePermission::canAccess($user, $permissionCategory, 'update')) {
-            abort(403, 'Akses ditolak: Role Anda tidak memiliki izin untuk mengubah data ini.');
+        if (! RolePermission::canAccess($user, $permissionCategory, $action)) {
+            $actionLabel = match ($action) {
+                'create' => 'menambahkan',
+                'delete' => 'menghapus',
+                default => 'mengubah',
+            };
+            abort(403, "Akses ditolak: Role Anda tidak memiliki izin untuk {$actionLabel} data ini.");
         }
 
         if ($user?->isTeacher()) {
             $myEmployee = $user->employeeProfile();
             if (! $myEmployee || (string) $myEmployee->id !== (string) $id) {
-                abort(403, 'Akses ditolak: Sebagai Guru, Anda hanya dapat mengubah data profil pegawai atas nama Anda sendiri.');
+                abort(403, 'Akses ditolak: Sebagai Guru, Anda hanya dapat mengelola data profil pegawai atas nama Anda sendiri.');
             }
         }
 
         return Employee::findOrFail($id);
+    }
+
+    /**
+     * Authorize that the current user can update this employee profile or relation.
+     */
+    protected function authorizeEmployeeUpdate(string $id, string $permissionCategory = 'employee_detail_history'): Employee
+    {
+        return $this->authorizeEmployeeAction($id, $permissionCategory, 'update');
     }
 
     /**
@@ -902,7 +917,9 @@ class EmployeeController extends Controller
      */
     public function storeRecord(Request $request, string $id): RedirectResponse
     {
-        $employee = $this->authorizeEmployeeUpdate($id, 'employee_kepegawaian');
+        $isUpdate = ! empty($request->input('id'));
+        $requiredAction = $isUpdate ? 'update' : 'create';
+        $employee = $this->authorizeEmployeeAction($id, 'employee_kepegawaian', $requiredAction);
 
         $validated = $request->validate([
             'id' => ['nullable', 'integer'],
@@ -933,7 +950,7 @@ class EmployeeController extends Controller
      */
     public function destroyRecord(Request $request, string $id, string $recordId): RedirectResponse
     {
-        $employee = $this->authorizeEmployeeUpdate($id, 'employee_kepegawaian');
+        $employee = $this->authorizeEmployeeAction($id, 'employee_kepegawaian', 'delete');
         $rec = $employee->records()->findOrFail($recordId);
 
         $employee->documents()->where('record_type', 'record')->where('record_id', $rec->id)->delete();

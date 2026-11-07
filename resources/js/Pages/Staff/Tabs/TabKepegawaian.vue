@@ -29,7 +29,15 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    canCreateKepegawaian: {
+        type: Boolean,
+        default: false,
+    },
     canUpdateKepegawaian: {
+        type: Boolean,
+        default: false,
+    },
+    canDeleteKepegawaian: {
         type: Boolean,
         default: false,
     },
@@ -104,6 +112,15 @@ function submitRiwayatModal() {
         return;
     }
 
+    if (!riwayatModalForm.id && !props.canCreateKepegawaian) {
+        showToast('error', 'Anda tidak memiliki hak akses untuk menambah riwayat jenjang kepegawaian.');
+        return;
+    }
+    if (riwayatModalForm.id && !props.canUpdateKepegawaian) {
+        showToast('error', 'Anda tidak memiliki hak akses untuk mengubah riwayat jenjang kepegawaian.');
+        return;
+    }
+
     isSavingRiwayat.value = true;
     router.post(`/staff/${props.employee.id}/records`, {
         id: riwayatModalForm.id || null,
@@ -129,6 +146,11 @@ function submitRiwayatModal() {
 }
 
 function deleteRiwayatRecord(idxOrItem) {
+    if (!props.canDeleteKepegawaian) {
+        showToast('error', 'Anda tidak memiliki hak akses untuk menghapus riwayat jenjang kepegawaian.');
+        return;
+    }
+
     const list = currentRiwayatList.value;
     const item = typeof idxOrItem === 'object' ? idxOrItem : list[idxOrItem];
     if (!item) return;
@@ -397,7 +419,7 @@ function deleteRiwayatRecord(idxOrItem) {
                 </div>
 
                 <!-- Tombol Kelola di Pojok Kanan Atas Section -->
-                <div v-if="canUpdateKepegawaian" class="flex items-center gap-2 shrink-0">
+                <div v-if="canUpdateKepegawaian || canCreateKepegawaian || canDeleteKepegawaian" class="flex items-center gap-2 shrink-0">
                     <button
                         v-if="!isManagingRiwayat"
                         type="button"
@@ -434,6 +456,7 @@ function deleteRiwayatRecord(idxOrItem) {
                 <!-- Tombol Tambah Riwayat di Atas Tabel -->
                 <div v-if="isManagingRiwayat" class="mb-3.5 flex items-center justify-between gap-3">
                     <button
+                        v-if="canCreateKepegawaian"
                         type="button"
                         @click="openAddRiwayatModal"
                         class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-bold text-xs sm:text-sm shadow-xs border border-emerald-950/30 transition-all cursor-pointer active:scale-95"
@@ -451,7 +474,7 @@ function deleteRiwayatRecord(idxOrItem) {
                     <table class="w-full text-xs sm:text-sm border-collapse">
                         <thead>
                             <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold text-[11px] uppercase tracking-wider">
-                                <th v-if="isManagingRiwayat" class="px-3 py-3 text-center w-14">Hapus</th>
+                                <th v-if="isManagingRiwayat && canDeleteKepegawaian" class="px-3 py-3 text-center w-14">Hapus</th>
                                 <th class="px-4 py-3 text-center w-12">No</th>
                                 <th class="px-4 py-3 text-left">Jenjang Kepegawaian</th>
                                 <th class="px-4 py-3 text-left">No. SK</th>
@@ -459,7 +482,7 @@ function deleteRiwayatRecord(idxOrItem) {
                                 <th class="px-4 py-3 text-left">TST Kenaikan Jenjang</th>
                                 <th class="px-4 py-3 text-left">Status Masa Berlaku</th>
                                 <th class="px-4 py-3 text-center">Berkas SK</th>
-                                <th v-if="isManagingRiwayat" class="px-4 py-3 text-center w-20">Aksi</th>
+                                <th v-if="isManagingRiwayat && canUpdateKepegawaian" class="px-4 py-3 text-center w-20">Aksi</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
@@ -468,7 +491,7 @@ function deleteRiwayatRecord(idxOrItem) {
                                 :key="record.id || idx"
                                 class="hover:bg-slate-50/80 transition-colors"
                             >
-                                <td v-if="isManagingRiwayat" class="px-3 py-3 text-center">
+                                <td v-if="isManagingRiwayat && canDeleteKepegawaian" class="px-3 py-3 text-center">
                                     <button
                                         type="button"
                                         @click="deleteRiwayatRecord(idx)"
@@ -525,7 +548,7 @@ function deleteRiwayatRecord(idxOrItem) {
                                     <span v-else class="text-slate-400 text-xs">-</span>
                                 </td>
 
-                                <td v-if="isManagingRiwayat" class="px-4 py-3 text-center">
+                                <td v-if="isManagingRiwayat && canUpdateKepegawaian" class="px-4 py-3 text-center">
                                     <button
                                         type="button"
                                         @click="openEditRiwayatModal(record)"
@@ -551,7 +574,7 @@ function deleteRiwayatRecord(idxOrItem) {
             <!-- TAMPILAN MOBILE (CARD VIEW) -->
             <div class="md:hidden">
                 <!-- Tombol Tambah Riwayat -->
-                <div v-if="isManagingRiwayat" class="mb-4">
+                <div v-if="isManagingRiwayat && canCreateKepegawaian" class="mb-4">
                     <button
                         type="button"
                         @click="openAddRiwayatModal"
@@ -619,8 +642,9 @@ function deleteRiwayatRecord(idxOrItem) {
                             </div>
                         </div>
 
-                        <div v-if="isManagingRiwayat" class="pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2">
+                        <div v-if="isManagingRiwayat && (canDeleteKepegawaian || canUpdateKepegawaian)" class="pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2">
                             <button
+                                v-if="canDeleteKepegawaian"
                                 type="button"
                                 @click="deleteRiwayatRecord(idx)"
                                 class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200 transition-colors cursor-pointer"
@@ -630,9 +654,10 @@ function deleteRiwayatRecord(idxOrItem) {
                                 <span>Hapus</span>
                             </button>
                             <button
+                                v-if="canUpdateKepegawaian"
                                 type="button"
                                 @click="openEditRiwayatModal(record)"
-                                class="inline-flex items-center gap-1 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 transition-colors cursor-pointer shadow-2xs"
+                                class="inline-flex items-center gap-1 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 transition-colors cursor-pointer shadow-2xs ml-auto"
                                 :disabled="isSavingRiwayat"
                             >
                                 <span class="material-symbols-outlined text-[16px]">edit</span>

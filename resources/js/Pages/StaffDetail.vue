@@ -58,7 +58,9 @@ const props = defineProps({
             can_update: true,
             can_delete: true,
             can_view_kepegawaian: true,
+            can_create_kepegawaian: true,
             can_update_kepegawaian: true,
+            can_delete_kepegawaian: true,
             can_view_documents: true,
             can_create_documents: true,
             can_update_documents: true,
@@ -96,7 +98,9 @@ const isEditing = ref(false);
 
 const canEdit = computed(() => props.permissions?.can_update ?? true);
 const canViewKepegawaian = computed(() => props.permissions?.can_view_kepegawaian ?? true);
+const canCreateKepegawaian = computed(() => props.permissions?.can_create_kepegawaian ?? true);
 const canUpdateKepegawaian = computed(() => props.permissions?.can_update_kepegawaian ?? true);
+const canDeleteKepegawaian = computed(() => props.permissions?.can_delete_kepegawaian ?? true);
 const canViewDocuments = computed(() => props.permissions?.can_view_documents ?? true);
 const canCreateDocuments = computed(() => props.permissions?.can_create_documents ?? true);
 const canUpdateDocuments = computed(() => props.permissions?.can_update_documents ?? true);
@@ -1034,7 +1038,9 @@ function handleBackClick(e) {
                 :is-editing="isEditing"
                 :is-any-managing="isAnyManaging"
                 :can-view-kepegawaian="canViewKepegawaian"
+                :can-create-kepegawaian="canCreateKepegawaian"
                 :can-update-kepegawaian="canUpdateKepegawaian"
+                :can-delete-kepegawaian="canDeleteKepegawaian"
                 @start-edit="startEdit"
                 @cancel-edit="cancelEdit"
                 @save-changes="saveChanges"
