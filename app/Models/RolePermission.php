@@ -64,6 +64,15 @@ class RolePermission extends Model
                 'parent_group' => 'employee_detail_history',
                 'supported_actions' => ['view', 'create', 'update', 'delete', 'export', 'import'],
             ],
+            // Kategori: Database Pegawai (Child: Dokumen Kepegawaian)
+            [
+                'group' => 'employee_documents',
+                'name' => 'Dokumen Kepegawaian',
+                'category' => 'Database Pegawai',
+                'description' => 'Akses unggah, lihat, unduh, dan kelola dokumen berkas pegawai (KTP, KK, SK, Ijazah, Sertifikat di Tab Dokumen).',
+                'parent_group' => 'employee_detail_history',
+                'supported_actions' => ['view', 'create', 'update', 'delete', 'export', 'import'],
+            ],
         ];
     }
 
@@ -129,6 +138,13 @@ class RolePermission extends Model
                     $canDelete = $isSDMOrAdmin ? ($defaults['delete'] ?? false) : false;
                     $canExport = $defaults['export'] ?? false;
                     $canImport = $isSDMOrAdmin ? ($defaults['import'] ?? false) : false;
+                } elseif ($group === 'employee_documents') {
+                    $canView = $parentPerm ? (bool) $parentPerm->can_view : ($defaults['view'] ?? false);
+                    $canCreate = $defaults['create'] ?? false;
+                    $canUpdate = $defaults['update'] ?? false;
+                    $canDelete = $defaults['delete'] ?? false;
+                    $canExport = $defaults['export'] ?? false;
+                    $canImport = $defaults['import'] ?? false;
                 } else {
                     $canView = $defaults['view'] ?? false;
                     $canCreate = $defaults['create'] ?? false;
@@ -170,10 +186,12 @@ class RolePermission extends Model
         }
 
         // Petakan seluruh modul pegawai
-        if (in_array($group, ['employee_directory', 'employee_detail_history', 'employee_documents'])) {
+        if (in_array($group, ['employee_directory', 'employee_detail_history'])) {
             $group = 'employee_detail_history';
         } elseif ($group === 'employee_kepegawaian') {
             $group = 'employee_kepegawaian';
+        } elseif ($group === 'employee_documents') {
+            $group = 'employee_documents';
         } else {
             // Modul selain pegawai belum dimasukkan ke matriks perizinan bertahap, izinkan secara default
             return true;
@@ -191,8 +209,8 @@ class RolePermission extends Model
                 ->first();
         }
 
-        // Fallback untuk child employee_kepegawaian ke parent employee_detail_history jika belum diset
-        if (! $perm && $group === 'employee_kepegawaian') {
+        // Fallback untuk child (employee_kepegawaian & employee_documents) jika belum pernah diset di database
+        if (! $perm && ($group === 'employee_kepegawaian' || $group === 'employee_documents')) {
             if ($action === 'view') {
                 $parentPerm = self::where('role', $role)
                     ->where('feature_group', 'employee_detail_history')
@@ -206,9 +224,7 @@ class RolePermission extends Model
                     $perm = $parentPerm;
                 }
             } else {
-                // Untuk aksi selain view (update, create, delete, import), jangan warisi dari parent employee_detail_history
-                // Karena izin update profil pegawai tidak otomatis memberikan izin ubah data kepegawaian (NIPY, status aktif, TMT/TST)
-                $defaults = self::getDefaultValuesForRoleAndGroup($role, 'employee_kepegawaian');
+                $defaults = self::getDefaultValuesForRoleAndGroup($role, $group);
 
                 return (bool) ($defaults[$action] ?? false);
             }
@@ -254,6 +270,40 @@ class RolePermission extends Model
                 'view' => true,
                 'create' => $isSDM,
                 'update' => $isSDM,
+                'delete' => false,
+                'export' => true,
+                'import' => false,
+            ];
+        }
+
+        // Modul Dokumen Kepegawaian (KTP, KK, SK, Ijazah, Sertifikat)
+        if ($group === 'employee_documents') {
+            if ($isSDM || str_contains(strtolower($role), 'kepala')) {
+                return [
+                    'view' => true,
+                    'create' => true,
+                    'update' => true,
+                    'delete' => true,
+                    'export' => true,
+                    'import' => false,
+                ];
+            }
+
+            if (in_array($role, ['Guru', 'Guru Kelas', 'Guru Mata Pelajaran', 'Wali Kelas']) || str_contains(strtolower($role), 'guru')) {
+                return [
+                    'view' => true,
+                    'create' => true,
+                    'update' => true,
+                    'delete' => true,
+                    'export' => true,
+                    'import' => false,
+                ];
+            }
+
+            return [
+                'view' => true,
+                'create' => false,
+                'update' => false,
                 'delete' => false,
                 'export' => true,
                 'import' => false,

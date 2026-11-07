@@ -9,7 +9,26 @@ const props = defineProps({
         type: Object,
         required: true,
     },
+    canEdit: {
+        type: Boolean,
+        default: true,
+    },
+    permissions: {
+        type: Object,
+        default: () => ({
+            can_view_documents: true,
+            can_create_documents: true,
+            can_update_documents: true,
+            can_delete_documents: true,
+            can_export_documents: true,
+        }),
+    },
 });
+
+const canUploadDoc = computed(() => (props.permissions?.can_create_documents ?? true) && props.canEdit);
+const canUpdateDoc = computed(() => (props.permissions?.can_update_documents ?? true) && props.canEdit);
+const canDeleteDoc = computed(() => (props.permissions?.can_delete_documents ?? true) && props.canEdit);
+const canExportDoc = computed(() => props.permissions?.can_export_documents ?? true);
 
 const page = usePage();
 const openPreview = inject('openPreview', () => {});
@@ -253,6 +272,10 @@ const isDragging = ref(false);
 const fileInput = ref(null);
 
 function openUploadModal({ category, recordType = null, recordId = null, title = '' }) {
+    if (!canUploadDoc.value && !canUpdateDoc.value) {
+        showToast('error', 'Anda tidak memiliki hak akses untuk mengunggah atau mengganti dokumen.');
+        return;
+    }
     uploadCategory.value = category;
     uploadRecordType.value = recordType;
     uploadRecordId.value = recordId;
@@ -358,6 +381,10 @@ function submitDocument() {
 
 function deleteDocument(doc) {
     if (!doc) return;
+    if (!canDeleteDoc.value) {
+        showToast('error', 'Anda tidak memiliki hak akses untuk menghapus dokumen.');
+        return;
+    }
     requestDeleteConfirm({
         title: 'Hapus Dokumen',
         message: 'Apakah Anda yakin ingin menghapus berkas dokumen ini?',

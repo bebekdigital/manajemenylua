@@ -59,6 +59,11 @@ const props = defineProps({
             can_delete: true,
             can_view_kepegawaian: true,
             can_update_kepegawaian: true,
+            can_view_documents: true,
+            can_create_documents: true,
+            can_update_documents: true,
+            can_delete_documents: true,
+            can_export_documents: true,
         }),
     },
 });
@@ -92,7 +97,20 @@ const isEditing = ref(false);
 const canEdit = computed(() => props.permissions?.can_update ?? true);
 const canViewKepegawaian = computed(() => props.permissions?.can_view_kepegawaian ?? true);
 const canUpdateKepegawaian = computed(() => props.permissions?.can_update_kepegawaian ?? true);
+const canViewDocuments = computed(() => props.permissions?.can_view_documents ?? true);
+const canCreateDocuments = computed(() => props.permissions?.can_create_documents ?? true);
+const canUpdateDocuments = computed(() => props.permissions?.can_update_documents ?? true);
+const canDeleteDocuments = computed(() => props.permissions?.can_delete_documents ?? true);
+const canExportDocuments = computed(() => props.permissions?.can_export_documents ?? true);
 const canApprovePermit = computed(() => props.permissions?.can_approve_permit ?? false);
+
+const tabs = computed(() => {
+    return allTabs.filter((tab) => {
+        if (tab.id === 'kepegawaian') return canViewKepegawaian.value;
+        if (tab.id === 'dokumen') return canViewDocuments.value;
+        return true;
+    });
+});
 
 // Global state check untuk mencegah navigasi saat ada section kelola yang aktif di tab anak
 const managingState = reactive({
@@ -1059,6 +1077,8 @@ function handleBackClick(e) {
             <TabDokumen
                 v-else-if="activeTab === 'dokumen'"
                 :employee="employee"
+                :permissions="permissions"
+                :can-edit="canEdit"
             />
         </div>
 

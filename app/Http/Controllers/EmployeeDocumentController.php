@@ -167,7 +167,7 @@ class EmployeeDocumentController extends Controller
      */
     public function download(string $id, string $documentId): StreamedResponse
     {
-        $this->authorizeEmployeeAccess($id, 'view');
+        $this->authorizeEmployeeAccess($id, 'export');
 
         $document = EmployeeDocument::where('employee_id', $id)->findOrFail($documentId);
 
@@ -203,14 +203,73 @@ class EmployeeDocumentController extends Controller
     private function authorizeEmployeeAccess(string $employeeId, string $action = 'view'): void
     {
         $user = auth()->user();
-        if (! RolePermission::canAccess($user, 'employee_documents', $action)) {
-            abort(403, 'Akses ditolak: Role Anda tidak memiliki izin untuk tindakan dokumen pegawai ini.');
+        if (! $user) {
+            abort(401, 'Silakan login terlebih dahulu.');
         }
 
-        if ($user?->isTeacher()) {
+        // 1. Superadmin & Admin memiliki izin penuh tanpa pembatasan
+        $roleName = strtolower(trim((string) ($user->role ?? '')));
+        if (in_array($roleName, ['superadmin', 'admin'])) {
+            return;
+        }
+
+        // 2. Proteksi Guru: hanya boleh mengakses atau mengelola dokumen atas nama profil dirinya sendiri
+        if ($user->isTeacher()) {
             $myEmployee = $user->employeeProfile();
             if (! $myEmployee || (string) $myEmployee->id !== (string) $employeeId) {
                 abort(403, 'Akses ditolak: Anda hanya memiliki izin mengakses dokumen pegawai atas nama Anda sendiri.');
+            }
+
+            // Pengecekan izin spesifik Dokumen Kepegawaian untuk guru pada datanya sendiri
+            if ($action === 'view') {
+                if (! RolePermission::canAccess($user, 'employee_documents', 'view')) {
+                    abort(403, 'Akses ditolak: Anda tidak memiliki izin untuk melihat dokumen pegawai.');
+                }
+            } elseif ($action === 'create' || $action === 'update') {
+                $canEdit = RolePermission::canAccess($user, 'employee_documents', 'create')
+                    || RolePermission::canAccess($user, 'employee_documents', 'update');
+                if (! $canEdit) {
+                    abort(403, 'Akses ditolak: Role Anda tidak memiliki izin untuk mengunggah atau mengganti dokumen pegawai.');
+                }
+            } elseif ($action === 'delete') {
+                $canDelete = RolePermission::canAccess($user, 'employee_documents', 'delete')
+                    || RolePermission::canAccess($user, 'employee_documents', 'update');
+                if (! $canDelete) {
+                    abort(403, 'Akses ditolak: Role Anda tidak memiliki izin untuk menghapus dokumen pegawai.');
+                }
+            } elseif ($action === 'export') {
+                $canExport = RolePermission::canAccess($user, 'employee_documents', 'export')
+                    || RolePermission::canAccess($user, 'employee_documents', 'view');
+                if (! $canExport) {
+                    abort(403, 'Akses ditolak: Role Anda tidak memiliki izin untuk mengunduh dokumen pegawai.');
+                }
+            }
+
+            return;
+        }
+
+        // 3. Untuk role lainnya (SDM, Kepala Sekolah, Staf TU, dll.)
+        if ($action === 'view') {
+            if (! RolePermission::canAccess($user, 'employee_documents', 'view')) {
+                abort(403, 'Akses ditolak: Role Anda tidak memiliki izin untuk melihat dokumen pegawai.');
+            }
+        } elseif ($action === 'create' || $action === 'update') {
+            $canModify = RolePermission::canAccess($user, 'employee_documents', 'create')
+                || RolePermission::canAccess($user, 'employee_documents', 'update');
+            if (! $canModify) {
+                abort(403, 'Akses ditolak: Role Anda tidak memiliki izin untuk mengunggah atau memperbarui dokumen pegawai.');
+            }
+        } elseif ($action === 'delete') {
+            $canDelete = RolePermission::canAccess($user, 'employee_documents', 'delete')
+                || RolePermission::canAccess($user, 'employee_documents', 'update');
+            if (! $canDelete) {
+                abort(403, 'Akses ditolak: Role Anda tidak memiliki izin untuk menghapus dokumen pegawai.');
+            }
+        } elseif ($action === 'export') {
+            $canExport = RolePermission::canAccess($user, 'employee_documents', 'export')
+                || RolePermission::canAccess($user, 'employee_documents', 'view');
+            if (! $canExport) {
+                abort(403, 'Akses ditolak: Role Anda tidak memiliki izin untuk mengunduh dokumen pegawai.');
             }
         }
     }
