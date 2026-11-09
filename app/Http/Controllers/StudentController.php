@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AcademicYear;
 use App\Models\Classroom;
+use App\Models\RolePermission;
 use App\Models\SchoolClass;
 use App\Models\SchoolLevel;
 use App\Models\SchoolProgram;
@@ -36,6 +37,10 @@ class StudentController extends Controller
      */
     public function import(Request $request, StudentImportService $importService): RedirectResponse
     {
+        if (! RolePermission::canAccess($request->user(), 'student_data', 'import')) {
+            abort(403, 'Anda tidak memiliki hak akses untuk mengimpor data siswa.');
+        }
+
         $request->validate([
             'file' => ['required', 'file', 'mimes:xlsx,xls', 'max:10240'],
             'unit' => ['nullable', 'string'],
@@ -68,6 +73,20 @@ class StudentController extends Controller
      */
     public function index(Request $request): Response
     {
+        $user = $request->user();
+        if (! RolePermission::canAccess($user, 'student_data', 'view')) {
+            abort(403, 'Anda tidak memiliki hak akses untuk melihat data siswa.');
+        }
+
+        $permissions = [
+            'can_view' => RolePermission::canAccess($user, 'student_data', 'view'),
+            'can_create' => RolePermission::canAccess($user, 'student_data', 'create'),
+            'can_update' => RolePermission::canAccess($user, 'student_data', 'update'),
+            'can_delete' => RolePermission::canAccess($user, 'student_data', 'delete'),
+            'can_export' => RolePermission::canAccess($user, 'student_data', 'export'),
+            'can_import' => RolePermission::canAccess($user, 'student_data', 'import'),
+        ];
+
         $students = Student::with([
             'siblings',
             'currentRecord.classroom',
@@ -147,6 +166,7 @@ class StudentController extends Controller
 
         return Inertia::render('Students', [
             'students' => $students,
+            'permissions' => $permissions,
         ]);
     }
 
@@ -155,6 +175,20 @@ class StudentController extends Controller
      */
     public function show(string $nisn, Request $request): Response
     {
+        $user = $request->user();
+        if (! RolePermission::canAccess($user, 'student_data', 'view')) {
+            abort(403, 'Anda tidak memiliki hak akses untuk melihat rincian data siswa.');
+        }
+
+        $permissions = [
+            'can_view' => RolePermission::canAccess($user, 'student_data', 'view'),
+            'can_create' => RolePermission::canAccess($user, 'student_data', 'create'),
+            'can_update' => RolePermission::canAccess($user, 'student_data', 'update'),
+            'can_delete' => RolePermission::canAccess($user, 'student_data', 'delete'),
+            'can_export' => RolePermission::canAccess($user, 'student_data', 'export'),
+            'can_import' => RolePermission::canAccess($user, 'student_data', 'import'),
+        ];
+
         $studentModel = Student::with([
             'academicRecords.classroom',
             'academicRecords.academicYear',
@@ -263,6 +297,7 @@ class StudentController extends Controller
 
         return Inertia::render('StudentDetail', [
             'student' => $studentData,
+            'permissions' => $permissions,
         ]);
     }
 
@@ -271,6 +306,11 @@ class StudentController extends Controller
      */
     public function inlineEdit(Request $request): Response
     {
+        $user = $request->user();
+        if (! RolePermission::canAccess($user, 'student_data', 'update')) {
+            abort(403, 'Anda tidak memiliki hak akses untuk mengubah data siswa.');
+        }
+
         $selectedYearId = session('selected_academic_year_id') ?? AcademicYear::current()?->id;
 
         $students = Student::with([
@@ -361,6 +401,11 @@ class StudentController extends Controller
      */
     public function inlineUpdate(Request $request): RedirectResponse
     {
+        $user = $request->user();
+        if (! RolePermission::canAccess($user, 'student_data', 'update')) {
+            abort(403, 'Anda tidak memiliki hak akses untuk mengubah data siswa.');
+        }
+
         $validated = $request->validate([
             'students' => ['required', 'array'],
             'students.*.nisn' => ['required', 'string'],
@@ -528,6 +573,11 @@ class StudentController extends Controller
      */
     public function uploadPhotos(Request $request): RedirectResponse
     {
+        $user = $request->user();
+        if (! RolePermission::canAccess($user, 'student_data', 'update') && ! RolePermission::canAccess($user, 'student_data', 'create')) {
+            abort(403, 'Anda tidak memiliki hak akses untuk mengunggah foto siswa.');
+        }
+
         // Mode ZIP
         if ($request->hasFile('zip')) {
             return $this->handleZipUpload($request);
@@ -784,6 +834,11 @@ class StudentController extends Controller
      */
     public function downloadTemplate(Request $request): HttpResponse
     {
+        $user = $request->user();
+        if (! RolePermission::canAccess($user, 'student_data', 'export')) {
+            abort(403, 'Anda tidak memiliki hak akses untuk mengunduh template data siswa.');
+        }
+
         $tab = $request->query('tab', 'all');
 
         $units = collect();

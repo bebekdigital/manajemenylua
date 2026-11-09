@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\RolePermission;
 use App\Models\SchoolLevel;
 use Illuminate\Http\Request;
 
@@ -9,6 +10,10 @@ class SchoolLevelController extends Controller
 {
     public function store(Request $request)
     {
+        if (! RolePermission::canAccess($request->user(), 'setting_academic', 'create')) {
+            abort(403, 'Anda tidak memiliki hak akses untuk menambah jenjang pendidikan.');
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:school_levels,name',
             'order' => 'integer|min:0',
@@ -24,6 +29,10 @@ class SchoolLevelController extends Controller
 
     public function update(Request $request, SchoolLevel $schoolLevel)
     {
+        if (! RolePermission::canAccess($request->user(), 'setting_academic', 'update')) {
+            abort(403, 'Anda tidak memiliki hak akses untuk mengubah jenjang pendidikan.');
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:school_levels,name,'.$schoolLevel->id,
             'order' => 'integer|min:0',
@@ -39,6 +48,10 @@ class SchoolLevelController extends Controller
 
     public function destroy(SchoolLevel $schoolLevel)
     {
+        if (! RolePermission::canAccess(request()->user(), 'setting_academic', 'delete')) {
+            abort(403, 'Anda tidak memiliki hak akses untuk menghapus jenjang pendidikan.');
+        }
+
         if ($schoolLevel->units()->exists()) {
             return back()->with('error', 'Tidak dapat menghapus Jenjang karena masih memiliki Unit.');
         }

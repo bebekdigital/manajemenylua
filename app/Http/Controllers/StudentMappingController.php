@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AcademicYear;
 use App\Models\Classroom;
+use App\Models\RolePermission;
 use App\Models\SchoolUnit;
 use App\Models\Student;
 use App\Models\StudentAcademicRecord;
@@ -15,6 +16,11 @@ class StudentMappingController extends Controller
 {
     public function index(Request $request)
     {
+        $user = $request->user();
+        if (! RolePermission::canAccess($user, 'student_data', 'update') && ! RolePermission::canAccess($user, 'student_data', 'create')) {
+            abort(403, 'Anda tidak memiliki hak akses untuk memetakan data siswa.');
+        }
+
         $academicYears = AcademicYear::orderByDesc('name')->orderByRaw("FIELD(semester, 'Genap', 'Ganjil')")->get();
         $units = SchoolUnit::orderBy('id')->get();
 
@@ -69,6 +75,11 @@ class StudentMappingController extends Controller
 
     public function store(Request $request)
     {
+        $user = $request->user();
+        if (! RolePermission::canAccess($user, 'student_data', 'update') && ! RolePermission::canAccess($user, 'student_data', 'create')) {
+            abort(403, 'Anda tidak memiliki hak akses untuk memetakan data siswa.');
+        }
+
         $validated = $request->validate([
             'student_ids' => 'required|array',
             'student_ids.*' => 'exists:students,nisn',

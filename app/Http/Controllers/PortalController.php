@@ -165,6 +165,24 @@ class PortalController extends Controller
                 }, $defaultFeatures);
         }
 
+        $currentUser = auth()->user();
+        $isSuperadmin = ($currentUser?->role === 'superadmin');
+
+        $permissions = [
+            'academic' => [
+                'can_view' => $isSuperadmin || RolePermission::canAccess($currentUser, 'setting_academic', 'view'),
+                'can_create' => $isSuperadmin || RolePermission::canAccess($currentUser, 'setting_academic', 'create'),
+                'can_update' => $isSuperadmin || RolePermission::canAccess($currentUser, 'setting_academic', 'update'),
+                'can_delete' => $isSuperadmin || RolePermission::canAccess($currentUser, 'setting_academic', 'delete'),
+            ],
+            'organization' => [
+                'can_view' => $isSuperadmin || RolePermission::canAccess($currentUser, 'setting_organization', 'view'),
+                'can_create' => $isSuperadmin || RolePermission::canAccess($currentUser, 'setting_organization', 'create'),
+                'can_update' => $isSuperadmin || RolePermission::canAccess($currentUser, 'setting_organization', 'update'),
+                'can_delete' => $isSuperadmin || RolePermission::canAccess($currentUser, 'setting_organization', 'delete'),
+            ],
+        ];
+
         return Inertia::render('Portal', [
             'academicYears' => $academicYears,
             'users' => $users,
@@ -180,6 +198,7 @@ class PortalController extends Controller
             'permissionsData' => $permissionsData,
             'defaultFeatures' => $defaultFeatures,
             'primaryRoles' => $primaryRoles,
+            'permissions' => $permissions,
         ]);
     }
 }

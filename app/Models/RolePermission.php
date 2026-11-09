@@ -38,14 +38,18 @@ class RolePermission extends Model
      *
      * @return array<int, array<string, mixed>>
      */
-    /**
-     * Definisi master fitur yang dapat diatur hak aksesnya di portal.
-     *
-     * @return array<int, array<string, mixed>>
-     */
     public static function defaultFeatures(): array
     {
         return [
+            // Kategori: Database Siswa
+            [
+                'group' => 'student_data',
+                'name' => 'Data Siswa',
+                'category' => 'Database Siswa',
+                'description' => 'Akses modul data siswa (direktori siswa, rincian profil, edit massal, template dan impor).',
+                'parent_group' => null,
+                'supported_actions' => ['view', 'create', 'update', 'delete', 'export', 'import'],
+            ],
             // Kategori: Database Pegawai (Parent: Data Pegawai)
             [
                 'group' => 'employee_detail_history',
@@ -81,6 +85,24 @@ class RolePermission extends Model
                 'description' => 'Akses berkas: Lihat (pratinjau) • Tambah (unggah berkas baru) • Ubah (ganti/unggah ulang) • Hapus (hapus berkas) • Ekspor (unduh berkas fisik). Kolom Impor dinonaktifkan.',
                 'parent_group' => 'employee_detail_history',
                 'supported_actions' => ['view', 'create', 'update', 'delete', 'export'],
+            ],
+            // Kategori: Pengaturan Master (Tab Akademik)
+            [
+                'group' => 'setting_academic',
+                'name' => 'Tab Akademik',
+                'category' => 'Pengaturan Master',
+                'description' => 'Akses Tab Akademik di menu Pengaturan: Lihat (visibilitas tab, tahun ajaran, tingkat, unit, rombel) • Tambah (buat tahun ajaran, unit, kelas) • Ubah (edit data akademik & status aktif) • Hapus (hapus TA/tingkat/rombel). Kolom Ekspor dan Impor dinonaktifkan.',
+                'parent_group' => null,
+                'supported_actions' => ['view', 'create', 'update', 'delete'],
+            ],
+            // Kategori: Pengaturan Master (Tab Organisasi)
+            [
+                'group' => 'setting_organization',
+                'name' => 'Tab Organisasi',
+                'category' => 'Pengaturan Master',
+                'description' => 'Akses Tab Organisasi di menu Pengaturan: Lihat (visibilitas tab & bagan struktur hierarki) • Tambah (tambah unit/bidang & posisi jabatan baru) • Ubah (edit nama, atasan, dan level) • Hapus (hapus jabatan atau bidang). Kolom Ekspor dan Impor dinonaktifkan.',
+                'parent_group' => null,
+                'supported_actions' => ['view', 'create', 'update', 'delete'],
             ],
         ];
     }
@@ -159,8 +181,8 @@ class RolePermission extends Model
                     $canCreate = $defaults['create'] ?? false;
                     $canUpdate = $defaults['update'] ?? false;
                     $canDelete = $defaults['delete'] ?? false;
-                    $canExport = $defaults['export'] ?? false;
-                    $canImport = $defaults['import'] ?? false;
+                    $canExport = in_array('export', $feat['supported_actions']) ? ($defaults['export'] ?? false) : false;
+                    $canImport = in_array('import', $feat['supported_actions']) ? ($defaults['import'] ?? false) : false;
                 }
 
                 self::create([
@@ -194,8 +216,10 @@ class RolePermission extends Model
             return true;
         }
 
-        // Petakan seluruh modul pegawai
-        if (in_array($group, ['employee_directory', 'employee_detail_history'])) {
+        // Petakan seluruh modul yang dikelola
+        if (in_array($group, ['student', 'students', 'student_data'])) {
+            $group = 'student_data';
+        } elseif (in_array($group, ['employee_directory', 'employee_detail_history'])) {
             $group = 'employee_detail_history';
         } elseif ($group === 'employee_kepegawaian') {
             $group = 'employee_kepegawaian';
@@ -203,8 +227,12 @@ class RolePermission extends Model
             $group = 'employee_positions';
         } elseif ($group === 'employee_documents') {
             $group = 'employee_documents';
+        } elseif (in_array($group, ['academic', 'setting_academic', 'portal_academic'])) {
+            $group = 'setting_academic';
+        } elseif (in_array($group, ['organization', 'setting_organization', 'portal_organization', 'unit_bidang'])) {
+            $group = 'setting_organization';
         } else {
-            // Modul selain pegawai belum dimasukkan ke matriks perizinan bertahap, izinkan secara default
+            // Modul selain yang ada di matriks perizinan bertahap, izinkan secara default
             return true;
         }
 
@@ -271,9 +299,130 @@ class RolePermission extends Model
             ];
         }
 
-        $isSDM = in_array(strtolower($role), ['kepala bidang sdm'])
-            || str_contains(strtolower($role), 'sdm')
-            || str_contains(strtolower($role), 'kepegawaian');
+        $lowerRole = strtolower($role);
+
+        $isSDM = in_array($lowerRole, ['kepala bidang sdm'])
+            || str_contains($lowerRole, 'sdm')
+            || str_contains($lowerRole, 'kepegawaian');
+
+        $isLeadership = str_contains($lowerRole, 'kepala')
+            || str_contains($lowerRole, 'ketua')
+            || str_contains($lowerRole, 'mudir')
+            || str_contains($lowerRole, 'yayasan')
+            || str_contains($lowerRole, 'pembina')
+            || str_contains($lowerRole, 'pengawas');
+
+        $isAcademicStaff = str_contains($lowerRole, 'kurikulum')
+            || str_contains($lowerRole, 'pendidikan')
+            || str_contains($lowerRole, 'akademik')
+            || str_contains($lowerRole, 'tata usaha')
+            || str_contains($lowerRole, 'tu');
+
+        $isTeacher = in_array($role, ['Guru', 'Guru Kelas', 'Guru Mata Pelajaran', 'Wali Kelas'])
+            || str_contains($lowerRole, 'guru')
+            || str_contains($lowerRole, 'wali kelas');
+
+        // Modul Data Siswa (Kategori: Database Siswa)
+        if ($group === 'student_data') {
+            if ($isLeadership || $isAcademicStaff) {
+                return [
+                    'view' => true,
+                    'create' => true,
+                    'update' => true,
+                    'delete' => false,
+                    'export' => true,
+                    'import' => true,
+                ];
+            }
+
+            if ($isTeacher) {
+                return [
+                    'view' => true,
+                    'create' => false,
+                    'update' => true,
+                    'delete' => false,
+                    'export' => false,
+                    'import' => false,
+                ];
+            }
+
+            return [
+                'view' => true,
+                'create' => false,
+                'update' => false,
+                'delete' => false,
+                'export' => false,
+                'import' => false,
+            ];
+        }
+
+        // Modul Tab Akademik (Kategori: Pengaturan Master)
+        if ($group === 'setting_academic') {
+            if (str_contains($lowerRole, 'ketua') || str_contains($lowerRole, 'yayasan') || str_contains($lowerRole, 'pembina')) {
+                return [
+                    'view' => true,
+                    'create' => true,
+                    'update' => true,
+                    'delete' => true,
+                    'export' => false,
+                    'import' => false,
+                ];
+            }
+
+            if (str_contains($lowerRole, 'kepala') || str_contains($lowerRole, 'mudir') || str_contains($lowerRole, 'kurikulum') || str_contains($lowerRole, 'pendidikan')) {
+                return [
+                    'view' => true,
+                    'create' => true,
+                    'update' => true,
+                    'delete' => false,
+                    'export' => false,
+                    'import' => false,
+                ];
+            }
+
+            return [
+                'view' => false,
+                'create' => false,
+                'update' => false,
+                'delete' => false,
+                'export' => false,
+                'import' => false,
+            ];
+        }
+
+        // Modul Tab Organisasi (Kategori: Pengaturan Master)
+        if ($group === 'setting_organization') {
+            if ($isSDM || str_contains($lowerRole, 'ketua') || str_contains($lowerRole, 'yayasan') || str_contains($lowerRole, 'pembina')) {
+                return [
+                    'view' => true,
+                    'create' => true,
+                    'update' => true,
+                    'delete' => true,
+                    'export' => false,
+                    'import' => false,
+                ];
+            }
+
+            if (str_contains($lowerRole, 'kepala') || str_contains($lowerRole, 'mudir')) {
+                return [
+                    'view' => true,
+                    'create' => false,
+                    'update' => false,
+                    'delete' => false,
+                    'export' => false,
+                    'import' => false,
+                ];
+            }
+
+            return [
+                'view' => false,
+                'create' => false,
+                'update' => false,
+                'delete' => false,
+                'export' => false,
+                'import' => false,
+            ];
+        }
 
         // Modul Data Kepegawaian (NIPY, status keaktifan, SK jenjang)
         if ($group === 'employee_kepegawaian') {

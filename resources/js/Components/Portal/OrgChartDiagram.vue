@@ -20,6 +20,22 @@ const props = defineProps({
         type: Boolean,
         default: true,
     },
+    canCreate: {
+        type: Boolean,
+        default: true,
+    },
+    canUpdate: {
+        type: Boolean,
+        default: true,
+    },
+    canDelete: {
+        type: Boolean,
+        default: true,
+    },
+});
+
+const canEditAny = computed(() => {
+    return Boolean(props.canCreate || props.canUpdate || props.canDelete);
 });
 
 const emit = defineEmits([
@@ -175,9 +191,17 @@ watch(
 );
 
 function setEditMode(val) {
+    if (val && !canEditAny.value) return;
     isEditMode.value = val;
     nextTick(updateConnectionLines);
 }
+
+watch(canEditAny, (newVal) => {
+    if (!newVal && isEditMode.value) {
+        isEditMode.value = false;
+        nextTick(updateConnectionLines);
+    }
+});
 
 function toggleAutoFit() {
     isAutoFit.value = true;
@@ -554,38 +578,24 @@ const intraRootsByLevel = computed(() => {
 function getUnscaledRect(el) {
     if (!el || !canvasWrapperRef.value) return null;
     const wrapper = canvasWrapperRef.value;
+    const s = (zoomScale.value && zoomScale.value > 0) ? zoomScale.value : 1;
 
-    let x = 0;
-    let y = 0;
-    let curr = el;
-    let reachedWrapper = false;
-    while (curr) {
-        if (curr === wrapper) {
-            reachedWrapper = true;
-            break;
-        }
-        x += curr.offsetLeft;
-        y += curr.offsetTop;
-        curr = curr.offsetParent;
-    }
+    const r = el.getBoundingClientRect();
+    if (r.width === 0 && r.height === 0) return null;
+    const wr = wrapper.getBoundingClientRect();
 
-    if (!reachedWrapper) {
-        const r = el.getBoundingClientRect();
-        const wr = wrapper.getBoundingClientRect();
-        const s = zoomScale.value || 1;
-        x = (r.left - wr.left) / s;
-        y = (r.top - wr.top) / s;
-    }
+    const x = (r.left - wr.left) / s;
+    const y = (r.top - wr.top) / s;
+    const width = r.width / s;
+    const height = r.height / s;
 
-    const width = el.offsetWidth;
-    const height = el.offsetHeight;
     return {
         left: Math.round(x),
         top: Math.round(y),
         right: Math.round(x + width),
         bottom: Math.round(y + height),
-        width,
-        height,
+        width: Math.round(width),
+        height: Math.round(height),
         centerX: Math.round(x + width / 2),
         centerY: Math.round(y + height / 2),
     };
@@ -593,12 +603,12 @@ function getUnscaledRect(el) {
 
 // ========================================================
 // GARIS HIERARKI SVG DINAMIS (ANTAR ATASAN DAN BAWAHAN / SEJAJAR)
+// MENGGUNAKAN POLA BUS ROUTING DENGAN KOORDINAT VIEWPORT TERSKALA
 // ========================================================
 function updateConnectionLines() {
     if (!diagramContainerRef.value || !tableRef.value || !canvasWrapperRef.value) return;
 
     const containerEl = diagramContainerRef.value;
-    const wrapperEl = canvasWrapperRef.value;
     const tableEl = tableRef.value;
 
     const rawTableWidth = tableEl.offsetWidth || 800;
@@ -610,7 +620,7 @@ function updateConnectionLines() {
     let jumpCount = 0;
     let maxCardRight = 0;
 
-    // Cache unscaled bounding rects seluruh kartu
+    // Cache unscaled bounding rects seluruh kartu yang aktif
     const cardRectsMap = new Map();
     props.positions.forEach(pos => {
         const el = document.getElementById(`pos-card-${pos.id}`);
@@ -628,190 +638,290 @@ function updateConnectionLines() {
     svgWidth.value = Math.max(availableWidth, rawTableWidth, maxCardRight + 48);
     svgHeight.value = rawTableHeight;
 
-    // Hitung bawahan langsung di level bawahnya untuk percabangan T-junction
-    const directChildrenByParent = new Map();
-    props.positions.forEach(pos => {
+    // Group filtered children by parent_id
+    const childrenByParent = new Map();
+    filteredPositions.value.forEach(pos => {
         if (!pos.parent_id) return;
-        const parent = positionsMap.value.get(pos.parent_id);
-        if (parent && Number(pos.level) === Number(parent.level) + 1) {
-            directChildrenByParent.set(pos.parent_id, (directChildrenByParent.get(pos.parent_id) || 0) + 1);
+        if (!childrenByParent.has(pos.parent_id)) {
+            childrenByParent.set(pos.parent_id, []);
         }
+        childrenByParent.get(pos.parent_id).push(pos);
     });
 
-    // Loop through all positions that have a parent
-    props.positions.forEach(pos => {
-        if (!pos.parent_id) return;
+    // Proses setiap atasan (parent) yang memiliki bawahan
+    childrenByParent.forEach((children, parentId) => {
+        const parentRect = cardRectsMap.get(parentId);
+        const parentEl = document.getElementById(`pos-card-${parentId}`);
+        if (!parentRect || !parentEl) return;
 
-        const childRect = cardRectsMap.get(pos.id);
-        const parentRect = cardRectsMap.get(pos.parent_id);
-        const childEl = document.getElementById(`pos-card-${pos.id}`);
-        const parentEl = document.getElementById(`pos-card-${pos.parent_id}`);
+        const parentLevel = Number(parentEl.dataset.level) || 1;
+        const parentLevelDef = levelDefinitions.find(d => d.level === parentLevel) || levelDefinitions[0];
+        const strokeColor = parentLevelDef.strokeColor;
 
-        if (childRect && parentRect && childEl && parentEl) {
-            const parentLevel = Number(parentEl.dataset.level) || 1;
+        const sameLevelSubordinates = [];
+        const peers = [];
+        const nextLevelKids = [];
+        const jumpLevelKids = [];
+
+        children.forEach(child => {
+            const childRect = cardRectsMap.get(child.id);
+            const childEl = document.getElementById(`pos-card-${child.id}`);
+            if (!childRect || !childEl) return;
+
             const childLevel = Number(childEl.dataset.level) || 1;
-            const parentLevelDef = levelDefinitions.find(d => d.level === parentLevel) || levelDefinitions[0];
 
-            let path = '';
-            let isPeer = false;
-
-            // 1. KASUS SATU LEVEL (childLevel === parentLevel)
             if (childLevel === parentLevel) {
                 if (childRect.top > parentRect.bottom - 8) {
-                    // ATAS-BAWAH DI DALAM 1 CONTAINER LEVEL (Subordinat internal level yang sama)
-                    const x1 = parentRect.centerX;
-                    const y1 = parentRect.bottom;
-                    const x2 = childRect.centerX;
-                    const y2 = childRect.top;
-
-                    if (Math.abs(x1 - x2) < 4) {
-                        path = `M ${x1} ${y1} L ${x1} ${y2}`;
-                    } else {
-                        // Titik tengah tepat di antara bawah kartu atasan dan atas kartu bawahan
-                        const midY = Math.round(y1 + (y2 - y1) * 0.5);
-                        path = `M ${x1} ${y1} L ${x1} ${midY} L ${x2} ${midY} L ${x2} ${y2}`;
-
-                        const siblings = (intraChildrenMapByLevel.value[pos.parent_id] || []);
-                        if (siblings.length > 1) {
-                            const dotKey = `${pos.parent_id}-${midY}`;
-                            if (!dotsMap.has(dotKey)) {
-                                dotsMap.set(dotKey, {
-                                    id: `dot-${dotKey}`,
-                                    cx: x1,
-                                    cy: midY,
-                                    color: parentLevelDef.strokeColor,
-                                });
-                            }
-
-                            const hasFurtherSibling = siblings.some(s => {
-                                if (s.id === pos.id) return false;
-                                const sRect = cardRectsMap.get(s.id);
-                                if (!sRect) return false;
-                                const sX = sRect.centerX;
-                                return (x2 > x1 && sX > x2 + 8) || (x2 < x1 && sX < x2 - 8);
-                            });
-                            if (hasFurtherSibling) {
-                                const branchDotKey = `branch-${pos.id}-${midY}`;
-                                if (!dotsMap.has(branchDotKey)) {
-                                    dotsMap.set(branchDotKey, {
-                                        id: `dot-${branchDotKey}`,
-                                        cx: x2,
-                                        cy: midY,
-                                        color: parentLevelDef.strokeColor,
-                                    });
-                                }
-                            }
-                        }
-                    }
-
-                    lines.push({
-                        id: `line-${pos.parent_id}-${pos.id}`,
-                        parentId: pos.parent_id,
-                        childId: pos.id,
-                        parentLevel: parentLevelDef.level,
-                        x1,
-                        y1,
-                        x2,
-                        y2,
-                        path,
-                        color: parentLevelDef.strokeColor,
-                        isPeer: false,
-                    });
-                    return;
+                    sameLevelSubordinates.push({ pos: child, rect: childRect });
                 } else {
-                    // SEJAJAR HORIZONTAL DI LEVEL YANG SAMA
-                    isPeer = true;
-                    const parentIsLeft = parentRect.left < childRect.left;
-                    const x1 = parentIsLeft ? parentRect.right : parentRect.left;
-                    const y1 = parentRect.centerY;
-                    const x2 = parentIsLeft ? childRect.left : childRect.right;
-                    const y2 = childRect.centerY;
-
-                    if (Math.abs(y1 - y2) < 6) {
-                        path = `M ${x1} ${y1} L ${x2} ${y2}`;
-                    } else {
-                        const midX = Math.round(x1 + (x2 - x1) * 0.5);
-                        path = `M ${x1} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${x2} ${y2}`;
-                    }
-
-                    lines.push({
-                        id: `line-${pos.parent_id}-${pos.id}`,
-                        parentId: pos.parent_id,
-                        childId: pos.id,
-                        parentLevel: parentLevelDef.level,
-                        path,
-                        color: parentLevelDef.strokeColor,
-                        isPeer: true,
-                    });
-                    return;
+                    peers.push({ pos: child, rect: childRect });
                 }
+            } else if (childLevel === parentLevel + 1) {
+                nextLevelKids.push({ pos: child, rect: childRect });
+            } else if (childLevel > parentLevel + 1) {
+                jumpLevelKids.push({ pos: child, rect: childRect, level: childLevel });
             }
+        });
 
-            // Coordinate from bottom center of parent card
-            const x1 = parentRect.centerX;
-            const y1 = parentRect.bottom;
+        const x_p = parentRect.centerX;
+        const y_p = parentRect.bottom;
 
-            // Coordinate to top center of child card
-            const x2 = childRect.centerX;
-            const y2 = childRect.top;
+        // ----------------------------------------------------
+        // A. PEERS (SEJAJAR HORIZONTAL DI LEVEL YANG SAMA)
+        // ----------------------------------------------------
+        peers.forEach(({ pos: child, rect: childRect }) => {
+            const parentIsLeft = parentRect.left < childRect.left;
+            const x1 = parentIsLeft ? parentRect.right : parentRect.left;
+            const y1 = parentRect.centerY;
+            const x2 = parentIsLeft ? childRect.left : childRect.right;
+            const y2 = childRect.centerY;
 
-            // 2. KASUS LOMPAT LEVEL (childLevel > parentLevel + 1)
-            if (childLevel > parentLevel + 1) {
-                const rightCorridorBase = Math.max(maxCardRight + 24, rawTableWidth - 48);
-                const x_right = Math.round(rightCorridorBase + (jumpCount * 12));
-                jumpCount++;
-
-                const y_exit = y1 + 14;
-                const y_entry = y2 - 14;
-
-                path = `M ${x1} ${y1} L ${x1} ${y_exit} L ${x_right} ${y_exit} L ${x_right} ${y_entry} L ${x2} ${y_entry} L ${x2} ${y2}`;
-            }
-            // 3. KASUS LEVEL DI BAWAHNYA LANGSUNG (childLevel === parentLevel + 1)
-            else {
-                // Taruh garis horizontal tepat di perbatasan antar level (border pemisah row)
-                const parentRowEl = document.getElementById(`level-row-${parentLevel}`);
-                let midY;
-                if (parentRowEl) {
-                    const rowRect = getUnscaledRect(parentRowEl);
-                    midY = rowRect ? rowRect.bottom : Math.round(y1 + (y2 - y1) * 0.5);
-                } else {
-                    midY = Math.round(y1 + (y2 - y1) * 0.5);
-                }
-
-                if (Math.abs(x1 - x2) <= 4) {
-                    path = `M ${x1} ${y1} L ${x1} ${y2}`;
-                } else {
-                    path = `M ${x1} ${y1} L ${x1} ${midY} L ${x2} ${midY} L ${x2} ${y2}`;
-                }
-
-                // Junction dot pada titik percabangan horizontal di batas level
-                if ((directChildrenByParent.get(pos.parent_id) || 0) > 1) {
-                    const dotKey = `${pos.parent_id}-${midY}`;
-                    if (!dotsMap.has(dotKey)) {
-                        dotsMap.set(dotKey, {
-                            id: `dot-${dotKey}`,
-                            cx: x1,
-                            cy: midY,
-                            color: parentLevelDef.strokeColor,
-                        });
-                    }
-                }
+            let path = '';
+            if (Math.abs(y1 - y2) < 6) {
+                path = `M ${x1} ${y1} L ${x2} ${y2}`;
+            } else {
+                const midX = Math.round(x1 + (x2 - x1) * 0.5);
+                path = `M ${x1} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${x2} ${y2}`;
             }
 
             lines.push({
-                id: `line-${pos.parent_id}-${pos.id}`,
-                parentId: pos.parent_id,
-                childId: pos.id,
+                id: `line-peer-${parentId}-${child.id}`,
+                parentId,
+                childId: child.id,
                 parentLevel: parentLevelDef.level,
-                x1,
-                y1,
-                x2,
-                y2,
                 path,
-                color: parentLevelDef.strokeColor,
+                color: strokeColor,
+                isPeer: true,
+            });
+        });
+
+        // ----------------------------------------------------
+        // B. SUBORDINAT DI LEVEL YANG SAMA (INTRA-LEVEL)
+        // ----------------------------------------------------
+        let intraMidY = null;
+        if (sameLevelSubordinates.length > 0) {
+            sameLevelSubordinates.sort((a, b) => a.rect.centerX - b.rect.centerX);
+            const firstChild = sameLevelSubordinates[0];
+            intraMidY = Math.round(y_p + (firstChild.rect.top - y_p) * 0.5);
+
+            if (sameLevelSubordinates.length === 1) {
+                const child = sameLevelSubordinates[0];
+                const x2 = child.rect.centerX;
+                const y2 = child.rect.top;
+                let path = '';
+                if (Math.abs(x_p - x2) <= 3) {
+                    path = `M ${x_p} ${y_p} L ${x_p} ${y2}`;
+                } else {
+                    path = `M ${x_p} ${y_p} L ${x_p} ${intraMidY} L ${x2} ${intraMidY} L ${x2} ${y2}`;
+                }
+                lines.push({
+                    id: `line-intra-${parentId}-${child.pos.id}`,
+                    parentId,
+                    childId: child.pos.id,
+                    parentLevel: parentLevelDef.level,
+                    path,
+                    color: strokeColor,
+                    isPeer: false,
+                });
+            } else {
+                // Bus routing: 1 trunk + 1 horizontal bar + drop lines
+                const minX = Math.min(...sameLevelSubordinates.map(k => k.rect.centerX));
+                const maxX = Math.max(...sameLevelSubordinates.map(k => k.rect.centerX));
+                const busLeft = Math.min(minX, x_p);
+                const busRight = Math.max(maxX, x_p);
+
+                // Trunk
+                lines.push({
+                    id: `line-intra-trunk-${parentId}`,
+                    parentId,
+                    childId: null,
+                    parentLevel: parentLevelDef.level,
+                    path: `M ${x_p} ${y_p} L ${x_p} ${intraMidY}`,
+                    color: strokeColor,
+                    isPeer: false,
+                });
+
+                // Horizontal Bus Bar
+                lines.push({
+                    id: `line-intra-bus-${parentId}`,
+                    parentId,
+                    childId: null,
+                    parentLevel: parentLevelDef.level,
+                    path: `M ${busLeft} ${intraMidY} L ${busRight} ${intraMidY}`,
+                    color: strokeColor,
+                    isPeer: false,
+                });
+
+                // Dot di cabang trunk
+                dotsMap.set(`dot-intra-${parentId}-${intraMidY}`, {
+                    id: `dot-intra-${parentId}-${intraMidY}`,
+                    cx: x_p,
+                    cy: intraMidY,
+                    color: strokeColor,
+                });
+
+                // Drop line ke masing-masing bawahan satu level
+                sameLevelSubordinates.forEach(({ pos: child, rect: childRect }) => {
+                    const x2 = childRect.centerX;
+                    const y2 = childRect.top;
+                    lines.push({
+                        id: `line-intra-drop-${parentId}-${child.id}`,
+                        parentId,
+                        childId: child.id,
+                        parentLevel: parentLevelDef.level,
+                        path: `M ${x2} ${intraMidY} L ${x2} ${y2}`,
+                        color: strokeColor,
+                        isPeer: false,
+                    });
+
+                    dotsMap.set(`dot-intra-drop-${child.id}-${intraMidY}`, {
+                        id: `dot-intra-drop-${child.id}-${intraMidY}`,
+                        cx: x2,
+                        cy: intraMidY,
+                        color: strokeColor,
+                    });
+                });
+            }
+        }
+
+        // ----------------------------------------------------
+        // C. SUBORDINAT DI LEVEL BAWAHNYA LANGSUNG (NEXT-LEVEL)
+        // ----------------------------------------------------
+        if (nextLevelKids.length > 0) {
+            nextLevelKids.sort((a, b) => a.rect.centerX - b.rect.centerX);
+
+            const parentRowEl = document.getElementById(`level-row-${parentLevel}`);
+            const rowRect = parentRowEl ? getUnscaledRect(parentRowEl) : null;
+            const borderY = rowRect ? rowRect.bottom : Math.round(y_p + (nextLevelKids[0].rect.top - y_p) * 0.5);
+
+            // Jika ada bawahan satu level, trunk melanjutkan dari intraMidY; jika tidak ada, dari y_p
+            const trunkStartY = intraMidY !== null ? intraMidY : y_p;
+
+            if (nextLevelKids.length === 1) {
+                const child = nextLevelKids[0];
+                const x2 = child.rect.centerX;
+                const y2 = child.rect.top;
+                let path = '';
+                if (Math.abs(x_p - x2) <= 3) {
+                    path = `M ${x_p} ${trunkStartY} L ${x_p} ${y2}`;
+                } else {
+                    path = `M ${x_p} ${trunkStartY} L ${x_p} ${borderY} L ${x2} ${borderY} L ${x2} ${y2}`;
+                }
+                lines.push({
+                    id: `line-next-${parentId}-${child.pos.id}`,
+                    parentId,
+                    childId: child.pos.id,
+                    parentLevel: parentLevelDef.level,
+                    path,
+                    color: strokeColor,
+                    isPeer: false,
+                });
+            } else {
+                // Bus routing: 1 trunk + 1 horizontal bar tepat di batas level row + drop lines
+                const minX = Math.min(...nextLevelKids.map(k => k.rect.centerX));
+                const maxX = Math.max(...nextLevelKids.map(k => k.rect.centerX));
+                const busLeft = Math.min(minX, x_p);
+                const busRight = Math.max(maxX, x_p);
+
+                // Trunk
+                lines.push({
+                    id: `line-next-trunk-${parentId}`,
+                    parentId,
+                    childId: null,
+                    parentLevel: parentLevelDef.level,
+                    path: `M ${x_p} ${trunkStartY} L ${x_p} ${borderY}`,
+                    color: strokeColor,
+                    isPeer: false,
+                });
+
+                // Horizontal Bus Bar
+                lines.push({
+                    id: `line-next-bus-${parentId}`,
+                    parentId,
+                    childId: null,
+                    parentLevel: parentLevelDef.level,
+                    path: `M ${busLeft} ${borderY} L ${busRight} ${borderY}`,
+                    color: strokeColor,
+                    isPeer: false,
+                });
+
+                // Dot di cabang trunk
+                dotsMap.set(`dot-next-${parentId}-${borderY}`, {
+                    id: `dot-next-${parentId}-${borderY}`,
+                    cx: x_p,
+                    cy: borderY,
+                    color: strokeColor,
+                });
+
+                // Drop line ke masing-masing bawahan level bawah
+                nextLevelKids.forEach(({ pos: child, rect: childRect }) => {
+                    const x2 = childRect.centerX;
+                    const y2 = childRect.top;
+                    lines.push({
+                        id: `line-next-drop-${parentId}-${child.id}`,
+                        parentId,
+                        childId: child.id,
+                        parentLevel: parentLevelDef.level,
+                        path: `M ${x2} ${borderY} L ${x2} ${y2}`,
+                        color: strokeColor,
+                        isPeer: false,
+                    });
+
+                    dotsMap.set(`dot-next-drop-${child.id}-${borderY}`, {
+                        id: `dot-next-drop-${child.id}-${borderY}`,
+                        cx: x2,
+                        cy: borderY,
+                        color: strokeColor,
+                    });
+                });
+            }
+        }
+
+        // ----------------------------------------------------
+        // D. KASUS LOMPAT LEVEL (JUMP-LEVEL)
+        // ----------------------------------------------------
+        jumpLevelKids.forEach(({ pos: child, rect: childRect }) => {
+            const x2 = childRect.centerX;
+            const y2 = childRect.top;
+            const rightCorridorBase = Math.max(maxCardRight + 24, rawTableWidth - 48);
+            const x_right = Math.round(rightCorridorBase + (jumpCount * 12));
+            jumpCount++;
+
+            const y_exit = y_p + 14;
+            const y_entry = y2 - 14;
+
+            const path = `M ${x_p} ${y_p} L ${x_p} ${y_exit} L ${x_right} ${y_exit} L ${x_right} ${y_entry} L ${x2} ${y_entry} L ${x2} ${y2}`;
+
+            lines.push({
+                id: `line-jump-${parentId}-${child.id}`,
+                parentId,
+                childId: child.id,
+                parentLevel: parentLevelDef.level,
+                path,
+                color: strokeColor,
                 isPeer: false,
             });
-        }
+        });
     });
 
     connectionLines.value = lines;
@@ -831,6 +941,13 @@ watch(
     { deep: true }
 );
 
+// Re-render lines on zoom scale change
+watch(zoomScale, () => {
+    nextTick(() => {
+        updateConnectionLines();
+    });
+});
+
 let resizeObserver = null;
 let intersectionObserver = null;
 onMounted(() => {
@@ -842,11 +959,13 @@ onMounted(() => {
 
     window.addEventListener('resize', updateConnectionLines);
 
-    if (window.ResizeObserver && diagramContainerRef.value) {
+    if (window.ResizeObserver) {
         resizeObserver = new ResizeObserver(() => {
             updateConnectionLines();
         });
-        resizeObserver.observe(diagramContainerRef.value);
+        if (diagramContainerRef.value) resizeObserver.observe(diagramContainerRef.value);
+        if (tableRef.value) resizeObserver.observe(tableRef.value);
+        if (canvasWrapperRef.value) resizeObserver.observe(canvasWrapperRef.value);
     }
 
     if (window.IntersectionObserver && diagramContainerRef.value) {
@@ -952,6 +1071,7 @@ function handleDelete(pos) {
                                 <span>Mode Lihat</span>
                             </button>
                             <button
+                                v-if="canEditAny"
                                 type="button"
                                 @click="setEditMode(true)"
                                 class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer"
@@ -1201,7 +1321,7 @@ function handleDelete(pos) {
                                     </span>
                                     <!-- Tombol Edit Ringkas (Hanya di Mode Edit) -->
                                     <button
-                                        v-if="isEditMode"
+                                        v-if="isEditMode && canUpdate"
                                         type="button"
                                         @click="openEditLevelModal(def.level)"
                                         class="inline-flex items-center p-0.5 text-slate-500 hover:text-primary rounded hover:bg-slate-100 transition-colors cursor-pointer"
@@ -1211,7 +1331,7 @@ function handleDelete(pos) {
                                     </button>
                                     <!-- Tombol Tambah Ringkas (Hanya di Mode Edit) -->
                                     <button
-                                        v-if="isEditMode"
+                                        v-if="isEditMode && canCreate"
                                         type="button"
                                         @click="handleAddAtLevel(def.level)"
                                         class="ml-0.5 inline-flex items-center gap-0.5 px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-semibold text-white transition-all shadow-2xs hover:shadow cursor-pointer"
@@ -1236,6 +1356,9 @@ function handleDelete(pos) {
                                         :intra-children-map="intraChildrenMapByLevel"
                                         :hovered-pos-id="hoveredPosId"
                                         :is-edit-mode="isEditMode"
+                                        :can-create="canCreate"
+                                        :can-update="canUpdate"
+                                        :can-delete="canDelete"
                                         @hover="hoveredPosId = $event"
                                         @leave="hoveredPosId = null"
                                         @add-subordinate="handleAddSubordinate"
@@ -1254,7 +1377,7 @@ function handleDelete(pos) {
                                         Belum ada jabatan di Level {{ def.level }}.
                                     </p>
                                     <button
-                                        v-if="isEditMode"
+                                        v-if="isEditMode && canCreate"
                                         type="button"
                                         @click="handleAddAtLevel(def.level)"
                                         class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold transition-all shadow-xs cursor-pointer shrink-0"
@@ -1273,7 +1396,7 @@ function handleDelete(pos) {
 
             <!-- Baris Tambah Level Selanjutnya (Jika belum sampai Level 5 dan di Mode Edit) -->
             <div
-                v-if="activeTab === 'diagram' && isEditMode && maxActiveLevel < 5"
+                v-if="activeTab === 'diagram' && isEditMode && canCreate && maxActiveLevel < 5"
                 class="px-5 py-2.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs"
             >
                 <span class="text-slate-600 font-medium">
@@ -1305,6 +1428,7 @@ function handleDelete(pos) {
                         <p class="text-xs text-slate-500 mt-1">Kelola nama unit dan pembagian kelompok posisi di bawah naungan yayasan</p>
                     </div>
                     <button
+                        v-if="canCreate"
                         type="button"
                         @click="$emit('add-department')"
                         class="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 text-xs sm:text-sm font-bold shadow-xs border border-emerald-950/30 transition-all cursor-pointer active:scale-95"
@@ -1373,6 +1497,7 @@ function handleDelete(pos) {
                                 <td class="px-5 py-3.5 align-top text-center">
                                     <div class="inline-flex items-center justify-center gap-1">
                                         <button
+                                            v-if="canUpdate"
                                             type="button"
                                             @click="$emit('edit-department', dept)"
                                             class="p-1.5 rounded-lg text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 transition-colors cursor-pointer"
@@ -1381,6 +1506,7 @@ function handleDelete(pos) {
                                             <span class="material-symbols-outlined text-[18px]">edit</span>
                                         </button>
                                         <button
+                                            v-if="canDelete"
                                             type="button"
                                             @click="$emit('delete-department', dept)"
                                             class="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
@@ -1388,6 +1514,7 @@ function handleDelete(pos) {
                                         >
                                             <span class="material-symbols-outlined text-[18px]">delete</span>
                                         </button>
+                                        <span v-if="!canUpdate && !canDelete" class="text-xs text-slate-400 italic">-</span>
                                     </div>
                                 </td>
                             </tr>
@@ -1449,8 +1576,9 @@ function handleDelete(pos) {
                             </div>
                         </div>
 
-                        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-200/60">
+                        <div v-if="canUpdate || canDelete" class="flex items-center justify-end gap-2 pt-2 border-t border-slate-200/60">
                             <button
+                                v-if="canUpdate"
                                 type="button"
                                 @click="$emit('edit-department', dept)"
                                 class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-white text-slate-700 border border-slate-200 hover:bg-slate-100 transition-colors cursor-pointer"
@@ -1459,6 +1587,7 @@ function handleDelete(pos) {
                                 <span>Edit</span>
                             </button>
                             <button
+                                v-if="canDelete"
                                 type="button"
                                 @click="$emit('delete-department', dept)"
                                 class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200 transition-colors cursor-pointer"

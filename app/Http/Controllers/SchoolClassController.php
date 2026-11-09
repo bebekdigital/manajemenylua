@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\RolePermission;
 use App\Models\SchoolClass;
 use App\Models\SchoolUnit;
 use Illuminate\Http\Request;
@@ -10,6 +11,10 @@ class SchoolClassController extends Controller
 {
     public function store(Request $request, SchoolUnit $schoolUnit)
     {
+        if (! RolePermission::canAccess($request->user(), 'setting_academic', 'create')) {
+            abort(403, 'Anda tidak memiliki hak akses untuk menambah kelas.');
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
         ]);
@@ -26,6 +31,10 @@ class SchoolClassController extends Controller
 
     public function update(Request $request, SchoolClass $schoolClass)
     {
+        if (! RolePermission::canAccess($request->user(), 'setting_academic', 'update')) {
+            abort(403, 'Anda tidak memiliki hak akses untuk mengubah kelas.');
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
         ]);
@@ -41,6 +50,10 @@ class SchoolClassController extends Controller
 
     public function destroy(SchoolClass $schoolClass)
     {
+        if (! RolePermission::canAccess(request()->user(), 'setting_academic', 'delete')) {
+            abort(403, 'Anda tidak memiliki hak akses untuk menghapus kelas.');
+        }
+
         $schoolClass->delete();
 
         return back()->with('success', 'Kelas berhasil dihapus.');

@@ -76,6 +76,13 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    permissions: {
+        type: Object,
+        default: () => ({
+            academic: { can_view: false, can_create: false, can_update: false, can_delete: false },
+            organization: { can_view: false, can_create: false, can_update: false, can_delete: false },
+        }),
+    },
 });
 
 const page = usePage();
@@ -92,7 +99,38 @@ const allTabs = [
 
 const tabs = computed(() => {
     const isSuperadmin = page.props.auth?.user?.role === 'superadmin';
-    return allTabs.filter((t) => !t.superadminOnly || isSuperadmin);
+    return allTabs.filter((t) => {
+        if (t.superadminOnly) {
+            return isSuperadmin;
+        }
+        if (t.id === 'akademik') {
+            return isSuperadmin || Boolean(props.permissions?.academic?.can_view);
+        }
+        if (t.id === 'unit_bidang') {
+            return isSuperadmin || Boolean(props.permissions?.organization?.can_view);
+        }
+        return true;
+    });
+});
+
+const canCreateAcademic = computed(() => {
+    return page.props.auth?.user?.role === 'superadmin' || Boolean(props.permissions?.academic?.can_create);
+});
+const canUpdateAcademic = computed(() => {
+    return page.props.auth?.user?.role === 'superadmin' || Boolean(props.permissions?.academic?.can_update);
+});
+const canDeleteAcademic = computed(() => {
+    return page.props.auth?.user?.role === 'superadmin' || Boolean(props.permissions?.academic?.can_delete);
+});
+
+const canCreateOrg = computed(() => {
+    return page.props.auth?.user?.role === 'superadmin' || Boolean(props.permissions?.organization?.can_create);
+});
+const canUpdateOrg = computed(() => {
+    return page.props.auth?.user?.role === 'superadmin' || Boolean(props.permissions?.organization?.can_update);
+});
+const canDeleteOrg = computed(() => {
+    return page.props.auth?.user?.role === 'superadmin' || Boolean(props.permissions?.organization?.can_delete);
 });
 
 const getInitialTab = () => {
@@ -103,7 +141,7 @@ const getInitialTab = () => {
             return tabParam;
         }
     }
-    return 'akademik';
+    return tabs.value[0]?.id || 'akademik';
 };
 
 const activeTab = ref(getInitialTab());
@@ -918,6 +956,7 @@ onUnmounted(() => {
                         </div>
 
                         <button
+                            v-if="canCreateAcademic"
                             type="button"
                             @click="openCreateModal"
                             class="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-bold text-xs sm:text-sm shadow-xs border border-emerald-950/30 transition-all cursor-pointer active:scale-95"
@@ -977,6 +1016,7 @@ onUnmounted(() => {
                                     <td class="py-3.5 px-3 text-center">
                                         <div class="inline-flex items-center justify-center gap-1">
                                             <button
+                                                v-if="canUpdateAcademic"
                                                 type="button"
                                                 @click="openEditModal(year)"
                                                 class="p-1.5 rounded-lg text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 transition-colors cursor-pointer"
@@ -985,6 +1025,7 @@ onUnmounted(() => {
                                                 <span class="material-symbols-outlined text-[18px]">edit</span>
                                             </button>
                                             <button
+                                                v-if="canDeleteAcademic"
                                                 type="button"
                                                 @click="confirmDelete(year)"
                                                 :disabled="deletingId === year.id"
@@ -994,6 +1035,7 @@ onUnmounted(() => {
                                                 <span v-if="deletingId === year.id" class="material-symbols-outlined text-[18px] animate-spin text-rose-600">sync</span>
                                                 <span v-else class="material-symbols-outlined text-[18px]">delete</span>
                                             </button>
+                                            <span v-if="!canUpdateAcademic && !canDeleteAcademic" class="text-xs text-slate-400 italic">-</span>
                                         </div>
                                     </td>
                                 </tr>
@@ -1050,8 +1092,9 @@ onUnmounted(() => {
                                 </div>
                             </div>
 
-                            <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-200/60">
+                            <div v-if="canUpdateAcademic || canDeleteAcademic" class="flex items-center justify-end gap-2 pt-2 border-t border-slate-200/60">
                                 <button
+                                    v-if="canUpdateAcademic"
                                     type="button"
                                     @click="openEditModal(year)"
                                     class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-white text-slate-700 border border-slate-200 hover:bg-slate-100 transition-colors cursor-pointer"
@@ -1060,6 +1103,7 @@ onUnmounted(() => {
                                     <span>Edit</span>
                                 </button>
                                 <button
+                                    v-if="canDeleteAcademic"
                                     type="button"
                                     @click="confirmDelete(year)"
                                     :disabled="deletingId === year.id"
@@ -1099,6 +1143,7 @@ onUnmounted(() => {
                         </div>
 
                         <button
+                            v-if="canCreateAcademic"
                             type="button"
                             @click="openLevelCreateModal"
                             class="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-bold text-xs sm:text-sm shadow-xs border border-emerald-950/30 transition-all cursor-pointer active:scale-95"
@@ -1127,13 +1172,13 @@ onUnmounted(() => {
                                         <td class="px-5 py-4 align-top bg-slate-50/40 border-r border-slate-100">
                                             <div class="font-bold text-slate-900 text-sm mb-2">{{ level.name }}</div>
                                             <div class="flex items-center gap-1.5 flex-wrap">
-                                                <button type="button" @click="openLevelEditModal(level)" class="p-1.5 rounded-lg text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 transition-colors cursor-pointer" title="Edit Jenjang">
+                                                <button v-if="canUpdateAcademic" type="button" @click="openLevelEditModal(level)" class="p-1.5 rounded-lg text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 transition-colors cursor-pointer" title="Edit Jenjang">
                                                     <span class="material-symbols-outlined text-[16px]">edit</span>
                                                 </button>
-                                                <button type="button" @click="confirmLevelDelete(level)" class="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer" title="Hapus Jenjang">
+                                                <button v-if="canDeleteAcademic" type="button" @click="confirmLevelDelete(level)" class="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer" title="Hapus Jenjang">
                                                     <span class="material-symbols-outlined text-[16px]">delete</span>
                                                 </button>
-                                                <button type="button" @click="openUnitCreateModal(level)" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 hover:bg-emerald-100 transition-colors text-xs font-bold border border-emerald-200 cursor-pointer">
+                                                <button v-if="canCreateAcademic" type="button" @click="openUnitCreateModal(level)" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 hover:bg-emerald-100 transition-colors text-xs font-bold border border-emerald-200 cursor-pointer">
                                                     <span class="material-symbols-outlined text-[14px]">add</span> Unit Baru
                                                 </button>
                                             </div>
@@ -1150,13 +1195,13 @@ onUnmounted(() => {
                                             <td v-if="index === 0" :rowspan="level.units.length" class="px-5 py-4 align-top bg-slate-50/40 border-r border-slate-100">
                                                 <div class="font-bold text-slate-900 text-sm mb-2">{{ level.name }}</div>
                                                 <div class="flex items-center gap-1.5 flex-wrap">
-                                                    <button type="button" @click="openLevelEditModal(level)" class="p-1.5 rounded-lg text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 transition-colors cursor-pointer" title="Edit Jenjang">
+                                                    <button v-if="canUpdateAcademic" type="button" @click="openLevelEditModal(level)" class="p-1.5 rounded-lg text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 transition-colors cursor-pointer" title="Edit Jenjang">
                                                         <span class="material-symbols-outlined text-[16px]">edit</span>
                                                     </button>
-                                                    <button type="button" @click="confirmLevelDelete(level)" class="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer" title="Hapus Jenjang">
+                                                    <button v-if="canDeleteAcademic" type="button" @click="confirmLevelDelete(level)" class="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer" title="Hapus Jenjang">
                                                         <span class="material-symbols-outlined text-[16px]">delete</span>
                                                     </button>
-                                                    <button type="button" @click="openUnitCreateModal(level)" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 hover:bg-emerald-100 transition-colors text-xs font-bold border border-emerald-200 cursor-pointer">
+                                                    <button v-if="canCreateAcademic" type="button" @click="openUnitCreateModal(level)" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 hover:bg-emerald-100 transition-colors text-xs font-bold border border-emerald-200 cursor-pointer">
                                                         <span class="material-symbols-outlined text-[14px]">add</span> Unit Baru
                                                     </button>
                                                 </div>
@@ -1167,10 +1212,10 @@ onUnmounted(() => {
                                                 <div class="flex items-start justify-between gap-2">
                                                     <span class="font-bold text-slate-900 text-xs sm:text-sm">{{ unit.name }}</span>
                                                     <div class="flex items-center gap-1 shrink-0">
-                                                        <button type="button" @click="openUnitEditModal(unit, level)" class="p-1 rounded-lg text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 transition-colors cursor-pointer" title="Edit Unit">
+                                                        <button v-if="canUpdateAcademic" type="button" @click="openUnitEditModal(unit, level)" class="p-1 rounded-lg text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 transition-colors cursor-pointer" title="Edit Unit">
                                                             <span class="material-symbols-outlined text-[16px]">edit</span>
                                                         </button>
-                                                        <button type="button" @click="confirmUnitDelete(unit)" class="p-1 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer" title="Hapus Unit">
+                                                        <button v-if="canDeleteAcademic" type="button" @click="confirmUnitDelete(unit)" class="p-1 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer" title="Hapus Unit">
                                                             <span class="material-symbols-outlined text-[16px]">delete</span>
                                                         </button>
                                                     </div>
@@ -1184,10 +1229,10 @@ onUnmounted(() => {
                                                         <div v-for="program in unit.programs" :key="program.id" class="inline-flex items-center gap-1 bg-slate-50 border border-slate-200 pl-2.5 pr-1 py-1 rounded-lg text-xs font-medium text-slate-800">
                                                             <span>{{ program.name }}</span>
                                                             <div class="flex items-center ml-1">
-                                                                <button type="button" @click="openProgramEditModal(program, unit)" class="text-slate-400 hover:text-emerald-700 p-0.5 rounded cursor-pointer" title="Edit Program">
+                                                                <button v-if="canUpdateAcademic" type="button" @click="openProgramEditModal(program, unit)" class="text-slate-400 hover:text-emerald-700 p-0.5 rounded cursor-pointer" title="Edit Program">
                                                                     <span class="material-symbols-outlined text-[14px]">edit</span>
                                                                 </button>
-                                                                <button type="button" @click="confirmProgramDelete(program)" class="text-slate-400 hover:text-rose-600 p-0.5 rounded cursor-pointer" title="Hapus Program">
+                                                                <button v-if="canDeleteAcademic" type="button" @click="confirmProgramDelete(program)" class="text-slate-400 hover:text-rose-600 p-0.5 rounded cursor-pointer" title="Hapus Program">
                                                                     <span class="material-symbols-outlined text-[14px]">close</span>
                                                                 </button>
                                                             </div>
@@ -1195,7 +1240,7 @@ onUnmounted(() => {
                                                     </div>
                                                     <div v-else class="text-xs text-slate-400 italic">Belum ada program.</div>
 
-                                                    <div>
+                                                    <div v-if="canCreateAcademic">
                                                         <button type="button" @click="openProgramCreateModal(unit)" class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 hover:bg-emerald-50 px-2 py-1 rounded-md transition-colors border border-emerald-200 cursor-pointer">
                                                             <span class="material-symbols-outlined text-[14px]">add</span> Tambah Program
                                                         </button>
@@ -1210,10 +1255,10 @@ onUnmounted(() => {
                                                         <div v-for="cls in unit.classes" :key="cls.id" class="inline-flex items-center gap-1 bg-slate-50 border border-slate-200 pl-2.5 pr-1 py-1 rounded-lg text-xs font-medium text-slate-800">
                                                             <span>{{ cls.name }}</span>
                                                             <div class="flex items-center ml-1">
-                                                                <button type="button" @click="openClassEditModal(cls, unit)" class="text-slate-400 hover:text-emerald-700 p-0.5 rounded cursor-pointer" title="Edit Kelas">
+                                                                <button v-if="canUpdateAcademic" type="button" @click="openClassEditModal(cls, unit)" class="text-slate-400 hover:text-emerald-700 p-0.5 rounded cursor-pointer" title="Edit Kelas">
                                                                     <span class="material-symbols-outlined text-[14px]">edit</span>
                                                                 </button>
-                                                                <button type="button" @click="confirmClassDelete(cls)" class="text-slate-400 hover:text-rose-600 p-0.5 rounded cursor-pointer" title="Hapus Kelas">
+                                                                <button v-if="canDeleteAcademic" type="button" @click="confirmClassDelete(cls)" class="text-slate-400 hover:text-rose-600 p-0.5 rounded cursor-pointer" title="Hapus Kelas">
                                                                     <span class="material-symbols-outlined text-[14px]">close</span>
                                                                 </button>
                                                             </div>
@@ -1221,7 +1266,7 @@ onUnmounted(() => {
                                                     </div>
                                                     <div v-else class="text-xs text-slate-400 italic">Belum ada kelas.</div>
 
-                                                    <div>
+                                                    <div v-if="canCreateAcademic">
                                                         <button type="button" @click="openClassCreateModal(unit)" class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 hover:bg-emerald-50 px-2 py-1 rounded-md transition-colors border border-emerald-200 cursor-pointer">
                                                             <span class="material-symbols-outlined text-[14px]">add</span> Tambah Kelas
                                                         </button>
@@ -1263,6 +1308,7 @@ onUnmounted(() => {
                                 </div>
                                 <div class="flex items-center gap-1">
                                     <button
+                                        v-if="canUpdateAcademic"
                                         type="button"
                                         @click="openLevelEditModal(level)"
                                         class="p-1.5 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-emerald-700 transition-colors shadow-2xs"
@@ -1271,6 +1317,7 @@ onUnmounted(() => {
                                         <span class="material-symbols-outlined text-[16px]">edit</span>
                                     </button>
                                     <button
+                                        v-if="canDeleteAcademic"
                                         type="button"
                                         @click="confirmLevelDelete(level)"
                                         class="p-1.5 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-rose-600 transition-colors shadow-2xs"
@@ -1279,6 +1326,7 @@ onUnmounted(() => {
                                         <span class="material-symbols-outlined text-[16px]">delete</span>
                                     </button>
                                     <button
+                                        v-if="canCreateAcademic"
                                         type="button"
                                         @click="openUnitCreateModal(level)"
                                         class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-emerald-900 text-yellow-200 font-bold text-xs shadow-2xs"
@@ -1304,6 +1352,7 @@ onUnmounted(() => {
                                         </div>
                                         <div class="flex items-center gap-1">
                                             <button
+                                                v-if="canUpdateAcademic"
                                                 type="button"
                                                 @click="openUnitEditModal(unit, level)"
                                                 class="p-1 text-slate-400 hover:text-emerald-700 transition-colors"
@@ -1312,6 +1361,7 @@ onUnmounted(() => {
                                                 <span class="material-symbols-outlined text-[15px]">edit</span>
                                             </button>
                                             <button
+                                                v-if="canDeleteAcademic"
                                                 type="button"
                                                 @click="confirmUnitDelete(unit)"
                                                 class="p-1 text-slate-400 hover:text-rose-600 transition-colors"
@@ -1332,14 +1382,15 @@ onUnmounted(() => {
                                                 class="inline-flex items-center gap-1 bg-slate-50 border border-slate-200 pl-2 pr-1 py-0.5 rounded-lg text-xs font-medium text-slate-800"
                                             >
                                                 <span>{{ program.name }}</span>
-                                                <button type="button" @click="openProgramEditModal(program, unit)" class="text-slate-400 hover:text-emerald-700 p-0.5">
+                                                <button v-if="canUpdateAcademic" type="button" @click="openProgramEditModal(program, unit)" class="text-slate-400 hover:text-emerald-700 p-0.5">
                                                     <span class="material-symbols-outlined text-[13px]">edit</span>
                                                 </button>
-                                                <button type="button" @click="confirmProgramDelete(program)" class="text-slate-400 hover:text-rose-600 p-0.5">
+                                                <button v-if="canDeleteAcademic" type="button" @click="confirmProgramDelete(program)" class="text-slate-400 hover:text-rose-600 p-0.5">
                                                     <span class="material-symbols-outlined text-[13px]">close</span>
                                                 </button>
                                             </div>
                                             <button
+                                                v-if="canCreateAcademic"
                                                 type="button"
                                                 @click="openProgramCreateModal(unit)"
                                                 class="inline-flex items-center gap-0.5 text-[10.5px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200"
@@ -1359,14 +1410,15 @@ onUnmounted(() => {
                                                 class="inline-flex items-center gap-1 bg-slate-50 border border-slate-200 pl-2 pr-1 py-0.5 rounded-lg text-xs font-medium text-slate-800"
                                             >
                                                 <span>{{ cls.name }}</span>
-                                                <button type="button" @click="openClassEditModal(cls, unit)" class="text-slate-400 hover:text-emerald-700 p-0.5">
+                                                <button v-if="canUpdateAcademic" type="button" @click="openClassEditModal(cls, unit)" class="text-slate-400 hover:text-emerald-700 p-0.5">
                                                     <span class="material-symbols-outlined text-[13px]">edit</span>
                                                 </button>
-                                                <button type="button" @click="confirmClassDelete(cls)" class="text-slate-400 hover:text-rose-600 p-0.5">
+                                                <button v-if="canDeleteAcademic" type="button" @click="confirmClassDelete(cls)" class="text-slate-400 hover:text-rose-600 p-0.5">
                                                     <span class="material-symbols-outlined text-[13px]">close</span>
                                                 </button>
                                             </div>
                                             <button
+                                                v-if="canCreateAcademic"
                                                 type="button"
                                                 @click="openClassCreateModal(unit)"
                                                 class="inline-flex items-center gap-0.5 text-[10.5px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200"
@@ -1397,6 +1449,9 @@ onUnmounted(() => {
                     :positions="organizationPositions"
                     :departments="departments"
                     :organization-levels="organizationLevels"
+                    :can-create="canCreateOrg"
+                    :can-update="canUpdateOrg"
+                    :can-delete="canDeleteOrg"
                     @add-position="handleAddPosition"
                     @edit-position="handleEditPosition"
                     @delete-position="confirmPositionDelete"

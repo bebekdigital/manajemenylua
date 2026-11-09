@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Department;
 use App\Models\DepartmentPosition;
+use App\Models\RolePermission;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
@@ -14,6 +15,10 @@ class DepartmentPositionController extends Controller
      */
     public function storeDirect(Request $request): RedirectResponse
     {
+        if (! RolePermission::canAccess($request->user(), 'setting_organization', 'create')) {
+            abort(403, 'Anda tidak memiliki hak akses untuk menambah jabatan organisasi.');
+        }
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'department_id' => ['nullable', 'exists:departments,id'],
@@ -46,6 +51,10 @@ class DepartmentPositionController extends Controller
      */
     public function store(Request $request, Department $department): RedirectResponse
     {
+        if (! RolePermission::canAccess($request->user(), 'setting_organization', 'create')) {
+            abort(403, 'Anda tidak memiliki hak akses untuk menambah jabatan ke bidang.');
+        }
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'level' => ['nullable', 'integer', 'min:1', 'max:5'],
@@ -73,6 +82,10 @@ class DepartmentPositionController extends Controller
      */
     public function update(Request $request, DepartmentPosition $departmentPosition): RedirectResponse
     {
+        if (! RolePermission::canAccess($request->user(), 'setting_organization', 'update')) {
+            abort(403, 'Anda tidak memiliki hak akses untuk mengubah jabatan organisasi.');
+        }
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'department_id' => ['nullable', 'exists:departments,id'],
@@ -133,6 +146,10 @@ class DepartmentPositionController extends Controller
      */
     public function destroy(DepartmentPosition $departmentPosition): RedirectResponse
     {
+        if (! RolePermission::canAccess(request()->user(), 'setting_organization', 'delete')) {
+            abort(403, 'Anda tidak memiliki hak akses untuk menghapus jabatan organisasi.');
+        }
+
         // Re-parent direct children so hierarchy is maintained
         DepartmentPosition::where('parent_id', $departmentPosition->id)
             ->update(['parent_id' => $departmentPosition->parent_id]);

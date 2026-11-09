@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AcademicYear;
 use App\Models\Classroom;
+use App\Models\RolePermission;
 use App\Models\SchoolClass;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -23,6 +24,10 @@ class AcademicYearController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        if (! RolePermission::canAccess($request->user(), 'setting_academic', 'create')) {
+            abort(403, 'Anda tidak memiliki hak akses untuk menambah tahun ajaran.');
+        }
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:20'],
             'semester' => ['required', 'in:Ganjil,Genap'],
@@ -81,6 +86,10 @@ class AcademicYearController extends Controller
      */
     public function update(Request $request, AcademicYear $academicYear): RedirectResponse
     {
+        if (! RolePermission::canAccess($request->user(), 'setting_academic', 'update')) {
+            abort(403, 'Anda tidak memiliki hak akses untuk mengubah tahun ajaran.');
+        }
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:20'],
             'semester' => ['required', 'in:Ganjil,Genap'],
@@ -140,6 +149,10 @@ class AcademicYearController extends Controller
      */
     public function destroy(AcademicYear $academicYear): RedirectResponse
     {
+        if (! RolePermission::canAccess(request()->user(), 'setting_academic', 'delete')) {
+            abort(403, 'Anda tidak memiliki hak akses untuk menghapus tahun ajaran.');
+        }
+
         $studentsCount = $academicYear->studentRecords()->count();
 
         if ($studentsCount > 0) {

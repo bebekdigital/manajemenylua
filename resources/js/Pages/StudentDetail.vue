@@ -12,6 +12,17 @@ const props = defineProps({
         type: Object,
         required: true,
     },
+    permissions: {
+        type: Object,
+        default: () => ({
+            can_view: true,
+            can_create: false,
+            can_update: false,
+            can_delete: false,
+            can_export: false,
+            can_import: false,
+        }),
+    },
 });
 
 const activeTab = ref('identitas');

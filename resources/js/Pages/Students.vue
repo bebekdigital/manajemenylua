@@ -21,6 +21,25 @@ const props = defineProps({
         type: Object,
         default: null,
     },
+    permissions: {
+        type: Object,
+        default: () => ({
+            can_view: true,
+            can_create: false,
+            can_update: false,
+            can_delete: false,
+            can_export: false,
+            can_import: false,
+        }),
+    },
+});
+
+const canManageData = computed(() => {
+    return Boolean(props.permissions?.can_update || props.permissions?.can_create);
+});
+
+const canImportExport = computed(() => {
+    return Boolean(props.permissions?.can_import || props.permissions?.can_export);
 });
 
 const page = usePage();
@@ -555,7 +574,7 @@ const downloadTemplate = async () => {
                     </div>
 
                     <!-- Tombol Kelola Gabungan di Samping Judul (Edit Data, Impor, Template) -->
-                    <div class="shrink-0">
+                    <div v-if="canManageData || canImportExport" class="shrink-0">
                         <button
                             type="button"
                             @click="isKelolaOpen = true"
@@ -1008,6 +1027,7 @@ const downloadTemplate = async () => {
                             <div class="space-y-2.5">
                                 <!-- 1. Download Template -->
                                 <button
+                                    v-if="permissions.can_export"
                                     type="button"
                                     @click="isKelolaOpen = false; downloadTemplate()"
                                     class="w-full flex items-center gap-3 p-3.5 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/50 bg-white transition-all cursor-pointer group shadow-2xs text-left"
@@ -1024,6 +1044,7 @@ const downloadTemplate = async () => {
 
                                 <!-- 2. Import Data Siswa -->
                                 <button
+                                    v-if="permissions.can_import"
                                     type="button"
                                     @click="isKelolaOpen = false; showImportModal = true"
                                     class="w-full flex items-center gap-3 p-3.5 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/50 bg-white transition-all cursor-pointer group shadow-2xs text-left"
@@ -1040,6 +1061,7 @@ const downloadTemplate = async () => {
 
                                 <!-- 3. Edit Massal Siswa -->
                                 <Link
+                                    v-if="permissions.can_update"
                                     href="/students/inline-edit"
                                     @click="isKelolaOpen = false"
                                     class="w-full flex items-center gap-3 p-3.5 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/50 bg-white transition-all cursor-pointer group shadow-2xs text-left"
@@ -1056,6 +1078,7 @@ const downloadTemplate = async () => {
 
                                 <!-- 4. Petakan Riwayat (Bulking) -->
                                 <Link
+                                    v-if="permissions.can_update || permissions.can_create"
                                     href="/students/mapping"
                                     @click="isKelolaOpen = false"
                                     class="w-full flex items-center gap-3 p-3.5 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/50 bg-white transition-all cursor-pointer group shadow-2xs text-left"
@@ -1072,6 +1095,7 @@ const downloadTemplate = async () => {
 
                                 <!-- 5. Upload Foto Siswa -->
                                 <button
+                                    v-if="permissions.can_update || permissions.can_create"
                                     type="button"
                                     @click="isKelolaOpen = false; showPhotoUploadModal = true"
                                     class="w-full flex items-center gap-3 p-3.5 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/50 bg-white transition-all cursor-pointer group shadow-2xs text-left"
@@ -1111,7 +1135,7 @@ const downloadTemplate = async () => {
                     <!-- Desktop Action Buttons -->
                     <div class="flex items-center gap-2.5 shrink-0">
                         <!-- Edit Data Dropdown -->
-                        <div class="relative">
+                        <div v-if="canManageData" class="relative">
                             <EditDataButton
                                 :is-dropdown="true"
                                 :is-open="showEditDropdown"
@@ -1124,6 +1148,7 @@ const downloadTemplate = async () => {
                             <!-- Dropdown Menu -->
                             <div v-show="showEditDropdown" class="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-200 z-50 overflow-hidden py-1.5 animate-in fade-in zoom-in-95 duration-100">
                                 <Link
+                                    v-if="permissions.can_update"
                                     href="/students/inline-edit"
                                     class="flex items-center gap-2.5 px-4 py-2.5 text-[13px] font-medium text-slate-700 hover:bg-emerald-50 hover:text-emerald-900 transition-colors w-full text-left"
                                     @click="showEditDropdown = false"
@@ -1133,6 +1158,7 @@ const downloadTemplate = async () => {
                                     <span>Edit Massal</span>
                                 </Link>
                                 <Link
+                                    v-if="permissions.can_update || permissions.can_create"
                                     href="/students/mapping"
                                     class="flex items-center gap-2.5 px-4 py-2.5 text-[13px] font-medium text-slate-700 hover:bg-emerald-50 hover:text-emerald-900 transition-colors w-full text-left"
                                     @click="showEditDropdown = false"
@@ -1141,6 +1167,7 @@ const downloadTemplate = async () => {
                                     <span>Petakan Riwayat (Bulking)</span>
                                 </Link>
                                 <button
+                                    v-if="permissions.can_update || permissions.can_create"
                                     type="button"
                                     @click="showPhotoUploadModal = true; showEditDropdown = false"
                                     class="flex items-center gap-2.5 px-4 py-2.5 text-[13px] font-medium text-slate-700 hover:bg-emerald-50 hover:text-emerald-900 transition-colors w-full text-left cursor-pointer"
@@ -1153,7 +1180,7 @@ const downloadTemplate = async () => {
                         </div>
 
                         <!-- Template Dropdown -->
-                        <div class="relative">
+                        <div v-if="canImportExport" class="relative">
                             <button
                                 type="button"
                                 @click="showTemplateDropdown = !showTemplateDropdown"
@@ -1174,6 +1201,7 @@ const downloadTemplate = async () => {
                             <!-- Dropdown Menu -->
                             <div v-show="showTemplateDropdown" class="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-200 z-50 overflow-hidden py-1.5 animate-in fade-in zoom-in-95 duration-100">
                                 <button
+                                    v-if="permissions.can_export"
                                     type="button"
                                     @click="downloadTemplate"
                                     class="flex items-center gap-2.5 px-4 py-2.5 text-[13px] font-medium text-slate-700 hover:bg-emerald-50 hover:text-emerald-900 transition-colors w-full text-left cursor-pointer"
@@ -1183,6 +1211,7 @@ const downloadTemplate = async () => {
                                     <span>Download Template</span>
                                 </button>
                                 <button
+                                    v-if="permissions.can_import"
                                     type="button"
                                     @click="showImportModal = true; showTemplateDropdown = false"
                                     class="flex items-center gap-2.5 px-4 py-2.5 text-[13px] font-medium text-slate-700 hover:bg-emerald-50 hover:text-emerald-900 transition-colors w-full text-left cursor-pointer"

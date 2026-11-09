@@ -23,6 +23,18 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    canCreate: {
+        type: Boolean,
+        default: true,
+    },
+    canUpdate: {
+        type: Boolean,
+        default: true,
+    },
+    canDelete: {
+        type: Boolean,
+        default: true,
+    },
 });
 
 const emit = defineEmits([
@@ -88,7 +100,7 @@ const hasSubordinates = computed(() => {
 
             <!-- NODE + DI BAWAH KARTU (TAMBAH HIERARKI BAWAHAN: LANGSUNG KE MODAL) -->
             <button
-                v-if="isEditMode"
+                v-if="isEditMode && canCreate"
                 type="button"
                 @click.stop="$emit('add-subordinate', pos)"
                 class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 sm:w-4.5 sm:h-4.5 rounded-full border border-white shadow-xs flex items-center justify-center transition-all duration-150 hover:scale-125 z-30 cursor-pointer"
@@ -100,7 +112,7 @@ const hasSubordinates = computed(() => {
 
             <!-- NODE + DI SAMPING KANAN KARTU (TAMBAH HIERARKI SEJAJAR) -->
             <button
-                v-if="isEditMode"
+                v-if="isEditMode && canCreate"
                 type="button"
                 @click.stop="$emit('add-peer', pos)"
                 class="absolute -right-2 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-4.5 sm:h-4.5 rounded-full border border-white shadow-xs flex items-center justify-center transition-all duration-150 hover:scale-125 z-30 cursor-pointer"
@@ -128,8 +140,9 @@ const hasSubordinates = computed(() => {
                 </span>
 
                 <!-- Tombol Edit & Hapus di Pojok Kanan Atas Card -->
-                <div v-if="isEditMode" class="flex items-center gap-0.5 shrink-0 ml-auto">
+                <div v-if="isEditMode && (canUpdate || canDelete)" class="flex items-center gap-0.5 shrink-0 ml-auto">
                     <button
+                        v-if="canUpdate"
                         type="button"
                         @click.stop="$emit('edit', pos)"
                         class="w-4 h-4 sm:w-4.5 sm:h-4.5 rounded flex items-center justify-center text-slate-500 hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer"
@@ -138,6 +151,7 @@ const hasSubordinates = computed(() => {
                         <span class="material-symbols-outlined text-[11px] sm:text-[12.5px]">edit</span>
                     </button>
                     <button
+                        v-if="canDelete"
                         type="button"
                         @click.stop="$emit('delete', pos)"
                         class="w-4 h-4 sm:w-4.5 sm:h-4.5 rounded flex items-center justify-center text-slate-500 hover:text-error hover:bg-error/10 transition-colors cursor-pointer"
@@ -169,6 +183,9 @@ const hasSubordinates = computed(() => {
                         :intra-children-map="intraChildrenMap"
                         :hovered-pos-id="hoveredPosId"
                         :is-edit-mode="isEditMode"
+                        :can-create="canCreate"
+                        :can-update="canUpdate"
+                        :can-delete="canDelete"
                         @hover="$emit('hover', $event)"
                         @leave="$emit('leave')"
                         @add-subordinate="$emit('add-subordinate', $event)"
@@ -189,6 +206,9 @@ const hasSubordinates = computed(() => {
                         :intra-children-map="intraChildrenMap"
                         :hovered-pos-id="hoveredPosId"
                         :is-edit-mode="isEditMode"
+                        :can-create="canCreate"
+                        :can-update="canUpdate"
+                        :can-delete="canDelete"
                         @hover="$emit('hover', $event)"
                         @leave="$emit('leave')"
                         @add-subordinate="$emit('add-subordinate', $event)"
@@ -209,6 +229,9 @@ const hasSubordinates = computed(() => {
                     :intra-children-map="intraChildrenMap"
                     :hovered-pos-id="hoveredPosId"
                     :is-edit-mode="isEditMode"
+                    :can-create="canCreate"
+                    :can-update="canUpdate"
+                    :can-delete="canDelete"
                     @hover="$emit('hover', $event)"
                     @leave="$emit('leave')"
                     @add-subordinate="$emit('add-subordinate', $event)"
