@@ -665,7 +665,7 @@ function updateConnectionLines() {
                     const y2 = childRect.top;
 
                     if (Math.abs(x1 - x2) < 4) {
-                        path = `M ${x1} ${y1} L ${x2} ${y2}`;
+                        path = `M ${x1} ${y1} L ${x1} ${y2}`;
                     } else {
                         // Titik tengah tepat di antara bawah kartu atasan dan atas kartu bawahan
                         const midY = Math.round(y1 + (y2 - y1) * 0.5);
@@ -779,7 +779,7 @@ function updateConnectionLines() {
                 }
 
                 if (Math.abs(x1 - x2) <= 4) {
-                    path = `M ${x2} ${y1} L ${x2} ${y2}`;
+                    path = `M ${x1} ${y1} L ${x1} ${y2}`;
                 } else {
                     path = `M ${x1} ${y1} L ${x1} ${midY} L ${x2} ${midY} L ${x2} ${y2}`;
                 }
@@ -1136,14 +1136,16 @@ function handleDelete(pos) {
                 <!-- KANVAS SVG GARIS HIERARKI PENGHUBUNG ANTARA ATASAN DAN BAWAHAN -->
                 <svg
                     class="absolute inset-0 pointer-events-none z-10 w-full h-full overflow-visible"
+                    style="shape-rendering: geometricPrecision;"
                 >
                     <!-- Render Setiap Garis Penghubung (Parent -> Child / Peer) bersudut 90 derajat -->
                     <g v-for="line in connectionLines" :key="line.id">
-                        <!-- Glow / Shadow Line saat di-hover -->
+                        <!-- Glow / Shadow Line hanya saat di-hover -->
                         <path
+                            v-if="hoveredPosId === line.parentId || hoveredPosId === line.childId"
                             :d="line.path"
-                            stroke="rgba(5, 150, 105, 0.2)"
-                            :stroke-width="hoveredPosId === line.parentId || hoveredPosId === line.childId ? 6 : 3"
+                            stroke="rgba(5, 150, 105, 0.35)"
+                            stroke-width="6"
                             fill="none"
                             stroke-linejoin="miter"
                             class="transition-colors duration-150"
@@ -1152,10 +1154,11 @@ function handleDelete(pos) {
                         <path
                             :d="line.path"
                             :stroke="hoveredPosId === line.parentId || hoveredPosId === line.childId ? '#059669' : line.color"
-                            :stroke-width="hoveredPosId === line.parentId || hoveredPosId === line.childId ? 2.5 : 1.75"
-                            :stroke-opacity="hoveredPosId && hoveredPosId !== line.parentId && hoveredPosId !== line.childId ? 0.25 : 0.9"
+                            :stroke-width="hoveredPosId === line.parentId || hoveredPosId === line.childId ? 2.5 : 2"
+                            :stroke-opacity="hoveredPosId && hoveredPosId !== line.parentId && hoveredPosId !== line.childId ? 0.3 : 1"
                             fill="none"
                             stroke-linejoin="miter"
+                            stroke-linecap="square"
                             class="transition-colors duration-150"
                         />
                     </g>
