@@ -387,6 +387,9 @@ class EmployeeController extends Controller
 
         $employee = Employee::findOrFail($id);
 
+        $isIdentityTab = $request->input('_tab') === 'identitas';
+        $identityRule = $isIdentityTab ? 'required' : 'nullable';
+
         $validated = $request->validate([
             // Identitas
             'nama' => ['required', 'string', 'max:255'],
@@ -394,16 +397,16 @@ class EmployeeController extends Controller
             'gelar_belakang' => ['nullable', 'string', 'max:50'],
             'nipy' => ['nullable', 'string', 'max:50'],
             'nik' => [
-                'nullable',
+                $identityRule,
                 'string',
                 'max:50',
                 Rule::unique('employees', 'nik')->ignore($employee->id),
             ],
-            'jk' => ['nullable', 'in:L,P'],
-            'tempat_lahir' => ['nullable', 'string', 'max:100'],
-            'tanggal_lahir' => ['nullable', 'date'],
-            'no_wa' => ['nullable', 'string', 'max:50'],
-            'email' => ['nullable', 'email', 'max:100'],
+            'jk' => [$identityRule, 'in:L,P'],
+            'tempat_lahir' => [$identityRule, 'string', 'max:100'],
+            'tanggal_lahir' => [$identityRule, 'date'],
+            'no_wa' => [$identityRule, 'string', 'max:50'],
+            'email' => [$identityRule, 'email', 'max:100'],
             'skill' => ['nullable', 'string', 'max:255'],
 
             // Alamat Domisili
@@ -424,8 +427,8 @@ class EmployeeController extends Controller
             'kabupaten_tinggal' => ['nullable', 'string', 'max:100'],
             'provinsi_tinggal' => ['nullable', 'string', 'max:100'],
             'status_rumah' => ['nullable', 'string', 'max:50'],
-            'kepemilikan_bpjs' => ['nullable', 'string', 'max:50'],
-            'penanggung_bpjs' => ['nullable', 'string', 'max:100'],
+            'kepemilikan_bpjs' => [$identityRule, 'string', 'max:50'],
+            'penanggung_bpjs' => [$identityRule, 'string', 'max:100'],
 
             // Keluarga
             'status_pernikahan' => ['nullable', 'string', 'max:50'],
@@ -515,7 +518,18 @@ class EmployeeController extends Controller
             'riwayat_perizinan.*.lampiran' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:10240'],
         ], [
             'nama.required' => 'Nama lengkap wajib diisi.',
+            'nik.required' => 'NIK (Nomor Induk Kependudukan) wajib diisi.',
             'nik.unique' => 'NIK sudah digunakan oleh pegawai lain.',
+            'jk.required' => 'Jenis kelamin wajib dipilih.',
+            'jk.in' => 'Pilihan jenis kelamin tidak valid.',
+            'tempat_lahir.required' => 'Tempat lahir wajib diisi.',
+            'tanggal_lahir.required' => 'Tanggal lahir wajib diisi.',
+            'tanggal_lahir.date' => 'Format tanggal lahir tidak valid.',
+            'no_wa.required' => 'Nomor WhatsApp wajib diisi.',
+            'email.required' => 'Email wajib diisi.',
+            'email.email' => 'Format email tidak valid.',
+            'kepemilikan_bpjs.required' => 'Kepemilikan BPJS wajib dipilih.',
+            'penanggung_bpjs.required' => 'Penanggung BPJS wajib dipilih.',
         ]);
 
         $canUpdateKepegawaian = RolePermission::canAccess($user, 'employee_kepegawaian', 'update');

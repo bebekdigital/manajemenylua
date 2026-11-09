@@ -559,13 +559,19 @@ function saveChanges() {
         form.tst_jenjang = props.employee.tst_kenaikan_jenjang || props.employee.tst_jenjang || '';
     }
 
-    form.put(`/staff/${props.employee.id}`, {
+    form.transform((data) => ({
+        ...data,
+        _tab: activeTab.value,
+    })).put(`/staff/${props.employee.id}`, {
         preserveScroll: true,
         only: ['employee', 'flash'],
         onSuccess: () => {
             isEditing.value = false;
             initFormFromProps();
             showToast('success', page.props.flash?.success || `Data pegawai '${props.employee.nama}' berhasil diperbarui.`);
+        },
+        onError: () => {
+            showToast('error', 'Mohon lengkapi dan periksa kembali data yang belum valid.', 'Gagal Menyimpan');
         },
     });
 }
