@@ -40,11 +40,31 @@ const props = defineProps({
 const emit = defineEmits([
     'hover',
     'leave',
+    'toggle-select',
     'add-subordinate',
     'add-peer',
     'edit',
     'delete',
 ]);
+
+function isHoverSupported() {
+    return typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(hover: hover)').matches;
+}
+
+function handleMouseEnter() {
+    if (!isHoverSupported()) return;
+    emit('hover', props.pos.id);
+}
+
+function handleMouseLeave() {
+    if (!isHoverSupported()) return;
+    emit('leave');
+}
+
+function handleCardClick(e) {
+    if (e.target.closest('button, a, [role="button"]')) return;
+    emit('toggle-select', props.pos.id);
+}
 
 // Children of this position that belong to the SAME level
 const intraChildren = computed(() => {
@@ -82,9 +102,10 @@ const hasSubordinates = computed(() => {
         <div
             :id="`pos-card-${pos.id}`"
             :data-level="pos.level"
-            @mouseenter="$emit('hover', pos.id)"
-            @mouseleave="$emit('leave')"
-            class="w-auto min-w-[96px] sm:min-w-[112px] max-w-[140px] sm:max-w-[165px] md:max-w-[180px] bg-linear-to-b from-white to-slate-50/80 rounded-lg sm:rounded-xl border sm:border-2 border-slate-300 px-2 py-1.5 sm:px-2.5 sm:py-2 transition-all duration-200 flex flex-col justify-center group relative select-none shadow-[inset_0_1px_2px_rgba(0,0,0,0.04),0_1px_4px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.1)]"
+            @mouseenter="handleMouseEnter"
+            @mouseleave="handleMouseLeave"
+            @click="handleCardClick"
+            class="w-auto min-w-[96px] sm:min-w-[112px] max-w-[140px] sm:max-w-[165px] md:max-w-[180px] bg-linear-to-b from-white to-slate-50/80 rounded-lg sm:rounded-xl border sm:border-2 border-slate-300 px-2 py-1.5 sm:px-2.5 sm:py-2 transition-all duration-200 flex flex-col justify-center group relative select-none shadow-[inset_0_1px_2px_rgba(0,0,0,0.04),0_1px_4px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.1)] cursor-pointer"
             :class="[
                 levelDef.cardBorder,
                 hoveredPosId === pos.id ? 'ring-2 ring-primary border-primary' : ''
@@ -188,6 +209,7 @@ const hasSubordinates = computed(() => {
                         :can-delete="canDelete"
                         @hover="$emit('hover', $event)"
                         @leave="$emit('leave')"
+                        @toggle-select="$emit('toggle-select', $event)"
                         @add-subordinate="$emit('add-subordinate', $event)"
                         @add-peer="$emit('add-peer', $event)"
                         @edit="$emit('edit', $event)"
@@ -211,6 +233,7 @@ const hasSubordinates = computed(() => {
                         :can-delete="canDelete"
                         @hover="$emit('hover', $event)"
                         @leave="$emit('leave')"
+                        @toggle-select="$emit('toggle-select', $event)"
                         @add-subordinate="$emit('add-subordinate', $event)"
                         @add-peer="$emit('add-peer', $event)"
                         @edit="$emit('edit', $event)"
@@ -234,6 +257,7 @@ const hasSubordinates = computed(() => {
                     :can-delete="canDelete"
                     @hover="$emit('hover', $event)"
                     @leave="$emit('leave')"
+                    @toggle-select="$emit('toggle-select', $event)"
                     @add-subordinate="$emit('add-subordinate', $event)"
                     @add-peer="$emit('add-peer', $event)"
                     @edit="$emit('edit', $event)"

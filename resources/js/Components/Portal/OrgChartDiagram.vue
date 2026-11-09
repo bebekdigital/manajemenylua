@@ -51,6 +51,28 @@ const searchQuery = ref('');
 const selectedDeptFilter = ref('all');
 const activeTab = ref('diagram'); // 'diagram' | 'departments'
 const hoveredPosId = ref(null);
+const selectedPosId = ref(null);
+
+const activeHighlightId = computed(() => {
+    return hoveredPosId.value || selectedPosId.value || null;
+});
+
+function clearHighlight() {
+    hoveredPosId.value = null;
+    selectedPosId.value = null;
+}
+
+function handleToggleSelect(posId) {
+    if (hasDragged.value) {
+        hasDragged.value = false;
+        return;
+    }
+    if (selectedPosId.value === posId) {
+        selectedPosId.value = null;
+    } else {
+        selectedPosId.value = posId;
+    }
+}
 
 const diagramContainerRef = ref(null);
 const canvasWrapperRef = ref(null);
@@ -78,6 +100,9 @@ let initialPinchZoom = 1;
 function startPan(e) {
     if (e.button !== 0) return;
     if (e.target.closest('button, input, select, a, [role="button"]')) return;
+    if (!e.target.closest('[id^="pos-card-"]')) {
+        clearHighlight();
+    }
     isDragging.value = true;
     hasDragged.value = false;
     dragStart.value = {
@@ -89,6 +114,7 @@ function startPan(e) {
 function onPan(e) {
     if (!isDragging.value) return;
     hasDragged.value = true;
+    clearHighlight();
     panX.value = Math.round(e.clientX - dragStart.value.x);
     panY.value = Math.round(e.clientY - dragStart.value.y);
 }
@@ -98,13 +124,18 @@ function endPan() {
 }
 
 function handleTouchStart(e) {
+    if (!e.target.closest('[id^="pos-card-"]')) {
+        clearHighlight();
+    }
     if (e.touches.length === 1) {
         if (e.target.closest('button, input, select, a, [role="button"]')) return;
         isDragging.value = true;
+        hasDragged.value = false;
         touchStartX = e.touches[0].clientX - panX.value;
         touchStartY = e.touches[0].clientY - panY.value;
     } else if (e.touches.length === 2) {
         isDragging.value = false;
+        clearHighlight();
         initialPinchDistance = Math.hypot(
             e.touches[0].clientX - e.touches[1].clientX,
             e.touches[0].clientY - e.touches[1].clientY
@@ -115,10 +146,14 @@ function handleTouchStart(e) {
 
 function handleTouchMove(e) {
     if (e.touches.length === 1 && isDragging.value) {
+        hasDragged.value = true;
+        clearHighlight();
         e.preventDefault();
         panX.value = Math.round(e.touches[0].clientX - touchStartX);
         panY.value = Math.round(e.touches[0].clientY - touchStartY);
     } else if (e.touches.length === 2 && initialPinchDistance) {
+        hasDragged.value = true;
+        clearHighlight();
         e.preventDefault();
         const dist = Math.hypot(
             e.touches[0].clientX - e.touches[1].clientX,
@@ -1260,9 +1295,9 @@ function handleDelete(pos) {
                 >
                     <!-- Render Setiap Garis Penghubung (Parent -> Child / Peer) bersudut 90 derajat -->
                     <g v-for="line in connectionLines" :key="line.id">
-                        <!-- Glow / Shadow Line hanya saat di-hover -->
+                        <!-- Glow / Shadow Line hanya saat di-hover / dipilih -->
                         <path
-                            v-if="hoveredPosId === line.parentId || hoveredPosId === line.childId"
+                            v-if="activeHighlightId && (activeHighlightId === line.parentId || activeHighlightId === line.childId)"
                             :d="line.path"
                             stroke="rgba(5, 150, 105, 0.35)"
                             stroke-width="6"
@@ -1273,9 +1308,9 @@ function handleDelete(pos) {
                         <!-- Garis Utama Penghubung (Bersudut 90 Derajat / Sejajar Horizontal) -->
                         <path
                             :d="line.path"
-                            :stroke="hoveredPosId === line.parentId || hoveredPosId === line.childId ? '#059669' : line.color"
-                            :stroke-width="hoveredPosId === line.parentId || hoveredPosId === line.childId ? 2.5 : 2"
-                            :stroke-opacity="hoveredPosId && hoveredPosId !== line.parentId && hoveredPosId !== line.childId ? 0.3 : 1"
+                            :stroke="activeHighlightId && (activeHighlightId === line.parentId || activeHighlightId === line.childId) ? '#059669' : line.color"
+                            :stroke-width="activeHighlightId && (activeHighlightId === line.parentId || activeHighlightId === line.childId) ? 2.5 : 2"
+                            :stroke-opacity="activeHighlightId && activeHighlightId !== line.parentId && activeHighlightId !== line.childId ? 0.3 : 1"
                             fill="none"
                             stroke-linejoin="miter"
                             stroke-linecap="square"
@@ -1354,13 +1389,14 @@ function handleDelete(pos) {
                                         :pos="rootPos"
                                         :level-def="def"
                                         :intra-children-map="intraChildrenMapByLevel"
-                                        :hovered-pos-id="hoveredPosId"
+                                        :hovered-pos-id="activeHighlightId"
                                         :is-edit-mode="isEditMode"
                                         :can-create="canCreate"
                                         :can-update="canUpdate"
                                         :can-delete="canDelete"
                                         @hover="hoveredPosId = $event"
                                         @leave="hoveredPosId = null"
+                                        @toggle-select="handleToggleSelect"
                                         @add-subordinate="handleAddSubordinate"
                                         @add-peer="handleAddPeer"
                                         @edit="handleEdit"
