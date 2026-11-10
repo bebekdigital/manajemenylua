@@ -706,6 +706,61 @@ onUnmounted(() => {
                                 </p>
                             </div>
                         </div>
+
+                        <!-- Status Keaktifan Siswa -->
+                        <div class="mt-6 pt-5 border-t border-slate-100">
+                            <div class="flex items-center gap-2 mb-4 pb-2 border-b border-slate-100">
+                                <span
+                                    class="w-2.5 h-2.5 rounded-full inline-block"
+                                    :class="(student.status_keaktifan === 'Tidak Aktif' || student.student_status === 'tidak_aktif') ? 'bg-rose-500' : 'bg-emerald-600'"
+                                ></span>
+                                <h4 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Status Keaktifan Siswa</h4>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-4">
+                                <div>
+                                    <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Status Keaktifan</label>
+                                    <p class="mt-1">
+                                        <span
+                                            v-if="student.status_keaktifan === 'Tidak Aktif' || student.student_status === 'tidak_aktif'"
+                                            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200"
+                                        >
+                                            <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                                            Tidak Aktif
+                                        </span>
+                                        <span
+                                            v-else
+                                            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200"
+                                        >
+                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                                            Aktif
+                                        </span>
+                                    </p>
+                                </div>
+                                <div>
+                                    <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Keterangan Tidak Aktif</label>
+                                    <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">
+                                        <span
+                                            v-if="student.keterangan_tidak_aktif || student.ket_tidak_aktif"
+                                            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200"
+                                        >
+                                            <span class="material-symbols-outlined text-[14px] text-amber-600">info</span>
+                                            {{ student.keterangan_tidak_aktif || student.ket_tidak_aktif }}
+                                        </span>
+                                        <span v-else class="text-slate-400 font-normal">-</span>
+                                    </p>
+                                </div>
+                                <div>
+                                    <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Tanggal Tidak Aktif</label>
+                                    <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">
+                                        <span v-if="student.tanggal_tidak_aktif" class="inline-flex items-center gap-1.5">
+                                            <span class="font-mono text-slate-800">{{ student.tanggal_tidak_aktif }}</span>
+                                            <span v-if="student.formatted_tanggal_tidak_aktif" class="text-xs font-normal text-slate-500">({{ student.formatted_tanggal_tidak_aktif }})</span>
+                                        </span>
+                                        <span v-else class="text-slate-400 font-normal">-</span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Riwayat Keaktifan Siswa Timeline -->

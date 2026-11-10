@@ -222,6 +222,7 @@ class StudentController extends Controller
             'ket_tidak_aktif' => $studentModel->keterangan_tidak_aktif ?? $currentRecord?->ket_tidak_aktif,
             'keterangan_tidak_aktif' => $studentModel->keterangan_tidak_aktif ?? $currentRecord?->ket_tidak_aktif,
             'tanggal_tidak_aktif' => $studentModel->tanggal_tidak_aktif ? $studentModel->tanggal_tidak_aktif->format('Y-m-d') : ($currentRecord?->tanggal_tidak_aktif?->format('Y-m-d')),
+            'formatted_tanggal_tidak_aktif' => $studentModel->tanggal_tidak_aktif ? $studentModel->tanggal_tidak_aktif->translatedFormat('d F Y') : ($currentRecord?->tanggal_tidak_aktif?->translatedFormat('d F Y')),
             'no_wa' => $studentModel->no_wa,
             'no_wa_2' => $studentModel->no_wa_2,
             'email' => $studentModel->email,
