@@ -33,11 +33,12 @@ class EmployeeDocumentController extends Controller
             'category' => [
                 'required',
                 'string',
-                'in:ktp,kk,sk_pengangkatan,ijazah,sk_jenjang,sk_penugasan,lainnya',
+                'in:ktp,kk,sk_pengangkatan,ijazah,sk_jenjang,sk_penugasan,sertifikat_pelatihan,sertifikat,lainnya',
             ],
             'title' => ['nullable', 'string', 'max:255'],
             'record_type' => ['nullable', 'string', 'max:50'],
             'record_id' => ['nullable', 'integer'],
+            'document_id' => ['nullable', 'integer'],
         ], [
             'file.required' => 'Berkas dokumen wajib dipilih.',
             'file.mimes' => 'Format berkas harus berupa PDF, JPG, JPEG, PNG, atau WEBP.',
@@ -49,6 +50,7 @@ class EmployeeDocumentController extends Controller
         $category = $validated['category'];
         $recordType = $validated['record_type'] ?? null;
         $recordId = ! empty($validated['record_id']) ? (int) $validated['record_id'] : null;
+        $documentId = ! empty($validated['document_id']) ? (int) $validated['document_id'] : null;
 
         // Auto-generate a title if none provided
         $title = ! empty($validated['title']) ? trim($validated['title']) : match ($category) {
@@ -63,28 +65,57 @@ class EmployeeDocumentController extends Controller
         };
 
         // Determine if replacing an existing document
-        $query = EmployeeDocument::where('employee_id', $employee->id)
-            ->where('category', $category);
+        $existing = null;
+        if ($documentId) {
+            $existing = EmployeeDocument::where('employee_id', $employee->id)
+                ->where('id', $documentId)
+                ->first();
+        }
 
-        if ($recordType && $recordId) {
-            $query->where('record_type', $recordType)->where('record_id', $recordId);
-        } elseif (in_array($category, ['ktp', 'kk', 'sk_pengangkatan'])) {
-            // Only one active KTP, KK, and SK Pengangkatan per employee
-            $query->whereNull('record_id');
-        } else {
-            // For general ijazah or lainnya without specific record_id, only replace if explicitly targeting an ID
-            if ($request->filled('document_id')) {
-                $query->where('id', $request->input('document_id'));
+        if (! $existing) {
+            $query = EmployeeDocument::where('employee_id', $employee->id)
+                ->where('category', $category);
+
+            if ($recordType && $recordId) {
+                $query->where('record_type', $recordType)->where('record_id', $recordId);
+            } elseif (in_array($category, ['ktp', 'kk', 'sk_pengangkatan'])) {
+                // Only one active KTP, KK, and SK Pengangkatan per employee
             } else {
                 $query = null;
             }
+
+            $existing = $query ? $query->latest('id')->first() : null;
         }
 
-        $existing = $query ? $query->first() : null;
+        if ($existing) {
+            if ($existing->file_path && Storage::disk('local')->exists($existing->file_path)) {
+                Storage::disk('local')->delete($existing->file_path);
+            }
+        }
+
+        // Clean up any duplicate records in this exact category/record slot
+        $dupQuery = EmployeeDocument::where('employee_id', $employee->id)
+            ->where('category', $category);
 
         if ($existing) {
-            if (Storage::disk('local')->exists($existing->file_path)) {
-                Storage::disk('local')->delete($existing->file_path);
+            $dupQuery->where('id', '!=', $existing->id);
+        }
+
+        if ($recordType && $recordId) {
+            $dupQuery->where('record_type', $recordType)->where('record_id', $recordId);
+        } elseif (in_array($category, ['ktp', 'kk', 'sk_pengangkatan'])) {
+            // Keep clean for single slots
+        } else {
+            $dupQuery = null;
+        }
+
+        if ($dupQuery) {
+            $duplicates = $dupQuery->get();
+            foreach ($duplicates as $dup) {
+                if ($dup->file_path && Storage::disk('local')->exists($dup->file_path)) {
+                    Storage::disk('local')->delete($dup->file_path);
+                }
+                $dup->delete();
             }
         }
 
@@ -115,6 +146,8 @@ class EmployeeDocumentController extends Controller
             $storedMime = $file->getMimeType();
         }
 
+        $isReplacement = (bool) $existing;
+
         if ($existing) {
             $existing->update([
                 'title' => $title,
@@ -122,7 +155,11 @@ class EmployeeDocumentController extends Controller
                 'file_name' => $storedFileName,
                 'file_size' => $storedFileSize,
                 'mime_type' => $storedMime,
+                'category' => $category,
+                'record_type' => $recordType ?: $existing->record_type,
+                'record_id' => $recordId ?: $existing->record_id,
             ]);
+            $existing->touch();
         } else {
             EmployeeDocument::create([
                 'employee_id' => $employee->id,
@@ -137,7 +174,9 @@ class EmployeeDocumentController extends Controller
             ]);
         }
 
-        return back()->with('success', "Dokumen {$title} berhasil diunggah.");
+        $actionMessage = $isReplacement ? "Dokumen {$title} berhasil diperbarui." : "Dokumen {$title} berhasil diunggah.";
+
+        return back()->with('success', $actionMessage);
     }
 
     /**
@@ -158,7 +197,9 @@ class EmployeeDocumentController extends Controller
         return response()->file($absolutePath, [
             'Content-Type' => $document->mime_type ?? 'application/pdf',
             'Content-Disposition' => 'inline; filename="'.addslashes($document->file_name).'"',
-            'Cache-Control' => 'public, max-age=86400',
+            'Cache-Control' => 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0',
+            'Pragma' => 'no-cache',
+            'Expires' => 'Sun, 02 Jan 1990 00:00:00 GMT',
         ]);
     }
 
@@ -175,7 +216,15 @@ class EmployeeDocumentController extends Controller
             abort(404, 'Berkas fisik dokumen tidak ditemukan di server.');
         }
 
-        return Storage::disk('local')->download($document->file_path, $document->file_name);
+        return Storage::disk('local')->download(
+            $document->file_path,
+            $document->file_name,
+            [
+                'Cache-Control' => 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0',
+                'Pragma' => 'no-cache',
+                'Expires' => 'Sun, 02 Jan 1990 00:00:00 GMT',
+            ]
+        );
     }
 
     /**

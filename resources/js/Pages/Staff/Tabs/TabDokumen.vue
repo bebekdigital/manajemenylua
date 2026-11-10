@@ -263,6 +263,7 @@ const showUploadModal = ref(false);
 const uploadCategory = ref('');
 const uploadRecordType = ref(null);
 const uploadRecordId = ref(null);
+const uploadDocumentId = ref(null);
 const uploadTitle = ref('');
 const uploadFile = ref(null);
 const uploadFileError = ref('');
@@ -271,7 +272,7 @@ const isCompressing = ref(false);
 const isDragging = ref(false);
 const fileInput = ref(null);
 
-function openUploadModal({ category, recordType = null, recordId = null, title = '' }) {
+function openUploadModal({ category, recordType = null, recordId = null, title = '', documentId = null }) {
     if (!canUploadDoc.value && !canUpdateDoc.value) {
         showToast('error', 'Anda tidak memiliki hak akses untuk mengunggah atau mengganti dokumen.');
         return;
@@ -279,6 +280,7 @@ function openUploadModal({ category, recordType = null, recordId = null, title =
     uploadCategory.value = category;
     uploadRecordType.value = recordType;
     uploadRecordId.value = recordId;
+    uploadDocumentId.value = documentId;
     uploadTitle.value = title;
     uploadFile.value = null;
     uploadFileError.value = '';
@@ -291,6 +293,7 @@ function closeUploadModal() {
     showUploadModal.value = false;
     uploadFile.value = null;
     uploadFileError.value = '';
+    uploadDocumentId.value = null;
     isCompressing.value = false;
 }
 
@@ -354,12 +357,14 @@ function submitDocument() {
         return;
     }
 
+    const isReplacing = Boolean(uploadDocumentId.value);
     const formData = new FormData();
     formData.append('file', uploadFile.value);
     formData.append('category', uploadCategory.value);
     if (uploadRecordType.value) formData.append('record_type', uploadRecordType.value);
     if (uploadRecordId.value) formData.append('record_id', uploadRecordId.value);
     if (uploadTitle.value) formData.append('title', uploadTitle.value);
+    if (uploadDocumentId.value) formData.append('document_id', uploadDocumentId.value);
 
     isUploading.value = true;
     router.post(`/staff/${props.employee.id}/documents`, formData, {
@@ -369,8 +374,9 @@ function submitDocument() {
         onSuccess: () => {
             showUploadModal.value = false;
             uploadFile.value = null;
+            uploadDocumentId.value = null;
             isUploading.value = false;
-            showToast('success', page.props.flash?.success || 'Dokumen berhasil diunggah.');
+            showToast('success', page.props.flash?.success || (isReplacing ? 'Dokumen pengganti berhasil disimpan.' : 'Dokumen berhasil diunggah.'));
         },
         onError: (errors) => {
             isUploading.value = false;
@@ -492,7 +498,7 @@ function deleteDocument(doc) {
                                         </a>
                                         <button
                                             type="button"
-                                            @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
+                                            @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle, documentId: item.document?.id })"
                                             class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 transition-colors cursor-pointer"
                                             title="Unggah Ulang / Ganti Berkas"
                                         >
@@ -577,7 +583,7 @@ function deleteDocument(doc) {
                             </button>
                             <button
                                 type="button"
-                                @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
+                                @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle, documentId: item.document?.id })"
                                 class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-700"
                             >
                                 <span class="material-symbols-outlined text-[15px]">sync</span>
@@ -692,7 +698,7 @@ function deleteDocument(doc) {
                                         </a>
                                         <button
                                             type="button"
-                                            @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
+                                            @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle, documentId: item.document?.id })"
                                             class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 transition-colors cursor-pointer"
                                             title="Unggah Ulang / Ganti Berkas"
                                         >
@@ -777,7 +783,7 @@ function deleteDocument(doc) {
                             </button>
                             <button
                                 type="button"
-                                @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
+                                @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle, documentId: item.document?.id })"
                                 class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-700"
                             >
                                 <span class="material-symbols-outlined text-[15px]">sync</span>
@@ -892,7 +898,7 @@ function deleteDocument(doc) {
                                         </a>
                                         <button
                                             type="button"
-                                            @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
+                                            @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle, documentId: item.document?.id })"
                                             class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 transition-colors cursor-pointer"
                                             title="Unggah Ulang / Ganti Berkas"
                                         >
@@ -977,7 +983,7 @@ function deleteDocument(doc) {
                             </button>
                             <button
                                 type="button"
-                                @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
+                                @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle, documentId: item.document?.id })"
                                 class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-700"
                             >
                                 <span class="material-symbols-outlined text-[15px]">sync</span>
@@ -1092,7 +1098,7 @@ function deleteDocument(doc) {
                                         </a>
                                         <button
                                             type="button"
-                                            @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
+                                            @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle, documentId: item.document?.id })"
                                             class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 transition-colors cursor-pointer"
                                             title="Unggah Ulang / Ganti Berkas"
                                         >
@@ -1177,7 +1183,7 @@ function deleteDocument(doc) {
                             </button>
                             <button
                                 type="button"
-                                @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
+                                @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle, documentId: item.document?.id })"
                                 class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-700"
                             >
                                 <span class="material-symbols-outlined text-[15px]">sync</span>
@@ -1292,7 +1298,7 @@ function deleteDocument(doc) {
                                         </a>
                                         <button
                                             type="button"
-                                            @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
+                                            @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle, documentId: item.document?.id })"
                                             class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 transition-colors cursor-pointer"
                                             title="Unggah Ulang / Ganti Berkas"
                                         >
@@ -1377,7 +1383,7 @@ function deleteDocument(doc) {
                             </button>
                             <button
                                 type="button"
-                                @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle })"
+                                @click="openUploadModal({ category: item.uploadCategory, recordType: item.recordType, recordId: item.recordId, title: item.uploadTitle, documentId: item.document?.id })"
                                 class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-700"
                             >
                                 <span class="material-symbols-outlined text-[15px]">sync</span>
@@ -1427,10 +1433,10 @@ function deleteDocument(doc) {
                         <div class="flex items-center justify-between p-5 border-b border-slate-100 bg-white">
                             <div class="flex items-center gap-2.5">
                                 <div class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center">
-                                    <span class="material-symbols-outlined text-[20px]">upload_file</span>
+                                    <span class="material-symbols-outlined text-[20px]">{{ uploadDocumentId ? 'sync' : 'upload_file' }}</span>
                                 </div>
                                 <div>
-                                    <h3 class="text-sm font-bold text-slate-900">Unggah Dokumen Pegawai</h3>
+                                    <h3 class="text-sm font-bold text-slate-900">{{ uploadDocumentId ? 'Ganti / Perbarui Berkas Dokumen' : 'Unggah Dokumen Pegawai' }}</h3>
                                     <p class="text-xs text-slate-500 truncate max-w-[280px] sm:max-w-xs">{{ uploadTitle || 'Pilih berkas untuk diunggah' }}</p>
                                 </div>
                             </div>
@@ -1517,7 +1523,7 @@ function deleteDocument(doc) {
                                     class="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-bold text-xs shadow-xs transition-all disabled:opacity-50 cursor-pointer"
                                 >
                                     <span v-if="isUploading || isCompressing" class="material-symbols-outlined text-[16px] animate-spin">sync</span>
-                                    <span>{{ isUploading ? 'Mengunggah...' : (isCompressing ? 'Mengompres...' : 'Unggah Dokumen') }}</span>
+                                    <span>{{ isUploading ? 'Mengunggah...' : (isCompressing ? 'Mengompres...' : (uploadDocumentId ? 'Simpan Berkas Pengganti' : 'Unggah Dokumen')) }}</span>
                                 </button>
                             </div>
                         </form>

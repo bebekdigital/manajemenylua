@@ -55,17 +55,21 @@ class EmployeeDocument extends Model
 
     public function getPreviewUrlAttribute(): string
     {
+        $version = $this->updated_at ? $this->updated_at->timestamp : time();
+
         return route('staff.documents.preview', [
             'id' => $this->employee_id,
             'documentId' => $this->id,
-        ]);
+        ]).'?v='.$version;
     }
 
     public function getDownloadUrlAttribute(): string
     {
+        $version = $this->updated_at ? $this->updated_at->timestamp : time();
+
         return route('staff.documents.download', [
             'id' => $this->employee_id,
             'documentId' => $this->id,
-        ]);
+        ]).'?v='.$version;
     }
 }

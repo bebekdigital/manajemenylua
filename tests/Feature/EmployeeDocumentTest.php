@@ -190,11 +190,79 @@ class EmployeeDocumentTest extends TestCase
         $previewRes = $this->actingAs($user)->get("/staff/{$employee->id}/documents/{$doc->id}/preview");
         $previewRes->assertStatus(200);
         $previewRes->assertHeader('Content-Disposition', 'inline; filename="kk_yusuf.pdf"');
+        $this->assertStringContainsString('no-store', $previewRes->headers->get('Cache-Control') ?? '');
+        $this->assertStringContainsString('?v=', $doc->preview_url);
 
         // Test Download
         $downloadRes = $this->actingAs($user)->get("/staff/{$employee->id}/documents/{$doc->id}/download");
         $downloadRes->assertStatus(200);
         $this->assertStringContainsString('attachment', $downloadRes->headers->get('Content-Disposition') ?? '');
+    }
+
+    public function test_can_replace_document_by_document_id_and_cleanup_old_file(): void
+    {
+        Storage::fake('local');
+
+        $user = User::factory()->create();
+        $employee = Employee::create(['nama' => 'Zainab', 'nik' => '3301010101010007']);
+
+        // 1. Initial upload
+        $oldFile = UploadedFile::fake()->create('ijazah_d3_lama.pdf', 300, 'application/pdf');
+        $this->actingAs($user)->post("/staff/{$employee->id}/documents", [
+            'category' => 'ijazah',
+            'title' => 'Ijazah D3 Asli',
+            'file' => $oldFile,
+        ])->assertRedirect();
+
+        $originalDoc = EmployeeDocument::where('employee_id', $employee->id)->where('category', 'ijazah')->first();
+        $this->assertNotNull($originalDoc);
+        $oldFilePath = $originalDoc->file_path;
+        Storage::disk('local')->assertExists($oldFilePath);
+
+        // 2. Replacement upload specifying document_id
+        $newFile = UploadedFile::fake()->create('ijazah_d3_revisi.pdf', 450, 'application/pdf');
+        $replaceRes = $this->actingAs($user)->post("/staff/{$employee->id}/documents", [
+            'category' => 'ijazah',
+            'title' => 'Ijazah D3 Terlegalisir',
+            'document_id' => $originalDoc->id,
+            'file' => $newFile,
+        ]);
+
+        $replaceRes->assertRedirect();
+        $replaceRes->assertSessionHas('success', 'Dokumen Ijazah D3 Terlegalisir berhasil diperbarui.');
+
+        // Old file must be removed from storage
+        Storage::disk('local')->assertMissing($oldFilePath);
+
+        // The document record was updated, not duplicated
+        $this->assertEquals(1, EmployeeDocument::where('employee_id', $employee->id)->where('category', 'ijazah')->count());
+
+        $originalDoc->refresh();
+        $this->assertEquals('Ijazah D3 Terlegalisir', $originalDoc->title);
+        $this->assertEquals('ijazah_d3_revisi.pdf', $originalDoc->file_name);
+        Storage::disk('local')->assertExists($originalDoc->file_path);
+    }
+
+    public function test_can_upload_and_replace_training_certificate(): void
+    {
+        Storage::fake('local');
+
+        $user = User::factory()->create();
+        $employee = Employee::create(['nama' => 'Hamzah', 'nik' => '3301010101010008']);
+
+        $file = UploadedFile::fake()->create('sertifikat_canva.pdf', 250, 'application/pdf');
+        $res = $this->actingAs($user)->post("/staff/{$employee->id}/documents", [
+            'category' => 'sertifikat_pelatihan',
+            'title' => 'Sertifikat Desain Canva',
+            'file' => $file,
+        ]);
+
+        $res->assertRedirect();
+        $res->assertSessionHas('success', 'Dokumen Sertifikat Desain Canva berhasil diunggah.');
+
+        $doc = EmployeeDocument::where('employee_id', $employee->id)->where('category', 'sertifikat_pelatihan')->first();
+        $this->assertNotNull($doc);
+        Storage::disk('local')->assertExists($doc->file_path);
     }
 
     public function test_can_delete_document(): void
