@@ -141,6 +141,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/students/upload-photos', [StudentController::class, 'uploadPhotos'])->name('students.upload-photos');
     Route::get('/students/photo/{filename}', [StudentController::class, 'showPhoto'])->name('students.photo');
     Route::get('/students/{nisn}', [StudentController::class, 'show'])->name('students.show');
+    Route::match(['put', 'post'], '/students/{id}', [StudentController::class, 'update'])->name('students.update');
 
     // Menu Section Hub (Kategori Layanan Mobile & Desktop)
     Route::get('/section/{slug}', [SectionController::class, 'show'])->name('section.show');

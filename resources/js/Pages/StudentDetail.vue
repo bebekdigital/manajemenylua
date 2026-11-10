@@ -1,7 +1,8 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { ref, reactive, computed, onMounted, onUnmounted, nextTick, provide, watch } from 'vue';
+import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import TabIdentitas from './Students/Tabs/TabIdentitas.vue';
 
 defineOptions({
     layout: AppLayout,
@@ -23,9 +24,173 @@ const props = defineProps({
             can_import: false,
         }),
     },
+    allUnits: {
+        type: Array,
+        default: () => [],
+    },
+    allLevels: {
+        type: Array,
+        default: () => [],
+    },
 });
 
+const page = usePage();
 const activeTab = ref('identitas');
+const isEditing = ref(false);
+const canEdit = computed(() => props.permissions?.can_update ?? true);
+
+// Floating Toast Notification
+const toast = reactive({
+    show: false,
+    type: 'success', // 'success' | 'error'
+    title: '',
+    message: '',
+    progress: 100,
+});
+let toastTimer = null;
+let toastInterval = null;
+
+function showToast(type, message, title = null) {
+    if (!message) return;
+
+    if (toastTimer) {
+        clearTimeout(toastTimer);
+        toastTimer = null;
+    }
+    if (toastInterval) {
+        clearInterval(toastInterval);
+        toastInterval = null;
+    }
+
+    toast.type = type;
+    toast.title = title || (type === 'success' ? 'Berhasil' : 'Terjadi Kesalahan');
+    toast.message = message;
+    toast.progress = 100;
+    toast.show = true;
+
+    const duration = 4000;
+    const startTime = Date.now();
+
+    toastInterval = setInterval(() => {
+        const elapsed = Date.now() - startTime;
+        const remaining = Math.max(0, 100 - (elapsed / duration) * 100);
+        toast.progress = remaining;
+        if (remaining <= 0) {
+            clearInterval(toastInterval);
+            toastInterval = null;
+        }
+    }, 25);
+
+    toastTimer = setTimeout(() => {
+        closeToast();
+    }, duration);
+}
+
+function closeToast() {
+    toast.show = false;
+    if (toastTimer) {
+        clearTimeout(toastTimer);
+        toastTimer = null;
+    }
+    if (toastInterval) {
+        clearInterval(toastInterval);
+        toastInterval = null;
+    }
+}
+
+provide('showToast', showToast);
+
+watch(
+    () => [page.props.flash?.success, page.props.flash?.error],
+    ([newSuccess, newError]) => {
+        if (newSuccess) {
+            showToast('success', newSuccess, 'Berhasil Disimpan');
+        } else if (newError) {
+            showToast('error', newError, 'Terjadi Kesalahan');
+        }
+    },
+    { deep: true, immediate: true }
+);
+
+// Form State untuk Identitas Siswa
+const form = useForm({
+    nama: '',
+    nisn: '',
+    nipd: '',
+    nik: '',
+    no_kk: '',
+    jk: '',
+    tempat_lahir: '',
+    tanggal_lahir: '',
+    agama: 'Islam',
+    unit: '',
+    program: 'Umum',
+    jenjang: '',
+    tingkat: '',
+    kelas: '',
+    no_wa: '',
+    no_wa_2: '',
+    email: '',
+});
+
+function initFormFromProps() {
+    form.nama = props.student.nama || '';
+    form.nisn = props.student.nisn || '';
+    form.nipd = props.student.nipd || '';
+    form.nik = props.student.nik || '';
+    form.no_kk = props.student.no_kk || '';
+    form.jk = props.student.jk || '';
+    form.tempat_lahir = props.student.tempat_lahir || '';
+    form.tanggal_lahir = props.student.tanggal_lahir || '';
+    form.agama = props.student.agama || 'Islam';
+    form.unit = props.student.unit || '';
+    form.program = props.student.program || 'Umum';
+    form.jenjang = props.student.jenjang || '';
+    form.tingkat = props.student.tingkat ? String(props.student.tingkat) : '';
+    form.kelas = props.student.kelas || '';
+    form.no_wa = props.student.no_wa || '';
+    form.no_wa_2 = props.student.no_wa_2 || '';
+    form.email = props.student.email || '';
+}
+
+initFormFromProps();
+
+watch(
+    () => props.student,
+    () => {
+        if (!isEditing.value) {
+            initFormFromProps();
+        }
+    },
+    { deep: true }
+);
+
+function startEdit() {
+    if (!canEdit.value) return;
+    initFormFromProps();
+    form.clearErrors();
+    isEditing.value = true;
+}
+
+function cancelEdit() {
+    initFormFromProps();
+    form.clearErrors();
+    isEditing.value = false;
+}
+
+function saveChanges() {
+    form.put(`/students/${props.student.id || props.student.nisn}`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            isEditing.value = false;
+            initFormFromProps();
+            showToast('success', page.props.flash?.success || `Data identitas siswa '${form.nama}' berhasil diperbarui.`);
+        },
+        onError: () => {
+            showToast('error', 'Mohon lengkapi dan periksa kembali data yang belum valid.', 'Gagal Menyimpan');
+        },
+    });
+}
 
 const timelineHeaders = computed(() => {
     if (!props.student.riwayat_keaktifan) return [];
@@ -154,7 +319,7 @@ onUnmounted(() => {
 
 <template>
     <div class="flex-1 overflow-y-auto p-4 md:p-margin-desktop pb-24 md:pb-margin-desktop bg-white min-h-screen">
-        <Head :title="`Detail Siswa - ${student.nama}`" />
+        <Head :title="`${isEditing ? 'Edit' : 'Detail'} Siswa - ${student.nama}`" />
 
         <div class="max-w-[1440px] mx-auto">
             <!-- Back Button -->
@@ -290,15 +455,20 @@ onUnmounted(() => {
                             :data-tab-id="tab.id"
                             type="button"
                             @click="selectTab(tab.id)"
+                            :disabled="isEditing && activeTab !== tab.id"
                             :class="[
-                                'inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs sm:text-sm transition-all duration-150 cursor-pointer shrink-0 whitespace-nowrap',
+                                'inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs sm:text-sm transition-all duration-150 shrink-0 whitespace-nowrap',
                                 activeTab === tab.id
                                     ? 'bg-emerald-100 text-emerald-950 font-bold border border-emerald-300 shadow-2xs'
-                                    : 'text-slate-600 hover:text-slate-900 font-medium border border-transparent hover:bg-slate-200/60'
+                                    : isEditing
+                                    ? 'text-slate-400 opacity-60 cursor-not-allowed border border-transparent'
+                                    : 'text-slate-600 hover:text-slate-900 font-medium border border-transparent hover:bg-slate-200/60 cursor-pointer'
                             ]"
+                            :title="isEditing && activeTab !== tab.id ? 'Selesaikan atau batalkan mode edit terlebih dahulu untuk berpindah tab' : ''"
                         >
                             <span class="material-symbols-outlined text-[18px]">{{ tab.icon }}</span>
                             <span>{{ tab.label }}</span>
+                            <span v-if="isEditing && activeTab !== tab.id" class="material-symbols-outlined text-[14px] text-slate-400">lock</span>
                         </button>
                     </div>
                 </div>
@@ -331,89 +501,18 @@ onUnmounted(() => {
             <!-- Card Konten Tab Siswa -->
             <div class="bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-7 shadow-xs">
                 <!-- TAB: Identitas -->
-                <div v-if="activeTab === 'identitas'" class="space-y-6">
-                    <div>
-                        <div class="flex items-center gap-2 mb-4 pb-2 border-b border-slate-100">
-                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span>
-                            <h4 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Identitas Pokok Siswa</h4>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-                            <div>
-                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Nama Lengkap</label>
-                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.nama }}</p>
-                            </div>
-                            <div>
-                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">NISN</label>
-                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1 font-mono">{{ student.nisn || '-' }}</p>
-                            </div>
-                            <div>
-                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">NIPD</label>
-                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1 font-mono">{{ student.nipd || '-' }}</p>
-                            </div>
-                            <div>
-                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">NIK</label>
-                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1 font-mono">{{ student.nik || '-' }}</p>
-                            </div>
-                            <div>
-                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">No. KK</label>
-                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1 font-mono">{{ student.no_kk || '-' }}</p>
-                            </div>
-                            <div>
-                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Unit Kerja</label>
-                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.unit || '-' }}</p>
-                            </div>
-                            <div>
-                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Program</label>
-                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">
-                                    <span :class="[
-                                        'inline-flex items-center px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-semibold',
-                                        student.program === 'Boarding' ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' :
-                                        student.program === 'Fullday' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' :
-                                        'bg-slate-100 text-slate-700 border border-slate-200'
-                                    ]">
-                                        {{ student.program || 'Umum' }}
-                                    </span>
-                                </p>
-                            </div>
-                            <div>
-                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Kelas</label>
-                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.kelas || '-' }}</p>
-                            </div>
-                            <div>
-                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Jenjang</label>
-                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.jenjang || '-' }}</p>
-                            </div>
-                            <div>
-                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Tingkat</label>
-                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.tingkat || '-' }}</p>
-                            </div>
-                            <div>
-                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Jenis Kelamin</label>
-                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.jk === 'L' ? 'Laki-laki' : 'Perempuan' }}</p>
-                            </div>
-                            <div>
-                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Tempat, Tanggal Lahir</label>
-                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.ttl || '-' }}</p>
-                            </div>
-                            <div>
-                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Agama</label>
-                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.agama || '-' }}</p>
-                            </div>
-                            <div>
-                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">No. WhatsApp 1</label>
-                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.no_wa || '-' }}</p>
-                            </div>
-                            <div>
-                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">No. WhatsApp 2</label>
-                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.no_wa_2 || '-' }}</p>
-                            </div>
-                            <div>
-                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Email</label>
-                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.email || '-' }}</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <TabIdentitas
+                    v-if="activeTab === 'identitas'"
+                    :student="student"
+                    :form="form"
+                    :is-editing="isEditing"
+                    :can-edit="canEdit"
+                    :all-units="allUnits"
+                    :all-levels="allLevels"
+                    @start-edit="startEdit"
+                    @cancel-edit="cancelEdit"
+                    @save-changes="saveChanges"
+                />
 
                 <!-- TAB: Alamat -->
                 <div v-if="activeTab === 'alamat'" class="space-y-6">
@@ -884,6 +983,66 @@ onUnmounted(() => {
                 </div>
             </div>
         </div>
+
+        <!-- FLOATING TOAST MELAYANG DENGAN PROGRESS BAR MUNDUR -->
+        <Teleport to="body">
+            <Transition
+                enter-active-class="transform ease-out duration-300 transition"
+                enter-from-class="translate-y-2 opacity-0 sm:translate-y-0 sm:translate-x-2"
+                enter-to-class="translate-y-0 opacity-100 sm:translate-x-0"
+                leave-active-class="transition ease-in duration-200"
+                leave-from-class="opacity-100"
+                leave-to-class="opacity-0"
+            >
+                <div
+                    v-if="toast.show"
+                    class="fixed top-5 right-4 sm:top-6 sm:right-6 z-[9999] max-w-sm w-[calc(100%-2rem)] bg-white rounded-2xl shadow-2xl border overflow-hidden"
+                    :class="toast.type === 'success' ? 'border-emerald-200 shadow-emerald-950/20' : 'border-rose-200 shadow-rose-950/20'"
+                    role="alert"
+                >
+                    <div class="p-4 flex items-start gap-3">
+                        <div
+                            :class="[
+                                'w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-2xs',
+                                toast.type === 'success' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                            ]"
+                        >
+                            <span class="material-symbols-outlined text-[20px]">
+                                {{ toast.type === 'success' ? 'check_circle' : 'error' }}
+                            </span>
+                        </div>
+                        <div class="flex-1 min-w-0 pr-1">
+                            <h4
+                                class="text-xs sm:text-sm font-bold leading-tight"
+                                :class="toast.type === 'success' ? 'text-emerald-950' : 'text-rose-950'"
+                            >
+                                {{ toast.title }}
+                            </h4>
+                            <p class="text-xs text-slate-600 mt-1 leading-relaxed break-words font-medium">
+                                {{ toast.message }}
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            @click="closeToast"
+                            class="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
+                            title="Tutup pemberitahuan"
+                        >
+                            <span class="material-symbols-outlined text-[18px]">close</span>
+                        </button>
+                    </div>
+
+                    <!-- Progress Bar Mundur -->
+                    <div class="w-full bg-slate-100 h-1 overflow-hidden">
+                        <div
+                            class="h-full transition-all duration-75 ease-linear"
+                            :class="toast.type === 'success' ? 'bg-emerald-600' : 'bg-rose-600'"
+                            :style="{ width: `${toast.progress}%` }"
+                        ></div>
+                    </div>
+                </div>
+            </Transition>
+        </Teleport>
     </div>
 </template>
 

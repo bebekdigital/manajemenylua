@@ -19,6 +19,7 @@ use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 use PhpOffice\PhpSpreadsheet\Cell\DataValidation;
@@ -203,11 +204,15 @@ class StudentController extends Controller
             ?? $studentModel->academicRecords->sortByDesc('academic_year_id')->first();
 
         $studentData = [
+            'id' => $studentModel->id,
             'nisn' => $studentModel->nisn,
             'nama' => $studentModel->nama,
             'nipd' => $studentModel->nipd,
             'jk' => $studentModel->jk,
             'ttl' => $studentModel->ttl,
+            'tempat_lahir' => $studentModel->tempat_lahir,
+            'tanggal_lahir' => $studentModel->tanggal_lahir ? $studentModel->tanggal_lahir->format('Y-m-d') : null,
+            'formatted_tanggal_lahir' => $studentModel->tanggal_lahir ? $studentModel->tanggal_lahir->translatedFormat('d F Y') : null,
             'nik' => $studentModel->nik,
             'no_kk' => $studentModel->no_kk,
             'agama' => $studentModel->agama,
@@ -304,7 +309,97 @@ class StudentController extends Controller
         return Inertia::render('StudentDetail', [
             'student' => $studentData,
             'permissions' => $permissions,
+            'allUnits' => fn () => SchoolUnit::orderBy('name')->pluck('name')->toArray(),
+            'allLevels' => fn () => SchoolLevel::orderBy('name')->pluck('name')->toArray(),
         ]);
+    }
+
+    /**
+     * Update the specified student resource in storage.
+     */
+    public function update(string $id, Request $request): RedirectResponse
+    {
+        $user = $request->user();
+        if (! RolePermission::canAccess($user, 'student_data', 'update')) {
+            abort(403, 'Anda tidak memiliki hak akses untuk mengubah data siswa.');
+        }
+
+        $student = Student::where('id', $id)->orWhere('nisn', $id)->firstOrFail();
+
+        $validated = $request->validate([
+            'nama' => ['required', 'string', 'max:255'],
+            'nisn' => ['required', 'string', 'max:20', Rule::unique('students', 'nisn')->ignore($student->id)],
+            'nipd' => ['nullable', 'string', 'max:50'],
+            'nik' => ['nullable', 'string', 'max:30'],
+            'no_kk' => ['nullable', 'string', 'max:30'],
+            'jk' => ['required', 'in:L,P'],
+            'tempat_lahir' => ['required', 'string', 'max:100'],
+            'tanggal_lahir' => ['required', 'date'],
+            'agama' => ['nullable', 'string', 'max:50'],
+            'no_wa' => ['nullable', 'string', 'max:50'],
+            'no_wa_2' => ['nullable', 'string', 'max:50'],
+            'email' => ['nullable', 'email', 'max:100'],
+            'unit' => ['nullable', 'string', 'max:100'],
+            'program' => ['nullable', 'string', 'max:100'],
+            'jenjang' => ['nullable', 'string', 'max:50'],
+            'tingkat' => ['nullable', 'string', 'max:20'],
+            'kelas' => ['nullable', 'string', 'max:50'],
+        ], [
+            'nama.required' => 'Nama lengkap wajib diisi.',
+            'nisn.required' => 'NISN wajib diisi.',
+            'nisn.unique' => 'NISN sudah digunakan oleh siswa lain.',
+            'jk.required' => 'Jenis kelamin wajib dipilih.',
+            'jk.in' => 'Pilihan jenis kelamin tidak valid.',
+            'tempat_lahir.required' => 'Tempat lahir wajib diisi.',
+            'tanggal_lahir.required' => 'Tanggal lahir wajib diisi.',
+            'tanggal_lahir.date' => 'Format tanggal lahir tidak valid.',
+            'email.email' => 'Format email tidak valid.',
+        ]);
+
+        $oldNisn = $student->nisn;
+
+        $student->update([
+            'nama' => $validated['nama'],
+            'nisn' => $validated['nisn'],
+            'nipd' => $validated['nipd'] ?? null,
+            'nik' => $validated['nik'] ?? null,
+            'no_kk' => $validated['no_kk'] ?? null,
+            'jk' => $validated['jk'],
+            'tempat_lahir' => $validated['tempat_lahir'],
+            'tanggal_lahir' => $validated['tanggal_lahir'],
+            'agama' => $validated['agama'] ?? 'Islam',
+            'no_wa' => $validated['no_wa'] ?? null,
+            'no_wa_2' => $validated['no_wa_2'] ?? null,
+            'email' => $validated['email'] ?? null,
+            'unit' => $validated['unit'] ?? $student->unit,
+            'jenjang' => $validated['jenjang'] ?? $student->jenjang,
+        ]);
+
+        // Sinkronisasi program & jenjang ke Academic Record aktif siswa bila ada
+        $activeYear = AcademicYear::current();
+        if ($activeYear) {
+            $record = $student->academicRecords()->where('academic_year_id', $activeYear->id)->first();
+            if ($record) {
+                $recordUpdates = [];
+                if (isset($validated['program'])) {
+                    $recordUpdates['program'] = $validated['program'];
+                }
+                if (isset($validated['tingkat'])) {
+                    $recordUpdates['tingkat'] = $validated['tingkat'];
+                }
+                if (! empty($recordUpdates)) {
+                    $record->update($recordUpdates);
+                }
+            }
+        }
+
+        $successMsg = "Data identitas siswa '{$student->nama}' berhasil diperbarui.";
+
+        if ($student->nisn !== $oldNisn) {
+            return redirect()->route('students.show', ['nisn' => $student->nisn])->with('success', $successMsg);
+        }
+
+        return redirect()->back()->with('success', $successMsg);
     }
 
     /**
