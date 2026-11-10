@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ylua-pwa-v20';
+const CACHE_NAME = 'ylua-pwa-v21';
 const CURRENT_CACHES = [CACHE_NAME];
 
 const PRECACHE_ASSETS = [
@@ -75,11 +75,13 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 3. Jangan cache endpoint autentikasi, logout, atau polling realtime
+  // 3. Jangan cache endpoint autentikasi, logout, download template, atau polling realtime
   const isExcluded = (
     url.pathname === '/login' ||
     url.pathname === '/logout' ||
-    url.pathname.startsWith('/api/')
+    url.pathname.startsWith('/api/') ||
+    url.pathname.startsWith('/students/template') ||
+    url.pathname.startsWith('/staff/template')
   );
 
   if (isExcluded) {

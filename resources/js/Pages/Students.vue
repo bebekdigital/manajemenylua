@@ -500,11 +500,18 @@ const downloadTemplate = async () => {
     showTemplateDropdown.value = false;
     isDownloadingTemplate.value = true;
     try {
-        const url = `/students/template?tab=${activeUnitTab.value}`;
-        const response = await fetch(url, { method: 'GET' });
+        const url = `/students/template?t=${Date.now()}`;
+        const response = await fetch(url, {
+            method: 'GET',
+            cache: 'no-store',
+            headers: {
+                'Pragma': 'no-cache',
+                'Cache-Control': 'no-cache',
+            },
+        });
         if (!response.ok) throw new Error('Network response was not ok');
 
-        let filename = 'Template_Data_Siswa.xlsx';
+        let filename = 'Template_Data_Siswa_Semua_Jenjang.xlsx';
         const disposition = response.headers.get('Content-Disposition');
         if (disposition && disposition.indexOf('attachment') !== -1) {
             const matches = /filename="([^"]*)"/.exec(disposition);

@@ -839,48 +839,37 @@ class StudentController extends Controller
             abort(403, 'Anda tidak memiliki hak akses untuk mengunduh template data siswa.');
         }
 
-        $tab = $request->query('tab', 'all');
-
-        $units = collect();
-        $programs = collect();
-        $classes = collect();
-        $jenjang = null;
-
-        if ($tab !== 'all') {
-            $mappedJenjang = null;
-            if ($tab === 'SDIT') {
-                $mappedJenjang = 'SD';
-            } elseif ($tab === 'SMPIT') {
-                $mappedJenjang = 'SMP';
-            } else {
-                $mappedJenjang = str_replace('IT', '', strtoupper($tab));
-            }
-
-            $level = SchoolLevel::where('name', $mappedJenjang)->orWhere('name', 'like', "%{$mappedJenjang}%")->first();
-
-            if ($level) {
-                $jenjang = $level->name;
-                $units = SchoolUnit::where('school_level_id', $level->id)->pluck('name');
-                $programs = SchoolProgram::whereHas('unit', fn ($q) => $q->where('school_level_id', $level->id))->pluck('name');
-                $classes = SchoolClass::whereHas('unit', fn ($q) => $q->where('school_level_id', $level->id))->pluck('name');
-            } else {
-                $units = SchoolUnit::pluck('name');
-                $programs = SchoolProgram::pluck('name');
-                $classes = SchoolClass::pluck('name');
-            }
-        } else {
-            $units = SchoolUnit::pluck('name');
-            $programs = SchoolProgram::pluck('name');
-            $classes = SchoolClass::pluck('name');
+        // Ambil data jenjang, unit sekolah, program, dan kelas dari Pengaturan > Akademik
+        $levels = SchoolLevel::orderBy('order')->pluck('name')->filter()->values();
+        if ($levels->isEmpty()) {
+            $levels = collect(['SD', 'SMP']);
         }
+
+        $units = SchoolUnit::with('level')
+            ->get()
+            ->sortBy([
+                fn ($a, $b) => ($a->level?->order ?? 0) <=> ($b->level?->order ?? 0),
+                fn ($a, $b) => strcmp($a->name, $b->name),
+            ])
+            ->pluck('name')
+            ->filter()
+            ->values();
+
+        if ($units->isEmpty()) {
+            $units = collect(['SDIT Ulil Albab', 'SMPIT Ulil Albab']);
+        }
+
+        $programs = SchoolProgram::orderBy('name')->pluck('name')->filter()->unique()->values();
+        $classes = SchoolClass::orderBy('name')->pluck('name')->filter()->unique()->values();
 
         $spreadsheet = new Spreadsheet;
         $spreadsheet->getProperties()
             ->setCreator('Sistem Manajemen Sekolah')
-            ->setTitle('Template Import Data Siswa');
+            ->setTitle('Template Import Data Siswa')
+            ->setSubject('Template Import Siswa Semua Jenjang');
 
-        $this->buildDropdownsSheet($spreadsheet, $units, $programs, $classes);
-        $this->buildSheet1($spreadsheet, $jenjang);
+        $this->buildDropdownsSheet($spreadsheet, $levels, $units, $programs, $classes);
+        $this->buildSheet1($spreadsheet, $levels, $units);
         $this->buildSheet2($spreadsheet);
 
         // Remove default sheet 0 if it was created by new Spreadsheet but we shifted things.
@@ -892,35 +881,41 @@ class StudentController extends Controller
         $writer->save('php://output');
         $content = ob_get_clean();
 
-        $tabSuffix = ($tab !== 'all') ? strtoupper($tab) : 'Semua';
-        $filename = 'template_import_siswa_'.$tabSuffix.'_'.date('Ymd').'.xlsx';
+        $filename = 'template_import_siswa_semua_jenjang_'.date('Ymd').'.xlsx';
 
         return response($content, 200, [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             'Content-Disposition' => "attachment; filename=\"{$filename}\"",
-            'Cache-Control' => 'max-age=0',
+            'Cache-Control' => 'no-cache, no-store, must-revalidate',
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
         ]);
     }
 
-    private function buildDropdownsSheet(Spreadsheet $spreadsheet, $units, $programs, $classes): void
+    private function buildDropdownsSheet(Spreadsheet $spreadsheet, $levels, $units, $programs, $classes): void
     {
         // Insert as the very first sheet
         $sheet = $spreadsheet->createSheet(0);
         $sheet->setTitle('Dropdowns');
 
-        $sheet->setCellValue('A1', 'Units');
-        foreach ($units as $index => $val) {
+        $sheet->setCellValue('A1', 'Jenjang');
+        foreach ($levels as $index => $val) {
             $sheet->setCellValue('A'.($index + 2), $val);
         }
 
-        $sheet->setCellValue('B1', 'Programs');
-        foreach ($programs as $index => $val) {
+        $sheet->setCellValue('B1', 'Units');
+        foreach ($units as $index => $val) {
             $sheet->setCellValue('B'.($index + 2), $val);
         }
 
-        $sheet->setCellValue('C1', 'Classes');
-        foreach ($classes as $index => $val) {
+        $sheet->setCellValue('C1', 'Programs');
+        foreach ($programs as $index => $val) {
             $sheet->setCellValue('C'.($index + 2), $val);
+        }
+
+        $sheet->setCellValue('D1', 'Classes');
+        foreach ($classes as $index => $val) {
+            $sheet->setCellValue('D'.($index + 2), $val);
         }
 
         // Hide the sheet
@@ -931,7 +926,7 @@ class StudentController extends Controller
     // XLSX Template Sheet Builders
     // ----------------------------------------------------------------
 
-    private function buildSheet1(Spreadsheet $spreadsheet, ?string $jenjang = null): void
+    private function buildSheet1(Spreadsheet $spreadsheet, $levels, $units): void
     {
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('1. Data Siswa');
@@ -1013,46 +1008,71 @@ class StudentController extends Controller
             $sheet->getStyle($col.'2:'.$col.'1000')->getNumberFormat()->setFormatCode('@');
         }
 
-        $unitExample = ($jenjang === 'SMP') ? 'SMPIT Ulil Albab' : 'SDIT Ulil Albab';
+        $sdUnit = $units->first(fn ($u) => str_contains(strtoupper($u), 'SD')) ?? ($units->first() ?? 'SDIT Ulil Albab');
+        $smpUnit = $units->first(fn ($u) => str_contains(strtoupper($u), 'SMP')) ?? ($units->skip(1)->first() ?? 'SMPIT Ulil Albab');
 
-        $sheet->fromArray([[
-            '0051234001', 'Ahmad Fauzi Rahman', '10231001', // A, B, C
-            '2025/2026', $jenjang ?? 'SD', $unitExample, // D, E, F
-            'L', 'Karanganyar', '2014-03-15', // G, H, I
-            '3313150101080001', 'Islam', 'Jl. Lawu No. 12', // J, K, L
-            '03', '05', 'Ngemplak', 'Desa Makmur', 'Colomadu', 'Karanganyar', 'Jawa Tengah', // M, N, O, P, Q, R, S
-            'Bersama Orang Tua', 'Jalan Kaki', '081234567001', '081234567002', 'ahmad.fauzi@example.com', // T, U, V, W, X
-            'Fauzi Hidayat', '1980', 'SMA/SMK', 'Wiraswasta', 'Rp 3.000.000 - Rp 5.000.000', '3313150101800001', 'Hidup', // Y, Z, AA, AB, AC, AD, AE
-            'Siti Rahmawati', '1984', 'SMA/SMK', 'Ibu Rumah Tangga', 'Kurang dari Rp 1.000.000', '3313150101840002', 'Hidup', // AF, AG, AH, AI, AJ, AK, AL
-            '', '', '', '', '', '', '', // AM, AN, AO, AP, AQ, AR, AS
-            'Ya', '6071012345670001', 'Ahmad Fauzi Rahman', // AT, AU, AV
-            'Ya', 'Penerima PIP tahap 1', 'Tidak ada', // AW, AX, AY
-            'TK Aisyiyah Colomadu', '1', '3313151503140001', 'Kurang dari 1 km', // AZ, BA, BB, BC
-            'Tidak', '-', '1', // BD, BE, BF
-            'SDIT', '2025-07-01', 'Brosur', 'Siswa Baru', // BG, BH, BI, BJ
-        ]], null, 'A2');
+        $exampleRows = [
+            [
+                '0051234001', 'Ahmad Fauzi Rahman', '10231001', // A, B, C
+                '2025/2026', 'SD', $sdUnit, // D, E, F
+                'L', 'Karanganyar', '2014-03-15', // G, H, I
+                '3313150101080001', 'Islam', 'Jl. Lawu No. 12', // J, K, L
+                '03', '05', 'Ngemplak', 'Desa Makmur', 'Colomadu', 'Karanganyar', 'Jawa Tengah', // M, N, O, P, Q, R, S
+                'Bersama Orang Tua', 'Jalan Kaki', '081234567001', '081234567002', 'ahmad.fauzi@example.com', // T, U, V, W, X
+                'Fauzi Hidayat', '1980', 'SMA/SMK', 'Wiraswasta', 'Rp 3.000.000 - Rp 5.000.000', '3313150101800001', 'Hidup', // Y, Z, AA, AB, AC, AD, AE
+                'Siti Rahmawati', '1984', 'SMA/SMK', 'Ibu Rumah Tangga', 'Kurang dari Rp 1.000.000', '3313150101840002', 'Hidup', // AF, AG, AH, AI, AJ, AK, AL
+                '', '', '', '', '', '', '', // AM, AN, AO, AP, AQ, AR, AS
+                'Ya', '6071012345670001', 'Ahmad Fauzi Rahman', // AT, AU, AV
+                'Ya', 'Penerima PIP tahap 1', 'Tidak ada', // AW, AX, AY
+                'TK Aisyiyah Colomadu', '1', '3313151503140001', 'Kurang dari 1 km', // AZ, BA, BB, BC
+                'Tidak', '-', '1', // BD, BE, BF
+                'SDIT', '2025-07-01', 'Brosur', 'Siswa Baru', // BG, BH, BI, BJ
+            ],
+            [
+                '0051234002', 'Aisyah Azzahra', '10232001', // A, B, C
+                '2025/2026', 'SMP', $smpUnit, // D, E, F
+                'P', 'Surakarta', '2011-08-20', // G, H, I
+                '3313154208110002', 'Islam', 'Jl. Slamet Riyadi No. 45', // J, K, L
+                '01', '02', 'Kerten', 'Kerten', 'Laweyan', 'Surakarta', 'Jawa Tengah', // M, N, O, P, Q, R, S
+                'Bersama Orang Tua', 'Sepeda Motor', '081234567003', '081234567004', 'aisyah.azzahra@example.com', // T, U, V, W, X
+                'Rahmat Hidayat', '1978', 'S1', 'PNS / ASN', 'Rp 5.000.000 - Rp 10.000.000', '3313150101780002', 'Hidup', // Y, Z, AA, AB, AC, AD, AE
+                'Nurul Khotimah', '1982', 'D3', 'Wiraswasta', 'Rp 2.000.000 - Rp 3.000.000', '3313150101820003', 'Hidup', // AF, AG, AH, AI, AJ, AK, AL
+                '', '', '', '', '', '', '', // AM, AN, AO, AP, AQ, AR, AS
+                'Tidak', '', '', // AT, AU, AV
+                'Tidak', '', 'Tidak ada', // AW, AX, AY
+                'SDIT Ulil Albab', '2', '3313154208110001', '2 km', // AZ, BA, BB, BC
+                'Ya', 'Toko Kelontong', '2', // BD, BE, BF
+                'SMPIT', '2025-07-01', 'Media Sosial', 'Siswa Baru', // BG, BH, BI, BJ
+            ],
+        ];
+
+        $sheet->fromArray($exampleRows, null, 'A2');
+
+        $jenjangLastRow = max(count($levels) + 1, 2);
+        $unitLastRow = max(count($units) + 1, 2);
 
         for ($row = 2; $row <= 1000; $row++) {
-            // Dropdown/fixed for Jenjang
-            if ($jenjang) {
-                if ($row > 2) {
-                    $sheet->setCellValue('E'.$row, $jenjang);
-                }
-                $valJenjang = $sheet->getCell('E'.$row)->getDataValidation();
-                $valJenjang->setType(DataValidation::TYPE_LIST);
-                $valJenjang->setShowDropDown(true);
-                $valJenjang->setShowErrorMessage(true);
-                $valJenjang->setErrorStyle(DataValidation::STYLE_STOP);
-                $valJenjang->setErrorTitle('Invalid Input');
-                $valJenjang->setError('Pilihan Jenjang dikunci (fixed) berdasarkan template.');
-                $valJenjang->setFormula1('"'.$jenjang.'"');
-            }
+            // Dropdown Jenjang (dari Dropdowns sheet kolom A)
+            $valJenjang = $sheet->getCell('E'.$row)->getDataValidation();
+            $valJenjang->setType(DataValidation::TYPE_LIST);
+            $valJenjang->setAllowBlank(true);
+            $valJenjang->setShowDropDown(true);
+            $valJenjang->setShowErrorMessage(true);
+            $valJenjang->setErrorStyle(DataValidation::STYLE_STOP);
+            $valJenjang->setErrorTitle('Invalid Input');
+            $valJenjang->setError('Pilih Jenjang yang valid dari daftar.');
+            $valJenjang->setFormula1("Dropdowns!\$A\$2:\$A\${$jenjangLastRow}");
 
+            // Dropdown Unit (dari Dropdowns sheet kolom B)
             $valUnit = $sheet->getCell('F'.$row)->getDataValidation();
             $valUnit->setType(DataValidation::TYPE_LIST);
             $valUnit->setAllowBlank(true);
             $valUnit->setShowDropDown(true);
-            $valUnit->setFormula1('Dropdowns!$A$2:$A$200');
+            $valUnit->setShowErrorMessage(true);
+            $valUnit->setErrorStyle(DataValidation::STYLE_STOP);
+            $valUnit->setErrorTitle('Invalid Input');
+            $valUnit->setError('Pilih Unit yang valid dari daftar.');
+            $valUnit->setFormula1("Dropdowns!\$B\$2:\$B\${$unitLastRow}");
 
             $valJk = $sheet->getCell('G'.$row)->getDataValidation();
             $valJk->setType(DataValidation::TYPE_LIST);
@@ -1085,7 +1105,8 @@ class StudentController extends Controller
             $valStatusRegistrasi->setFormula1('"Siswa Baru,Mutasi Masuk"');
         }
 
-        $this->styleExampleRow($sheet, 2, 'A', 'BE');
+        $this->styleExampleRow($sheet, 2, 'A', 'BJ');
+        $this->styleExampleRow($sheet, 3, 'A', 'BJ');
         $sheet->freezePane('A2');
     }
 
@@ -1109,10 +1130,12 @@ class StudentController extends Controller
         $sheet->fromArray([
             ['0051234001', 'Aisyah Fauzia', '2016-05-12'],
             ['0051234001', 'Muhammad Farhan', '2019-08-23'],
+            ['0051234002', 'Fatimah Zahra', '2014-02-10'],
         ], null, 'A2');
 
         $this->styleExampleRow($sheet, 2, 'A', 'C');
         $this->styleExampleRow($sheet, 3, 'A', 'C');
+        $this->styleExampleRow($sheet, 4, 'A', 'C');
         $sheet->freezePane('A2');
     }
 

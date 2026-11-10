@@ -140,16 +140,16 @@ function closeModal() {
                     <span class="material-symbols-outlined text-primary text-[20px] shrink-0 mt-0.5">info</span>
                     <div class="space-y-1">
                         <p>
-                            Gunakan format file resmi dengan 5 sheet: <strong>Data Siswa, Alamat, Keluarga, Saudara,</strong> dan <strong>Data Akademik</strong>. Kunci relasi antar sheet adalah <strong>NISN</strong>. Hanya siswa dengan unit <strong>{{ unitLabel }}</strong> yang akan diproses.
+                            Gunakan format file template Excel resmi yang telah diunduh (mendukung semua jenjang dan unit sekolah). Kunci relasi antar sheet adalah <strong>NISN</strong>.<span v-if="unit && unit !== 'all'"> Hanya siswa dengan unit <strong>{{ unitLabel }}</strong> yang akan diproses.</span>
                         </p>
                         <div class="pt-1">
                             <a
                                 href="/students/template"
-                                download
+                                download="Template_Data_Siswa_Semua_Jenjang.xlsx"
                                 class="inline-flex items-center gap-1 font-semibold text-primary hover:underline"
                             >
                                 <span class="material-symbols-outlined text-[15px]">download</span>
-                                Unduh Template XLSX Resmi
+                                Unduh Template XLSX Resmi (Semua Jenjang)
                             </a>
                         </div>
                     </div>

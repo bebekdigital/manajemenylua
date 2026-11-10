@@ -3,10 +3,13 @@
 namespace Tests\Feature;
 
 use App\Models\AcademicYear;
+use App\Models\SchoolLevel;
+use App\Models\SchoolUnit;
 use App\Models\Student;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Tests\TestCase;
@@ -31,6 +34,51 @@ class StudentImportTest extends TestCase
         ]);
 
         $response->assertSessionHasErrors('file');
+    }
+
+    public function test_download_template_supports_all_levels_and_units_from_academic_settings(): void
+    {
+        $levelSd = SchoolLevel::firstOrCreate(['name' => 'SD'], ['order' => 1]);
+        $levelSmp = SchoolLevel::firstOrCreate(['name' => 'SMP'], ['order' => 2]);
+        $levelSma = SchoolLevel::firstOrCreate(['name' => 'SMA'], ['order' => 3]);
+
+        SchoolUnit::firstOrCreate(['name' => 'SDIT Ulil Albab'], ['school_level_id' => $levelSd->id]);
+        SchoolUnit::firstOrCreate(['name' => 'SMPIT Ulil Albab'], ['school_level_id' => $levelSmp->id]);
+        SchoolUnit::firstOrCreate(['name' => 'SMAIT Ulil Albab'], ['school_level_id' => $levelSma->id]);
+
+        $response = $this->get('/students/template');
+
+        $response->assertOk();
+        $response->assertHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        $this->assertStringContainsString('template_import_siswa_semua_jenjang_', $response->headers->get('Content-Disposition'));
+
+        $tempFile = tempnam(sys_get_temp_dir(), 'test_dl_tmpl_');
+        file_put_contents($tempFile, $response->getContent());
+
+        $reader = IOFactory::createReader('Xlsx');
+        $spreadsheet = $reader->load($tempFile);
+
+        $dropdownsSheet = $spreadsheet->getSheetByName('Dropdowns');
+        $this->assertNotNull($dropdownsSheet);
+        $this->assertSame('SD', $dropdownsSheet->getCell('A2')->getValue());
+        $this->assertSame('SMP', $dropdownsSheet->getCell('A3')->getValue());
+        $this->assertSame('SMA', $dropdownsSheet->getCell('A4')->getValue());
+
+        $sheet1 = $spreadsheet->getSheetByName('1. Data Siswa');
+        $this->assertNotNull($sheet1);
+
+        // Row 2 is SD sample
+        $this->assertSame('SD', $sheet1->getCell('E2')->getValue());
+        // Row 3 is SMP sample
+        $this->assertSame('SMP', $sheet1->getCell('E3')->getValue());
+
+        $valJenjang = $sheet1->getCell('E2')->getDataValidation();
+        $this->assertStringContainsString('Dropdowns!$A$2:', $valJenjang->getFormula1());
+
+        $valUnit = $sheet1->getCell('F2')->getDataValidation();
+        $this->assertStringContainsString('Dropdowns!$B$2:', $valUnit->getFormula1());
+
+        @unlink($tempFile);
     }
 
     public function test_imports_students_from_valid_multi_sheet_xlsx(): void
