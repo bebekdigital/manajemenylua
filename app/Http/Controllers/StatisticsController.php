@@ -6,6 +6,7 @@ use App\Models\AcademicYear;
 use App\Models\Classroom;
 use App\Models\Employee;
 use App\Models\RolePermission;
+use App\Models\Student;
 use App\Models\StudentAcademicRecord;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -15,7 +16,7 @@ use Inertia\Response;
 class StatisticsController extends Controller
 {
     /**
-     * Display the statistics page with student counts per classroom.
+     * Display the statistics page with student counts, gender distribution, and classroom breakdown.
      */
     public function index(Request $request): Response
     {
@@ -36,11 +37,17 @@ class StatisticsController extends Controller
 
         if ($selectedYear) {
             $studentsPerClass = StudentAcademicRecord::query()
-                ->where('academic_year_id', $selectedYear->id)
-                ->where('student_status', 'aktif')
-                ->whereNotNull('classroom_id')
-                ->select('classroom_id', DB::raw('COUNT(*) as total'))
-                ->groupBy('classroom_id')
+                ->leftJoin('students', 'students.id', '=', 'student_academic_records.student_id')
+                ->where('student_academic_records.academic_year_id', $selectedYear->id)
+                ->where('student_academic_records.student_status', 'aktif')
+                ->whereNotNull('student_academic_records.classroom_id')
+                ->select(
+                    'student_academic_records.classroom_id',
+                    DB::raw('COUNT(*) as total'),
+                    DB::raw("SUM(CASE WHEN UPPER(COALESCE(students.jk, '')) = 'L' THEN 1 ELSE 0 END) as male"),
+                    DB::raw("SUM(CASE WHEN UPPER(COALESCE(students.jk, '')) = 'P' THEN 1 ELSE 0 END) as female")
+                )
+                ->groupBy('student_academic_records.classroom_id')
                 ->with('classroom:id,name,unit,jenjang,grade')
                 ->get()
                 ->map(function ($record) {
@@ -49,7 +56,9 @@ class StatisticsController extends Controller
                         'unit' => $record->classroom?->unit ?? '-',
                         'jenjang' => $record->classroom?->jenjang ?? '-',
                         'grade' => $record->classroom?->grade ?? 0,
-                        'total' => $record->total,
+                        'total' => (int) $record->total,
+                        'male' => (int) ($record->male ?? 0),
+                        'female' => (int) ($record->female ?? 0),
                     ];
                 })
                 ->sortBy([
@@ -61,7 +70,43 @@ class StatisticsController extends Controller
                 ->toArray();
         }
 
+        $students = Student::query()
+            ->with([
+                'academicRecords' => function ($query) use ($selectedYear) {
+                    if ($selectedYear) {
+                        $query->where('academic_year_id', $selectedYear->id)->with('classroom:id,name,unit,jenjang,grade');
+                    } else {
+                        $query->latest('id')->limit(1)->with('classroom:id,name,unit,jenjang,grade');
+                    }
+                },
+            ])
+            ->orderBy('unit')
+            ->orderBy('nama')
+            ->get()
+            ->map(function (Student $student) {
+                $record = $student->academicRecords->first();
+                $rawStatus = $student->status_keaktifan
+                    ? (strtolower(trim($student->status_keaktifan)) === 'tidak aktif' ? 'tidak_aktif' : 'aktif')
+                    : ($record?->student_status ?? 'aktif');
+
+                $normalizedStatus = strtolower(trim((string) $rawStatus)) === 'aktif' ? 'aktif' : 'tidak_aktif';
+
+                return [
+                    'unit' => $student->unit ?? $record?->classroom?->unit ?? '-',
+                    'jenjang' => $student->jenjang ?? $record?->classroom?->jenjang ?? '-',
+                    'angkatan' => $student->angkatan,
+                    'jk' => strtoupper(trim((string) ($student->jk ?? ''))),
+                    'student_status' => $normalizedStatus,
+                    'keterangan_tidak_aktif' => $student->keterangan_tidak_aktif ?? $record?->ket_tidak_aktif,
+                    'program' => $record?->program ?? 'Umum',
+                    'kelas' => $record?->classroom?->name,
+                ];
+            })
+            ->values()
+            ->toArray();
+
         return Inertia::render('Statistics/StudentStatistics', [
+            'students' => $students,
             'studentsPerClass' => $studentsPerClass,
             'selectedAcademicYear' => $selectedYear,
         ]);
