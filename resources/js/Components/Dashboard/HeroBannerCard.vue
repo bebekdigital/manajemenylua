@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3';
 import PeekingMascot2D from '@/Components/Dashboard/PeekingMascot2D.vue';
+import RidingMascot2D from '@/Components/Dashboard/RidingMascot2D.vue';
 
 const page = usePage();
 const user = computed(() => page.props.auth?.user || {});
@@ -208,6 +209,21 @@ function setMood(moodId) {
     }
 }
 
+// Pose karakter: mengintip di atas banner atau naik motor matic (default: motor)
+const currentPose = ref('motor');
+const isRidingPose = computed(() => currentPose.value === 'motor');
+
+function togglePose() {
+    currentPose.value = isRidingPose.value ? 'peek' : 'motor';
+    if (typeof window !== 'undefined' && window.localStorage) {
+        try {
+            localStorage.setItem('user_mascot_pose', currentPose.value);
+        } catch (e) {
+            // Ignore storage errors
+        }
+    }
+}
+
 const activeAgendaIndex = ref(0);
 const isSliderPaused = ref(false);
 let agendaSlideInterval = null;
@@ -234,6 +250,10 @@ onMounted(() => {
             const savedMood = localStorage.getItem('user_mascot_mood');
             if (savedMood && MOOD_OPTIONS.some(m => m.id === savedMood)) {
                 currentMood.value = savedMood;
+            }
+            const savedPose = localStorage.getItem('user_mascot_pose');
+            if (savedPose === 'peek' || savedPose === 'motor') {
+                currentPose.value = savedPose;
             }
         } catch (e) {
             // Ignore
@@ -363,6 +383,22 @@ onUnmounted(() => {
                                 ></span>
                             </span>
                         </button>
+
+                        <!-- Tombol Ganti Pose Karakter (Mengintip / Naik Motor) -->
+                        <button
+                            type="button"
+                            @click="togglePose"
+                            :class="[
+                                'ml-2 w-9 h-9 sm:w-10 sm:h-10 rounded-full border inline-flex items-center justify-center transition-all duration-200 cursor-pointer active:scale-95 shadow-2xs focus-visible:outline-none focus-visible:ring-2',
+                                moodButtonTone,
+                            ]"
+                            :aria-label="isRidingPose ? 'Ganti pose karakter ke mengintip' : 'Ganti pose karakter ke naik motor'"
+                            :title="isRidingPose ? 'Pose: Naik Motor (klik untuk mengintip)' : 'Pose: Mengintip (klik untuk naik motor)'"
+                        >
+                            <span class="material-symbols-outlined text-[18px] sm:text-[20px]">
+                                {{ isRidingPose ? 'two_wheeler' : 'face' }}
+                            </span>
+                        </button>
                     </div>
                 </div>
 
@@ -444,11 +480,27 @@ onUnmounted(() => {
                     >
                         {{ activeGender === 'L' ? 'Karakter: Putra' : 'Karakter: Putri' }}
                     </button>
+                    <button
+                        type="button"
+                        @click="togglePose"
+                        :class="[
+                            'min-h-[38px] sm:min-h-[36px] px-3 sm:px-3.5 py-1.5 rounded-[9999px] text-xs font-semibold border transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 shrink-0',
+                            currentTimeMeta.pillButton,
+                        ]"
+                        title="Ganti pose karakter (Mengintip / Naik Motor)"
+                    >
+                        {{ isRidingPose ? 'Pose: Naik Motor' : 'Pose: Mengintip' }}
+                    </button>
                 </div>
             </div>
 
             <!-- Bagian Bawah: Spacer Luar Terpisah agar Padding Tidak Menggeser Posisi Mengintip Maskot -->
-            <div class="mt-auto pt-14 sm:pt-16 md:mt-16 md:pt-2 w-full md:max-w-xl">
+            <div
+                :class="[
+                    'mt-auto md:pt-2 w-full md:max-w-xl transition-[padding] duration-300',
+                    isRidingPose ? 'pt-20 sm:pt-24 md:mt-20' : 'pt-14 sm:pt-16 md:mt-16',
+                ]"
+            >
                 <div
                     class="relative w-full"
                     @mouseenter="isSliderPaused = true"
@@ -456,8 +508,32 @@ onUnmounted(() => {
                     @focusin="isSliderPaused = true"
                     @focusout="isSliderPaused = false"
                 >
+                    <!-- Karakter Naik Motor Matic: roda menapak tepat di garis atas banner agenda -->
+                    <div
+                        v-if="isRidingPose"
+                        class="absolute right-2 sm:right-6 bottom-full translate-y-[3%] z-30"
+                    >
+                        <Transition
+                            mode="out-in"
+                            enter-active-class="transition duration-200 ease-out"
+                            enter-from-class="opacity-0 translate-y-3"
+                            enter-to-class="opacity-100 translate-y-0"
+                            leave-active-class="transition duration-150 ease-in"
+                            leave-from-class="opacity-100 translate-y-0"
+                            leave-to-class="opacity-0 translate-y-2"
+                        >
+                            <RidingMascot2D
+                                :key="`ride-${activeGender}-${currentMood}`"
+                                :gender="activeGender"
+                                :mood="currentMood"
+                                :is-night="activeTimeTheme === 'malam'"
+                            />
+                        </Transition>
+                    </div>
+
                     <!-- Wajah Karakter 2D Mengintip Tepat Menempel di Garis Atas Banner Agenda -->
                     <div
+                        v-else
                         class="absolute right-12 sm:right-14 bottom-full translate-y-[10.8%] z-30"
                     >
                         <Transition
