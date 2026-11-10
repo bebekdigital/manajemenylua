@@ -390,6 +390,9 @@ class EmployeeController extends Controller
         $isIdentityTab = $request->input('_tab') === 'identitas';
         $identityRule = $isIdentityTab ? 'required' : 'nullable';
 
+        $isAddressTab = $request->input('_tab') === 'alamat';
+        $addressRule = $isAddressTab ? 'required' : 'nullable';
+
         $validated = $request->validate([
             // Identitas
             'nama' => ['required', 'string', 'max:255'],
@@ -410,23 +413,23 @@ class EmployeeController extends Controller
             'skill' => ['nullable', 'string', 'max:255'],
 
             // Alamat Domisili
-            'jalan_domisili' => ['nullable', 'string', 'max:255'],
-            'rt_rw_domisili' => ['nullable', 'string', 'max:50'],
-            'dusun_domisili' => ['nullable', 'string', 'max:100'],
-            'desa_domisili' => ['nullable', 'string', 'max:100'],
-            'kecamatan_domisili' => ['nullable', 'string', 'max:100'],
-            'kab_domisili' => ['nullable', 'string', 'max:100'],
-            'provinsi_domisili' => ['nullable', 'string', 'max:100'],
+            'provinsi_domisili' => [$addressRule, 'string', 'max:100'],
+            'kab_domisili' => [$addressRule, 'string', 'max:100'],
+            'kecamatan_domisili' => [$addressRule, 'string', 'max:100'],
+            'desa_domisili' => [$addressRule, 'string', 'max:100'],
+            'dusun_domisili' => [$addressRule, 'string', 'max:100'],
+            'rt_rw_domisili' => [$addressRule, 'string', 'max:50'],
+            'jalan_domisili' => [$addressRule, 'string', 'max:255'],
 
             // Alamat Tinggal
-            'jalan_tinggal' => ['nullable', 'string', 'max:255'],
-            'rt_rw_tinggal' => ['nullable', 'string', 'max:50'],
-            'dusun_tinggal' => ['nullable', 'string', 'max:100'],
-            'desa_tinggal' => ['nullable', 'string', 'max:100'],
-            'kecamatan_tinggal' => ['nullable', 'string', 'max:100'],
-            'kabupaten_tinggal' => ['nullable', 'string', 'max:100'],
-            'provinsi_tinggal' => ['nullable', 'string', 'max:100'],
-            'status_rumah' => ['nullable', 'string', 'max:50'],
+            'provinsi_tinggal' => [$addressRule, 'string', 'max:100'],
+            'kabupaten_tinggal' => [$addressRule, 'string', 'max:100'],
+            'kecamatan_tinggal' => [$addressRule, 'string', 'max:100'],
+            'desa_tinggal' => [$addressRule, 'string', 'max:100'],
+            'dusun_tinggal' => [$addressRule, 'string', 'max:100'],
+            'rt_rw_tinggal' => [$addressRule, 'string', 'max:50'],
+            'jalan_tinggal' => [$addressRule, 'string', 'max:255'],
+            'status_rumah' => [$addressRule, 'string', 'max:50'],
             'kepemilikan_bpjs' => [$identityRule, 'string', 'max:50'],
             'penanggung_bpjs' => [$identityRule, 'string', 'max:100'],
 
@@ -530,6 +533,21 @@ class EmployeeController extends Controller
             'email.email' => 'Format email tidak valid.',
             'kepemilikan_bpjs.required' => 'Kepemilikan BPJS wajib dipilih.',
             'penanggung_bpjs.required' => 'Penanggung BPJS wajib dipilih.',
+            'provinsi_domisili.required' => 'Provinsi domisili wajib dipilih.',
+            'kab_domisili.required' => 'Kabupaten/Kota domisili wajib dipilih.',
+            'kecamatan_domisili.required' => 'Kecamatan domisili wajib dipilih.',
+            'desa_domisili.required' => 'Desa/Kelurahan domisili wajib dipilih.',
+            'dusun_domisili.required' => 'Dusun/Dukuh domisili wajib diisi.',
+            'rt_rw_domisili.required' => 'RT/RW domisili wajib diisi.',
+            'jalan_domisili.required' => 'Jalan/Alamat domisili wajib diisi.',
+            'provinsi_tinggal.required' => 'Provinsi tinggal wajib dipilih.',
+            'kabupaten_tinggal.required' => 'Kabupaten/Kota tinggal wajib dipilih.',
+            'kecamatan_tinggal.required' => 'Kecamatan tinggal wajib dipilih.',
+            'desa_tinggal.required' => 'Desa/Kelurahan tinggal wajib dipilih.',
+            'dusun_tinggal.required' => 'Dusun/Dukuh tinggal wajib diisi.',
+            'rt_rw_tinggal.required' => 'RT/RW tinggal wajib diisi.',
+            'jalan_tinggal.required' => 'Jalan/Alamat tinggal wajib diisi.',
+            'status_rumah.required' => 'Status kepemilikan rumah wajib dipilih.',
         ]);
 
         $canUpdateKepegawaian = RolePermission::canAccess($user, 'employee_kepegawaian', 'update');

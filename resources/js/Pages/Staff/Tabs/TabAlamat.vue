@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, watch, inject, nextTick } from 'vue';
 import { useWilayah } from '@/Composables/useWilayah';
 import { getAlamatDomisili, getAlamatTinggal } from '../staffHelpers';
 
@@ -22,7 +22,119 @@ const props = defineProps({
     },
 });
 
-defineEmits(['startEdit', 'cancelEdit', 'saveChanges']);
+const emit = defineEmits(['startEdit', 'cancelEdit', 'saveChanges']);
+
+const showToast = inject('showToast', null);
+const localErrors = ref({});
+
+const requiredFields = [
+    { key: 'provinsi_domisili', label: 'Provinsi Domisili', id: 'field-provinsi_domisili' },
+    { key: 'kab_domisili', label: 'Kabupaten/Kota Domisili', id: 'field-kab_domisili' },
+    { key: 'kecamatan_domisili', label: 'Kecamatan Domisili', id: 'field-kecamatan_domisili' },
+    { key: 'desa_domisili', label: 'Desa/Kelurahan Domisili', id: 'field-desa_domisili' },
+    { key: 'dusun_domisili', label: 'Dusun/Dukuh Domisili', id: 'field-dusun_domisili' },
+    { key: 'rt_rw_domisili', label: 'RT/RW Domisili', id: 'field-rt_rw_domisili' },
+    { key: 'jalan_domisili', label: 'Jalan/Alamat Domisili', id: 'field-jalan_domisili' },
+    { key: 'provinsi_tinggal', label: 'Provinsi Tempat Tinggal', id: 'field-provinsi_tinggal' },
+    { key: 'kabupaten_tinggal', label: 'Kabupaten/Kota Tempat Tinggal', id: 'field-kabupaten_tinggal' },
+    { key: 'kecamatan_tinggal', label: 'Kecamatan Tempat Tinggal', id: 'field-kecamatan_tinggal' },
+    { key: 'desa_tinggal', label: 'Desa/Kelurahan Tempat Tinggal', id: 'field-desa_tinggal' },
+    { key: 'dusun_tinggal', label: 'Dusun/Dukuh Tempat Tinggal', id: 'field-dusun_tinggal' },
+    { key: 'rt_rw_tinggal', label: 'RT/RW Tempat Tinggal', id: 'field-rt_rw_tinggal' },
+    { key: 'jalan_tinggal', label: 'Jalan/Alamat Tempat Tinggal', id: 'field-jalan_tinggal' },
+    { key: 'status_rumah', label: 'Status Kepemilikan Rumah', id: 'field-status_rumah' },
+];
+
+function hasError(key) {
+    return Boolean(localErrors.value[key] || props.form.errors?.[key]);
+}
+
+function getError(key) {
+    return localErrors.value[key] || props.form.errors?.[key];
+}
+
+function clearFieldError(key) {
+    if (localErrors.value[key]) {
+        delete localErrors.value[key];
+    }
+    if (props.form.errors?.[key]) {
+        props.form.clearErrors(key);
+    }
+}
+
+function scrollToField(id) {
+    nextTick(() => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setTimeout(() => {
+                try {
+                    el.focus({ preventScroll: true });
+                } catch {
+                    el.focus();
+                }
+            }, 180);
+        }
+    });
+}
+
+function validateAndSave() {
+    localErrors.value = {};
+    const errors = {};
+    let firstInvalidField = null;
+
+    for (const item of requiredFields) {
+        const val = props.form[item.key];
+        const trimmed = typeof val === 'string' ? val.trim() : val;
+        if (trimmed === null || trimmed === undefined || trimmed === '') {
+            errors[item.key] = `${item.label} wajib diisi.`;
+            if (!firstInvalidField) {
+                firstInvalidField = item;
+            }
+        }
+    }
+
+    if (Object.keys(errors).length > 0) {
+        localErrors.value = errors;
+        if (showToast) {
+            showToast('error', `Terdapat ${Object.keys(errors).length} kolom wajib yang belum diisi atau belum valid pada Tab Alamat.`, 'Data Belum Lengkap');
+        }
+        if (firstInvalidField) {
+            scrollToField(firstInvalidField.id);
+        }
+        return;
+    }
+
+    emit('saveChanges');
+}
+
+function handleCancel() {
+    localErrors.value = {};
+    emit('cancelEdit');
+}
+
+watch(
+    () => props.isEditing,
+    (val) => {
+        if (!val) {
+            localErrors.value = {};
+        }
+    }
+);
+
+watch(
+    () => props.form.errors,
+    (newErrors) => {
+        if (newErrors && Object.keys(newErrors).length > 0 && props.isEditing) {
+            const firstErrorKey = Object.keys(newErrors)[0];
+            const field = requiredFields.find((f) => f.key === firstErrorKey);
+            if (field) {
+                scrollToField(field.id);
+            }
+        }
+    },
+    { deep: true }
+);
 
 // ==========================================
 // WILAYAH INDONESIA API & CASCADING STATE
@@ -195,6 +307,7 @@ watch(() => props.isEditing, async (newVal) => {
 });
 
 async function onProvinsiDomisiliChange() {
+    clearFieldError('provinsi_domisili');
     const val = selectedProvDomisiliId.value;
     const prov = provincesList.value.find((p) => p.id === val || isMatch(p.name, val));
 
@@ -226,6 +339,7 @@ async function onProvinsiDomisiliChange() {
 }
 
 async function onKabupatenDomisiliChange() {
+    clearFieldError('kab_domisili');
     const val = selectedKabDomisiliId.value;
     const kab = regenciesDomisili.value.find((k) => k.id === val || isMatch(k.name, val));
 
@@ -254,6 +368,7 @@ async function onKabupatenDomisiliChange() {
 }
 
 async function onKecamatanDomisiliChange() {
+    clearFieldError('kecamatan_domisili');
     const val = selectedKecDomisiliId.value;
     const kec = districtsDomisili.value.find((d) => d.id === val || isMatch(d.name, val));
 
@@ -279,6 +394,7 @@ async function onKecamatanDomisiliChange() {
 }
 
 function onDesaDomisiliChange() {
+    clearFieldError('desa_domisili');
     const val = selectedDesDomisiliId.value;
     const des = villagesDomisili.value.find((v) => v.id === val || isMatch(v.name, val));
 
@@ -291,6 +407,7 @@ function onDesaDomisiliChange() {
 }
 
 async function onProvinsiTinggalChange() {
+    clearFieldError('provinsi_tinggal');
     const val = selectedProvTinggalId.value;
     const prov = provincesList.value.find((p) => p.id === val || isMatch(p.name, val));
 
@@ -322,6 +439,7 @@ async function onProvinsiTinggalChange() {
 }
 
 async function onKabupatenTinggalChange() {
+    clearFieldError('kabupaten_tinggal');
     const val = selectedKabTinggalId.value;
     const kab = regenciesTinggal.value.find((k) => k.id === val || isMatch(k.name, val));
 
@@ -350,6 +468,7 @@ async function onKabupatenTinggalChange() {
 }
 
 async function onKecamatanTinggalChange() {
+    clearFieldError('kecamatan_tinggal');
     const val = selectedKecTinggalId.value;
     const kec = districtsTinggal.value.find((d) => d.id === val || isMatch(d.name, val));
 
@@ -375,6 +494,7 @@ async function onKecamatanTinggalChange() {
 }
 
 function onDesaTinggalChange() {
+    clearFieldError('desa_tinggal');
     const val = selectedDesTinggalId.value;
     const des = villagesTinggal.value.find((v) => v.id === val || isMatch(v.name, val));
 
@@ -403,6 +523,8 @@ function copyDomisiliToTinggal() {
     selectedKecTinggalId.value = selectedKecDomisiliId.value;
     villagesTinggal.value = [...villagesDomisili.value];
     selectedDesTinggalId.value = selectedDesDomisiliId.value;
+
+    ['provinsi_tinggal', 'kabupaten_tinggal', 'kecamatan_tinggal', 'desa_tinggal', 'dusun_tinggal', 'rt_rw_tinggal', 'jalan_tinggal'].forEach(key => clearFieldError(key));
 }
 </script>
 
@@ -435,7 +557,7 @@ function copyDomisiliToTinggal() {
                 <template v-else>
                     <button
                         type="button"
-                        @click="$emit('cancelEdit')"
+                        @click="handleCancel"
                         class="px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-100 border border-slate-300 transition-all cursor-pointer shadow-2xs"
                         :disabled="form.processing"
                         title="Batalkan perubahan"
@@ -444,7 +566,7 @@ function copyDomisiliToTinggal() {
                     </button>
                     <button
                         type="button"
-                        @click="$emit('saveChanges')"
+                        @click="validateAndSave"
                         class="inline-flex items-center gap-1.5 px-4 py-1.5 sm:px-5 sm:py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-bold text-xs sm:text-sm shadow-xs border border-emerald-950/30 active:scale-95 cursor-pointer disabled:opacity-60 transition-all"
                         :disabled="form.processing"
                         title="Simpan perubahan data alamat"
@@ -563,18 +685,23 @@ function copyDomisiliToTinggal() {
                     <!-- 1. Provinsi -->
                     <div>
                         <div class="flex items-center justify-between mb-1">
-                            <label class="block text-xs font-semibold text-on-surface-variant">Provinsi</label>
+                            <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider">
+                                Provinsi <span class="text-error font-bold">*</span>
+                            </label>
                             <span v-if="loadingDomisili.prov" class="text-[11px] text-primary flex items-center gap-1 font-medium">
                                 <span class="material-symbols-outlined text-[13px] animate-spin">sync</span>
                                 Memuat...
                             </span>
                         </div>
                         <select
+                            id="field-provinsi_domisili"
                             v-model="selectedProvDomisiliId"
                             @change="onProvinsiDomisiliChange"
                             :disabled="loadingDomisili.prov"
-                            class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer disabled:bg-slate-100 disabled:text-slate-400"
-                            :class="{ 'border-error': form.errors.provinsi_domisili }"
+                            class="w-full px-3.5 py-2 bg-white rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none transition-all cursor-pointer disabled:bg-slate-100 disabled:text-slate-400 border"
+                            :class="hasError('provinsi_domisili')
+                                ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/10 focus:border-rose-600 focus:ring-rose-500/30'
+                                : 'border-outline-variant/60 focus:border-primary focus:ring-2 focus:ring-primary/20'"
                         >
                             <option value="">{{ loadingDomisili.prov ? 'Memuat Provinsi...' : '-- Pilih Provinsi --' }}</option>
                             <option
@@ -587,24 +714,32 @@ function copyDomisiliToTinggal() {
                                 {{ prov.name }}
                             </option>
                         </select>
-                        <div v-if="form.errors.provinsi_domisili" class="text-error text-xs mt-1">{{ form.errors.provinsi_domisili }}</div>
+                        <div v-if="hasError('provinsi_domisili')" class="text-rose-600 font-medium text-xs mt-1.5 flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[14px]">error</span>
+                            <span>{{ getError('provinsi_domisili') }}</span>
+                        </div>
                     </div>
 
                     <!-- 2. Kabupaten / Kota -->
                     <div>
                         <div class="flex items-center justify-between mb-1">
-                            <label class="block text-xs font-semibold text-on-surface-variant">Kabupaten / Kota</label>
+                            <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider">
+                                Kabupaten / Kota <span class="text-error font-bold">*</span>
+                            </label>
                             <span v-if="loadingDomisili.kab" class="text-[11px] text-primary flex items-center gap-1 font-medium">
                                 <span class="material-symbols-outlined text-[13px] animate-spin">sync</span>
                                 Memuat...
                             </span>
                         </div>
                         <select
+                            id="field-kab_domisili"
                             v-model="selectedKabDomisiliId"
                             @change="onKabupatenDomisiliChange"
                             :disabled="!selectedProvDomisiliId || loadingDomisili.kab"
-                            class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
-                            :class="{ 'border-error': form.errors.kab_domisili }"
+                            class="w-full px-3.5 py-2 bg-white rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none transition-all cursor-pointer disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed border"
+                            :class="hasError('kab_domisili')
+                                ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/10 focus:border-rose-600 focus:ring-rose-500/30'
+                                : 'border-outline-variant/60 focus:border-primary focus:ring-2 focus:ring-primary/20'"
                         >
                             <option value="">{{ !selectedProvDomisiliId ? '-- Pilih Provinsi Terlebih Dahulu --' : (loadingDomisili.kab ? 'Memuat Kab/Kota...' : '-- Pilih Kabupaten / Kota --') }}</option>
                             <option
@@ -617,24 +752,32 @@ function copyDomisiliToTinggal() {
                                 {{ kab.name }}
                             </option>
                         </select>
-                        <div v-if="form.errors.kab_domisili" class="text-error text-xs mt-1">{{ form.errors.kab_domisili }}</div>
+                        <div v-if="hasError('kab_domisili')" class="text-rose-600 font-medium text-xs mt-1.5 flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[14px]">error</span>
+                            <span>{{ getError('kab_domisili') }}</span>
+                        </div>
                     </div>
 
                     <!-- 3. Kecamatan -->
                     <div>
                         <div class="flex items-center justify-between mb-1">
-                            <label class="block text-xs font-semibold text-on-surface-variant">Kecamatan</label>
+                            <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider">
+                                Kecamatan <span class="text-error font-bold">*</span>
+                            </label>
                             <span v-if="loadingDomisili.kec" class="text-[11px] text-primary flex items-center gap-1 font-medium">
                                 <span class="material-symbols-outlined text-[13px] animate-spin">sync</span>
                                 Memuat...
                             </span>
                         </div>
                         <select
+                            id="field-kecamatan_domisili"
                             v-model="selectedKecDomisiliId"
                             @change="onKecamatanDomisiliChange"
                             :disabled="!selectedKabDomisiliId || loadingDomisili.kec"
-                            class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
-                            :class="{ 'border-error': form.errors.kecamatan_domisili }"
+                            class="w-full px-3.5 py-2 bg-white rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none transition-all cursor-pointer disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed border"
+                            :class="hasError('kecamatan_domisili')
+                                ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/10 focus:border-rose-600 focus:ring-rose-500/30'
+                                : 'border-outline-variant/60 focus:border-primary focus:ring-2 focus:ring-primary/20'"
                         >
                             <option value="">{{ !selectedKabDomisiliId ? '-- Pilih Kab/Kota Terlebih Dahulu --' : (loadingDomisili.kec ? 'Memuat Kecamatan...' : '-- Pilih Kecamatan --') }}</option>
                             <option
@@ -647,24 +790,32 @@ function copyDomisiliToTinggal() {
                                 {{ kec.name }}
                             </option>
                         </select>
-                        <div v-if="form.errors.kecamatan_domisili" class="text-error text-xs mt-1">{{ form.errors.kecamatan_domisili }}</div>
+                        <div v-if="hasError('kecamatan_domisili')" class="text-rose-600 font-medium text-xs mt-1.5 flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[14px]">error</span>
+                            <span>{{ getError('kecamatan_domisili') }}</span>
+                        </div>
                     </div>
 
                     <!-- 4. Desa / Kelurahan -->
                     <div>
                         <div class="flex items-center justify-between mb-1">
-                            <label class="block text-xs font-semibold text-on-surface-variant">Desa / Kelurahan</label>
+                            <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider">
+                                Desa / Kelurahan <span class="text-error font-bold">*</span>
+                            </label>
                             <span v-if="loadingDomisili.des" class="text-[11px] text-primary flex items-center gap-1 font-medium">
                                 <span class="material-symbols-outlined text-[13px] animate-spin">sync</span>
                                 Memuat...
                             </span>
                         </div>
                         <select
+                            id="field-desa_domisili"
                             v-model="selectedDesDomisiliId"
                             @change="onDesaDomisiliChange"
                             :disabled="!selectedKecDomisiliId || loadingDomisili.des"
-                            class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
-                            :class="{ 'border-error': form.errors.desa_domisili }"
+                            class="w-full px-3.5 py-2 bg-white rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none transition-all cursor-pointer disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed border"
+                            :class="hasError('desa_domisili')
+                                ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/10 focus:border-rose-600 focus:ring-rose-500/30'
+                                : 'border-outline-variant/60 focus:border-primary focus:ring-2 focus:ring-primary/20'"
                         >
                             <option value="">{{ !selectedKecDomisiliId ? '-- Pilih Kecamatan Terlebih Dahulu --' : (loadingDomisili.des ? 'Memuat Desa...' : '-- Pilih Desa / Kelurahan --') }}</option>
                             <option
@@ -677,40 +828,76 @@ function copyDomisiliToTinggal() {
                                 {{ des.name }}
                             </option>
                         </select>
-                        <div v-if="form.errors.desa_domisili" class="text-error text-xs mt-1">{{ form.errors.desa_domisili }}</div>
+                        <div v-if="hasError('desa_domisili')" class="text-rose-600 font-medium text-xs mt-1.5 flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[14px]">error</span>
+                            <span>{{ getError('desa_domisili') }}</span>
+                        </div>
                     </div>
 
                     <!-- 5. Dusun -->
                     <div>
-                        <label class="block text-xs font-semibold text-on-surface-variant mb-1">Dusun / Dukuh</label>
+                        <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
+                            Dusun / Dukuh <span class="text-error font-bold">*</span>
+                        </label>
                         <input
+                            id="field-dusun_domisili"
                             v-model="form.dusun_domisili"
                             type="text"
                             placeholder="Nama dusun / dukuh / kampung"
-                            class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                            @input="clearFieldError('dusun_domisili')"
+                            class="w-full px-3.5 py-2 bg-white rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none transition-all border"
+                            :class="hasError('dusun_domisili')
+                                ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/10 focus:border-rose-600 focus:ring-rose-500/30'
+                                : 'border-outline-variant/60 focus:border-primary focus:ring-2 focus:ring-primary/20'"
                         />
+                        <div v-if="hasError('dusun_domisili')" class="text-rose-600 font-medium text-xs mt-1.5 flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[14px]">error</span>
+                            <span>{{ getError('dusun_domisili') }}</span>
+                        </div>
                     </div>
 
                     <!-- 6. RT / RW -->
                     <div>
-                        <label class="block text-xs font-semibold text-on-surface-variant mb-1">RT / RW</label>
+                        <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
+                            RT / RW <span class="text-error font-bold">*</span>
+                        </label>
                         <input
+                            id="field-rt_rw_domisili"
                             v-model="form.rt_rw_domisili"
                             type="text"
-                            placeholder="001/002"
-                            class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                            placeholder="Contoh: 001/002"
+                            @input="clearFieldError('rt_rw_domisili')"
+                            class="w-full px-3.5 py-2 bg-white rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none transition-all font-mono border"
+                            :class="hasError('rt_rw_domisili')
+                                ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/10 focus:border-rose-600 focus:ring-rose-500/30'
+                                : 'border-outline-variant/60 focus:border-primary focus:ring-2 focus:ring-primary/20'"
                         />
+                        <div v-if="hasError('rt_rw_domisili')" class="text-rose-600 font-medium text-xs mt-1.5 flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[14px]">error</span>
+                            <span>{{ getError('rt_rw_domisili') }}</span>
+                        </div>
                     </div>
 
                     <!-- 7. Jalan Domisili (span 2) -->
                     <div class="md:col-span-2">
-                        <label class="block text-xs font-semibold text-on-surface-variant mb-1">Jalan / Alamat Tambahan</label>
+                        <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
+                            Jalan / Alamat Tambahan <span class="text-error font-bold">*</span>
+                        </label>
                         <input
+                            id="field-jalan_domisili"
                             v-model="form.jalan_domisili"
                             type="text"
                             placeholder="Nama jalan, nomor rumah / blok / gang"
-                            class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                            @input="clearFieldError('jalan_domisili')"
+                            class="w-full px-3.5 py-2 bg-white rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none transition-all border"
+                            :class="hasError('jalan_domisili')
+                                ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/10 focus:border-rose-600 focus:ring-rose-500/30'
+                                : 'border-outline-variant/60 focus:border-primary focus:ring-2 focus:ring-primary/20'"
                         />
+                        <div v-if="hasError('jalan_domisili')" class="text-rose-600 font-medium text-xs mt-1.5 flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[14px]">error</span>
+                            <span>{{ getError('jalan_domisili') }}</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -736,18 +923,23 @@ function copyDomisiliToTinggal() {
                     <!-- 1. Provinsi -->
                     <div>
                         <div class="flex items-center justify-between mb-1">
-                            <label class="block text-xs font-semibold text-on-surface-variant">Provinsi</label>
+                            <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider">
+                                Provinsi <span class="text-error font-bold">*</span>
+                            </label>
                             <span v-if="loadingTinggal.prov" class="text-[11px] text-primary flex items-center gap-1 font-medium">
                                 <span class="material-symbols-outlined text-[13px] animate-spin">sync</span>
                                 Memuat...
                             </span>
                         </div>
                         <select
+                            id="field-provinsi_tinggal"
                             v-model="selectedProvTinggalId"
                             @change="onProvinsiTinggalChange"
                             :disabled="loadingTinggal.prov"
-                            class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer disabled:bg-slate-100 disabled:text-slate-400"
-                            :class="{ 'border-error': form.errors.provinsi_tinggal }"
+                            class="w-full px-3.5 py-2 bg-white rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none transition-all cursor-pointer disabled:bg-slate-100 disabled:text-slate-400 border"
+                            :class="hasError('provinsi_tinggal')
+                                ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/10 focus:border-rose-600 focus:ring-rose-500/30'
+                                : 'border-outline-variant/60 focus:border-primary focus:ring-2 focus:ring-primary/20'"
                         >
                             <option value="">{{ loadingTinggal.prov ? 'Memuat Provinsi...' : '-- Pilih Provinsi --' }}</option>
                             <option
@@ -760,24 +952,32 @@ function copyDomisiliToTinggal() {
                                 {{ prov.name }}
                             </option>
                         </select>
-                        <div v-if="form.errors.provinsi_tinggal" class="text-error text-xs mt-1">{{ form.errors.provinsi_tinggal }}</div>
+                        <div v-if="hasError('provinsi_tinggal')" class="text-rose-600 font-medium text-xs mt-1.5 flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[14px]">error</span>
+                            <span>{{ getError('provinsi_tinggal') }}</span>
+                        </div>
                     </div>
 
                     <!-- 2. Kabupaten / Kota -->
                     <div>
                         <div class="flex items-center justify-between mb-1">
-                            <label class="block text-xs font-semibold text-on-surface-variant">Kabupaten / Kota</label>
+                            <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider">
+                                Kabupaten / Kota <span class="text-error font-bold">*</span>
+                            </label>
                             <span v-if="loadingTinggal.kab" class="text-[11px] text-primary flex items-center gap-1 font-medium">
                                 <span class="material-symbols-outlined text-[13px] animate-spin">sync</span>
                                 Memuat...
                             </span>
                         </div>
                         <select
+                            id="field-kabupaten_tinggal"
                             v-model="selectedKabTinggalId"
                             @change="onKabupatenTinggalChange"
                             :disabled="!selectedProvTinggalId || loadingTinggal.kab"
-                            class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
-                            :class="{ 'border-error': form.errors.kabupaten_tinggal }"
+                            class="w-full px-3.5 py-2 bg-white rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none transition-all cursor-pointer disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed border"
+                            :class="hasError('kabupaten_tinggal')
+                                ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/10 focus:border-rose-600 focus:ring-rose-500/30'
+                                : 'border-outline-variant/60 focus:border-primary focus:ring-2 focus:ring-primary/20'"
                         >
                             <option value="">{{ !selectedProvTinggalId ? '-- Pilih Provinsi Terlebih Dahulu --' : (loadingTinggal.kab ? 'Memuat Kab/Kota...' : '-- Pilih Kabupaten / Kota --') }}</option>
                             <option
@@ -790,24 +990,32 @@ function copyDomisiliToTinggal() {
                                 {{ kab.name }}
                             </option>
                         </select>
-                        <div v-if="form.errors.kabupaten_tinggal" class="text-error text-xs mt-1">{{ form.errors.kabupaten_tinggal }}</div>
+                        <div v-if="hasError('kabupaten_tinggal')" class="text-rose-600 font-medium text-xs mt-1.5 flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[14px]">error</span>
+                            <span>{{ getError('kabupaten_tinggal') }}</span>
+                        </div>
                     </div>
 
                     <!-- 3. Kecamatan -->
                     <div>
                         <div class="flex items-center justify-between mb-1">
-                            <label class="block text-xs font-semibold text-on-surface-variant">Kecamatan</label>
+                            <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider">
+                                Kecamatan <span class="text-error font-bold">*</span>
+                            </label>
                             <span v-if="loadingTinggal.kec" class="text-[11px] text-primary flex items-center gap-1 font-medium">
                                 <span class="material-symbols-outlined text-[13px] animate-spin">sync</span>
                                 Memuat...
                             </span>
                         </div>
                         <select
+                            id="field-kecamatan_tinggal"
                             v-model="selectedKecTinggalId"
                             @change="onKecamatanTinggalChange"
                             :disabled="!selectedKabTinggalId || loadingTinggal.kec"
-                            class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
-                            :class="{ 'border-error': form.errors.kecamatan_tinggal }"
+                            class="w-full px-3.5 py-2 bg-white rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none transition-all cursor-pointer disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed border"
+                            :class="hasError('kecamatan_tinggal')
+                                ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/10 focus:border-rose-600 focus:ring-rose-500/30'
+                                : 'border-outline-variant/60 focus:border-primary focus:ring-2 focus:ring-primary/20'"
                         >
                             <option value="">{{ !selectedKabTinggalId ? '-- Pilih Kab/Kota Terlebih Dahulu --' : (loadingTinggal.kec ? 'Memuat Kecamatan...' : '-- Pilih Kecamatan --') }}</option>
                             <option
@@ -820,24 +1028,32 @@ function copyDomisiliToTinggal() {
                                 {{ kec.name }}
                             </option>
                         </select>
-                        <div v-if="form.errors.kecamatan_tinggal" class="text-error text-xs mt-1">{{ form.errors.kecamatan_tinggal }}</div>
+                        <div v-if="hasError('kecamatan_tinggal')" class="text-rose-600 font-medium text-xs mt-1.5 flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[14px]">error</span>
+                            <span>{{ getError('kecamatan_tinggal') }}</span>
+                        </div>
                     </div>
 
                     <!-- 4. Desa / Kelurahan -->
                     <div>
                         <div class="flex items-center justify-between mb-1">
-                            <label class="block text-xs font-semibold text-on-surface-variant">Desa / Kelurahan</label>
+                            <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider">
+                                Desa / Kelurahan <span class="text-error font-bold">*</span>
+                            </label>
                             <span v-if="loadingTinggal.des" class="text-[11px] text-primary flex items-center gap-1 font-medium">
                                 <span class="material-symbols-outlined text-[13px] animate-spin">sync</span>
                                 Memuat...
                             </span>
                         </div>
                         <select
+                            id="field-desa_tinggal"
                             v-model="selectedDesTinggalId"
                             @change="onDesaTinggalChange"
                             :disabled="!selectedKecTinggalId || loadingTinggal.des"
-                            class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
-                            :class="{ 'border-error': form.errors.desa_tinggal }"
+                            class="w-full px-3.5 py-2 bg-white rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none transition-all cursor-pointer disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed border"
+                            :class="hasError('desa_tinggal')
+                                ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/10 focus:border-rose-600 focus:ring-rose-500/30'
+                                : 'border-outline-variant/60 focus:border-primary focus:ring-2 focus:ring-primary/20'"
                         >
                             <option value="">{{ !selectedKecTinggalId ? '-- Pilih Kecamatan Terlebih Dahulu --' : (loadingTinggal.des ? 'Memuat Desa...' : '-- Pilih Desa / Kelurahan --') }}</option>
                             <option
@@ -850,48 +1066,91 @@ function copyDomisiliToTinggal() {
                                 {{ des.name }}
                             </option>
                         </select>
-                        <div v-if="form.errors.desa_tinggal" class="text-error text-xs mt-1">{{ form.errors.desa_tinggal }}</div>
+                        <div v-if="hasError('desa_tinggal')" class="text-rose-600 font-medium text-xs mt-1.5 flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[14px]">error</span>
+                            <span>{{ getError('desa_tinggal') }}</span>
+                        </div>
                     </div>
 
                     <!-- 5. Dusun -->
                     <div>
-                        <label class="block text-xs font-semibold text-on-surface-variant mb-1">Dusun / Dukuh</label>
+                        <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
+                            Dusun / Dukuh <span class="text-error font-bold">*</span>
+                        </label>
                         <input
+                            id="field-dusun_tinggal"
                             v-model="form.dusun_tinggal"
                             type="text"
                             placeholder="Nama dusun / dukuh / kampung"
-                            class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                            @input="clearFieldError('dusun_tinggal')"
+                            class="w-full px-3.5 py-2 bg-white rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none transition-all border"
+                            :class="hasError('dusun_tinggal')
+                                ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/10 focus:border-rose-600 focus:ring-rose-500/30'
+                                : 'border-outline-variant/60 focus:border-primary focus:ring-2 focus:ring-primary/20'"
                         />
+                        <div v-if="hasError('dusun_tinggal')" class="text-rose-600 font-medium text-xs mt-1.5 flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[14px]">error</span>
+                            <span>{{ getError('dusun_tinggal') }}</span>
+                        </div>
                     </div>
 
                     <!-- 6. RT / RW -->
                     <div>
-                        <label class="block text-xs font-semibold text-on-surface-variant mb-1">RT / RW</label>
+                        <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
+                            RT / RW <span class="text-error font-bold">*</span>
+                        </label>
                         <input
+                            id="field-rt_rw_tinggal"
                             v-model="form.rt_rw_tinggal"
                             type="text"
-                            placeholder="001/002"
-                            class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                            placeholder="Contoh: 001/002"
+                            @input="clearFieldError('rt_rw_tinggal')"
+                            class="w-full px-3.5 py-2 bg-white rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none transition-all font-mono border"
+                            :class="hasError('rt_rw_tinggal')
+                                ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/10 focus:border-rose-600 focus:ring-rose-500/30'
+                                : 'border-outline-variant/60 focus:border-primary focus:ring-2 focus:ring-primary/20'"
                         />
+                        <div v-if="hasError('rt_rw_tinggal')" class="text-rose-600 font-medium text-xs mt-1.5 flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[14px]">error</span>
+                            <span>{{ getError('rt_rw_tinggal') }}</span>
+                        </div>
                     </div>
 
                     <!-- 7. Jalan Tinggal -->
                     <div>
-                        <label class="block text-xs font-semibold text-on-surface-variant mb-1">Jalan / Alamat Tambahan</label>
+                        <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
+                            Jalan / Alamat Tambahan <span class="text-error font-bold">*</span>
+                        </label>
                         <input
+                            id="field-jalan_tinggal"
                             v-model="form.jalan_tinggal"
                             type="text"
                             placeholder="Nama jalan, nomor rumah / kontrakan"
-                            class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                            @input="clearFieldError('jalan_tinggal')"
+                            class="w-full px-3.5 py-2 bg-white rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none transition-all border"
+                            :class="hasError('jalan_tinggal')
+                                ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/10 focus:border-rose-600 focus:ring-rose-500/30'
+                                : 'border-outline-variant/60 focus:border-primary focus:ring-2 focus:ring-primary/20'"
                         />
+                        <div v-if="hasError('jalan_tinggal')" class="text-rose-600 font-medium text-xs mt-1.5 flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[14px]">error</span>
+                            <span>{{ getError('jalan_tinggal') }}</span>
+                        </div>
                     </div>
 
                     <!-- 8. Status Kepemilikan Rumah -->
                     <div>
-                        <label class="block text-xs font-semibold text-on-surface-variant mb-1">Status Kepemilikan Rumah</label>
+                        <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
+                            Status Kepemilikan Rumah <span class="text-error font-bold">*</span>
+                        </label>
                         <select
+                            id="field-status_rumah"
                             v-model="form.status_rumah"
-                            class="w-full px-3.5 py-2 bg-white border border-outline-variant/60 rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                            @change="clearFieldError('status_rumah')"
+                            class="w-full px-3.5 py-2 bg-white rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none transition-all cursor-pointer border"
+                            :class="hasError('status_rumah')
+                                ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/10 focus:border-rose-600 focus:ring-rose-500/30'
+                                : 'border-outline-variant/60 focus:border-primary focus:ring-2 focus:ring-primary/20'"
                         >
                             <option value="">-- Pilih Status Rumah --</option>
                             <option value="Milik Sendiri">Milik Sendiri</option>
@@ -900,10 +1159,35 @@ function copyDomisiliToTinggal() {
                             <option value="Rumah Dinas">Rumah Dinas</option>
                             <option value="Lainnya">Lainnya</option>
                         </select>
+                        <div v-if="hasError('status_rumah')" class="text-rose-600 font-medium text-xs mt-1.5 flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[14px]">error</span>
+                            <span>{{ getError('status_rumah') }}</span>
+                        </div>
                     </div>
                 </div>
+            </div>
+
+            <!-- Tombol Batal & Simpan di Bagian Bawah Form Tab Alamat -->
+            <div class="pt-4 border-t border-slate-100 flex items-center justify-end gap-2">
+                <button
+                    type="button"
+                    @click="handleCancel"
+                    class="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-100 border border-slate-300 transition-all cursor-pointer shadow-2xs"
+                    :disabled="form.processing"
+                >
+                    Batal
+                </button>
+                <button
+                    type="button"
+                    @click="validateAndSave"
+                    class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-bold text-xs sm:text-sm shadow-xs border border-emerald-950/30 active:scale-95 cursor-pointer disabled:opacity-60 transition-all"
+                    :disabled="form.processing"
+                >
+                    <span v-if="form.processing" class="material-symbols-outlined text-[16px] animate-spin">sync</span>
+                    <span v-else class="material-symbols-outlined text-[16px]">save</span>
+                    <span>Simpan Perubahan</span>
+                </button>
             </div>
         </template>
     </div>
 </template>
-

@@ -99,16 +99,89 @@ class EmployeeIdentityValidationTest extends TestCase
         $response = $this->actingAs($this->user)
             ->from("/staff/{$legacyEmployee->id}")
             ->put("/staff/{$legacyEmployee->id}", [
-                '_tab' => 'alamat',
+                '_tab' => 'keluarga',
                 'nama' => 'Legacy Pegawai',
-                'jalan_domisili' => 'Jl. Lawu No. 12',
-                'desa_domisili' => 'Dagen',
+                'status_pernikahan' => 'Menikah',
+                'nama_suami_istri' => 'Fulanah',
             ]);
 
         $response->assertSessionHasNoErrors();
         $response->assertRedirect("/staff/{$legacyEmployee->id}");
 
         $legacyEmployee->refresh();
-        $this->assertEquals('Jl. Lawu No. 12', $legacyEmployee->jalan_domisili);
+        $this->assertEquals('Fulanah', $legacyEmployee->nama_suami_istri);
+    }
+
+    public function test_updating_alamat_tab_requires_all_address_fields(): void
+    {
+        $response = $this->actingAs($this->user)->put("/staff/{$this->employee->id}", [
+            '_tab' => 'alamat',
+            'nama' => 'Budi Santoso',
+            'provinsi_domisili' => '',
+            'kab_domisili' => '',
+            'kecamatan_domisili' => '',
+            'desa_domisili' => '',
+            'dusun_domisili' => '',
+            'rt_rw_domisili' => '',
+            'jalan_domisili' => '',
+            'provinsi_tinggal' => '',
+            'kabupaten_tinggal' => '',
+            'kecamatan_tinggal' => '',
+            'desa_tinggal' => '',
+            'dusun_tinggal' => '',
+            'rt_rw_tinggal' => '',
+            'jalan_tinggal' => '',
+            'status_rumah' => '',
+        ]);
+
+        $response->assertSessionHasErrors([
+            'provinsi_domisili',
+            'kab_domisili',
+            'kecamatan_domisili',
+            'desa_domisili',
+            'dusun_domisili',
+            'rt_rw_domisili',
+            'jalan_domisili',
+            'provinsi_tinggal',
+            'kabupaten_tinggal',
+            'kecamatan_tinggal',
+            'desa_tinggal',
+            'dusun_tinggal',
+            'rt_rw_tinggal',
+            'jalan_tinggal',
+            'status_rumah',
+        ]);
+    }
+
+    public function test_updating_alamat_tab_succeeds_when_all_address_fields_are_filled(): void
+    {
+        $response = $this->actingAs($this->user)
+            ->from("/staff/{$this->employee->id}")
+            ->put("/staff/{$this->employee->id}", [
+                '_tab' => 'alamat',
+                'nama' => 'Budi Santoso',
+                'provinsi_domisili' => 'JAWA TENGAH',
+                'kab_domisili' => 'KABUPATEN KARANGANYAR',
+                'kecamatan_domisili' => 'JATEN',
+                'desa_domisili' => 'DAGEN',
+                'dusun_domisili' => 'Dusun 1',
+                'rt_rw_domisili' => '001/002',
+                'jalan_domisili' => 'Jl. Lawu No. 10',
+                'provinsi_tinggal' => 'JAWA TENGAH',
+                'kabupaten_tinggal' => 'KABUPATEN KARANGANYAR',
+                'kecamatan_tinggal' => 'JATEN',
+                'desa_tinggal' => 'DAGEN',
+                'dusun_tinggal' => 'Dusun 1',
+                'rt_rw_tinggal' => '001/002',
+                'jalan_tinggal' => 'Jl. Lawu No. 10',
+                'status_rumah' => 'Milik Sendiri',
+            ]);
+
+        $response->assertSessionHasNoErrors();
+        $response->assertRedirect("/staff/{$this->employee->id}");
+
+        $this->employee->refresh();
+        $this->assertEquals('Jl. Lawu No. 10', $this->employee->jalan_domisili);
+        $this->assertEquals('Milik Sendiri', $this->employee->status_rumah);
     }
 }
