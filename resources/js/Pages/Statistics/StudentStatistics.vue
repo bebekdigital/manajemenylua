@@ -309,8 +309,8 @@ const chartData = computed(() => {
                 {
                     label: 'Laki-laki (L)',
                     data: data.map(item => Number(item.male) || 0),
-                    backgroundColor: '#2563eb', // blue-600
-                    hoverBackgroundColor: '#1d4ed8', // blue-700
+                    backgroundColor: '#047857', // emerald-700
+                    hoverBackgroundColor: '#065f46', // emerald-800
                     borderWidth: 0,
                     borderRadius: { topLeft: 6, topRight: 6, bottomLeft: 0, bottomRight: 0 },
                     borderSkipped: 'bottom',
@@ -318,8 +318,8 @@ const chartData = computed(() => {
                 {
                     label: 'Perempuan (P)',
                     data: data.map(item => Number(item.female) || 0),
-                    backgroundColor: '#f43f5e', // rose-500
-                    hoverBackgroundColor: '#e11d48', // rose-600
+                    backgroundColor: '#6ee7b7', // emerald-300 (soft mint senada)
+                    hoverBackgroundColor: '#34d399', // emerald-400
                     borderWidth: 0,
                     borderRadius: { topLeft: 6, topRight: 6, bottomLeft: 0, bottomRight: 0 },
                     borderSkipped: 'bottom',
@@ -384,7 +384,7 @@ const chartOptions = computed(() => ({
             align: 'top',
             color: (ctx) => {
                 if (chartMode.value === 'gender') {
-                    return ctx.datasetIndex === 0 ? '#1d4ed8' : '#e11d48';
+                    return ctx.datasetIndex === 0 ? '#065f46' : '#0f766e';
                 }
                 return '#047857';
             },
@@ -562,13 +562,13 @@ function getClassMalePercent(item) {
             </div>
 
             <!-- ============================================================ -->
-            <!-- 4 CARD STATISTIK UTAMA (SISWA AKTIF, LAKI-LAKI, PEREMPUAN)   -->
+            <!-- 4 CARD STATISTIK UTAMA (WARNA SENADA EMERALD, TEAL & SLATE)  -->
             <!-- ============================================================ -->
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5">
                 <!-- Card 1: Jumlah Siswa Aktif -->
-                <div class="p-3.5 sm:p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200/90 shadow-2xs">
+                <div class="p-3.5 sm:p-4 rounded-2xl bg-emerald-50/60 border border-emerald-200/80 shadow-2xs">
                     <div class="flex items-center justify-between gap-2 mb-2">
-                        <div class="w-9 h-9 rounded-xl bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-800 shrink-0">
+                        <div class="w-9 h-9 rounded-xl bg-emerald-100/90 border border-emerald-200 flex items-center justify-center text-emerald-800 shrink-0">
                             <span class="material-symbols-outlined text-[20px] filled-icon">groups</span>
                         </div>
                         <span class="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-emerald-900 text-yellow-200">
@@ -577,58 +577,58 @@ function getClassMalePercent(item) {
                     </div>
                     <p class="text-[11px] font-bold text-emerald-800 uppercase tracking-wider">Jumlah Siswa Aktif</p>
                     <p class="text-2xl sm:text-3xl font-extrabold text-emerald-950 mt-0.5 leading-tight">{{ metrics.active }}</p>
-                    <p class="text-[11px] text-emerald-700 font-medium mt-1 truncate">
+                    <p class="text-[11px] text-emerald-700/90 font-medium mt-1 truncate">
                         Dari {{ metrics.total }} terdaftar ({{ metrics.inactive }} non-aktif)
                     </p>
                 </div>
 
                 <!-- Card 2: Siswa Laki-laki -->
-                <div class="p-3.5 sm:p-4 rounded-2xl bg-blue-50/70 border border-blue-200/90 shadow-2xs">
+                <div class="p-3.5 sm:p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
                     <div class="flex items-center justify-between gap-2 mb-2">
-                        <div class="w-9 h-9 rounded-xl bg-blue-100 border border-blue-200 flex items-center justify-center text-blue-700 shrink-0">
+                        <div class="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-200/80 flex items-center justify-center text-emerald-800 shrink-0">
                             <span class="material-symbols-outlined text-[20px]">male</span>
                         </div>
-                        <span class="px-2 py-0.5 rounded-md text-[10.5px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                        <span class="px-2 py-0.5 rounded-md text-[10.5px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
                             L • {{ malePercentage }}%
                         </span>
                     </div>
-                    <p class="text-[11px] font-bold text-blue-800 uppercase tracking-wider">Siswa Laki-laki</p>
-                    <p class="text-2xl sm:text-3xl font-extrabold text-blue-950 mt-0.5 leading-tight">{{ metrics.male }}</p>
-                    <p class="text-[11px] text-blue-700 font-medium mt-1 truncate">
+                    <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Siswa Laki-laki</p>
+                    <p class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-0.5 leading-tight">{{ metrics.male }}</p>
+                    <p class="text-[11px] text-slate-500 font-medium mt-1 truncate">
                         Peserta didik putra aktif
                     </p>
                 </div>
 
                 <!-- Card 3: Siswa Perempuan -->
-                <div class="p-3.5 sm:p-4 rounded-2xl bg-rose-50/70 border border-rose-200/90 shadow-2xs">
+                <div class="p-3.5 sm:p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
                     <div class="flex items-center justify-between gap-2 mb-2">
-                        <div class="w-9 h-9 rounded-xl bg-rose-100 border border-rose-200 flex items-center justify-center text-rose-700 shrink-0">
+                        <div class="w-9 h-9 rounded-xl bg-teal-50 border border-teal-200/80 flex items-center justify-center text-teal-800 shrink-0">
                             <span class="material-symbols-outlined text-[20px]">female</span>
                         </div>
-                        <span class="px-2 py-0.5 rounded-md text-[10.5px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                        <span class="px-2 py-0.5 rounded-md text-[10.5px] font-bold bg-teal-50 text-teal-800 border border-teal-200">
                             P • {{ femalePercentage }}%
                         </span>
                     </div>
-                    <p class="text-[11px] font-bold text-rose-800 uppercase tracking-wider">Siswa Perempuan</p>
-                    <p class="text-2xl sm:text-3xl font-extrabold text-rose-950 mt-0.5 leading-tight">{{ metrics.female }}</p>
-                    <p class="text-[11px] text-rose-700 font-medium mt-1 truncate">
+                    <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Siswa Perempuan</p>
+                    <p class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-0.5 leading-tight">{{ metrics.female }}</p>
+                    <p class="text-[11px] text-slate-500 font-medium mt-1 truncate">
                         Peserta didik putri aktif
                     </p>
                 </div>
 
                 <!-- Card 4: Jumlah Kelas & Rata-rata -->
-                <div class="p-3.5 sm:p-4 rounded-2xl bg-amber-50/70 border border-amber-200/90 shadow-2xs">
+                <div class="p-3.5 sm:p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
                     <div class="flex items-center justify-between gap-2 mb-2">
-                        <div class="w-9 h-9 rounded-xl bg-amber-100 border border-amber-200 flex items-center justify-center text-amber-800 shrink-0">
+                        <div class="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700 shrink-0">
                             <span class="material-symbols-outlined text-[20px] filled-icon">meeting_room</span>
                         </div>
-                        <span class="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                        <span class="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
                             Rombel
                         </span>
                     </div>
-                    <p class="text-[11px] font-bold text-amber-800 uppercase tracking-wider">Jumlah Kelas</p>
-                    <p class="text-2xl sm:text-3xl font-extrabold text-amber-950 mt-0.5 leading-tight">{{ totalClasses }}</p>
-                    <p class="text-[11px] text-amber-700 font-medium mt-1 truncate">
+                    <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Jumlah Kelas</p>
+                    <p class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-0.5 leading-tight">{{ totalClasses }}</p>
+                    <p class="text-[11px] text-slate-500 font-medium mt-1 truncate">
                         Rata-rata {{ avgStudentsPerClass }} siswa / kelas
                     </p>
                 </div>
@@ -653,30 +653,30 @@ function getClassMalePercent(item) {
                             </span>
                         </div>
 
-                        <!-- Stacked Ratio Bar Laki-laki vs Perempuan -->
+                        <!-- Stacked Ratio Bar Laki-laki vs Perempuan (Warna Senada Emerald Tua & Mint Lembut) -->
                         <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 mb-5">
                             <div class="flex items-center justify-between text-xs font-bold mb-2">
-                                <div class="flex items-center gap-1.5 text-blue-800">
-                                    <span class="inline-flex items-center justify-center px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">L</span>
+                                <div class="flex items-center gap-1.5 text-emerald-900">
+                                    <span class="inline-flex items-center justify-center px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-300">L</span>
                                     <span>Laki-laki ({{ malePercentage }}%)</span>
                                 </div>
-                                <div class="flex items-center gap-1.5 text-rose-800">
+                                <div class="flex items-center gap-1.5 text-teal-800">
                                     <span>Perempuan ({{ femalePercentage }}%)</span>
-                                    <span class="inline-flex items-center justify-center px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">P</span>
+                                    <span class="inline-flex items-center justify-center px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-teal-50 text-teal-800 border border-teal-200">P</span>
                                 </div>
                             </div>
 
-                            <!-- Dual Bar -->
-                            <div class="w-full h-4 rounded-full bg-slate-200 overflow-hidden flex shadow-inner">
+                            <!-- Dual Bar Senada -->
+                            <div class="w-full h-3.5 rounded-full bg-slate-200 overflow-hidden flex">
                                 <div
                                     v-if="genderTotal > 0"
-                                    class="bg-blue-600 h-full transition-all duration-500"
+                                    class="bg-emerald-700 h-full transition-all duration-500"
                                     :style="{ width: `${malePercentage}%` }"
                                     :title="`Laki-laki: ${metrics.male} siswa (${malePercentage}%)`"
                                 ></div>
                                 <div
                                     v-if="genderTotal > 0"
-                                    class="bg-rose-500 h-full transition-all duration-500"
+                                    class="bg-emerald-300 h-full transition-all duration-500"
                                     :style="{ width: `${femalePercentage}%` }"
                                     :title="`Perempuan: ${metrics.female} siswa (${femalePercentage}%)`"
                                 ></div>
@@ -694,17 +694,17 @@ function getClassMalePercent(item) {
                             <div class="space-y-1.5">
                                 <div class="flex items-center justify-between text-xs">
                                     <div class="flex items-center gap-2 font-bold text-slate-800">
-                                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">L</span>
+                                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200">L</span>
                                         <span>Siswa Laki-laki (Putra)</span>
                                     </div>
                                     <div class="flex items-center gap-1.5 shrink-0">
-                                        <span class="font-extrabold text-blue-900">{{ metrics.male }} siswa</span>
+                                        <span class="font-extrabold text-emerald-950">{{ metrics.male }} siswa</span>
                                         <span class="text-[11px] font-semibold text-slate-400">({{ malePercentage }}%)</span>
                                     </div>
                                 </div>
-                                <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden border border-slate-200/60">
+                                <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden border border-slate-200/60">
                                     <div
-                                        class="bg-blue-600 h-full rounded-full transition-all duration-500"
+                                        class="bg-emerald-700 h-full rounded-full transition-all duration-500"
                                         :style="{ width: `${genderTotal > 0 ? Math.max(4, malePercentage) : 0}%` }"
                                     ></div>
                                 </div>
@@ -714,17 +714,17 @@ function getClassMalePercent(item) {
                             <div class="space-y-1.5">
                                 <div class="flex items-center justify-between text-xs">
                                     <div class="flex items-center gap-2 font-bold text-slate-800">
-                                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 border border-rose-200">P</span>
+                                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-teal-50 text-teal-800 border border-teal-200">P</span>
                                         <span>Siswa Perempuan (Putri)</span>
                                     </div>
                                     <div class="flex items-center gap-1.5 shrink-0">
-                                        <span class="font-extrabold text-rose-900">{{ metrics.female }} siswa</span>
+                                        <span class="font-extrabold text-teal-900">{{ metrics.female }} siswa</span>
                                         <span class="text-[11px] font-semibold text-slate-400">({{ femalePercentage }}%)</span>
                                     </div>
                                 </div>
-                                <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden border border-slate-200/60">
+                                <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden border border-slate-200/60">
                                     <div
-                                        class="bg-rose-500 h-full rounded-full transition-all duration-500"
+                                        class="bg-emerald-400 h-full rounded-full transition-all duration-500"
                                         :style="{ width: `${genderTotal > 0 ? Math.max(4, femalePercentage) : 0}%` }"
                                     ></div>
                                 </div>
@@ -739,8 +739,8 @@ function getClassMalePercent(item) {
                                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
                                 <span>Aktif: {{ metrics.active }}</span>
                             </span>
-                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-800 border border-rose-200">
-                                <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                                <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
                                 <span>Tidak Aktif: {{ metrics.inactive }}</span>
                             </span>
                         </div>
@@ -780,10 +780,10 @@ function getClassMalePercent(item) {
                                         <span class="text-[11px] font-medium text-slate-500">• {{ u.classCount }} kelas</span>
                                     </div>
                                     <div class="flex items-center gap-1.5">
-                                        <span class="text-[10.5px] font-bold px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
+                                        <span class="text-[10.5px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200">
                                             L: {{ u.male }}
                                         </span>
-                                        <span class="text-[10.5px] font-bold px-1.5 py-0.5 rounded-md bg-rose-50 text-rose-700 border border-rose-200">
+                                        <span class="text-[10.5px] font-bold px-1.5 py-0.5 rounded-md bg-teal-50 text-teal-800 border border-teal-200">
                                             P: {{ u.female }}
                                         </span>
                                         <span class="text-xs font-extrabold text-emerald-950 bg-emerald-100 border border-emerald-300 px-2.5 py-0.5 rounded-full">
@@ -947,25 +947,25 @@ function getClassMalePercent(item) {
                                 </div>
                             </div>
 
-                            <!-- Bar & Badge Laki-laki / Perempuan per Kelas -->
+                            <!-- Bar & Badge Laki-laki / Perempuan per Kelas (Senada Emerald & Mint) -->
                             <div class="pt-2 border-t border-slate-100 space-y-1.5">
                                 <div class="flex items-center justify-between text-[11px] font-bold">
-                                    <span class="inline-flex items-center gap-1 text-blue-700">
-                                        <span class="px-1.5 py-0.5 rounded bg-blue-50 border border-blue-200 text-[9.5px]">L</span>
+                                    <span class="inline-flex items-center gap-1 text-emerald-800">
+                                        <span class="px-1.5 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-[9.5px]">L</span>
                                         <span>{{ item.male || 0 }} Putra</span>
                                     </span>
-                                    <span class="inline-flex items-center gap-1 text-rose-700">
+                                    <span class="inline-flex items-center gap-1 text-teal-800">
                                         <span>{{ item.female || 0 }} Putri</span>
-                                        <span class="px-1.5 py-0.5 rounded bg-rose-50 border border-rose-200 text-[9.5px]">P</span>
+                                        <span class="px-1.5 py-0.5 rounded bg-teal-50 border border-teal-200 text-[9.5px]">P</span>
                                     </span>
                                 </div>
                                 <div class="w-full h-2 rounded-full bg-slate-100 overflow-hidden flex">
                                     <div
-                                        class="bg-blue-600 h-full"
+                                        class="bg-emerald-700 h-full"
                                         :style="{ width: `${getClassMalePercent(item)}%` }"
                                     ></div>
                                     <div
-                                        class="bg-rose-500 h-full"
+                                        class="bg-emerald-300 h-full"
                                         :style="{ width: `${100 - getClassMalePercent(item)}%` }"
                                     ></div>
                                 </div>
@@ -1026,12 +1026,12 @@ function getClassMalePercent(item) {
                                             </span>
                                         </td>
                                         <td class="py-3.5 px-4 text-center align-middle">
-                                            <span class="inline-flex items-center justify-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                                            <span class="inline-flex items-center justify-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
                                                 {{ item.male || 0 }}
                                             </span>
                                         </td>
                                         <td class="py-3.5 px-4 text-center align-middle">
-                                            <span class="inline-flex items-center justify-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                            <span class="inline-flex items-center justify-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-teal-50 text-teal-800 border border-teal-200">
                                                 {{ item.female || 0 }}
                                             </span>
                                         </td>
@@ -1039,11 +1039,11 @@ function getClassMalePercent(item) {
                                             <div class="space-y-1">
                                                 <div class="w-full h-2.5 rounded-full bg-slate-100 overflow-hidden flex border border-slate-200/70">
                                                     <div
-                                                        class="bg-blue-600 h-full"
+                                                        class="bg-emerald-700 h-full"
                                                         :style="{ width: `${getClassMalePercent(item)}%` }"
                                                     ></div>
                                                     <div
-                                                        class="bg-rose-500 h-full"
+                                                        class="bg-emerald-300 h-full"
                                                         :style="{ width: `${100 - getClassMalePercent(item)}%` }"
                                                     ></div>
                                                 </div>
@@ -1064,12 +1064,12 @@ function getClassMalePercent(item) {
                                             Total Keseluruhan ({{ activeUnitLabel }})
                                         </td>
                                         <td class="py-3.5 px-4 text-center">
-                                            <span class="inline-flex items-center justify-center px-2.5 py-0.5 rounded-md text-xs font-extrabold bg-blue-100 text-blue-900 border border-blue-300">
+                                            <span class="inline-flex items-center justify-center px-2.5 py-0.5 rounded-md text-xs font-extrabold bg-emerald-100 text-emerald-950 border border-emerald-300">
                                                 {{ classTableTotals.male }}
                                             </span>
                                         </td>
                                         <td class="py-3.5 px-4 text-center">
-                                            <span class="inline-flex items-center justify-center px-2.5 py-0.5 rounded-md text-xs font-extrabold bg-rose-100 text-rose-900 border border-rose-300">
+                                            <span class="inline-flex items-center justify-center px-2.5 py-0.5 rounded-md text-xs font-extrabold bg-teal-100 text-teal-950 border border-teal-300">
                                                 {{ classTableTotals.female }}
                                             </span>
                                         </td>
