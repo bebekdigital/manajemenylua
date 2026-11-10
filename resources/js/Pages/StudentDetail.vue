@@ -219,6 +219,15 @@ onUnmounted(() => {
                                 <span>{{ (student.student_status || 'aktif').toLowerCase() === 'aktif' ? 'Aktif' : 'Tidak Aktif' }}</span>
                             </span>
 
+                            <!-- Keterangan & Tanggal Tidak Aktif jika Tidak Aktif -->
+                            <span
+                                v-if="(student.student_status || 'aktif').toLowerCase() !== 'aktif' && (student.keterangan_tidak_aktif || student.ket_tidak_aktif)"
+                                class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-100/70 text-rose-900 border border-rose-300"
+                            >
+                                <span class="material-symbols-outlined text-[14px]">info</span>
+                                <span>{{ student.keterangan_tidak_aktif || student.ket_tidak_aktif }} <template v-if="student.tanggal_tidak_aktif">({{ student.tanggal_tidak_aktif }})</template></span>
+                            </span>
+
                             <!-- Badge Jenis Kelamin -->
                             <span
                                 v-if="student.jk"

@@ -34,6 +34,9 @@ class Student extends Model
         'tanggal_diterima',
         'info_psb',
         'status_registrasi',
+        'status_keaktifan',
+        'keterangan_tidak_aktif',
+        'tanggal_tidak_aktif',
         'jalan',
         'rt_rw',
         'rt',
@@ -99,6 +102,7 @@ class Student extends Model
         return [
             'tanggal_lahir' => 'date',
             'tanggal_diterima' => 'date',
+            'tanggal_tidak_aktif' => 'date',
             'anak_ke' => 'integer',
             'desil' => 'integer',
             'status_pip' => 'boolean',

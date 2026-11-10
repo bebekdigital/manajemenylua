@@ -67,6 +67,19 @@ class StudentImportTest extends TestCase
         $sheet1 = $spreadsheet->getSheetByName('1. Data Siswa');
         $this->assertNotNull($sheet1);
 
+        // Angkatan contoh bukan tahun ajaran, tapi nomor angkatan (1, 2, 5, 7, 9, dll)
+        $this->assertSame('1', (string) $sheet1->getCell('D2')->getValue());
+        $this->assertSame('5', (string) $sheet1->getCell('D3')->getValue());
+
+        // Kolom status keaktifan baru setelah kolom terakhir (BJ)
+        $this->assertSame('Status Keaktifan (Aktif/Tidak Aktif)', $sheet1->getCell('BK1')->getValue());
+        $this->assertSame('Keterangan Tidak Aktif', $sheet1->getCell('BL1')->getValue());
+        $this->assertSame('Tanggal Tidak Aktif (YYYY-MM-DD)', $sheet1->getCell('BM1')->getValue());
+
+        $this->assertSame('Aktif', $sheet1->getCell('BK2')->getValue());
+        $this->assertSame('Tidak Aktif', $sheet1->getCell('BK3')->getValue());
+        $this->assertSame('Mutasi Keluar', $sheet1->getCell('BL3')->getValue());
+
         // Row 2 is SD sample
         $this->assertSame('SD', $sheet1->getCell('E2')->getValue());
         // Row 3 is SMP sample
@@ -181,6 +194,78 @@ class StudentImportTest extends TestCase
         $this->assertSame('P', $student2->jk);
 
         // Clean up temp file
+        if (file_exists($tempPath)) {
+            @unlink($tempPath);
+        }
+    }
+
+    public function test_imports_students_with_status_keaktifan_columns(): void
+    {
+        $spreadsheet = new Spreadsheet;
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('1. Data Siswa');
+
+        // Headers up to BM
+        $headers = array_fill_keys(range('A', 'Z'), '');
+        // We set row 1
+        $row1 = [
+            'A' => 'NISN', 'B' => 'Nama Lengkap', 'C' => 'NIPD', 'D' => 'Angkatan', 'E' => 'Jenjang',
+            'F' => 'Unit', 'G' => 'JK (L/P)', 'BK' => 'Status Keaktifan (Aktif/Tidak Aktif)',
+            'BL' => 'Keterangan Tidak Aktif', 'BM' => 'Tanggal Tidak Aktif (YYYY-MM-DD)',
+        ];
+        foreach ($row1 as $col => $val) {
+            $sheet->setCellValue($col.'1', $val);
+        }
+
+        // Row 2: Siswa Aktif
+        $sheet->setCellValue('A2', '0088880001');
+        $sheet->setCellValue('B2', 'Bilal Bin Rabah');
+        $sheet->setCellValue('D2', '1');
+        $sheet->setCellValue('E2', 'SD');
+        $sheet->setCellValue('BK2', 'Aktif');
+
+        // Row 3: Siswa Tidak Aktif
+        $sheet->setCellValue('A3', '0088880002');
+        $sheet->setCellValue('B3', 'Khalid Bin Walid');
+        $sheet->setCellValue('D3', '5');
+        $sheet->setCellValue('E3', 'SMP');
+        $sheet->setCellValue('BK3', 'Tidak Aktif');
+        $sheet->setCellValue('BL3', 'Mutasi Keluar');
+        $sheet->setCellValue('BM3', '2025-08-15');
+
+        $tempPath = tempnam(sys_get_temp_dir(), 'test_import_status_').'.xlsx';
+        $writer = new Xlsx($spreadsheet);
+        $writer->save($tempPath);
+
+        $uploadedFile = new UploadedFile(
+            $tempPath,
+            'template_siswa_status.xlsx',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            null,
+            true
+        );
+
+        $response = $this->post('/students/import', [
+            'file' => $uploadedFile,
+            'unit' => 'all',
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        $s1 = Student::where('nisn', '0088880001')->first();
+        $this->assertNotNull($s1);
+        $this->assertSame('Aktif', $s1->status_keaktifan);
+        $this->assertSame('1', $s1->angkatan);
+        $this->assertNull($s1->keterangan_tidak_aktif);
+
+        $s2 = Student::where('nisn', '0088880002')->first();
+        $this->assertNotNull($s2);
+        $this->assertSame('Tidak Aktif', $s2->status_keaktifan);
+        $this->assertSame('5', $s2->angkatan);
+        $this->assertSame('Mutasi Keluar', $s2->keterangan_tidak_aktif);
+        $this->assertSame('2025-08-15', $s2->tanggal_tidak_aktif?->format('Y-m-d'));
+
         if (file_exists($tempPath)) {
             @unlink($tempPath);
         }

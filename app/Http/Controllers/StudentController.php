@@ -110,7 +110,10 @@ class StudentController extends Controller
                     'angkatan' => $student->angkatan,
                     'photo_url' => $student->photo_url,
                     'jenjang' => $student->jenjang ?? $record?->classroom?->jenjang,
-                    'student_status' => $record?->student_status ?? 'aktif',
+                    'student_status' => $student->status_keaktifan ? (strtolower($student->status_keaktifan) === 'tidak aktif' ? 'tidak_aktif' : 'aktif') : ($record?->student_status ?? 'aktif'),
+                    'status_keaktifan' => $student->status_keaktifan ?? ($record?->student_status === 'tidak_aktif' || $record?->student_status === 'mutasi_keluar' || $record?->student_status === 'dropout' ? 'Tidak Aktif' : 'Aktif'),
+                    'keterangan_tidak_aktif' => $student->keterangan_tidak_aktif ?? $record?->ket_tidak_aktif,
+                    'tanggal_tidak_aktif' => $student->tanggal_tidak_aktif ? $student->tanggal_tidak_aktif->format('Y-m-d') : ($record?->tanggal_tidak_aktif?->format('Y-m-d')),
                     'no_wa' => $student->no_wa,
                     'sekolah_asal' => $student->sekolah_asal,
                     'status_keluarga' => $student->status_keluarga,
@@ -214,9 +217,11 @@ class StudentController extends Controller
             'jenjang' => $currentRecord?->classroom?->jenjang ?? $studentModel->jenjang ?? $studentModel->diterima_di_jenjang,
             'tingkat' => $currentRecord?->tingkat,
             'kelas' => $currentRecord?->classroom?->name,
-            'student_status' => $currentRecord?->student_status ?? 'aktif',
-            'ket_tidak_aktif' => $currentRecord?->ket_tidak_aktif,
-            'tanggal_tidak_aktif' => $currentRecord?->tanggal_tidak_aktif?->format('Y-m-d'),
+            'student_status' => $studentModel->status_keaktifan ? (strtolower($studentModel->status_keaktifan) === 'tidak aktif' ? 'tidak_aktif' : 'aktif') : ($currentRecord?->student_status ?? 'aktif'),
+            'status_keaktifan' => $studentModel->status_keaktifan ?? ($currentRecord?->student_status === 'tidak_aktif' ? 'Tidak Aktif' : 'Aktif'),
+            'ket_tidak_aktif' => $studentModel->keterangan_tidak_aktif ?? $currentRecord?->ket_tidak_aktif,
+            'keterangan_tidak_aktif' => $studentModel->keterangan_tidak_aktif ?? $currentRecord?->ket_tidak_aktif,
+            'tanggal_tidak_aktif' => $studentModel->tanggal_tidak_aktif ? $studentModel->tanggal_tidak_aktif->format('Y-m-d') : ($currentRecord?->tanggal_tidak_aktif?->format('Y-m-d')),
             'no_wa' => $studentModel->no_wa,
             'no_wa_2' => $studentModel->no_wa_2,
             'email' => $studentModel->email,
@@ -994,16 +999,20 @@ class StudentController extends Controller
             'BH' => ['Tanggal Diterima (YYYY-MM-DD)', 25],
             'BI' => ['Sumber Informasi PSB', 30],
             'BJ' => ['Status Registrasi', 20],
+            'BK' => ['Status Keaktifan (Aktif/Tidak Aktif)', 30],
+            'BL' => ['Keterangan Tidak Aktif', 32],
+            'BM' => ['Tanggal Tidak Aktif (YYYY-MM-DD)', 28],
         ];
 
         $this->applySheetHeaders($sheet, $headers, '004B23');
 
-        // Format kolom Tanggal Lahir & Tanggal Diterima
+        // Format kolom Tanggal Lahir, Tanggal Diterima, & Tanggal Tidak Aktif
         $sheet->getStyle('I2:I1000')->getNumberFormat()->setFormatCode('yyyy-mm-dd');
         $sheet->getStyle('BH2:BH1000')->getNumberFormat()->setFormatCode('yyyy-mm-dd');
+        $sheet->getStyle('BM2:BM1000')->getNumberFormat()->setFormatCode('yyyy-mm-dd');
 
         // Format kolom ID/Nomor sebagai Teks (mencegah angka dengan awalan 0 atau simbol / berubah)
-        $textCols = ['A', 'C', 'D', 'J', 'V', 'W', 'AD', 'AK', 'AR', 'AU', 'BB'];
+        $textCols = ['A', 'C', 'D', 'J', 'V', 'W', 'AD', 'AK', 'AR', 'AU', 'BB', 'BK', 'BL'];
         foreach ($textCols as $col) {
             $sheet->getStyle($col.'2:'.$col.'1000')->getNumberFormat()->setFormatCode('@');
         }
@@ -1014,7 +1023,7 @@ class StudentController extends Controller
         $exampleRows = [
             [
                 '0051234001', 'Ahmad Fauzi Rahman', '10231001', // A, B, C
-                '2025/2026', 'SD', $sdUnit, // D, E, F
+                '1', 'SD', $sdUnit, // D (Contoh Angkatan: 1, 2, 5, 7, 9, dll.), E, F
                 'L', 'Karanganyar', '2014-03-15', // G, H, I
                 '3313150101080001', 'Islam', 'Jl. Lawu No. 12', // J, K, L
                 '03', '05', 'Ngemplak', 'Desa Makmur', 'Colomadu', 'Karanganyar', 'Jawa Tengah', // M, N, O, P, Q, R, S
@@ -1027,10 +1036,11 @@ class StudentController extends Controller
                 'TK Aisyiyah Colomadu', '1', '3313151503140001', 'Kurang dari 1 km', // AZ, BA, BB, BC
                 'Tidak', '-', '1', // BD, BE, BF
                 'SDIT', '2025-07-01', 'Brosur', 'Siswa Baru', // BG, BH, BI, BJ
+                'Aktif', '', '', // BK, BL, BM
             ],
             [
                 '0051234002', 'Aisyah Azzahra', '10232001', // A, B, C
-                '2025/2026', 'SMP', $smpUnit, // D, E, F
+                '5', 'SMP', $smpUnit, // D (Contoh Angkatan: 1, 2, 5, 7, 9, dll.), E, F
                 'P', 'Surakarta', '2011-08-20', // G, H, I
                 '3313154208110002', 'Islam', 'Jl. Slamet Riyadi No. 45', // J, K, L
                 '01', '02', 'Kerten', 'Kerten', 'Laweyan', 'Surakarta', 'Jawa Tengah', // M, N, O, P, Q, R, S
@@ -1043,6 +1053,7 @@ class StudentController extends Controller
                 'SDIT Ulil Albab', '2', '3313154208110001', '2 km', // AZ, BA, BB, BC
                 'Ya', 'Toko Kelontong', '2', // BD, BE, BF
                 'SMPIT', '2025-07-01', 'Media Sosial', 'Siswa Baru', // BG, BH, BI, BJ
+                'Tidak Aktif', 'Mutasi Keluar', '2025-08-10', // BK, BL, BM
             ],
         ];
 
@@ -1103,10 +1114,27 @@ class StudentController extends Controller
             $valStatusRegistrasi->setAllowBlank(true);
             $valStatusRegistrasi->setShowDropDown(true);
             $valStatusRegistrasi->setFormula1('"Siswa Baru,Mutasi Masuk"');
+
+            // Dropdown Status Keaktifan (BK)
+            $valStatusKeaktifan = $sheet->getCell('BK'.$row)->getDataValidation();
+            $valStatusKeaktifan->setType(DataValidation::TYPE_LIST);
+            $valStatusKeaktifan->setAllowBlank(true);
+            $valStatusKeaktifan->setShowDropDown(true);
+            $valStatusKeaktifan->setFormula1('"Aktif,Tidak Aktif"');
+
+            // Dropdown Keterangan Tidak Aktif (BL)
+            $valKetTidakAktif = $sheet->getCell('BL'.$row)->getDataValidation();
+            $valKetTidakAktif->setType(DataValidation::TYPE_LIST);
+            $valKetTidakAktif->setAllowBlank(true);
+            $valKetTidakAktif->setShowDropDown(true);
+            $valKetTidakAktif->setPromptTitle('Keterangan Tidak Aktif');
+            $valKetTidakAktif->setPrompt('Hanya diisi jika Status Keaktifan Tidak Aktif.');
+            $valKetTidakAktif->setShowInputMessage(true);
+            $valKetTidakAktif->setFormula1('"Mutasi Keluar,Meninggal,Putus Sekolah,Dikeluarkan,Lainnya"');
         }
 
-        $this->styleExampleRow($sheet, 2, 'A', 'BJ');
-        $this->styleExampleRow($sheet, 3, 'A', 'BJ');
+        $this->styleExampleRow($sheet, 2, 'A', 'BM');
+        $this->styleExampleRow($sheet, 3, 'A', 'BM');
         $sheet->freezePane('A2');
     }
 
