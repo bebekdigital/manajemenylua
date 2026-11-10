@@ -562,102 +562,75 @@ function getClassMalePercent(item) {
             </div>
 
             <!-- ============================================================ -->
-            <!-- BANNER RINGKASAN & CARD STATISTIK UTAMA                      -->
+            <!-- 4 CARD STATISTIK UTAMA (SISWA AKTIF, LAKI-LAKI, PEREMPUAN)   -->
             <!-- ============================================================ -->
-            <div class="bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-6 shadow-xs mb-5">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div class="flex items-start sm:items-center gap-4 min-w-0">
-                        <div class="w-13 h-13 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-800 shrink-0 shadow-2xs">
-                            <span class="material-symbols-outlined text-[28px] filled-icon">bar_chart</span>
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5">
+                <!-- Card 1: Jumlah Siswa Aktif -->
+                <div class="p-3.5 sm:p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200/90 shadow-2xs">
+                    <div class="flex items-center justify-between gap-2 mb-2">
+                        <div class="w-9 h-9 rounded-xl bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-800 shrink-0">
+                            <span class="material-symbols-outlined text-[20px] filled-icon">groups</span>
                         </div>
-                        <div class="min-w-0 flex-1">
-                            <div class="flex items-center gap-2 flex-wrap">
-                                <span class="inline-flex items-center text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-950 border border-emerald-300">
-                                    Database Siswa
-                                </span>
-                                <span class="inline-flex items-center text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
-                                    {{ activeUnitLabel }}
-                                </span>
-                            </div>
-                            <h2 class="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight mt-1 leading-snug">
-                                Ringkasan Data &amp; Demografi Siswa
-                            </h2>
-                            <p class="text-xs sm:text-[13px] text-slate-500 mt-0.5 font-medium">
-                                Rekapitulasi jumlah siswa aktif, rasio siswa laki-laki dan perempuan, serta distribusi rombongan belajar.
-                            </p>
-                        </div>
+                        <span class="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-emerald-900 text-yellow-200">
+                            {{ activePercentage }}% Aktif
+                        </span>
                     </div>
+                    <p class="text-[11px] font-bold text-emerald-800 uppercase tracking-wider">Jumlah Siswa Aktif</p>
+                    <p class="text-2xl sm:text-3xl font-extrabold text-emerald-950 mt-0.5 leading-tight">{{ metrics.active }}</p>
+                    <p class="text-[11px] text-emerald-700 font-medium mt-1 truncate">
+                        Dari {{ metrics.total }} terdaftar ({{ metrics.inactive }} non-aktif)
+                    </p>
                 </div>
 
-                <!-- 4 Card Statistik Utama (Jumlah Siswa Aktif, Laki-laki, Perempuan, Rombel) -->
-                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mt-5 pt-5 border-t border-slate-100">
-                    <!-- Card 1: Jumlah Siswa Aktif -->
-                    <div class="p-3.5 sm:p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200/90 shadow-2xs">
-                        <div class="flex items-center justify-between gap-2 mb-2">
-                            <div class="w-9 h-9 rounded-xl bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-800 shrink-0">
-                                <span class="material-symbols-outlined text-[20px] filled-icon">groups</span>
-                            </div>
-                            <span class="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-emerald-900 text-yellow-200">
-                                {{ activePercentage }}% Aktif
-                            </span>
+                <!-- Card 2: Siswa Laki-laki -->
+                <div class="p-3.5 sm:p-4 rounded-2xl bg-blue-50/70 border border-blue-200/90 shadow-2xs">
+                    <div class="flex items-center justify-between gap-2 mb-2">
+                        <div class="w-9 h-9 rounded-xl bg-blue-100 border border-blue-200 flex items-center justify-center text-blue-700 shrink-0">
+                            <span class="material-symbols-outlined text-[20px]">male</span>
                         </div>
-                        <p class="text-[11px] font-bold text-emerald-800 uppercase tracking-wider">Jumlah Siswa Aktif</p>
-                        <p class="text-2xl sm:text-3xl font-extrabold text-emerald-950 mt-0.5 leading-tight">{{ metrics.active }}</p>
-                        <p class="text-[11px] text-emerald-700 font-medium mt-1 truncate">
-                            Dari {{ metrics.total }} terdaftar ({{ metrics.inactive }} non-aktif)
-                        </p>
+                        <span class="px-2 py-0.5 rounded-md text-[10.5px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                            L • {{ malePercentage }}%
+                        </span>
                     </div>
+                    <p class="text-[11px] font-bold text-blue-800 uppercase tracking-wider">Siswa Laki-laki</p>
+                    <p class="text-2xl sm:text-3xl font-extrabold text-blue-950 mt-0.5 leading-tight">{{ metrics.male }}</p>
+                    <p class="text-[11px] text-blue-700 font-medium mt-1 truncate">
+                        Peserta didik putra aktif
+                    </p>
+                </div>
 
-                    <!-- Card 2: Siswa Laki-laki -->
-                    <div class="p-3.5 sm:p-4 rounded-2xl bg-blue-50/70 border border-blue-200/90 shadow-2xs">
-                        <div class="flex items-center justify-between gap-2 mb-2">
-                            <div class="w-9 h-9 rounded-xl bg-blue-100 border border-blue-200 flex items-center justify-center text-blue-700 shrink-0">
-                                <span class="material-symbols-outlined text-[20px]">male</span>
-                            </div>
-                            <span class="px-2 py-0.5 rounded-md text-[10.5px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
-                                L • {{ malePercentage }}%
-                            </span>
+                <!-- Card 3: Siswa Perempuan -->
+                <div class="p-3.5 sm:p-4 rounded-2xl bg-rose-50/70 border border-rose-200/90 shadow-2xs">
+                    <div class="flex items-center justify-between gap-2 mb-2">
+                        <div class="w-9 h-9 rounded-xl bg-rose-100 border border-rose-200 flex items-center justify-center text-rose-700 shrink-0">
+                            <span class="material-symbols-outlined text-[20px]">female</span>
                         </div>
-                        <p class="text-[11px] font-bold text-blue-800 uppercase tracking-wider">Siswa Laki-laki</p>
-                        <p class="text-2xl sm:text-3xl font-extrabold text-blue-950 mt-0.5 leading-tight">{{ metrics.male }}</p>
-                        <p class="text-[11px] text-blue-700 font-medium mt-1 truncate">
-                            Peserta didik putra aktif
-                        </p>
+                        <span class="px-2 py-0.5 rounded-md text-[10.5px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                            P • {{ femalePercentage }}%
+                        </span>
                     </div>
+                    <p class="text-[11px] font-bold text-rose-800 uppercase tracking-wider">Siswa Perempuan</p>
+                    <p class="text-2xl sm:text-3xl font-extrabold text-rose-950 mt-0.5 leading-tight">{{ metrics.female }}</p>
+                    <p class="text-[11px] text-rose-700 font-medium mt-1 truncate">
+                        Peserta didik putri aktif
+                    </p>
+                </div>
 
-                    <!-- Card 3: Siswa Perempuan -->
-                    <div class="p-3.5 sm:p-4 rounded-2xl bg-rose-50/70 border border-rose-200/90 shadow-2xs">
-                        <div class="flex items-center justify-between gap-2 mb-2">
-                            <div class="w-9 h-9 rounded-xl bg-rose-100 border border-rose-200 flex items-center justify-center text-rose-700 shrink-0">
-                                <span class="material-symbols-outlined text-[20px]">female</span>
-                            </div>
-                            <span class="px-2 py-0.5 rounded-md text-[10.5px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                                P • {{ femalePercentage }}%
-                            </span>
+                <!-- Card 4: Jumlah Kelas & Rata-rata -->
+                <div class="p-3.5 sm:p-4 rounded-2xl bg-amber-50/70 border border-amber-200/90 shadow-2xs">
+                    <div class="flex items-center justify-between gap-2 mb-2">
+                        <div class="w-9 h-9 rounded-xl bg-amber-100 border border-amber-200 flex items-center justify-center text-amber-800 shrink-0">
+                            <span class="material-symbols-outlined text-[20px] filled-icon">meeting_room</span>
                         </div>
-                        <p class="text-[11px] font-bold text-rose-800 uppercase tracking-wider">Siswa Perempuan</p>
-                        <p class="text-2xl sm:text-3xl font-extrabold text-rose-950 mt-0.5 leading-tight">{{ metrics.female }}</p>
-                        <p class="text-[11px] text-rose-700 font-medium mt-1 truncate">
-                            Peserta didik putri aktif
-                        </p>
+                        <span class="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                            Rombel
+                        </span>
                     </div>
-
-                    <!-- Card 4: Jumlah Kelas & Rata-rata -->
-                    <div class="p-3.5 sm:p-4 rounded-2xl bg-amber-50/70 border border-amber-200/90 shadow-2xs">
-                        <div class="flex items-center justify-between gap-2 mb-2">
-                            <div class="w-9 h-9 rounded-xl bg-amber-100 border border-amber-200 flex items-center justify-center text-amber-800 shrink-0">
-                                <span class="material-symbols-outlined text-[20px] filled-icon">meeting_room</span>
-                            </div>
-                            <span class="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
-                                Rombel
-                            </span>
-                        </div>
-                        <p class="text-[11px] font-bold text-amber-800 uppercase tracking-wider">Jumlah Kelas</p>
-                        <p class="text-2xl sm:text-3xl font-extrabold text-amber-950 mt-0.5 leading-tight">{{ totalClasses }}</p>
-                        <p class="text-[11px] text-amber-700 font-medium mt-1 truncate">
-                            Rata-rata {{ avgStudentsPerClass }} siswa / kelas
-                        </p>
-                    </div>
+                    <p class="text-[11px] font-bold text-amber-800 uppercase tracking-wider">Jumlah Kelas</p>
+                    <p class="text-2xl sm:text-3xl font-extrabold text-amber-950 mt-0.5 leading-tight">{{ totalClasses }}</p>
+                    <p class="text-[11px] text-amber-700 font-medium mt-1 truncate">
+                        Rata-rata {{ avgStudentsPerClass }} siswa / kelas
+                    </p>
                 </div>
             </div>
 
