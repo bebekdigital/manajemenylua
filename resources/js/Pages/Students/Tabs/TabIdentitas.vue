@@ -269,7 +269,7 @@ watch(
                 <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.agama || '-' }}</p>
             </div>
             <div>
-                <label class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Unit Kerja</label>
+                <label class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Unit Sekolah</label>
                 <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.unit || '-' }}</p>
             </div>
             <div>
@@ -511,10 +511,10 @@ watch(
                 </div>
             </div>
 
-            <!-- Unit Kerja -->
+            <!-- Unit Sekolah -->
             <div>
                 <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
-                    Unit Kerja
+                    Unit Sekolah
                 </label>
                 <select
                     v-if="allUnits && allUnits.length > 0"
@@ -523,7 +523,7 @@ watch(
                     @change="clearFieldError('unit')"
                     class="w-full px-3.5 py-2 sm:py-2.5 bg-white rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none transition-all border border-outline-variant/60 focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
                 >
-                    <option value="">-- Pilih Unit Kerja --</option>
+                    <option value="">-- Pilih Unit Sekolah --</option>
                     <option v-for="u in allUnits" :key="u" :value="u">{{ u }}</option>
                     <option v-if="form.unit && !allUnits.includes(form.unit)" :value="form.unit">{{ form.unit }}</option>
                 </select>
@@ -721,3 +721,4 @@ watch(
         </div>
     </div>
 </template>
+

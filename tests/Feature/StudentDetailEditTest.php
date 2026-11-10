@@ -93,3 +93,4 @@ class StudentDetailEditTest extends TestCase
         $response->assertSessionHasErrors(['nama', 'nisn', 'jk', 'tempat_lahir', 'tanggal_lahir']);
     }
 }
+
