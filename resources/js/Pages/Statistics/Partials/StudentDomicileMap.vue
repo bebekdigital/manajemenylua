@@ -2,6 +2,19 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import { Bar } from 'vue-chartjs';
+import {
+    Chart as ChartJS,
+    CategoryScale,
+    LinearScale,
+    BarElement,
+    Title,
+    Tooltip,
+    Legend,
+} from 'chart.js';
+import ChartDataLabels from 'chartjs-plugin-datalabels';
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ChartDataLabels);
 
 const props = defineProps({
     students: {
@@ -25,6 +38,7 @@ const props = defineProps({
 const mapContainer = ref(null);
 let map = null;
 let geojsonLayer = null;
+let kabupatenLayer = null;
 
 const geojsonData = ref(null);
 const isLoading = ref(true);
@@ -126,6 +140,7 @@ const distribution = computed(() => {
 // Switcher mode: 'peta' atau 'bar'
 const activeView = ref('peta');
 const barSearchQuery = ref('');
+const barFilterLimit = ref('15'); // '10' | '15' | '25' | 'all'
 
 // Daftar seluruh kecamatan dengan jumlah siswa untuk tampilan Horizontal Bar
 const barKecamatans = computed(() => {
@@ -148,18 +163,111 @@ const barKecamatans = computed(() => {
     return list.sort((a, b) => b.count - a.count);
 });
 
-const maxBarCount = computed(() => {
-    if (barKecamatans.value.length === 0) return 1;
-    return Math.max(...barKecamatans.value.map(k => k.count), 1);
+const displayedKecamatans = computed(() => {
+    let list = barKecamatans.value;
+    const q = barSearchQuery.value.trim().toLowerCase();
+    if (q) {
+        list = list.filter(item =>
+            item.kecamatan.toLowerCase().includes(q) ||
+            item.kabupaten.toLowerCase().includes(q)
+        );
+    } else if (barFilterLimit.value !== 'all') {
+        list = list.slice(0, Number(barFilterLimit.value));
+    }
+    return list;
 });
 
-const filteredBarKecamatans = computed(() => {
-    const q = barSearchQuery.value.trim().toLowerCase();
-    if (!q) return barKecamatans.value;
-    return barKecamatans.value.filter(item =>
-        item.kecamatan.toLowerCase().includes(q) ||
-        item.kabupaten.toLowerCase().includes(q)
-    );
+const horizontalBarChartData = computed(() => {
+    const list = displayedKecamatans.value;
+    return {
+        labels: list.map(item => `Kec. ${item.kecamatan} (${item.kabupaten})`),
+        datasets: [
+            {
+                label: 'Jumlah Siswa',
+                data: list.map(item => item.count),
+                backgroundColor: '#047857',
+                hoverBackgroundColor: '#064e3b',
+                borderRadius: 6,
+                borderSkipped: false,
+                barThickness: 18,
+                maxBarThickness: 22,
+            },
+        ],
+    };
+});
+
+const horizontalBarChartOptions = computed(() => ({
+    indexAxis: 'y',
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+        legend: {
+            display: false,
+        },
+        tooltip: {
+            backgroundColor: '#0f172a',
+            padding: 10,
+            cornerRadius: 10,
+            titleFont: { size: 12, weight: 'bold', family: "'Plus Jakarta Sans', 'Inter', sans-serif" },
+            bodyFont: { size: 11, family: "'Plus Jakarta Sans', 'Inter', sans-serif" },
+            callbacks: {
+                label: (ctx) => {
+                    const item = displayedKecamatans.value[ctx.dataIndex];
+                    if (!item) return '';
+                    return ` ${item.count} Siswa (${item.percentage}%)`;
+                },
+            },
+        },
+        datalabels: {
+            anchor: 'end',
+            align: 'right',
+            color: '#064e3b',
+            font: { weight: 'bold', size: 11, family: "'Plus Jakarta Sans', 'Inter', sans-serif" },
+            offset: 4,
+            formatter: (value) => `${value} siswa`,
+        },
+    },
+    scales: {
+        x: {
+            beginAtZero: true,
+            grid: {
+                color: 'rgba(226, 232, 240, 0.8)',
+                drawBorder: false,
+            },
+            ticks: {
+                font: { size: 10.5, family: "'Plus Jakarta Sans', 'Inter', sans-serif" },
+                color: '#94a3b8',
+                precision: 0,
+            },
+            title: {
+                display: true,
+                text: 'Jumlah Siswa Aktif',
+                color: '#64748b',
+                font: { size: 11, weight: '600', family: "'Plus Jakarta Sans', 'Inter', sans-serif" },
+            },
+            border: { display: false },
+        },
+        y: {
+            grid: {
+                display: false,
+            },
+            ticks: {
+                font: { size: 11, weight: '600', family: "'Plus Jakarta Sans', 'Inter', sans-serif" },
+                color: '#1e293b',
+            },
+            border: { display: false },
+        },
+    },
+    animation: {
+        duration: 500,
+        easing: 'easeOutQuart',
+    },
+}));
+
+const chartHeight = computed(() => {
+    const count = displayedKecamatans.value.length;
+    if (count === 0) return 360;
+    return Math.max(count * 38, 360);
 });
 
 watch(activeView, (newView) => {
@@ -191,9 +299,9 @@ function featureStyle(feature) {
 
     return {
         fillColor: getColor(count),
-        weight: 1,
-        opacity: 0.9,
-        color: '#64748b',
+        weight: 0.8,
+        opacity: 0.8,
+        color: '#94a3b8',
         fillOpacity: count > 0 ? 0.92 : 0.6,
     };
 }
@@ -240,12 +348,24 @@ async function loadGeoJsonAndInitMap() {
         isLoading.value = true;
         loadError.value = null;
 
+        // 1. Muat batas kecamatan (146 features)
         const response = await fetch('/data/solo-raya-kecamatan.geojson');
         if (!response.ok) {
             throw new Error(`Gagal memuat data batas kecamatan (status ${response.status})`);
         }
         const data = await response.json();
         geojsonData.value = data;
+
+        // 2. Muat batas kabupaten untuk ditebalkan batasnya (8 features)
+        let kabData = null;
+        try {
+            const kabResponse = await fetch('/data/solo-raya-kabupaten.geojson');
+            if (kabResponse.ok) {
+                kabData = await kabResponse.json();
+            }
+        } catch (e) {
+            console.warn('Gagal memuat batas kabupaten:', e);
+        }
 
         await nextTick();
         if (!mapContainer.value) return;
@@ -262,6 +382,7 @@ async function loadGeoJsonAndInitMap() {
         // Kontrol zoom di kanan atas
         L.control.zoom({ position: 'topright' }).addTo(map);
 
+        // Layer 1: Batas Kecamatan (Interaktif: hover info, click zoom)
         geojsonLayer = L.geoJSON(data, {
             style: featureStyle,
             onEachFeature: (feature, layer) => {
@@ -269,11 +390,14 @@ async function loadGeoJsonAndInitMap() {
                     mouseover: (e) => {
                         const target = e.target;
                         target.setStyle({
-                            weight: 2.5,
+                            weight: 2.2,
                             color: '#047857',
                             fillOpacity: 1,
                         });
                         target.bringToFront();
+                        if (kabupatenLayer) {
+                            kabupatenLayer.bringToFront();
+                        }
                         hoveredFeature.value = {
                             kecamatan: feature.properties.kecamatan,
                             kabupaten: feature.properties.kabupaten,
@@ -290,6 +414,19 @@ async function loadGeoJsonAndInitMap() {
                 });
             },
         }).addTo(map);
+
+        // Layer 2: Batas Kabupaten Tebal (Garis luar tegas & tebal)
+        if (kabData) {
+            kabupatenLayer = L.geoJSON(kabData, {
+                style: {
+                    fill: false,
+                    weight: 2.8,       // TEBAL: Batas kabupaten terlihat tegas & tebal
+                    color: '#0f172a',    // Slate-900 tebal kontras
+                    opacity: 0.95,
+                },
+                interactive: false,    // Klik/hover tembus langsung ke kecamatan di bawahnya
+            }).addTo(map);
+        }
 
         map.fitBounds(geojsonLayer.getBounds(), { padding: [24, 24] });
         updateMapLayers();
@@ -309,6 +446,10 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+    if (kabupatenLayer) {
+        kabupatenLayer.remove();
+        kabupatenLayer = null;
+    }
     if (map) {
         map.remove();
         map = null;
@@ -441,42 +582,56 @@ onBeforeUnmount(() => {
                 </div>
             </div>
 
-            <!-- Floating Legend (Skala Gradasi Warna) di Kiri Bawah -->
-            <div class="absolute bottom-3 left-3 z-[400] bg-white/95 backdrop-blur-xs rounded-xl border border-slate-200/90 p-2 sm:p-2.5 shadow-md">
-                <div class="text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1">
-                    Jumlah Siswa
+            <!-- Floating Legend (Skala Gradasi Warna & Garis Batas) di Kiri Bawah -->
+            <div class="absolute bottom-3 left-3 z-[400] bg-white/95 backdrop-blur-xs rounded-xl border border-slate-200/90 p-2 sm:p-2.5 shadow-md flex flex-col gap-1.5">
+                <div>
+                    <div class="text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+                        Jumlah Siswa
+                    </div>
+                    <div class="flex items-center gap-1 text-[10px] text-slate-600 font-medium">
+                        <div class="flex items-center gap-0.5">
+                            <span class="w-3.5 h-3 rounded-xs border border-slate-300 inline-block bg-[#ffffff]"></span>
+                            <span class="mr-1">0</span>
+                        </div>
+                        <div class="flex items-center gap-0.5">
+                            <span class="w-3.5 h-3 rounded-xs inline-block bg-[#6ee7b7]"></span>
+                            <span class="mr-1">1-4</span>
+                        </div>
+                        <div class="flex items-center gap-0.5">
+                            <span class="w-3.5 h-3 rounded-xs inline-block bg-[#10b981]"></span>
+                            <span class="mr-1">5-9</span>
+                        </div>
+                        <div class="flex items-center gap-0.5">
+                            <span class="w-3.5 h-3 rounded-xs inline-block bg-[#047857]"></span>
+                            <span class="mr-1">10-19</span>
+                        </div>
+                        <div class="flex items-center gap-0.5">
+                            <span class="w-3.5 h-3 rounded-xs inline-block bg-[#064e3b]"></span>
+                            <span>20+</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="flex items-center gap-1 text-[10px] text-slate-600 font-medium">
-                    <div class="flex items-center gap-0.5">
-                        <span class="w-3.5 h-3 rounded-xs border border-slate-300 inline-block bg-[#ffffff]"></span>
-                        <span class="mr-1">0</span>
+
+                <!-- Legenda Garis Batas Wilayah -->
+                <div class="pt-1.5 border-t border-slate-200/70 flex items-center gap-3 text-[10px] text-slate-600 font-medium">
+                    <div class="flex items-center gap-1" title="Garis tebal batas kabupaten">
+                        <span class="w-4 h-0.5 bg-[#0f172a] inline-block rounded-full"></span>
+                        <span class="font-bold text-slate-800">Batas Kabupaten</span>
                     </div>
-                    <div class="flex items-center gap-0.5">
-                        <span class="w-3.5 h-3 rounded-xs inline-block bg-[#6ee7b7]"></span>
-                        <span class="mr-1">1-4</span>
-                    </div>
-                    <div class="flex items-center gap-0.5">
-                        <span class="w-3.5 h-3 rounded-xs inline-block bg-[#10b981]"></span>
-                        <span class="mr-1">5-9</span>
-                    </div>
-                    <div class="flex items-center gap-0.5">
-                        <span class="w-3.5 h-3 rounded-xs inline-block bg-[#047857]"></span>
-                        <span class="mr-1">10-19</span>
-                    </div>
-                    <div class="flex items-center gap-0.5">
-                        <span class="w-3.5 h-3 rounded-xs inline-block bg-[#064e3b]"></span>
-                        <span>20+</span>
+                    <div class="flex items-center gap-1" title="Garis tipis batas kecamatan">
+                        <span class="w-4 h-[1px] bg-[#94a3b8] inline-block"></span>
+                        <span>Kecamatan</span>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- ============================================================ -->
-        <!-- VIEW 2: TAMPILAN HORIZONTAL BAR SEBARAN KECAMATAN            -->
+        <!-- VIEW 2: TAMPILAN GRAFIK HORIZONTAL BAR SEBARAN KECAMATAN     -->
         <!-- ============================================================ -->
         <div v-show="activeView === 'bar'" class="w-full h-[380px] sm:h-[460px] rounded-2xl border border-slate-200/90 bg-white p-3 sm:p-4 flex flex-col">
-            <!-- Toolbar: Pencarian Cepat & Info Total Kecamatan -->
-            <div class="flex items-center justify-between gap-3 pb-3 mb-2 border-b border-slate-100 shrink-0">
+            <!-- Toolbar: Pencarian Cepat & Filter Jumlah Top -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 mb-2 border-b border-slate-100 shrink-0">
                 <div class="relative w-full sm:w-72">
                     <span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">search</span>
                     <input
@@ -494,57 +649,54 @@ onBeforeUnmount(() => {
                         close
                     </button>
                 </div>
-                <div class="text-[11px] font-semibold text-slate-500 shrink-0">
-                    Menampilkan <span class="font-bold text-slate-800">{{ filteredBarKecamatans.length }}</span> kecamatan terdata
+
+                <!-- Filter Kapsul Limit (Top 10, Top 15, Top 25, Semua) -->
+                <div class="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+                    <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider shrink-0">Tampilkan:</span>
+                    <div class="inline-flex items-center p-0.5 bg-slate-100 rounded-lg border border-slate-200 text-xs">
+                        <button
+                            v-for="opt in [
+                                { label: 'Top 10', value: '10' },
+                                { label: 'Top 15', value: '15' },
+                                { label: 'Top 25', value: '25' },
+                                { label: 'Semua', value: 'all' },
+                            ]"
+                            :key="opt.value"
+                            type="button"
+                            @click="barFilterLimit = opt.value; barSearchQuery = ''"
+                            class="px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer"
+                            :class="barFilterLimit === opt.value && !barSearchQuery
+                                ? 'bg-white text-emerald-900 font-bold shadow-2xs'
+                                : 'text-slate-500 hover:text-slate-800'"
+                        >
+                            {{ opt.label }}
+                        </button>
+                    </div>
+                    <span class="text-[11px] text-slate-400 font-medium hidden md:inline">
+                        ({{ displayedKecamatans.length }} kecamatan)
+                    </span>
                 </div>
             </div>
 
-            <!-- List Horizontal Bar (Scrollable) -->
-            <div class="flex-1 overflow-y-auto space-y-1.5 pr-1.5 custom-bar-scrollbar">
+            <!-- Kontainer Grafik Horizontal Bar (Scrollable jika data banyak) -->
+            <div class="flex-1 overflow-y-auto pr-2 custom-bar-scrollbar">
                 <div
-                    v-for="(item, idx) in filteredBarKecamatans"
-                    :key="`${item.kecamatan}_${item.kabupaten}`"
-                    class="flex items-center gap-2.5 sm:gap-3 py-2 px-2.5 sm:px-3 rounded-xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100"
+                    v-if="displayedKecamatans.length > 0"
+                    class="w-full relative"
+                    :style="{ height: `${chartHeight}px`, minHeight: '340px' }"
                 >
-                    <!-- Nomor Peringkat -->
-                    <span
-                        class="w-7 text-center text-xs font-bold shrink-0"
-                        :class="idx < 3 ? 'text-emerald-700 bg-emerald-50 rounded-md py-0.5 border border-emerald-200' : 'text-slate-400'"
-                    >
-                        #{{ idx + 1 }}
-                    </span>
-
-                    <!-- Label Kecamatan & Kabupaten -->
-                    <div class="w-32 sm:w-48 shrink-0 truncate">
-                        <div class="text-xs font-bold text-slate-800 truncate" :title="`Kec. ${item.kecamatan}`">
-                            Kec. {{ item.kecamatan }}
-                        </div>
-                        <div class="text-[10px] sm:text-[11px] text-slate-400 font-medium truncate">
-                            Kab/Kota {{ item.kabupaten }}
-                        </div>
-                    </div>
-
-                    <!-- Horizontal Bar Track & Fill -->
-                    <div class="flex-1 min-w-[60px] h-3.5 bg-slate-100 rounded-full overflow-hidden p-0.5 border border-slate-200/80">
-                        <div
-                            class="h-full rounded-full bg-linear-to-r from-emerald-500 to-emerald-700 transition-all duration-300"
-                            :style="{ width: `${Math.max((item.count / maxBarCount) * 100, 3)}%` }"
-                        ></div>
-                    </div>
-
-                    <!-- Angka Siswa & Persentase -->
-                    <div class="w-20 sm:w-24 text-right shrink-0">
-                        <span class="text-xs font-bold text-emerald-800">{{ item.count }} Siswa</span>
-                        <span class="text-[10.5px] text-slate-400 ml-1">({{ item.percentage }}%)</span>
-                    </div>
+                    <Bar
+                        :data="horizontalBarChartData"
+                        :options="horizontalBarChartOptions"
+                    />
                 </div>
 
-                <!-- Empty State jika tidak ada kecamatan cocok -->
-                <div v-if="filteredBarKecamatans.length === 0" class="h-full flex flex-col items-center justify-center py-12 text-center">
-                    <span class="material-symbols-outlined text-3xl text-slate-300 mb-1">location_off</span>
-                    <p class="text-xs font-bold text-slate-700">Tidak ada kecamatan ditemukan</p>
+                <!-- Empty State jika tidak ada data -->
+                <div v-else class="h-full flex flex-col items-center justify-center py-12 text-center">
+                    <span class="material-symbols-outlined text-3xl text-slate-300 mb-1">bar_chart</span>
+                    <p class="text-xs font-bold text-slate-700">Tidak ada data kecamatan ditemukan</p>
                     <p class="text-[11px] text-slate-400 mt-0.5">
-                        {{ barSearchQuery ? 'Coba gunakan kata kunci pencarian lain.' : 'Belum ada data domisili siswa terdata pada filter ini.' }}
+                        {{ barSearchQuery ? 'Coba gunakan kata kunci pencarian lain.' : 'Belum ada data domisili siswa terdata.' }}
                     </p>
                 </div>
             </div>
