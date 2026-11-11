@@ -99,7 +99,7 @@ class StudentDetailEditTest extends TestCase
 
         $response = $this->actingAs($this->user)->put("/students/{$student->id}", [
             '_tab' => 'registrasi',
-            'status_registrasi' => 'Pindahan',
+            'status_registrasi' => 'Mutasi Masuk',
             'sekolah_asal' => 'TK Islam Al-Falah',
             'diterima_di_jenjang' => 'SD / Kelas 2',
             'tanggal_diterima' => '2024-07-15',
@@ -113,7 +113,7 @@ class StudentDetailEditTest extends TestCase
         $response->assertSessionHas('success');
 
         $student->refresh();
-        $this->assertSame('Pindahan', $student->status_registrasi);
+        $this->assertSame('Mutasi Masuk', $student->status_registrasi);
         $this->assertSame('TK Islam Al-Falah', $student->sekolah_asal);
         $this->assertSame('SD / Kelas 2', $student->diterima_di_jenjang);
         $this->assertSame('2024-07-15', $student->tanggal_diterima->format('Y-m-d'));

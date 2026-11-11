@@ -1027,9 +1027,7 @@ onUnmounted(() => {
                                     class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200/90 text-xs sm:text-sm font-semibold text-slate-900 bg-white shadow-2xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all cursor-pointer"
                                 >
                                     <option value="Siswa Baru">Siswa Baru</option>
-                                    <option value="Pindahan">Pindahan</option>
-                                    <option value="Lanjutan">Lanjutan</option>
-                                    <option value="Lainnya">Lainnya</option>
+                                    <option value="Mutasi Masuk">Mutasi Masuk</option>
                                 </select>
                             </div>
 

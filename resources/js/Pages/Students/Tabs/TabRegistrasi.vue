@@ -176,7 +176,9 @@ function saveChanges() {
                                 'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border',
                                 student.status_registrasi === 'Siswa Baru'
                                     ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                                    : 'bg-blue-50 text-blue-800 border-blue-200'
+                                    : (student.status_registrasi === 'Mutasi Masuk'
+                                        ? 'bg-amber-50 text-amber-800 border-amber-200'
+                                        : 'bg-slate-100 text-slate-700 border-slate-200')
                             ]"
                         >
                             {{ student.status_registrasi }}
@@ -333,9 +335,13 @@ function saveChanges() {
                             class="w-full px-3.5 py-2 rounded-xl border border-slate-200/90 text-xs sm:text-sm font-semibold text-slate-800 bg-white shadow-2xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all cursor-pointer"
                         >
                             <option value="Siswa Baru">Siswa Baru</option>
-                            <option value="Pindahan">Pindahan</option>
-                            <option value="Lanjutan">Lanjutan</option>
-                            <option value="Lainnya">Lainnya</option>
+                            <option value="Mutasi Masuk">Mutasi Masuk</option>
+                            <option
+                                v-if="form.status_registrasi && !['Siswa Baru', 'Mutasi Masuk'].includes(form.status_registrasi)"
+                                :value="form.status_registrasi"
+                            >
+                                {{ form.status_registrasi }}
+                            </option>
                         </select>
                     </div>
 
