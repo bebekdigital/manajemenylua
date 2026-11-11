@@ -33,6 +33,10 @@ const props = defineProps({
         type: Object,
         default: null,
     },
+    currentAcademicYear: {
+        type: Object,
+        default: null,
+    },
     availableAcademicYears: {
         type: Array,
         default: () => [],
@@ -67,6 +71,21 @@ function handleFilterChange() {
         preserveScroll: true,
         replace: true,
     });
+}
+
+const isDifferentFromCurrent = computed(() => {
+    const currentYear = props.currentAcademicYear?.name || (props.availableAcademicYears?.[0] ?? '2026/2027');
+    const currentSem = props.currentAcademicYear?.semester || 'Ganjil';
+    return selectedYearName.value !== currentYear || selectedSemester.value !== currentSem;
+});
+
+function resetToCurrentAcademicYear() {
+    const currentYear = props.currentAcademicYear?.name || (props.availableAcademicYears?.[0] ?? '2026/2027');
+    const currentSem = props.currentAcademicYear?.semester || 'Ganjil';
+    selectedYearName.value = currentYear;
+    selectedSemester.value = currentSem;
+    selectedChartYear.value = currentYear;
+    handleFilterChange();
 }
 
 // ============================================================
@@ -163,45 +182,90 @@ const filteredClasses = computed(() => {
 
 // ============================================================
 // Perhitungan Metrik Utama & Siswa Baru per TA & Semester
+// Mengacu ke kolom Periode Tanggal dari TA dan Semester di Tab Akademik
 // ============================================================
-function isNewStudentForYear(student, yearName, semesterFilter, allYearsList = []) {
-    if (!student?.tanggal_diterima && !student?.angkatan) return false;
-    const tgl = student.tanggal_diterima ? String(student.tanggal_diterima).slice(0, 10) : null;
+function formatIndoDate(dateStr) {
+    if (!dateStr) return '';
+    try {
+        const parts = String(dateStr).slice(0, 10).split('-');
+        if (parts.length !== 3) return dateStr;
+        const [y, m, d] = parts;
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+        const monthName = months[parseInt(m, 10) - 1] || m;
+        return `${parseInt(d, 10)} ${monthName} ${y}`;
+    } catch {
+        return dateStr;
+    }
+}
 
-    if (tgl) {
-        // Cek record spesifik pada allAcademicYears
-        const matchingRecords = (allYearsList || []).filter(y => y.name === yearName);
-        const filteredRecords = semesterFilter && semesterFilter !== 'Semua'
-            ? matchingRecords.filter(y => (y.semester || '').toLowerCase() === semesterFilter.toLowerCase())
-            : matchingRecords;
+function getAcademicYearPeriod(yearName, semesterFilter, allYearsList = []) {
+    const matchingRecords = (allYearsList || []).filter(y => y.name === yearName);
+    const filteredRecords = semesterFilter && semesterFilter !== 'Semua'
+        ? matchingRecords.filter(y => (y.semester || '').toLowerCase() === semesterFilter.toLowerCase())
+        : matchingRecords;
 
-        for (const rec of filteredRecords) {
-            if (rec.start_date && rec.end_date) {
-                const s = String(rec.start_date).slice(0, 10);
-                const e = String(rec.end_date).slice(0, 10);
-                if (tgl >= s && tgl <= e) return true;
-            }
+    let startDate = null;
+    let endDate = null;
+
+    filteredRecords.forEach(rec => {
+        if (rec.start_date) {
+            const s = String(rec.start_date).slice(0, 10);
+            if (!startDate || s < startDate) startDate = s;
         }
+        if (rec.end_date) {
+            const e = String(rec.end_date).slice(0, 10);
+            if (!endDate || e > endDate) endDate = e;
+        }
+    });
 
-        // Fallback: deteksi dari nama tahun ajaran (misal '2026/2027')
+    // Fallback jika periode tanggal belum diisi pada database
+    if (!startDate || !endDate) {
         const match = yearName.match(/(\d{4})\s*[\/-]\s*(\d{4})/);
         if (match) {
             const startYear = match[1];
             const endYear = match[2];
             const sem = (semesterFilter || 'Semua').toLowerCase();
-
             if (sem === 'ganjil') {
-                return tgl >= `${startYear}-01-01` && tgl <= `${startYear}-12-31`;
+                startDate = startDate || `${startYear}-07-01`;
+                endDate = endDate || `${startYear}-12-31`;
             } else if (sem === 'genap') {
-                return tgl >= `${endYear}-01-01` && tgl <= `${endYear}-06-30`;
+                startDate = startDate || `${endYear}-01-01`;
+                endDate = endDate || `${endYear}-06-30`;
             } else {
-                return tgl >= `${startYear}-01-01` && tgl <= `${endYear}-06-30`;
+                startDate = startDate || `${startYear}-07-01`;
+                endDate = endDate || `${endYear}-06-30`;
             }
         }
     }
 
+    return { startDate, endDate };
+}
+
+const currentPeriod = computed(() => {
+    return getAcademicYearPeriod(selectedYearName.value, selectedSemester.value, props.allAcademicYears);
+});
+
+const selectedPeriodLabel = computed(() => {
+    if (currentPeriod.value.startDate && currentPeriod.value.endDate) {
+        return `${formatIndoDate(currentPeriod.value.startDate)} — ${formatIndoDate(currentPeriod.value.endDate)}`;
+    }
+    return '';
+});
+
+function isNewStudentForYear(student, yearName, semesterFilter, allYearsList = []) {
+    if (!student?.tanggal_diterima && !student?.angkatan) return false;
+    const tgl = student.tanggal_diterima ? String(student.tanggal_diterima).slice(0, 10) : null;
+
+    const { startDate, endDate } = getAcademicYearPeriod(yearName, semesterFilter, allYearsList);
+
+    if (tgl && startDate && endDate) {
+        if (tgl >= startDate && tgl <= endDate) {
+            return true;
+        }
+    }
+
     // Fallback: cek berdasarkan angkatan jika tanggal_diterima kosong
-    if (student.angkatan) {
+    if (!tgl && student.angkatan) {
         const match = yearName.match(/(\d{4})/);
         if (match && String(student.angkatan).trim() === match[1]) {
             return true;
@@ -371,13 +435,31 @@ const newStudentsChartOptions = computed(() => ({
     layout: {
         padding: { top: 24 },
     },
+    onHover: (event, chartElement) => {
+        const canvas = event?.native?.target;
+        if (canvas) {
+            canvas.style.cursor = chartElement && chartElement.length > 0 ? 'pointer' : 'default';
+        }
+    },
     onClick: (event, elements) => {
         if (elements && elements.length > 0) {
             const index = elements[0].index;
             const clickedYear = chartAcademicYears.value[index];
             if (clickedYear) {
+                selectedYearName.value = clickedYear;
                 selectedChartYear.value = clickedYear;
                 showStudentsTab.value = true;
+                handleFilterChange();
+            }
+        } else {
+            // Klik bebas di luar batang / canvas kosong: otomatis kembali ke TA & Semester sekarang
+            const defaultYear = props.currentAcademicYear?.name || (props.availableAcademicYears?.[0] ?? '2026/2027');
+            const defaultSem = props.currentAcademicYear?.semester || 'Ganjil';
+            if (selectedYearName.value !== defaultYear || selectedSemester.value !== defaultSem) {
+                selectedYearName.value = defaultYear;
+                selectedSemester.value = defaultSem;
+                selectedChartYear.value = defaultYear;
+                handleFilterChange();
             }
         }
     },
@@ -709,6 +791,18 @@ function getClassMalePercent(item) {
 
                 <!-- Dropdown Filter Tahun Ajaran & Semester (Terpisah) -->
                 <div class="flex items-center gap-2 flex-wrap self-start sm:self-auto shrink-0">
+                    <!-- Tombol Reset ke TA Sekarang (Muncul jika filter berbeda dari TA aktif saat ini) -->
+                    <button
+                        v-if="isDifferentFromCurrent"
+                        type="button"
+                        @click="resetToCurrentAcademicYear"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs transition-all cursor-pointer"
+                        title="Kembali ke Tahun Ajaran & Semester Aktif Sekarang"
+                    >
+                        <span class="material-symbols-outlined text-[15px]">restart_alt</span>
+                        <span>Reset ke TA Sekarang</span>
+                    </button>
+
                     <!-- Dropdown Tahun Ajaran -->
                     <div class="relative inline-flex items-center">
                         <span class="absolute left-3 text-slate-400 material-symbols-outlined text-[17px] pointer-events-none">calendar_month</span>
@@ -757,13 +851,19 @@ function getClassMalePercent(item) {
                 </div>
 
                 <!-- Card 2: Siswa Baru -->
-                <div class="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs flex items-center gap-4">
-                    <div class="w-12 h-12 rounded-2xl bg-yellow-200 border border-yellow-300/80 flex items-center justify-center text-emerald-950 shadow-2xs shrink-0">
-                        <span class="material-symbols-outlined text-[24px]">person_add</span>
+                <div class="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs flex items-center justify-between gap-4">
+                    <div class="flex items-center gap-4 min-w-0">
+                        <div class="w-12 h-12 rounded-2xl bg-yellow-200 border border-yellow-300/80 flex items-center justify-center text-emerald-950 shadow-2xs shrink-0">
+                            <span class="material-symbols-outlined text-[24px]">person_add</span>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Siswa Baru</p>
+                            <p class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-0.5 leading-tight">{{ newStudentsCount }}</p>
+                        </div>
                     </div>
-                    <div class="min-w-0">
-                        <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Siswa Baru</p>
-                        <p class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-0.5 leading-tight">{{ newStudentsCount }}</p>
+                    <div v-if="selectedPeriodLabel" class="text-right shrink-0">
+                        <span class="text-[10.5px] font-semibold text-slate-400 block uppercase tracking-wider">Periode Tanggal</span>
+                        <span class="text-xs sm:text-[13px] font-bold text-emerald-800">{{ selectedPeriodLabel }}</span>
                     </div>
                 </div>
             </div>
@@ -804,16 +904,21 @@ function getClassMalePercent(item) {
                     Belum ada data periode siswa baru.
                 </div>
 
-                <!-- Petunjuk interaktif klik batang -->
-                <div v-if="chartAcademicYears.length > 0 && !showStudentsTab" class="mt-3 text-center">
+                <!-- Petunjuk interaktif klik batang & klik bebas -->
+                <div v-if="chartAcademicYears.length > 0 && !showStudentsTab" class="mt-3 flex items-center justify-center gap-2 text-[11.5px] text-slate-500 flex-wrap">
                     <button
                         type="button"
                         @click="showStudentsTab = true"
-                        class="text-[11.5px] text-slate-500 hover:text-emerald-800 font-medium inline-flex items-center gap-1.5 cursor-pointer transition-colors"
+                        class="text-slate-600 hover:text-emerald-800 font-medium inline-flex items-center gap-1.5 cursor-pointer transition-colors"
                     >
                         <span class="material-symbols-outlined text-[15px] text-emerald-700">touch_app</span>
-                        <span>Klik salah satu batang grafik untuk menampilkan nama-nama siswa baru TA tersebut</span>
+                        <span>Klik salah satu batang grafik untuk memfilter periode &amp; melihat nama siswa</span>
                     </button>
+                    <span class="text-slate-300 hidden sm:inline">•</span>
+                    <span class="text-slate-400 inline-flex items-center gap-1">
+                        <span class="material-symbols-outlined text-[15px] text-slate-400">restart_alt</span>
+                        <span>Klik area bebas pada grafik untuk kembali ke TA sekarang</span>
+                    </span>
                 </div>
 
                 <!-- ============================================================ -->
@@ -984,21 +1089,21 @@ function getClassMalePercent(item) {
                     </span>
                 </div>
 
-                <!-- Box Sesuai Gambar User (Persis Screenshot) -->
+                <!-- Box Sesuai Gambar User (Persis Screenshot dengan Persen di Bawah & Bar Perempuan Kuning) -->
                 <div class="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
-                    <!-- Baris Atas: [L] Laki-laki (XX%) ... Perempuan (YY%) [P] -->
+                    <!-- Baris Atas: [L] Laki-laki ... Perempuan [P] (Tanpa persen di samping nama gender) -->
                     <div class="flex items-center justify-between text-xs sm:text-[13.5px] font-bold mb-2.5 sm:mb-3">
                         <div class="flex items-center gap-2 text-emerald-950">
                             <span class="inline-flex items-center justify-center w-6 h-6 rounded-lg text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 shadow-2xs">L</span>
-                            <span>Laki-laki ({{ malePercentage }}%)</span>
+                            <span>Laki-laki</span>
                         </div>
                         <div class="flex items-center gap-2 text-emerald-950">
-                            <span>Perempuan ({{ femalePercentage }}%)</span>
-                            <span class="inline-flex items-center justify-center w-6 h-6 rounded-lg text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 shadow-2xs">P</span>
+                            <span>Perempuan</span>
+                            <span class="inline-flex items-center justify-center w-6 h-6 rounded-lg text-[11px] font-bold bg-yellow-50 text-amber-900 border border-yellow-300 shadow-2xs">P</span>
                         </div>
                     </div>
 
-                    <!-- Dual Bar: Emerald Tua (#047857) untuk Putra & Mint Green (#6ee7b7) untuk Putri -->
+                    <!-- Dual Bar: Emerald Tua (#047857) untuk Putra & Kuning/Amber (#fbbf24) untuk Putri -->
                     <div class="w-full h-3.5 sm:h-4 rounded-full bg-slate-100 overflow-hidden flex">
                         <div
                             v-if="genderTotal > 0"
@@ -1008,16 +1113,16 @@ function getClassMalePercent(item) {
                         ></div>
                         <div
                             v-if="genderTotal > 0"
-                            class="bg-[#6ee7b7] h-full transition-all duration-500"
+                            class="bg-[#fbbf24] h-full transition-all duration-500"
                             :style="{ width: `${femalePercentage}%` }"
                             :title="`Perempuan: ${metrics.female} siswa (${femalePercentage}%)`"
                         ></div>
                     </div>
 
-                    <!-- Baris Bawah: Total Putra & Putri (Tanpa Persen di Bawah Sesuai Gambar) -->
+                    <!-- Baris Bawah: Total Putra & Putri Beserta Persen di Sebelah Angka Total -->
                     <div class="flex items-center justify-between text-xs sm:text-[12.5px] text-slate-500 font-medium mt-2.5 sm:mt-3">
-                        <span>{{ metrics.male }} siswa putra</span>
-                        <span>{{ metrics.female }} siswa putri</span>
+                        <span>{{ metrics.male }} siswa putra <span class="font-bold text-slate-700">({{ malePercentage }}%)</span></span>
+                        <span>{{ metrics.female }} siswa putri <span class="font-bold text-slate-700">({{ femalePercentage }}%)</span></span>
                     </div>
                 </div>
             </div>

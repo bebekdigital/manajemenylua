@@ -164,6 +164,13 @@ class StatisticsController extends Controller
             'students' => $students,
             'studentsPerClass' => $studentsPerClass,
             'selectedAcademicYear' => $selectedYearData,
+            'currentAcademicYear' => $currentYear ? [
+                'id' => $currentYear->id,
+                'name' => $currentYear->name,
+                'semester' => $currentYear->semester,
+                'start_date' => $currentYear->start_date ? (is_string($currentYear->start_date) ? $currentYear->start_date : $currentYear->start_date->format('Y-m-d')) : null,
+                'end_date' => $currentYear->end_date ? (is_string($currentYear->end_date) ? $currentYear->end_date : $currentYear->end_date->format('Y-m-d')) : null,
+            ] : null,
             'availableAcademicYears' => $availableYearNames,
             'allAcademicYears' => $allAcademicYears->map(fn ($y) => [
                 'id' => $y->id,
