@@ -9,12 +9,12 @@ import PwaInstallModal from '@/Components/Shared/PwaInstallModal.vue';
 // Auto-detect active route from URL
 const page = usePage();
 const activeRoute = computed(() => {
-    const url = page.url;
+    const url = (page.url || '').split('?')[0];
     if (url === '/' || url === '' || url.startsWith('/beranda')) return 'overview';
     if (url.startsWith('/agenda')) return 'agenda';
     if (url.startsWith('/info')) return 'info';
     if (url.startsWith('/persetujuan')) return 'persetujuan';
-    if (url.startsWith('/students/statistics') || url === '/statistics') return 'student-statistics';
+    if (url.startsWith('/students/statistics') || url.startsWith('/statistics')) return 'student-statistics';
     if (url.startsWith('/students')) return 'students';
     if (url.startsWith('/administration')) return 'administration';
     if (url.startsWith('/staff/statistics')) return 'staff-statistics';
