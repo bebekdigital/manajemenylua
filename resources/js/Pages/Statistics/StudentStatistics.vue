@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import StudentDomicileMap from './Partials/StudentDomicileMap.vue';
 import { Bar } from 'vue-chartjs';
 import {
     Chart as ChartJS,
@@ -1485,6 +1486,16 @@ function getClassMalePercent(item) {
                     <p class="text-xs text-slate-400 mt-1">Pilih tab unit lain atau pastikan data siswa telah dipetakan ke kelas.</p>
                 </div>
             </div>
+
+            <!-- ============================================================ -->
+            <!-- PETA SEBARAN DOMISILI SISWA (SOLO RAYA)                      -->
+            <!-- ============================================================ -->
+            <StudentDomicileMap
+                :students="filteredStudents"
+                :academic-year="selectedYearName"
+                :semester="selectedSemester"
+                :unit="activeUnitLabel"
+            />
         </div>
     </div>
 </template>
