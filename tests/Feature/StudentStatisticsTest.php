@@ -30,6 +30,7 @@ class StudentStatisticsTest extends TestCase
             ->has('students')
             ->has('studentsPerClass')
             ->has('selectedAcademicYear')
+            ->where('selectedAcademicYear.semester', 'Semua')
             ->has('currentAcademicYear')
             ->has('availableAcademicYears')
             ->has('allAcademicYears')

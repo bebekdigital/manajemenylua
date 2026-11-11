@@ -53,7 +53,7 @@ const props = defineProps({
 const selectedYearName = ref(
     props.selectedAcademicYear?.name || (props.availableAcademicYears?.[0] ?? '2026/2027')
 );
-const selectedSemester = ref(props.selectedAcademicYear?.semester || 'Ganjil');
+const selectedSemester = ref(props.selectedAcademicYear?.semester || 'Semua');
 
 watch(() => props.selectedAcademicYear, (newVal) => {
     if (newVal) {
@@ -75,15 +75,13 @@ function handleFilterChange() {
 
 const isDifferentFromCurrent = computed(() => {
     const currentYear = props.currentAcademicYear?.name || (props.availableAcademicYears?.[0] ?? '2026/2027');
-    const currentSem = props.currentAcademicYear?.semester || 'Ganjil';
-    return selectedYearName.value !== currentYear || selectedSemester.value !== currentSem;
+    return selectedYearName.value !== currentYear || selectedSemester.value !== 'Semua';
 });
 
 function resetToCurrentAcademicYear() {
     const currentYear = props.currentAcademicYear?.name || (props.availableAcademicYears?.[0] ?? '2026/2027');
-    const currentSem = props.currentAcademicYear?.semester || 'Ganjil';
     selectedYearName.value = currentYear;
-    selectedSemester.value = currentSem;
+    selectedSemester.value = 'Semua';
     selectedChartYear.value = currentYear;
     handleFilterChange();
 }
@@ -452,12 +450,11 @@ const newStudentsChartOptions = computed(() => ({
                 handleFilterChange();
             }
         } else {
-            // Klik bebas di luar batang / canvas kosong: otomatis kembali ke TA & Semester sekarang
+            // Klik bebas di luar batang / canvas kosong: otomatis kembali ke TA Sekarang & Semua Semester
             const defaultYear = props.currentAcademicYear?.name || (props.availableAcademicYears?.[0] ?? '2026/2027');
-            const defaultSem = props.currentAcademicYear?.semester || 'Ganjil';
-            if (selectedYearName.value !== defaultYear || selectedSemester.value !== defaultSem) {
+            if (selectedYearName.value !== defaultYear || selectedSemester.value !== 'Semua') {
                 selectedYearName.value = defaultYear;
-                selectedSemester.value = defaultSem;
+                selectedSemester.value = 'Semua';
                 selectedChartYear.value = defaultYear;
                 handleFilterChange();
             }

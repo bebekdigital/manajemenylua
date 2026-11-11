@@ -36,11 +36,11 @@ class StatisticsController extends Controller
 
         $currentYear = AcademicYear::current() ?? AcademicYear::first();
         $defaultYearName = $currentYear?->name ?? ($availableYearNames[0] ?? '2026/2027');
-        $defaultSemester = $currentYear?->semester ?? 'Ganjil';
+        $defaultSemester = 'Semua';
 
-        // Tangkap parameter filter tahun ajaran dan semester dari request
-        $requestedYearName = $request->query('academic_year') ?? $request->query('ta') ?? session('selected_academic_year_name');
-        $requestedSemester = $request->query('semester') ?? session('selected_semester');
+        // Tangkap parameter filter tahun ajaran dan semester dari request (default Semester: Semua)
+        $requestedYearName = $request->query('academic_year') ?? $request->query('ta');
+        $requestedSemester = $request->query('semester');
 
         $selectedYearName = ($requestedYearName && (in_array($requestedYearName, $availableYearNames) || empty($availableYearNames)))
             ? $requestedYearName
