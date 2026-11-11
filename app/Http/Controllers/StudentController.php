@@ -623,18 +623,18 @@ class StudentController extends Controller
         // Sinkronisasi program & jenjang ke Academic Record aktif siswa bila ada
         $activeYear = AcademicYear::current();
         if ($activeYear) {
-            $record = $student->academicRecords()->where('academic_year_id', $activeYear->id)->first();
-            if ($record) {
-                $recordUpdates = [];
-                if (isset($validated['program'])) {
-                    $recordUpdates['program'] = $validated['program'];
-                }
-                if (isset($validated['tingkat'])) {
-                    $recordUpdates['tingkat'] = $validated['tingkat'];
-                }
-                if (! empty($recordUpdates)) {
-                    $record->update($recordUpdates);
-                }
+            $recordUpdates = [];
+            if (isset($validated['program'])) {
+                $recordUpdates['program'] = $validated['program'];
+            }
+            if (isset($validated['tingkat'])) {
+                $recordUpdates['tingkat'] = $validated['tingkat'];
+            }
+            if (! empty($recordUpdates)) {
+                $student->academicRecords()->updateOrCreate(
+                    ['academic_year_id' => $activeYear->id],
+                    $recordUpdates
+                );
             }
         }
 

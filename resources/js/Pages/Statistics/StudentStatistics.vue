@@ -345,8 +345,9 @@ const femalePercentage = computed(() => {
 
 const programMetrics = computed(() => {
     const list = filteredStudents.value;
-    let fullday = 0;
+    let umum = 0;
     let boarding = 0;
+    let fullday = 0;
 
     list.forEach(s => {
         const isActive = (s.student_status || 'aktif').toLowerCase() === 'aktif';
@@ -354,22 +355,38 @@ const programMetrics = computed(() => {
             const p = String(s.program || '').trim().toLowerCase();
             if (p === 'boarding' || p.includes('boarding') || p.includes('pondok') || p.includes('pesantren') || p.includes('asrama')) {
                 boarding++;
-            } else {
+            } else if (p === 'fullday' || p.includes('fullday')) {
                 fullday++;
+            } else {
+                // Default ke 'Umum' sesuai tampilan Tab Identitas
+                umum++;
             }
         }
     });
 
-    const total = fullday + boarding;
-    const fulldayPercentage = total > 0 ? Math.round((fullday / total) * 100) : 0;
-    const boardingPercentage = total > 0 ? 100 - fulldayPercentage : 0;
+    const total = umum + boarding + fullday;
+    let umumPercentage = 0;
+    let boardingPercentage = 0;
+    let fulldayPercentage = 0;
+
+    if (total > 0) {
+        umumPercentage = Math.round((umum / total) * 100);
+        boardingPercentage = Math.round((boarding / total) * 100);
+        if (fullday > 0) {
+            fulldayPercentage = 100 - (umumPercentage + boardingPercentage);
+        } else {
+            boardingPercentage = 100 - umumPercentage;
+        }
+    }
 
     return {
         total,
-        fullday,
+        umum,
         boarding,
-        fulldayPercentage,
+        fullday,
+        umumPercentage,
         boardingPercentage,
+        fulldayPercentage,
     };
 });
 
@@ -1148,7 +1165,7 @@ function getClassMalePercent(item) {
                 </div>
 
                 <!-- ============================================================ -->
-                <!-- PROGRAM SISWA (BAR FULLDAY & BOARDING)                        -->
+                <!-- PROGRAM SISWA (BAR UMUM & BOARDING)                          -->
                 <!-- ============================================================ -->
                 <div class="bg-white rounded-3xl border border-slate-200/90 p-4 sm:p-6 shadow-xs flex flex-col justify-between">
                     <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
@@ -1165,10 +1182,14 @@ function getClassMalePercent(item) {
 
                     <!-- Box Sesuai Style Gender Bar -->
                     <div class="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
-                        <!-- Baris Atas: [F] Fullday ... Boarding [B] -->
+                        <!-- Baris Atas: [U] Umum ... (Opsional [F] Fullday) ... Boarding [B] -->
                         <div class="flex items-center justify-between text-xs sm:text-[13.5px] font-bold mb-2.5 sm:mb-3">
                             <div class="flex items-center gap-2 text-emerald-950">
-                                <span class="inline-flex items-center justify-center w-6 h-6 rounded-lg text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 shadow-2xs">F</span>
+                                <span class="inline-flex items-center justify-center w-6 h-6 rounded-lg text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 shadow-2xs">U</span>
+                                <span>Umum</span>
+                            </div>
+                            <div v-if="programMetrics.fullday > 0" class="flex items-center gap-2 text-amber-950">
+                                <span class="inline-flex items-center justify-center w-6 h-6 rounded-lg text-[11px] font-bold bg-yellow-50 text-amber-900 border border-yellow-300 shadow-2xs">F</span>
                                 <span>Fullday</span>
                             </div>
                             <div class="flex items-center gap-2 text-slate-900">
@@ -1177,25 +1198,32 @@ function getClassMalePercent(item) {
                             </div>
                         </div>
 
-                        <!-- Dual Bar: Emerald Tua (#047857) untuk Fullday & Indigo (#4f46e5) untuk Boarding -->
+                        <!-- Bar: Emerald (#047857) untuk Umum, Kuning (#f59e0b) untuk Fullday bila ada, Indigo (#4f46e5) untuk Boarding -->
                         <div class="w-full h-3.5 sm:h-4 rounded-full bg-slate-100 overflow-hidden flex">
                             <div
-                                v-if="programMetrics.total > 0"
+                                v-if="programMetrics.total > 0 && programMetrics.umum > 0"
                                 class="bg-[#047857] h-full transition-all duration-500"
+                                :style="{ width: `${programMetrics.umumPercentage}%` }"
+                                :title="`Umum: ${programMetrics.umum} siswa (${programMetrics.umumPercentage}%)`"
+                            ></div>
+                            <div
+                                v-if="programMetrics.total > 0 && programMetrics.fullday > 0"
+                                class="bg-[#f59e0b] h-full transition-all duration-500"
                                 :style="{ width: `${programMetrics.fulldayPercentage}%` }"
                                 :title="`Fullday: ${programMetrics.fullday} siswa (${programMetrics.fulldayPercentage}%)`"
                             ></div>
                             <div
-                                v-if="programMetrics.total > 0"
+                                v-if="programMetrics.total > 0 && programMetrics.boarding > 0"
                                 class="bg-[#4f46e5] h-full transition-all duration-500"
                                 :style="{ width: `${programMetrics.boardingPercentage}%` }"
                                 :title="`Boarding: ${programMetrics.boarding} siswa (${programMetrics.boardingPercentage}%)`"
                             ></div>
                         </div>
 
-                        <!-- Baris Bawah: Total Fullday & Boarding Beserta Persen di Sebelah Angka Total -->
+                        <!-- Baris Bawah: Total Siswa Tiap Program Beserta Persen -->
                         <div class="flex items-center justify-between text-xs sm:text-[12.5px] text-slate-500 font-medium mt-2.5 sm:mt-3">
-                            <span>{{ programMetrics.fullday }} siswa fullday <span class="font-bold text-slate-700">({{ programMetrics.fulldayPercentage }}%)</span></span>
+                            <span>{{ programMetrics.umum }} siswa umum <span class="font-bold text-slate-700">({{ programMetrics.umumPercentage }}%)</span></span>
+                            <span v-if="programMetrics.fullday > 0">{{ programMetrics.fullday }} siswa fullday <span class="font-bold text-slate-700">({{ programMetrics.fulldayPercentage }}%)</span></span>
                             <span>{{ programMetrics.boarding }} siswa boarding <span class="font-bold text-slate-700">({{ programMetrics.boardingPercentage }}%)</span></span>
                         </div>
                     </div>
