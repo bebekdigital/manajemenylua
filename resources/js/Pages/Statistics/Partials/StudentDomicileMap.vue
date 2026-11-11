@@ -41,6 +41,8 @@ let geojsonLayer = null;
 let kabupatenLayer = null;
 let activeHoverLayer = null;
 let singleTooltip = null;
+let isLockedByClick = false;
+let lastInteractionTime = 0;
 
 const geojsonData = ref(null);
 const isLoading = ref(true);
@@ -317,12 +319,14 @@ function updateMapLayers() {
 }
 
 function resetZoom() {
+    clearHover();
     if (map && geojsonLayer) {
         map.fitBounds(geojsonLayer.getBounds(), { padding: [24, 24] });
     }
 }
 
 function clearHover() {
+    isLockedByClick = false;
     if (activeHoverLayer) {
         activeHoverLayer.setStyle(featureStyle(activeHoverLayer.feature));
         activeHoverLayer = null;
@@ -331,6 +335,57 @@ function clearHover() {
         map.removeLayer(singleTooltip);
     }
     hoveredFeature.value = null;
+}
+
+function selectFeature(feature, layer, latlng = null) {
+    if (activeHoverLayer && activeHoverLayer !== layer) {
+        activeHoverLayer.setStyle(featureStyle(activeHoverLayer.feature));
+    }
+    activeHoverLayer = layer;
+
+    layer.setStyle({
+        weight: 2.5,
+        color: '#047857',
+        fillOpacity: 1,
+    });
+
+    if (layer.bringToFront) {
+        layer.bringToFront();
+    }
+    if (kabupatenLayer && kabupatenLayer.bringToFront) {
+        kabupatenLayer.bringToFront();
+    }
+
+    const count = getFeatureCount(feature);
+    const pct = distribution.value.activeTotal > 0
+        ? Math.round((count / distribution.value.activeTotal) * 100)
+        : 0;
+
+    hoveredFeature.value = {
+        kecamatan: feature.properties.kecamatan,
+        kabupaten: feature.properties.kabupaten,
+        count,
+        percentage: pct,
+    };
+
+    if (singleTooltip && map) {
+        const pos = latlng || layer.getBounds().getCenter();
+        singleTooltip
+            .setLatLng(pos)
+            .setContent(`
+                <div class="px-2 py-1.5 text-xs text-slate-800 leading-tight">
+                    <div class="font-bold text-slate-900 text-[12.5px]">Kec. ${feature.properties.kecamatan}</div>
+                    <div class="text-[11px] text-slate-500 font-medium">Kab/Kota ${feature.properties.kabupaten}</div>
+                    <div class="mt-1 pt-1 border-t border-slate-200/80 flex items-center justify-between gap-3">
+                        <span class="font-semibold text-emerald-800">${count} Siswa</span>
+                        <span class="text-[11px] text-slate-400">(${pct}%)</span>
+                    </div>
+                </div>
+            `);
+        if (!map.hasLayer(singleTooltip)) {
+            singleTooltip.addTo(map);
+        }
+    }
 }
 
 async function loadGeoJsonAndInitMap() {
@@ -374,86 +429,53 @@ async function loadGeoJsonAndInitMap() {
 
         // Inisialisasi SATU-SATUNYA tooltip mengambang untuk seluruh peta (mencegah tooltip menumpuk)
         singleTooltip = L.tooltip({
-            direction: 'top',
+            direction: 'auto',
             className: 'leaflet-custom-tooltip',
-            offset: [0, -12],
+            offset: [0, -10],
             opacity: 0.98,
         });
 
-        // Layer 1: Batas Kecamatan (Interaktif: hover info, click zoom)
+        // Layer 1: Batas Kecamatan (Interaktif: hover desktop & sentuh/klik mobile)
         geojsonLayer = L.geoJSON(data, {
             style: featureStyle,
             onEachFeature: (feature, layer) => {
                 layer.on({
                     mouseover: (e) => {
-                        const target = e.target;
-                        if (activeHoverLayer && activeHoverLayer !== target) {
-                            activeHoverLayer.setStyle(featureStyle(activeHoverLayer.feature));
+                        if (!isLockedByClick) {
+                            selectFeature(feature, e.target, e.latlng);
                         }
-                        activeHoverLayer = target;
-
-                        target.setStyle({
-                            weight: 2,
-                            color: '#047857',
-                            fillOpacity: 1,
-                        });
-
-                        const count = getFeatureCount(feature);
-                        const pct = distribution.value.activeTotal > 0
-                            ? Math.round((count / distribution.value.activeTotal) * 100)
-                            : 0;
-
-                        if (singleTooltip) {
-                            singleTooltip
-                                .setLatLng(e.latlng)
-                                .setContent(`
-                                    <div class="px-2 py-1.5 text-xs text-slate-800 leading-tight">
-                                        <div class="font-bold text-slate-900 text-[12.5px]">Kec. ${feature.properties.kecamatan}</div>
-                                        <div class="text-[11px] text-slate-500 font-medium">Kab/Kota ${feature.properties.kabupaten}</div>
-                                        <div class="mt-1 pt-1 border-t border-slate-200/80 flex items-center justify-between gap-3">
-                                            <span class="font-semibold text-emerald-800">${count} Siswa</span>
-                                            <span class="text-[11px] text-slate-400">(${pct}%)</span>
-                                        </div>
-                                    </div>
-                                `);
-                            if (!map.hasLayer(singleTooltip)) {
-                                singleTooltip.addTo(map);
-                            }
-                        }
-
-                        hoveredFeature.value = {
-                            kecamatan: feature.properties.kecamatan,
-                            kabupaten: feature.properties.kabupaten,
-                            count,
-                        };
                     },
                     mousemove: (e) => {
-                        if (singleTooltip && map.hasLayer(singleTooltip)) {
+                        if (!isLockedByClick && singleTooltip && map && map.hasLayer(singleTooltip)) {
                             singleTooltip.setLatLng(e.latlng);
                         }
                     },
                     mouseout: (e) => {
                         const target = e.target;
-                        target.setStyle(featureStyle(target.feature));
-                        if (activeHoverLayer === target) {
-                            activeHoverLayer = null;
+                        if (!isLockedByClick) {
+                            clearHover();
+                        } else if (activeHoverLayer !== target) {
+                            target.setStyle(featureStyle(target.feature));
                         }
-                        if (singleTooltip && map.hasLayer(singleTooltip)) {
-                            map.removeLayer(singleTooltip);
-                        }
-                        hoveredFeature.value = null;
                     },
                     click: (e) => {
-                        map.fitBounds(e.target.getBounds(), { padding: [50, 50], maxZoom: 12 });
+                        if (e.originalEvent) {
+                            L.DomEvent.stopPropagation(e.originalEvent);
+                        }
+                        lastInteractionTime = Date.now();
+                        isLockedByClick = true;
+                        selectFeature(feature, e.target, e.latlng);
                     },
                 });
             },
         }).addTo(map);
 
-        // Reset hover saat kursor keluar peta atau saat peta di-zoom/geser
-        map.on('mouseout', clearHover);
-        map.on('movestart', clearHover);
-        map.on('zoomstart', clearHover);
+        // Klik pada area kosong peta mereset pilihan
+        map.on('click', () => {
+            if (Date.now() - lastInteractionTime < 400) return;
+            isLockedByClick = false;
+            clearHover();
+        });
 
         // Layer 2: Batas Kabupaten Putus-putus (Dashed Line)
         if (kabData) {
@@ -482,6 +504,14 @@ watch(() => props.students, () => {
     updateMapLayers();
 }, { deep: true });
 
+watch(activeView, (newVal) => {
+    if (newVal === 'peta' && map) {
+        nextTick(() => {
+            map.invalidateSize();
+        });
+    }
+});
+
 onMounted(() => {
     loadGeoJsonAndInitMap();
 });
@@ -495,6 +525,10 @@ onBeforeUnmount(() => {
     if (kabupatenLayer) {
         kabupatenLayer.remove();
         kabupatenLayer = null;
+    }
+    if (geojsonLayer) {
+        geojsonLayer.remove();
+        geojsonLayer = null;
     }
     if (map) {
         map.remove();
@@ -611,25 +645,46 @@ onBeforeUnmount(() => {
                 </button>
             </div>
 
-            <!-- Live Status Hover Bar di Kanan Bawah -->
-            <div class="absolute bottom-3 right-3 z-[400] max-w-[260px] sm:max-w-xs bg-white/95 backdrop-blur-xs rounded-xl border border-slate-200/90 p-2 sm:p-2.5 shadow-md text-xs pointer-events-none">
-                <div v-if="hoveredFeature" class="flex flex-col">
-                    <span class="text-[11px] font-bold text-emerald-800">Kec. {{ hoveredFeature.kecamatan }}</span>
-                    <span class="text-[10px] text-slate-500">Kab/Kota {{ hoveredFeature.kabupaten }}</span>
-                    <span class="text-xs font-bold text-slate-900 mt-0.5">
-                        {{ hoveredFeature.count }} Siswa
-                        <span class="text-[10px] font-normal text-slate-500">
-                            ({{ distribution.activeTotal > 0 ? Math.round((hoveredFeature.count / distribution.activeTotal) * 100) : 0 }}%)
+            <!-- Live Status Hover & Touch Bar (Responsive: Bottom Sheet di Mobile, Pojok Kanan Bawah di Desktop) -->
+            <div
+                v-if="hoveredFeature"
+                class="absolute bottom-3 left-3 right-3 sm:left-auto sm:right-3 sm:bottom-3 sm:max-w-xs z-[400] bg-white/95 backdrop-blur-xs rounded-xl border border-slate-200/90 p-2.5 sm:p-3 shadow-lg text-xs pointer-events-auto transition-all animate-in fade-in duration-150"
+            >
+                <div class="flex flex-col relative">
+                    <button
+                        type="button"
+                        @click.stop="clearHover"
+                        class="absolute -top-1 -right-1 text-slate-400 hover:text-slate-700 p-1 rounded-full cursor-pointer touch-manipulation"
+                        title="Tutup info"
+                    >
+                        <span class="material-symbols-outlined text-[16px]">close</span>
+                    </button>
+                    <span class="text-[12px] font-bold text-emerald-800 pr-6">Kec. {{ hoveredFeature.kecamatan }}</span>
+                    <span class="text-[10.5px] text-slate-500 font-medium">Kab/Kota {{ hoveredFeature.kabupaten }}</span>
+                    <div class="mt-1.5 pt-1.5 border-t border-slate-100 flex items-center justify-between gap-2">
+                        <span class="text-xs font-bold text-slate-900">
+                            {{ hoveredFeature.count }} Siswa
                         </span>
-                    </span>
+                        <span class="text-[10.5px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60">
+                            {{ hoveredFeature.percentage }}% dari total
+                        </span>
+                    </div>
                 </div>
-                <div v-else class="text-[11px] text-slate-400 font-medium">
-                    Arahkan kursor atau sentuh kecamatan untuk melihat detail
-                </div>
+            </div>
+            <div
+                v-else
+                class="hidden sm:block absolute bottom-3 right-3 z-[400] max-w-xs bg-white/90 backdrop-blur-xs rounded-xl border border-slate-200/80 px-3 py-2 shadow-xs text-xs pointer-events-none"
+            >
+                <span class="text-[11px] text-slate-400 font-medium">
+                    Arahkan kursor atau sentuh kecamatan untuk detail
+                </span>
             </div>
 
             <!-- Floating Legend (Skala Gradasi Warna & Garis Batas) di Kiri Bawah -->
-            <div class="absolute bottom-3 left-3 z-[400] bg-white/95 backdrop-blur-xs rounded-xl border border-slate-200/90 p-2 sm:p-2.5 shadow-md flex flex-col gap-1.5">
+            <div
+                class="absolute bottom-3 left-3 z-[400] bg-white/95 backdrop-blur-xs rounded-xl border border-slate-200/90 p-2 sm:p-2.5 shadow-md flex flex-col gap-1.5"
+                :class="{ 'hidden sm:flex': hoveredFeature }"
+            >
                 <div>
                     <div class="text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1">
                         Jumlah Siswa
