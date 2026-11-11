@@ -28,6 +28,7 @@ class StudentStatisticsTest extends TestCase
         $response->assertInertia(fn (Assert $page) => $page
             ->component('Statistics/StudentStatistics')
             ->has('students')
+            ->where('students.0.sekolah_asal', fn ($val) => true)
             ->has('studentsPerClass')
             ->has('selectedAcademicYear')
             ->where('selectedAcademicYear.semester', 'Semua')

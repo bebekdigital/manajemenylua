@@ -44,10 +44,16 @@ const mapContainer = ref(null);
 let map = null;
 let geojsonLayer = null;
 let kabupatenLayer = null;
+let schoolMarker = null;
 let activeHoverLayer = null;
 let singleTooltip = null;
 let isLockedByClick = false;
 let lastInteractionTime = 0;
+
+// Lokasi Kampus Sekolah (SMPIT & PPTQ Ulil Albab Karanganyar)
+const SCHOOL_COORDS = [-7.4989289, 110.822498];
+const SCHOOL_NAME = 'PPTQ & SMPIT TQ Ulil Albab Karanganyar';
+const SCHOOL_ADDRESS = 'Sidorejo, Selokaton, Kec. Gondangrejo, Kab. Karanganyar';
 
 const geojsonData = ref(null);
 const isLoading = ref(true);
@@ -678,6 +684,61 @@ async function loadGeoJsonAndInitMap() {
             });
         }
 
+        // Layer 3: Marker Titik Lokasi Kampus Sekolah
+        const schoolIcon = L.divIcon({
+            className: 'custom-school-marker',
+            html: `
+                <div style="position: relative; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                    <div style="position: absolute; inset: 0; border-radius: 9999px; background-color: #ef4444; opacity: 0.45; animation: ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
+                    <div style="position: relative; width: 30px; height: 30px; border-radius: 9999px; background: linear-gradient(135deg, #e11d48, #be123c); color: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(190, 18, 60, 0.45); border: 2.5px solid white;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99l-5 2.73-5-2.73v-3.72L12 15l5-2.73v3.72z"/>
+                        </svg>
+                    </div>
+                </div>
+            `,
+            iconSize: [36, 36],
+            iconAnchor: [18, 18],
+            popupAnchor: [0, -18],
+        });
+
+        schoolMarker = L.marker(SCHOOL_COORDS, {
+            icon: schoolIcon,
+            zIndexOffset: 1200,
+            title: SCHOOL_NAME,
+        }).addTo(map);
+
+        const schoolPopupHtml = `
+            <div style="padding: 4px; min-width: 220px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif;">
+                <div style="display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: #be123c; margin-bottom: 3px;">
+                    <span style="font-size: 13px;">📍</span>
+                    <span>LOKASI KAMPUS SEKOLAH</span>
+                </div>
+                <div style="font-weight: 800; font-size: 12.5px; color: #0f172a; line-height: 1.25;">${SCHOOL_NAME}</div>
+                <div style="font-size: 11px; color: #64748b; margin-top: 4px; line-height: 1.35;">${SCHOOL_ADDRESS}</div>
+                <div style="margin-top: 8px; padding-top: 6px; border-top: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between;">
+                    <a href="https://maps.app.goo.gl/t2T45yELKUhNxgBv6" target="_blank" rel="noopener noreferrer" style="display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; color: #e11d48; text-decoration: none;">
+                        Buka di Google Maps ↗
+                    </a>
+                    <span style="font-size: 10px; color: #047857; font-weight: 700; background: #ecfdf5; padding: 2px 6px; border-radius: 4px;">Gondangrejo</span>
+                </div>
+            </div>
+        `;
+
+        schoolMarker.bindPopup(schoolPopupHtml, {
+            className: 'leaflet-custom-tooltip school-popup',
+            closeButton: true,
+            autoPan: true,
+        });
+
+        schoolMarker.on('click', (e) => {
+            if (e.originalEvent) {
+                L.DomEvent.stopPropagation(e.originalEvent);
+            }
+            lastInteractionTime = Date.now();
+            schoolMarker.openPopup();
+        });
+
         map.fitBounds(geojsonLayer.getBounds(), { padding: [24, 24] });
         updateMapLayers();
     } catch (err) {
@@ -705,6 +766,10 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
     clearHover();
+    if (schoolMarker) {
+        schoolMarker.remove();
+        schoolMarker = null;
+    }
     if (singleTooltip) {
         singleTooltip.remove();
         singleTooltip = null;
@@ -900,8 +965,14 @@ onBeforeUnmount(() => {
                     </div>
                 </div>
 
-                <!-- Legenda Garis Batas Wilayah -->
-                <div class="pt-1.5 border-t border-slate-200/70 flex items-center gap-3 text-[10px] text-slate-600 font-medium">
+                <!-- Legenda Garis Batas Wilayah & Titik Sekolah -->
+                <div class="pt-1.5 border-t border-slate-200/70 flex items-center gap-2.5 sm:gap-3 text-[10px] text-slate-600 font-medium flex-wrap">
+                    <div class="flex items-center gap-1.5" title="Lokasi Kampus Sekolah">
+                        <span class="w-3.5 h-3.5 rounded-full bg-rose-600 border border-white shadow-2xs flex items-center justify-center text-white shrink-0">
+                            <span class="material-symbols-outlined text-[10px] leading-none">school</span>
+                        </span>
+                        <span class="font-bold text-rose-700">Lokasi Sekolah</span>
+                    </div>
                     <div class="flex items-center gap-1.5" title="Garis putus-putus batas kabupaten">
                         <span class="w-4 border-t-2 border-dashed border-[#1e293b] inline-block"></span>
                         <span class="font-bold text-slate-800">Batas Kabupaten</span>

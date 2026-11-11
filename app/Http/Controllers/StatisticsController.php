@@ -155,6 +155,7 @@ class StatisticsController extends Controller
                     'program' => $record?->program ?: ($student->getAttribute('program') ?: 'Umum'),
                     'kelas' => $record?->classroom?->name,
                     'tanggal_diterima' => $student->tanggal_diterima ? $student->tanggal_diterima->format('Y-m-d') : null,
+                    'sekolah_asal' => $student->sekolah_asal,
                     'kecamatan' => $student->kecamatan,
                     'kabupaten' => $student->kabupaten,
                     'provinsi' => $student->provinsi,

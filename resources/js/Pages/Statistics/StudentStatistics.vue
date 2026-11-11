@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import StudentDomicileMap from './Partials/StudentDomicileMap.vue';
+import StudentSchoolOriginChart from './Partials/StudentSchoolOriginChart.vue';
 import { Bar } from 'vue-chartjs';
 import {
     Chart as ChartJS,
@@ -1238,6 +1239,15 @@ function getClassMalePercent(item) {
                 :students="filteredStudents"
                 :academic-year="selectedYearName"
                 :semester="selectedSemester"
+                :unit="activeUnitLabel"
+            />
+
+            <!-- ============================================================ -->
+            <!-- STATISTIK ASAL SEKOLAH SISWA                                 -->
+            <!-- ============================================================ -->
+            <StudentSchoolOriginChart
+                :students="filteredStudents"
+                :academic-year="selectedYearName"
                 :unit="activeUnitLabel"
             />
 
