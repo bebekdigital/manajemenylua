@@ -30,20 +30,8 @@ const geojsonData = ref(null);
 const isLoading = ref(true);
 const loadError = ref(null);
 
-const activeRegencyFilter = ref('Semua'); // 'Semua' | 'Karanganyar' | 'Surakarta' | ...
 const hoveredFeature = ref(null);
 const showOutsideModal = ref(false);
-
-const soloRayaRegencies = [
-    'Semua',
-    'Karanganyar',
-    'Surakarta',
-    'Sukoharjo',
-    'Boyolali',
-    'Sragen',
-    'Klaten',
-    'Wonogiri',
-];
 
 // Helper normalisasi string kecamatan
 function normalizeKey(str) {
@@ -170,16 +158,14 @@ function getFeatureCount(feature) {
 }
 
 function featureStyle(feature) {
-    const isFiltered = activeRegencyFilter.value === 'Semua' ||
-        feature.properties.kabupaten === activeRegencyFilter.value;
     const count = getFeatureCount(feature);
 
     return {
         fillColor: getColor(count),
-        weight: isFiltered ? 1 : 0.4,
-        opacity: isFiltered ? 0.9 : 0.25,
-        color: isFiltered ? '#64748b' : '#cbd5e1',
-        fillOpacity: isFiltered ? (count > 0 ? 0.92 : 0.6) : 0.15,
+        weight: 1,
+        opacity: 0.9,
+        color: '#64748b',
+        fillOpacity: count > 0 ? 0.92 : 0.6,
     };
 }
 
@@ -214,31 +200,10 @@ function updateMapLayers() {
     });
 }
 
-function filterByRegency(regName) {
-    activeRegencyFilter.value = regName;
-    updateMapLayers();
-
-    if (!map || !geojsonLayer) return;
-
-    if (regName === 'Semua') {
-        map.fitBounds(geojsonLayer.getBounds(), { padding: [24, 24] });
-    } else {
-        const bounds = L.latLngBounds();
-        let found = false;
-        geojsonLayer.eachLayer(layer => {
-            if (layer.feature.properties.kabupaten === regName) {
-                bounds.extend(layer.getBounds());
-                found = true;
-            }
-        });
-        if (found) {
-            map.fitBounds(bounds, { padding: [32, 32] });
-        }
-    }
-}
-
 function resetZoom() {
-    filterByRegency('Semua');
+    if (map && geojsonLayer) {
+        map.fitBounds(geojsonLayer.getBounds(), { padding: [24, 24] });
+    }
 }
 
 async function loadGeoJsonAndInitMap() {
@@ -362,23 +327,6 @@ onBeforeUnmount(() => {
             </div>
         </div>
 
-        <!-- Filter Kapsul Daerah (Solo Raya: 7 Daerah) -->
-        <div class="flex items-center gap-1.5 overflow-x-auto pb-2 mb-3 scrollbar-none">
-            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1">Fokus:</span>
-            <button
-                v-for="reg in soloRayaRegencies"
-                :key="reg"
-                type="button"
-                @click="filterByRegency(reg)"
-                class="px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer border shadow-2xs"
-                :class="activeRegencyFilter === reg
-                    ? 'bg-emerald-900 text-yellow-200 border-emerald-950 font-bold'
-                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'"
-            >
-                {{ reg }}
-            </button>
-        </div>
-
         <!-- Kontainer Kanvas Peta -->
         <div class="relative w-full h-[380px] sm:h-[460px] rounded-2xl border border-slate-200/90 overflow-hidden bg-slate-50">
             <!-- Loading State -->
@@ -478,7 +426,7 @@ onBeforeUnmount(() => {
                     <span class="font-bold text-emerald-700">{{ item.count }}</span>
                 </span>
                 <span v-if="topKecamatans.length === 0" class="text-slate-400 text-[11px]">
-                    Belum ada data kecamatan terdata pada filter ini.
+                    Belum ada data kecamatan terdata.
                 </span>
             </div>
 
@@ -552,3 +500,4 @@ onBeforeUnmount(() => {
     display: none !important;
 }
 </style>
+

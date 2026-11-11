@@ -1232,6 +1232,16 @@ function getClassMalePercent(item) {
             </div>
 
             <!-- ============================================================ -->
+            <!-- PETA SEBARAN DOMISILI SISWA (SOLO RAYA)                      -->
+            <!-- ============================================================ -->
+            <StudentDomicileMap
+                :students="filteredStudents"
+                :academic-year="selectedYearName"
+                :semester="selectedSemester"
+                :unit="activeUnitLabel"
+            />
+
+            <!-- ============================================================ -->
             <!-- GRAFIK BAR JUMLAH SISWA PER KELAS                            -->
             <!-- ============================================================ -->
             <div class="bg-white rounded-3xl border border-slate-200/90 p-4 sm:p-6 shadow-xs mb-5">
@@ -1486,16 +1496,6 @@ function getClassMalePercent(item) {
                     <p class="text-xs text-slate-400 mt-1">Pilih tab unit lain atau pastikan data siswa telah dipetakan ke kelas.</p>
                 </div>
             </div>
-
-            <!-- ============================================================ -->
-            <!-- PETA SEBARAN DOMISILI SISWA (SOLO RAYA)                      -->
-            <!-- ============================================================ -->
-            <StudentDomicileMap
-                :students="filteredStudents"
-                :academic-year="selectedYearName"
-                :semester="selectedSemester"
-                :unit="activeUnitLabel"
-            />
         </div>
     </div>
 </template>
