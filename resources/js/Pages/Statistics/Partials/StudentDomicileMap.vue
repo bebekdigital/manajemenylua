@@ -440,6 +440,57 @@ function attachDirectTouchListeners(feature, layer) {
     }, { passive: true });
 }
 
+// Algoritma Ray-Casting untuk Point-in-Polygon (deteksi sentuhan/klik koordinat akurat di mobile)
+function isPointInRing(lng, lat, ring) {
+    let inside = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+        const xi = ring[i][0], yi = ring[i][1];
+        const xj = ring[j][0], yj = ring[j][1];
+        const intersect = ((yi > lat) !== (yj > lat)) &&
+            (lng < (xj - xi) * (lat - yi) / (yj - yi) + xi);
+        if (intersect) inside = !inside;
+    }
+    return inside;
+}
+
+function isPointInPolygonGeom(lng, lat, coordinates, type) {
+    if (type === 'Polygon') {
+        if (!isPointInRing(lng, lat, coordinates[0])) return false;
+        for (let i = 1; i < coordinates.length; i++) {
+            if (isPointInRing(lng, lat, coordinates[i])) return false;
+        }
+        return true;
+    } else if (type === 'MultiPolygon') {
+        for (let p = 0; p < coordinates.length; p++) {
+            if (isPointInPolygonGeom(lng, lat, coordinates[p], 'Polygon')) return true;
+        }
+    }
+    return false;
+}
+
+function findFeatureAndLayerAtLatLng(latlng) {
+    if (!geojsonData.value?.features || !geojsonLayer || !latlng) return null;
+    const lng = latlng.lng;
+    const lat = latlng.lat;
+
+    for (const f of geojsonData.value.features) {
+        const b = f._bbox;
+        if (b && (lng < b.minLng || lng > b.maxLng || lat < b.minLat || lat > b.maxLat)) {
+            continue;
+        }
+        if (isPointInPolygonGeom(lng, lat, f.geometry.coordinates, f.geometry.type)) {
+            let matchedLayer = null;
+            geojsonLayer.eachLayer(l => {
+                if (l.feature === f || (l.feature?.properties?.kode && l.feature.properties.kode === f.properties.kode)) {
+                    matchedLayer = l;
+                }
+            });
+            return { feature: f, layer: matchedLayer };
+        }
+    }
+    return null;
+}
+
 async function loadGeoJsonAndInitMap() {
     try {
         isLoading.value = true;
@@ -451,6 +502,25 @@ async function loadGeoJsonAndInitMap() {
             throw new Error(`Gagal memuat data batas kecamatan (status ${response.status})`);
         }
         const data = await response.json();
+
+        // Hitung bounding box untuk setiap feature agar pencarian titik sentuhan instan (<0.1ms)
+        data.features.forEach(f => {
+            let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
+            function scan(coords) {
+                if (typeof coords[0] === 'number') {
+                    const cLng = coords[0], cLat = coords[1];
+                    if (cLng < minLng) minLng = cLng;
+                    if (cLng > maxLng) maxLng = cLng;
+                    if (cLat < minLat) minLat = cLat;
+                    if (cLat > maxLat) maxLat = cLat;
+                } else {
+                    coords.forEach(scan);
+                }
+            }
+            scan(f.geometry.coordinates);
+            f._bbox = { minLng, maxLng, minLat, maxLat };
+        });
+
         geojsonData.value = data;
 
         // 2. Muat batas kabupaten untuk batas putus-putus (8 features)
@@ -528,11 +598,55 @@ async function loadGeoJsonAndInitMap() {
             attachDirectTouchListeners(layer.feature, layer);
         });
 
-        // Klik pada area kosong peta mereset pilihan
-        map.on('click', () => {
-            if (Date.now() - lastInteractionTime < 600) return;
-            isLockedByClick = false;
-            clearHover();
+        // Listener sentuhan container langsung menggunakan konversi titik point-in-polygon
+        let containerTouchStartX = 0;
+        let containerTouchStartY = 0;
+        let containerTouchStartTime = 0;
+
+        mapContainer.value.addEventListener('touchstart', (e) => {
+            if (e.touches && e.touches.length === 1) {
+                containerTouchStartX = e.touches[0].clientX;
+                containerTouchStartY = e.touches[0].clientY;
+                containerTouchStartTime = Date.now();
+            }
+        }, { passive: true });
+
+        mapContainer.value.addEventListener('touchend', (e) => {
+            if (!containerTouchStartTime) return;
+            const touch = e.changedTouches ? e.changedTouches[0] : null;
+            if (touch) {
+                const dx = Math.abs(touch.clientX - containerTouchStartX);
+                const dy = Math.abs(touch.clientY - containerTouchStartY);
+                const dt = Date.now() - containerTouchStartTime;
+                containerTouchStartTime = 0;
+
+                // Jika pergeseran jari < 30px dan durasi < 600ms, ini adalah ketukan (TAP) valid!
+                if (dx < 30 && dy < 30 && dt < 600) {
+                    if (map && mapContainer.value) {
+                        try {
+                            const rect = mapContainer.value.getBoundingClientRect();
+                            const pt = L.point(touch.clientX - rect.left, touch.clientY - rect.top);
+                            const latlng = map.containerPointToLatLng(pt);
+                            const result = findFeatureAndLayerAtLatLng(latlng);
+                            if (result && result.layer) {
+                                handleSelect(result.feature, result.layer, latlng);
+                            }
+                        } catch (_) {}
+                    }
+                }
+            }
+        }, { passive: true });
+
+        // Klik pada area peta (mendeteksi polygon via point-in-polygon, jika di area kosong mereset pilihan)
+        map.on('click', (e) => {
+            if (Date.now() - lastInteractionTime < 400) return;
+            const result = findFeatureAndLayerAtLatLng(e.latlng);
+            if (result && result.layer) {
+                handleSelect(result.feature, result.layer, e.latlng);
+            } else {
+                isLockedByClick = false;
+                clearHover();
+            }
         });
 
         // Layer 2: Batas Kabupaten Putus-putus (Dashed Line)
