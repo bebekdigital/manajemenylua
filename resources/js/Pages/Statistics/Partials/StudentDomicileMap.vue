@@ -40,6 +40,7 @@ let map = null;
 let geojsonLayer = null;
 let kabupatenLayer = null;
 let activeHoverLayer = null;
+let singleTooltip = null;
 
 const geojsonData = ref(null);
 const isLoading = ref(true);
@@ -311,31 +312,7 @@ function featureStyle(feature) {
 function updateMapLayers() {
     if (!geojsonLayer) return;
     geojsonLayer.eachLayer(layer => {
-        const feature = layer.feature;
-        layer.setStyle(featureStyle(feature));
-
-        // Update tooltip content
-        const count = getFeatureCount(feature);
-        const pct = distribution.value.activeTotal > 0
-            ? Math.round((count / distribution.value.activeTotal) * 100)
-            : 0;
-
-        layer.unbindTooltip();
-        layer.bindTooltip(`
-            <div class="px-2 py-1.5 text-xs text-slate-800 leading-tight">
-                <div class="font-bold text-slate-900 text-[12.5px]">Kec. ${feature.properties.kecamatan}</div>
-                <div class="text-[11px] text-slate-500 font-medium">Kab/Kota ${feature.properties.kabupaten}</div>
-                <div class="mt-1 pt-1 border-t border-slate-200/80 flex items-center justify-between gap-3">
-                    <span class="font-semibold text-emerald-800">${count} Siswa</span>
-                    <span class="text-[11px] text-slate-400">(${pct}%)</span>
-                </div>
-            </div>
-        `, {
-            sticky: true,
-            direction: 'top',
-            className: 'leaflet-custom-tooltip',
-            opacity: 0.98,
-        });
+        layer.setStyle(featureStyle(layer.feature));
     });
 }
 
@@ -343,6 +320,17 @@ function resetZoom() {
     if (map && geojsonLayer) {
         map.fitBounds(geojsonLayer.getBounds(), { padding: [24, 24] });
     }
+}
+
+function clearHover() {
+    if (activeHoverLayer) {
+        activeHoverLayer.setStyle(featureStyle(activeHoverLayer.feature));
+        activeHoverLayer = null;
+    }
+    if (singleTooltip && map && map.hasLayer(singleTooltip)) {
+        map.removeLayer(singleTooltip);
+    }
+    hoveredFeature.value = null;
 }
 
 async function loadGeoJsonAndInitMap() {
@@ -358,7 +346,7 @@ async function loadGeoJsonAndInitMap() {
         const data = await response.json();
         geojsonData.value = data;
 
-        // 2. Muat batas kabupaten untuk ditebalkan batasnya (8 features)
+        // 2. Muat batas kabupaten untuk batas putus-putus (8 features)
         let kabData = null;
         try {
             const kabResponse = await fetch('/data/solo-raya-kabupaten.geojson');
@@ -384,6 +372,14 @@ async function loadGeoJsonAndInitMap() {
         // Kontrol zoom di kanan atas
         L.control.zoom({ position: 'topright' }).addTo(map);
 
+        // Inisialisasi SATU-SATUNYA tooltip mengambang untuk seluruh peta (mencegah tooltip menumpuk)
+        singleTooltip = L.tooltip({
+            direction: 'top',
+            className: 'leaflet-custom-tooltip',
+            offset: [0, -12],
+            opacity: 0.98,
+        });
+
         // Layer 1: Batas Kecamatan (Interaktif: hover info, click zoom)
         geojsonLayer = L.geoJSON(data, {
             style: featureStyle,
@@ -391,7 +387,6 @@ async function loadGeoJsonAndInitMap() {
                 layer.on({
                     mouseover: (e) => {
                         const target = e.target;
-                        // Reset layer sebelumnya jika mouseover terpanggil sebelum mouseout selesai
                         if (activeHoverLayer && activeHoverLayer !== target) {
                             activeHoverLayer.setStyle(featureStyle(activeHoverLayer.feature));
                         }
@@ -402,21 +397,49 @@ async function loadGeoJsonAndInitMap() {
                             color: '#047857',
                             fillOpacity: 1,
                         });
-                        target.bringToFront();
-                        if (kabupatenLayer) {
-                            kabupatenLayer.bringToFront();
+
+                        const count = getFeatureCount(feature);
+                        const pct = distribution.value.activeTotal > 0
+                            ? Math.round((count / distribution.value.activeTotal) * 100)
+                            : 0;
+
+                        if (singleTooltip) {
+                            singleTooltip
+                                .setLatLng(e.latlng)
+                                .setContent(`
+                                    <div class="px-2 py-1.5 text-xs text-slate-800 leading-tight">
+                                        <div class="font-bold text-slate-900 text-[12.5px]">Kec. ${feature.properties.kecamatan}</div>
+                                        <div class="text-[11px] text-slate-500 font-medium">Kab/Kota ${feature.properties.kabupaten}</div>
+                                        <div class="mt-1 pt-1 border-t border-slate-200/80 flex items-center justify-between gap-3">
+                                            <span class="font-semibold text-emerald-800">${count} Siswa</span>
+                                            <span class="text-[11px] text-slate-400">(${pct}%)</span>
+                                        </div>
+                                    </div>
+                                `);
+                            if (!map.hasLayer(singleTooltip)) {
+                                singleTooltip.addTo(map);
+                            }
                         }
+
                         hoveredFeature.value = {
                             kecamatan: feature.properties.kecamatan,
                             kabupaten: feature.properties.kabupaten,
-                            count: getFeatureCount(feature),
+                            count,
                         };
+                    },
+                    mousemove: (e) => {
+                        if (singleTooltip && map.hasLayer(singleTooltip)) {
+                            singleTooltip.setLatLng(e.latlng);
+                        }
                     },
                     mouseout: (e) => {
                         const target = e.target;
                         target.setStyle(featureStyle(target.feature));
                         if (activeHoverLayer === target) {
                             activeHoverLayer = null;
+                        }
+                        if (singleTooltip && map.hasLayer(singleTooltip)) {
+                            map.removeLayer(singleTooltip);
                         }
                         hoveredFeature.value = null;
                     },
@@ -427,14 +450,10 @@ async function loadGeoJsonAndInitMap() {
             },
         }).addTo(map);
 
-        // Reset hover saat kursor keluar dari kanvas peta
-        map.on('mouseout', () => {
-            if (activeHoverLayer) {
-                activeHoverLayer.setStyle(featureStyle(activeHoverLayer.feature));
-                activeHoverLayer = null;
-            }
-            hoveredFeature.value = null;
-        });
+        // Reset hover saat kursor keluar peta atau saat peta di-zoom/geser
+        map.on('mouseout', clearHover);
+        map.on('movestart', clearHover);
+        map.on('zoomstart', clearHover);
 
         // Layer 2: Batas Kabupaten Putus-putus (Dashed Line)
         if (kabData) {
@@ -468,6 +487,11 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+    clearHover();
+    if (singleTooltip) {
+        singleTooltip.remove();
+        singleTooltip = null;
+    }
     if (kabupatenLayer) {
         kabupatenLayer.remove();
         kabupatenLayer = null;
