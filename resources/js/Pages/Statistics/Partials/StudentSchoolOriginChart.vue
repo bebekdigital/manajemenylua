@@ -227,6 +227,20 @@ const maxCount = computed(() => {
     return max;
 });
 
+function isStudentActive(student) {
+    if (!student) return false;
+    const status = (student.student_status || student.status_keaktifan || '').toString().toLowerCase().trim();
+    return status === 'aktif';
+}
+
+function getStudentStatusLabel(student) {
+    if (!student) return 'Tidak Aktif';
+    if (student.status_keaktifan) {
+        return student.status_keaktifan;
+    }
+    return isStudentActive(student) ? 'Aktif' : 'Tidak Aktif';
+}
+
 // Siswa yang difilter di dalam modal pencarian pop-up
 const modalFilteredStudents = computed(() => {
     if (!selectedSchoolModal.value) return [];
@@ -236,11 +250,7 @@ const modalFilteredStudents = computed(() => {
 
     return students.filter(s => {
         const nama = (s.nama || '').toLowerCase();
-        const nisn = (s.nisn || '').toLowerCase();
-        const kelas = (s.kelas || '').toLowerCase();
-        const kec = (s.kecamatan || '').toLowerCase();
-        const kab = (s.kabupaten || '').toLowerCase();
-        return nama.includes(q) || nisn.includes(q) || kelas.includes(q) || kec.includes(q) || kab.includes(q);
+        return nama.includes(q);
     });
 });
 </script>
@@ -355,20 +365,19 @@ const modalFilteredStudents = computed(() => {
                         <p class="text-[10.5px] text-amber-700/80 font-medium mt-0.5 break-words">
                             Siswa yang belum memiliki riwayat data sekolah asal di Tab Registrasi
                         </p>
-                        <p class="text-[10px] text-amber-800 font-semibold group-hover:underline flex items-center gap-1 mt-1">
-                            <span>Klik untuk melihat daftar {{ originStats.unrecordedCount }} siswa</span>
-                            <span class="material-symbols-outlined text-[12px]">open_in_new</span>
-                        </p>
                     </div>
                 </div>
 
-                <!-- Jumlah & Persen Font Beda -->
+                <!-- Jumlah, Persen, & Icon open_in_new -->
                 <div class="flex items-center gap-1.5 shrink-0 text-xs mt-0.5">
                     <span class="font-extrabold text-amber-950">
                         {{ originStats.unrecordedCount }} Siswa
                     </span>
                     <span class="text-[10.5px] font-bold text-amber-900 bg-amber-100 px-2 py-0.5 rounded-md border border-amber-300">
                         {{ originStats.unrecordedPercentage }}%
+                    </span>
+                    <span class="material-symbols-outlined text-[16px] text-amber-600 group-hover:text-amber-900 transition-colors ml-0.5">
+                        open_in_new
                     </span>
                 </div>
             </div>
@@ -415,20 +424,19 @@ const modalFilteredStudents = computed(() => {
                             <h4 class="text-xs sm:text-[13px] font-bold text-slate-900 group-hover:text-emerald-950 break-words leading-snug">
                                 {{ item.name }}
                             </h4>
-                            <p class="text-[10px] text-slate-400 group-hover:text-emerald-700 font-medium flex items-center gap-1 mt-0.5 transition-colors">
-                                <span>Klik untuk melihat {{ item.count }} siswa</span>
-                                <span class="material-symbols-outlined text-[12px]">open_in_new</span>
-                            </p>
                         </div>
                     </div>
 
-                    <!-- Jumlah Siswa & Persen dengan Warna Font Berbeda -->
+                    <!-- Jumlah Siswa, Persen, & Icon open_in_new -->
                     <div class="flex items-center gap-1.5 shrink-0 text-xs mt-0.5">
                         <span class="font-extrabold text-emerald-800">
                             {{ item.count }} Siswa
                         </span>
                         <span class="text-[10.5px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-200/80">
                             {{ item.percentage }}%
+                        </span>
+                        <span class="material-symbols-outlined text-[16px] text-slate-400 group-hover:text-emerald-700 transition-colors ml-0.5">
+                            open_in_new
                         </span>
                     </div>
                 </div>
@@ -540,7 +548,7 @@ const modalFilteredStudents = computed(() => {
                         <input
                             v-model="modalSearch"
                             type="text"
-                            placeholder="Cari nama, NISN, atau kelas..."
+                            placeholder="Cari nama siswa..."
                             class="w-full pl-8 pr-7 py-1.5 rounded-xl border border-slate-200 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
                         />
                         <button
@@ -564,56 +572,54 @@ const modalFilteredStudents = computed(() => {
                         v-if="modalFilteredStudents.length > 0"
                         class="space-y-2"
                     >
-                        <div
+                        <a
                             v-for="(student, sIdx) in modalFilteredStudents"
                             :key="student.id || sIdx"
-                            class="p-2.5 sm:p-3 rounded-2xl bg-slate-50/80 hover:bg-emerald-50/40 border border-slate-200/80 flex items-center justify-between gap-3 transition-colors"
+                            :href="student.id ? `/students/${student.id}` : '#'"
+                            target="_blank"
+                            class="p-2.5 sm:p-3 rounded-2xl bg-slate-50/80 hover:bg-emerald-50/40 hover:border-emerald-200 border border-slate-200/80 flex items-center justify-between gap-3 transition-colors group/row"
+                            title="Buka profil siswa di tab baru"
                         >
-                            <!-- Identitas Siswa -->
-                            <div class="min-w-0 flex items-center gap-2.5">
+                            <!-- Nomor & Nama Siswa -->
+                            <div class="min-w-0 flex items-center gap-2.5 flex-1">
                                 <span class="w-6 h-6 rounded-lg bg-white border border-slate-200 text-[10.5px] font-bold text-slate-600 flex items-center justify-center shrink-0">
                                     {{ sIdx + 1 }}
                                 </span>
 
-                                <div class="min-w-0">
-                                    <div class="flex items-center gap-1.5 flex-wrap">
-                                        <span class="text-xs sm:text-[13px] font-bold text-slate-900 break-words">
-                                            {{ student.nama }}
-                                        </span>
-                                        <!-- Gender Badge -->
-                                        <span
-                                            class="text-[9.5px] font-bold px-1.5 py-0.2 rounded border"
-                                            :class="student.jk === 'L'
-                                                ? 'bg-sky-50 text-sky-800 border-sky-200'
-                                                : 'bg-rose-50 text-rose-800 border-rose-200'"
-                                        >
-                                            {{ student.jk === 'L' ? 'Laki-laki' : (student.jk === 'P' ? 'Perempuan' : student.jk) }}
-                                        </span>
-                                    </div>
-
-                                    <!-- Informasi Kelas, NISN, & Domisili -->
-                                    <div class="flex items-center gap-2 text-[10.5px] text-slate-500 font-medium flex-wrap mt-0.5">
-                                        <span v-if="student.kelas" class="font-bold text-emerald-800 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200/70">
-                                            Kelas {{ student.kelas }}
-                                        </span>
-                                        <span v-if="student.nisn">NISN: {{ student.nisn }}</span>
-                                        <span v-if="student.unit" class="text-slate-400">• {{ student.unit }}</span>
-                                        <span v-if="student.kecamatan" class="text-slate-400">• Kec. {{ student.kecamatan }}</span>
-                                    </div>
-                                </div>
+                                <span class="text-xs sm:text-[13px] font-bold text-slate-900 group-hover/row:text-emerald-950 break-words leading-tight">
+                                    {{ student.nama }}
+                                </span>
                             </div>
 
-                            <!-- Tombol Link Buka Detail Profil Siswa -->
-                            <a
-                                :href="`/students/${student.id}`"
-                                target="_blank"
-                                class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 hover:text-emerald-900 bg-white hover:bg-emerald-50 px-2.5 py-1.5 rounded-xl border border-slate-200 hover:border-emerald-300 shadow-2xs transition-all shrink-0 cursor-pointer"
-                                title="Buka profil siswa di tab baru"
-                            >
-                                <span class="hidden sm:inline">Detail</span>
-                                <span class="material-symbols-outlined text-[14px]">open_in_new</span>
-                            </a>
-                        </div>
+                            <!-- JK & Status Keaktifan -->
+                            <div class="flex items-center gap-2 shrink-0">
+                                <!-- Gender (JK) -->
+                                <span
+                                    class="text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-lg border text-center min-w-[24px]"
+                                    :class="student.jk === 'L'
+                                        ? 'bg-sky-50 text-sky-800 border-sky-200'
+                                        : (student.jk === 'P' ? 'bg-rose-50 text-rose-800 border-rose-200' : 'bg-slate-50 text-slate-700 border-slate-200')"
+                                    :title="student.jk === 'L' ? 'Laki-laki' : (student.jk === 'P' ? 'Perempuan' : student.jk)"
+                                >
+                                    <span class="hidden sm:inline">{{ student.jk === 'L' ? 'Laki-laki' : (student.jk === 'P' ? 'Perempuan' : student.jk) }}</span>
+                                    <span class="sm:hidden">{{ student.jk || '-' }}</span>
+                                </span>
+
+                                <!-- Status Keaktifan -->
+                                <span
+                                    class="text-[10px] sm:text-[11px] font-bold px-2.5 py-0.5 rounded-lg border flex items-center gap-1.5"
+                                    :class="isStudentActive(student)
+                                        ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                        : 'bg-rose-50 text-rose-800 border-rose-200'"
+                                >
+                                    <span
+                                        class="w-1.5 h-1.5 rounded-full"
+                                        :class="isStudentActive(student) ? 'bg-emerald-600' : 'bg-rose-600'"
+                                    ></span>
+                                    <span>{{ getStudentStatusLabel(student) }}</span>
+                                </span>
+                            </div>
+                        </a>
                     </div>
 
                     <!-- Empty Search Inside Modal -->
@@ -623,7 +629,7 @@ const modalFilteredStudents = computed(() => {
                         </div>
                         <p class="text-xs font-bold text-slate-700">Tidak ada siswa yang cocok</p>
                         <p class="text-[11px] text-slate-400 mt-0.5">
-                            Coba kata kunci pencarian nama atau NISN lain.
+                            Coba kata kunci pencarian nama lain.
                         </p>
                     </div>
                 </div>

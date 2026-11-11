@@ -151,6 +151,7 @@ class StatisticsController extends Controller
                     'angkatan' => $student->angkatan,
                     'jk' => strtoupper(trim((string) ($student->jk ?? ''))),
                     'student_status' => $normalizedStatus,
+                    'status_keaktifan' => $student->status_keaktifan ?: ($normalizedStatus === 'aktif' ? 'Aktif' : 'Tidak Aktif'),
                     'keterangan_tidak_aktif' => $student->keterangan_tidak_aktif ?? $record?->ket_tidak_aktif,
                     'program' => $record?->program ?: ($student->getAttribute('program') ?: 'Umum'),
                     'kelas' => $record?->classroom?->name,
