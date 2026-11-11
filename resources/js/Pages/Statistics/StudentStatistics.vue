@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Bar } from 'vue-chartjs';
 import {
@@ -86,7 +86,7 @@ onUnmounted(() => {
 });
 
 // ============================================================
-// Helper Filter Unit Sekolah (Semua Jenjang, SDIT, SMPIT)
+// Helper Filter Unit Sekolah (Semua, SDIT, SMPIT)
 // ============================================================
 const activeUnit = ref('all');
 const chartMode = ref('total'); // 'total' | 'gender'
@@ -104,26 +104,14 @@ function matchesUnit(unitValue, targetUnit) {
     return u === targetUnit.toUpperCase();
 }
 
-function getActiveCountForUnit(unitId) {
-    if (props.students && props.students.length > 0) {
-        return props.students.filter(s => {
-            const isActive = (s.student_status || 'aktif').toLowerCase() === 'aktif';
-            return isActive && matchesUnit(s.unit, unitId);
-        }).length;
-    }
-    return props.studentsPerClass
-        .filter(item => matchesUnit(item.unit, unitId))
-        .reduce((sum, item) => sum + (Number(item.total) || 0), 0);
-}
-
 const unitTabs = computed(() => [
-    { id: 'all', label: 'Semua Jenjang', icon: 'school', count: getActiveCountForUnit('all') },
-    { id: 'SDIT', label: 'SDIT', icon: 'school', count: getActiveCountForUnit('SDIT') },
-    { id: 'SMPIT', label: 'SMPIT', icon: 'domain', count: getActiveCountForUnit('SMPIT') },
+    { id: 'all', label: 'Semua', icon: 'school' },
+    { id: 'SDIT', label: 'SDIT', icon: 'school' },
+    { id: 'SMPIT', label: 'SMPIT', icon: 'domain' },
 ]);
 
 const activeUnitLabel = computed(() => {
-    if (activeUnit.value === 'all') return 'Semua Jenjang Pendidikan';
+    if (activeUnit.value === 'all') return 'Semua';
     return unitTabs.value.find(t => t.id === activeUnit.value)?.label ?? activeUnit.value;
 });
 
@@ -137,6 +125,48 @@ const filteredStudents = computed(() => {
 
 const filteredClasses = computed(() => {
     return props.studentsPerClass.filter(item => matchesUnit(item.unit, activeUnit.value));
+});
+
+// ============================================================
+// Perhitungan Metrik Utama (Total, Aktif, Tidak Aktif, L, P, Siswa Baru)
+// ============================================================
+function isNewStudent(student, academicYear) {
+    if (!student?.tanggal_diterima) return false;
+    const tgl = String(student.tanggal_diterima).slice(0, 10);
+
+    // 1. Jika ada rentang tanggal mulai & selesai pada Tahun Ajaran
+    if (academicYear?.start_date && academicYear?.end_date) {
+        const start = String(academicYear.start_date).slice(0, 10);
+        const end = String(academicYear.end_date).slice(0, 10);
+        return tgl >= start && tgl <= end;
+    }
+
+    // 2. Fallback: deteksi berdasarkan nama Tahun Ajaran (misal '2026/2027')
+    if (academicYear?.name) {
+        const match = academicYear.name.match(/(\d{4})\s*[\/-]\s*(\d{4})/);
+        if (match) {
+            const startYear = match[1];
+            const endYear = match[2];
+            const sem = String(academicYear.semester || 'Ganjil').toLowerCase();
+            if (sem.includes('ganjil')) {
+                return tgl >= `${startYear}-01-01` && tgl <= `${startYear}-12-31`;
+            } else if (sem.includes('genap')) {
+                return tgl >= `${endYear}-01-01` && tgl <= `${endYear}-06-30`;
+            }
+            return tgl >= `${startYear}-01-01` && tgl <= `${endYear}-06-30`;
+        }
+
+        const singleMatch = academicYear.name.match(/(\d{4})/);
+        if (singleMatch) {
+            return tgl.startsWith(singleMatch[1]);
+        }
+    }
+
+    return false;
+}
+
+const newStudentsCount = computed(() => {
+    return filteredStudents.value.filter(s => isNewStudent(s, props.selectedAcademicYear)).length;
 });
 
 // ============================================================
@@ -187,15 +217,6 @@ const metrics = computed(() => {
     };
 });
 
-const totalClasses = computed(() => filteredClasses.value.length);
-
-const avgStudentsPerClass = computed(() => {
-    if (totalClasses.value === 0) return 0;
-    const classTotal = filteredClasses.value.reduce((sum, item) => sum + (Number(item.total) || 0), 0);
-    const base = classTotal > 0 ? classTotal : metrics.value.active;
-    return Math.round(base / totalClasses.value);
-});
-
 const genderTotal = computed(() => {
     const sum = metrics.value.male + metrics.value.female;
     return sum > 0 ? sum : 0;
@@ -209,91 +230,6 @@ const malePercentage = computed(() => {
 const femalePercentage = computed(() => {
     if (genderTotal.value === 0) return 0;
     return 100 - malePercentage.value;
-});
-
-const activePercentage = computed(() => {
-    if (metrics.value.total === 0) return 0;
-    return Math.round((metrics.value.active / metrics.value.total) * 100);
-});
-
-// ============================================================
-// Statistik Per Unit Sekolah (SDIT vs SMPIT)
-// ============================================================
-const unitBreakdown = computed(() => {
-    const units = ['SDIT', 'SMPIT'];
-    return units.map(unitKey => {
-        let active = 0;
-        let male = 0;
-        let female = 0;
-        let inactive = 0;
-
-        if (props.students && props.students.length > 0) {
-            props.students.forEach(s => {
-                if (!matchesUnit(s.unit, unitKey)) return;
-                const isAct = (s.student_status || 'aktif').toLowerCase() === 'aktif';
-                const jk = String(s.jk || '').toUpperCase().trim();
-                if (isAct) {
-                    active++;
-                    if (jk === 'L') male++;
-                    else if (jk === 'P') female++;
-                } else {
-                    inactive++;
-                }
-            });
-        } else {
-            props.studentsPerClass.forEach(c => {
-                if (!matchesUnit(c.unit, unitKey)) return;
-                active += Number(c.total) || 0;
-                male += Number(c.male) || 0;
-                female += Number(c.female) || 0;
-            });
-        }
-
-        const classCount = props.studentsPerClass.filter(c => matchesUnit(c.unit, unitKey)).length;
-
-        return {
-            unit: unitKey,
-            active,
-            inactive,
-            total: active + inactive,
-            male,
-            female,
-            classCount,
-        };
-    });
-});
-
-const maxUnitActive = computed(() => {
-    if (!unitBreakdown.value.length) return 1;
-    return Math.max(...unitBreakdown.value.map(u => u.active), 1);
-});
-
-// ============================================================
-// Statistik Sebaran Angkatan Siswa Aktif
-// ============================================================
-const angkatanStats = computed(() => {
-    const map = new Map();
-    filteredStudents.value.forEach(s => {
-        if ((s.student_status || 'aktif').toLowerCase() !== 'aktif') return;
-        const ang = s.angkatan ? `Angkatan ${s.angkatan}` : 'Belum Diatur';
-        if (!map.has(ang)) {
-            map.set(ang, { label: ang, raw: s.angkatan || 0, total: 0, male: 0, female: 0 });
-        }
-        const entry = map.get(ang);
-        entry.total++;
-        const jk = String(s.jk || '').toUpperCase().trim();
-        if (jk === 'L') entry.male++;
-        else if (jk === 'P') entry.female++;
-    });
-
-    return Array.from(map.values())
-        .sort((a, b) => Number(b.raw) - Number(a.raw))
-        .slice(0, 6);
-});
-
-const maxAngkatanTotal = computed(() => {
-    if (!angkatanStats.value.length) return 1;
-    return Math.max(...angkatanStats.value.map(a => a.total), 1);
 });
 
 // ============================================================
@@ -318,8 +254,8 @@ const chartData = computed(() => {
                 {
                     label: 'Perempuan (P)',
                     data: data.map(item => Number(item.female) || 0),
-                    backgroundColor: '#6ee7b7', // emerald-300 (soft mint senada)
-                    hoverBackgroundColor: '#34d399', // emerald-400
+                    backgroundColor: '#fbbf24', // yellow-400 (sesuai brand tema)
+                    hoverBackgroundColor: '#f59e0b', // amber-500
                     borderWidth: 0,
                     borderRadius: { topLeft: 6, topRight: 6, bottomLeft: 0, bottomRight: 0 },
                     borderSkipped: 'bottom',
@@ -384,7 +320,7 @@ const chartOptions = computed(() => ({
             align: 'top',
             color: (ctx) => {
                 if (chartMode.value === 'gender') {
-                    return ctx.datasetIndex === 0 ? '#065f46' : '#0f766e';
+                    return ctx.datasetIndex === 0 ? '#065f46' : '#b45309';
                 }
                 return '#047857';
             },
@@ -467,60 +403,29 @@ function getClassMalePercent(item) {
             </Transition>
 
             <!-- ============================================================ -->
-            <!-- HEADER MOBILE (md:hidden) SESUAI DATA SISWA & DATA PEGAWAI   -->
+            <!-- HEADER MOBILE (md:hidden)                                    -->
             <!-- ============================================================ -->
             <div class="md:hidden flex items-center justify-between gap-3 pt-3 sm:pt-4 mb-5">
                 <div class="min-w-0">
                     <h1 ref="mainTitleRef" class="text-2xl font-extrabold text-slate-900 tracking-tight leading-tight">
                         Statistik Siswa
                     </h1>
-                    <p class="text-xs text-slate-500 mt-1 font-medium truncate">
-                        {{ metrics.active }} siswa aktif • {{ activeUnitLabel }}
-                    </p>
-                </div>
-
-                <div class="shrink-0">
-                    <Link
-                        href="/students"
-                        class="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-bold text-xs shadow-xs transition-all cursor-pointer active:scale-95 border border-emerald-950/30"
-                    >
-                        <span class="material-symbols-outlined text-[17px]">groups</span>
-                        <span>Data Siswa</span>
-                    </Link>
                 </div>
             </div>
 
             <!-- ============================================================ -->
-            <!-- HEADER DESKTOP (hidden md:flex) SESUAI DATA SISWA & PEGAWAI  -->
+            <!-- HEADER DESKTOP (hidden md:flex)                              -->
             <!-- ============================================================ -->
             <div class="hidden md:flex mb-5 sm:mb-6 flex-row items-center justify-between gap-3">
                 <div class="min-w-0">
                     <h1 class="text-xl sm:text-2xl md:text-[26px] font-bold text-slate-900 tracking-tight leading-tight">
                         Statistik Siswa
                     </h1>
-                    <p class="text-xs sm:text-[13.5px] text-slate-500 mt-1 sm:mt-1.5 font-medium truncate">
-                        <strong class="text-slate-700 font-semibold">{{ metrics.active }}</strong> siswa aktif dari
-                        <strong class="text-slate-700 font-semibold">{{ metrics.total }}</strong> terdaftar di
-                        <strong class="text-slate-700 font-semibold">{{ activeUnitLabel }}</strong>
-                        <span v-if="selectedAcademicYear" class="text-slate-400">
-                            • TA {{ selectedAcademicYear.name }} ({{ selectedAcademicYear.semester }})
-                        </span>
-                    </p>
-                </div>
-
-                <div class="flex items-center gap-2.5 shrink-0">
-                    <Link
-                        href="/students"
-                        class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-semibold text-[13px] transition-all shadow-xs cursor-pointer active:scale-95"
-                    >
-                        <span class="material-symbols-outlined text-[18px]">groups</span>
-                        <span>Direktori Data Siswa</span>
-                    </Link>
                 </div>
             </div>
 
             <!-- ============================================================ -->
-            <!-- SEGMENTED CAPSULE TABS (SAMA DENGAN DATA SISWA & PEGAWAI)    -->
+            <!-- SEGMENTED CAPSULE TABS                                       -->
             <!-- ============================================================ -->
             <div class="mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div class="bg-slate-100 p-1 rounded-full inline-flex items-center gap-0.5 overflow-x-auto no-scrollbar max-w-full border border-slate-200/90 shrink-0">
@@ -530,7 +435,7 @@ function getClassMalePercent(item) {
                         type="button"
                         @click="activeUnit = tab.id"
                         :class="[
-                            'inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs sm:text-[13px] transition-all duration-150 cursor-pointer shrink-0',
+                            'inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs sm:text-[13px] transition-all duration-150 cursor-pointer shrink-0',
                             activeUnit === tab.id
                                 ? 'bg-emerald-100 text-emerald-950 font-bold border border-emerald-300 shadow-2xs'
                                 : 'text-slate-600 hover:text-slate-900 font-medium border border-transparent'
@@ -538,16 +443,6 @@ function getClassMalePercent(item) {
                     >
                         <span class="material-symbols-outlined text-[16px]" :class="{ 'filled-icon': activeUnit === tab.id }">{{ tab.icon }}</span>
                         <span>{{ tab.label }}</span>
-                        <span
-                            :class="[
-                                'px-2 py-0.5 rounded-full text-[10.5px] sm:text-[11px] leading-none transition-colors font-bold',
-                                activeUnit === tab.id
-                                    ? 'bg-emerald-900 text-yellow-200'
-                                    : 'bg-slate-200/90 text-slate-600 font-semibold'
-                            ]"
-                        >
-                            {{ tab.count }}
-                        </span>
                     </button>
                 </div>
 
@@ -562,278 +457,80 @@ function getClassMalePercent(item) {
             </div>
 
             <!-- ============================================================ -->
-            <!-- 4 CARD STATISTIK UTAMA (WARNA SENADA EMERALD, TEAL & SLATE)  -->
+            <!-- 2 CARD STATISTIK UTAMA: SISWA AKTIF & SISWA BARU             -->
             <!-- ============================================================ -->
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5">
-                <!-- Card 1: Jumlah Siswa Aktif -->
-                <div class="p-3.5 sm:p-4 rounded-2xl bg-emerald-50/60 border border-emerald-200/80 shadow-2xs">
-                    <div class="flex items-center justify-between gap-2 mb-2">
-                        <div class="w-9 h-9 rounded-xl bg-emerald-100/90 border border-emerald-200 flex items-center justify-center text-emerald-800 shrink-0">
-                            <span class="material-symbols-outlined text-[20px] filled-icon">groups</span>
-                        </div>
-                        <span class="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-emerald-900 text-yellow-200">
-                            {{ activePercentage }}% Aktif
-                        </span>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-5">
+                <!-- Card 1: Siswa Aktif -->
+                <div class="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-2xl bg-yellow-200 border border-yellow-300/80 flex items-center justify-center text-emerald-950 shadow-2xs shrink-0">
+                        <span class="material-symbols-outlined text-[24px] filled-icon">groups</span>
                     </div>
-                    <p class="text-[11px] font-bold text-emerald-800 uppercase tracking-wider">Jumlah Siswa Aktif</p>
-                    <p class="text-2xl sm:text-3xl font-extrabold text-emerald-950 mt-0.5 leading-tight">{{ metrics.active }}</p>
-                    <p class="text-[11px] text-emerald-700/90 font-medium mt-1 truncate">
-                        Dari {{ metrics.total }} terdaftar ({{ metrics.inactive }} non-aktif)
-                    </p>
+                    <div class="min-w-0">
+                        <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Siswa Aktif</p>
+                        <p class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-0.5 leading-tight">{{ metrics.active }}</p>
+                    </div>
                 </div>
 
-                <!-- Card 2: Siswa Laki-laki -->
-                <div class="p-3.5 sm:p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
-                    <div class="flex items-center justify-between gap-2 mb-2">
-                        <div class="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-200/80 flex items-center justify-center text-emerald-800 shrink-0">
-                            <span class="material-symbols-outlined text-[20px]">male</span>
-                        </div>
-                        <span class="px-2 py-0.5 rounded-md text-[10.5px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                            L • {{ malePercentage }}%
-                        </span>
+                <!-- Card 2: Siswa Baru -->
+                <div class="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-2xl bg-yellow-200 border border-yellow-300/80 flex items-center justify-center text-emerald-950 shadow-2xs shrink-0">
+                        <span class="material-symbols-outlined text-[24px]">person_add</span>
                     </div>
-                    <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Siswa Laki-laki</p>
-                    <p class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-0.5 leading-tight">{{ metrics.male }}</p>
-                    <p class="text-[11px] text-slate-500 font-medium mt-1 truncate">
-                        Peserta didik putra aktif
-                    </p>
-                </div>
-
-                <!-- Card 3: Siswa Perempuan -->
-                <div class="p-3.5 sm:p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
-                    <div class="flex items-center justify-between gap-2 mb-2">
-                        <div class="w-9 h-9 rounded-xl bg-teal-50 border border-teal-200/80 flex items-center justify-center text-teal-800 shrink-0">
-                            <span class="material-symbols-outlined text-[20px]">female</span>
-                        </div>
-                        <span class="px-2 py-0.5 rounded-md text-[10.5px] font-bold bg-teal-50 text-teal-800 border border-teal-200">
-                            P • {{ femalePercentage }}%
-                        </span>
+                    <div class="min-w-0">
+                        <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Siswa Baru</p>
+                        <p class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-0.5 leading-tight">{{ newStudentsCount }}</p>
                     </div>
-                    <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Siswa Perempuan</p>
-                    <p class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-0.5 leading-tight">{{ metrics.female }}</p>
-                    <p class="text-[11px] text-slate-500 font-medium mt-1 truncate">
-                        Peserta didik putri aktif
-                    </p>
-                </div>
-
-                <!-- Card 4: Jumlah Kelas & Rata-rata -->
-                <div class="p-3.5 sm:p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
-                    <div class="flex items-center justify-between gap-2 mb-2">
-                        <div class="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700 shrink-0">
-                            <span class="material-symbols-outlined text-[20px] filled-icon">meeting_room</span>
-                        </div>
-                        <span class="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
-                            Rombel
-                        </span>
-                    </div>
-                    <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Jumlah Kelas</p>
-                    <p class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-0.5 leading-tight">{{ totalClasses }}</p>
-                    <p class="text-[11px] text-slate-500 font-medium mt-1 truncate">
-                        Rata-rata {{ avgStudentsPerClass }} siswa / kelas
-                    </p>
                 </div>
             </div>
 
             <!-- ============================================================ -->
-            <!-- GRID 2 KOLOM: BAR LAKI-LAKI & PEREMPUAN + SEBARAN UNIT       -->
+            <!-- GENDER SISWA (BAR LAKI-LAKI & PEREMPUAN)                     -->
             <!-- ============================================================ -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
-                <!-- Kolom Kiri: Bar Siswa Laki-laki dan Perempuan -->
-                <div class="bg-white rounded-3xl border border-slate-200/90 p-4 sm:p-6 shadow-xs flex flex-col justify-between">
-                    <div>
-                        <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
-                            <div class="flex items-center gap-2">
-                                <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span>
-                                <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                                    Perbandingan Siswa Laki-laki &amp; Perempuan
-                                </h3>
-                            </div>
-                            <span class="text-xs text-slate-500 font-semibold">
-                                {{ genderTotal }} Siswa
-                            </span>
-                        </div>
-
-                        <!-- Stacked Ratio Bar Laki-laki vs Perempuan (Warna Senada Emerald Tua & Mint Lembut) -->
-                        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 mb-5">
-                            <div class="flex items-center justify-between text-xs font-bold mb-2">
-                                <div class="flex items-center gap-1.5 text-emerald-900">
-                                    <span class="inline-flex items-center justify-center px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-300">L</span>
-                                    <span>Laki-laki ({{ malePercentage }}%)</span>
-                                </div>
-                                <div class="flex items-center gap-1.5 text-teal-800">
-                                    <span>Perempuan ({{ femalePercentage }}%)</span>
-                                    <span class="inline-flex items-center justify-center px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-teal-50 text-teal-800 border border-teal-200">P</span>
-                                </div>
-                            </div>
-
-                            <!-- Dual Bar Senada -->
-                            <div class="w-full h-3.5 rounded-full bg-slate-200 overflow-hidden flex">
-                                <div
-                                    v-if="genderTotal > 0"
-                                    class="bg-emerald-700 h-full transition-all duration-500"
-                                    :style="{ width: `${malePercentage}%` }"
-                                    :title="`Laki-laki: ${metrics.male} siswa (${malePercentage}%)`"
-                                ></div>
-                                <div
-                                    v-if="genderTotal > 0"
-                                    class="bg-emerald-300 h-full transition-all duration-500"
-                                    :style="{ width: `${femalePercentage}%` }"
-                                    :title="`Perempuan: ${metrics.female} siswa (${femalePercentage}%)`"
-                                ></div>
-                            </div>
-
-                            <div class="flex items-center justify-between text-[11px] text-slate-500 font-semibold mt-2">
-                                <span>{{ metrics.male }} siswa putra</span>
-                                <span>{{ metrics.female }} siswa putri</span>
-                            </div>
-                        </div>
-
-                        <!-- Bar Individual: Laki-laki & Perempuan -->
-                        <div class="space-y-4">
-                            <!-- Bar Laki-laki -->
-                            <div class="space-y-1.5">
-                                <div class="flex items-center justify-between text-xs">
-                                    <div class="flex items-center gap-2 font-bold text-slate-800">
-                                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200">L</span>
-                                        <span>Siswa Laki-laki (Putra)</span>
-                                    </div>
-                                    <div class="flex items-center gap-1.5 shrink-0">
-                                        <span class="font-extrabold text-emerald-950">{{ metrics.male }} siswa</span>
-                                        <span class="text-[11px] font-semibold text-slate-400">({{ malePercentage }}%)</span>
-                                    </div>
-                                </div>
-                                <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden border border-slate-200/60">
-                                    <div
-                                        class="bg-emerald-700 h-full rounded-full transition-all duration-500"
-                                        :style="{ width: `${genderTotal > 0 ? Math.max(4, malePercentage) : 0}%` }"
-                                    ></div>
-                                </div>
-                            </div>
-
-                            <!-- Bar Perempuan -->
-                            <div class="space-y-1.5">
-                                <div class="flex items-center justify-between text-xs">
-                                    <div class="flex items-center gap-2 font-bold text-slate-800">
-                                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-teal-50 text-teal-800 border border-teal-200">P</span>
-                                        <span>Siswa Perempuan (Putri)</span>
-                                    </div>
-                                    <div class="flex items-center gap-1.5 shrink-0">
-                                        <span class="font-extrabold text-teal-900">{{ metrics.female }} siswa</span>
-                                        <span class="text-[11px] font-semibold text-slate-400">({{ femalePercentage }}%)</span>
-                                    </div>
-                                </div>
-                                <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden border border-slate-200/60">
-                                    <div
-                                        class="bg-emerald-400 h-full rounded-full transition-all duration-500"
-                                        :style="{ width: `${genderTotal > 0 ? Math.max(4, femalePercentage) : 0}%` }"
-                                    ></div>
-                                </div>
-                            </div>
-                        </div>
+            <div class="bg-white rounded-3xl border border-slate-200/90 p-4 sm:p-6 shadow-xs mb-5">
+                <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span>
+                        <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                            Gender Siswa
+                        </h3>
                     </div>
-
-                    <!-- Ringkasan Status Keaktifan di Bagian Bawah Card -->
-                    <div class="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap">
-                        <div class="flex items-center gap-2">
-                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-950 border border-emerald-300">
-                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
-                                <span>Aktif: {{ metrics.active }}</span>
-                            </span>
-                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
-                                <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-                                <span>Tidak Aktif: {{ metrics.inactive }}</span>
-                            </span>
-                        </div>
-                        <span class="text-[11px] text-slate-400 font-medium">
-                            Total Terdaftar: {{ metrics.total }} siswa
-                        </span>
-                    </div>
+                    <span class="text-xs text-slate-500 font-semibold">
+                        {{ genderTotal }} Siswa
+                    </span>
                 </div>
 
-                <!-- Kolom Kanan: Sebaran Siswa per Unit Sekolah & Angkatan -->
-                <div class="bg-white rounded-3xl border border-slate-200/90 p-4 sm:p-6 shadow-xs flex flex-col justify-between space-y-5">
-                    <!-- Sub-seksi 1: Sebaran per Unit Sekolah -->
-                    <div>
-                        <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
-                            <div class="flex items-center gap-2">
-                                <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span>
-                                <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                                    Sebaran Siswa per Unit Sekolah
-                                </h3>
-                            </div>
-                            <span class="text-xs text-slate-500 font-semibold">
-                                {{ unitBreakdown.length }} Unit
-                            </span>
+                <!-- Box Sesuai Gambar User -->
+                <div class="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
+                    <div class="flex items-center justify-between text-xs sm:text-[13.5px] font-bold mb-2.5">
+                        <div class="flex items-center gap-2 text-emerald-950">
+                            <span class="inline-flex items-center justify-center px-1.5 py-0.5 rounded-md text-[10.5px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-300">L</span>
+                            <span>Laki-laki ({{ malePercentage }}%)</span>
                         </div>
-
-                        <div class="space-y-3.5">
-                            <div
-                                v-for="u in unitBreakdown"
-                                :key="u.unit"
-                                class="p-3.5 rounded-2xl border transition-all cursor-pointer"
-                                :class="activeUnit === u.unit ? 'bg-emerald-50/60 border-emerald-300 shadow-2xs' : 'bg-white border-slate-200/90 hover:border-emerald-300'"
-                                @click="activeUnit = activeUnit === u.unit ? 'all' : u.unit"
-                            >
-                                <div class="flex items-center justify-between gap-2 mb-2">
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-xs sm:text-[13px] font-bold text-slate-900">{{ u.unit }}</span>
-                                        <span class="text-[11px] font-medium text-slate-500">• {{ u.classCount }} kelas</span>
-                                    </div>
-                                    <div class="flex items-center gap-1.5">
-                                        <span class="text-[10.5px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200">
-                                            L: {{ u.male }}
-                                        </span>
-                                        <span class="text-[10.5px] font-bold px-1.5 py-0.5 rounded-md bg-teal-50 text-teal-800 border border-teal-200">
-                                            P: {{ u.female }}
-                                        </span>
-                                        <span class="text-xs font-extrabold text-emerald-950 bg-emerald-100 border border-emerald-300 px-2.5 py-0.5 rounded-full">
-                                            {{ u.active }} siswa
-                                        </span>
-                                    </div>
-                                </div>
-                                <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
-                                    <div
-                                        class="bg-emerald-700 h-2.5 rounded-full transition-all duration-500"
-                                        :style="{ width: `${u.active > 0 ? Math.max(6, Math.round((u.active / maxUnitActive) * 100)) : 0}%` }"
-                                    ></div>
-                                </div>
-                            </div>
+                        <div class="flex items-center gap-2 text-slate-900">
+                            <span>Perempuan ({{ femalePercentage }}%)</span>
+                            <span class="inline-flex items-center justify-center px-1.5 py-0.5 rounded-md text-[10.5px] font-bold bg-yellow-50 text-amber-900 border border-yellow-300">P</span>
                         </div>
                     </div>
 
-                    <!-- Sub-seksi 2: Sebaran per Angkatan -->
-                    <div v-if="angkatanStats.length > 0" class="pt-4 border-t border-slate-100">
-                        <div class="flex items-center justify-between mb-3">
-                            <div class="flex items-center gap-2">
-                                <span class="w-2 h-2 rounded-full bg-teal-600 inline-block"></span>
-                                <h4 class="text-[11.5px] font-bold text-slate-800 uppercase tracking-wider">
-                                    Distribusi per Angkatan ({{ activeUnitLabel }})
-                                </h4>
-                            </div>
-                        </div>
+                    <!-- Dual Bar: Emerald Tua untuk Putra & Kuning untuk Putri -->
+                    <div class="w-full h-3.5 sm:h-4 rounded-full bg-slate-100 overflow-hidden flex">
+                        <div
+                            v-if="genderTotal > 0"
+                            class="bg-emerald-700 h-full transition-all duration-500"
+                            :style="{ width: `${malePercentage}%` }"
+                            :title="`Laki-laki: ${metrics.male} siswa (${malePercentage}%)`"
+                        ></div>
+                        <div
+                            v-if="genderTotal > 0"
+                            class="bg-yellow-400 h-full transition-all duration-500"
+                            :style="{ width: `${femalePercentage}%` }"
+                            :title="`Perempuan: ${metrics.female} siswa (${femalePercentage}%)`"
+                        ></div>
+                    </div>
 
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                            <div
-                                v-for="ang in angkatanStats"
-                                :key="ang.label"
-                                class="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1.5"
-                            >
-                                <div class="flex items-center justify-between text-xs">
-                                    <span class="font-bold text-slate-800 truncate">{{ ang.label }}</span>
-                                    <span class="font-extrabold text-emerald-900 shrink-0 ml-1">{{ ang.total }} siswa</span>
-                                </div>
-                                <div class="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
-                                    <div
-                                        class="bg-teal-600 h-2 rounded-full transition-all duration-500"
-                                        :style="{ width: `${Math.max(8, Math.round((ang.total / maxAngkatanTotal) * 100))}%` }"
-                                    ></div>
-                                </div>
-                                <div class="flex items-center justify-between text-[10.5px] text-slate-500 font-medium">
-                                    <span>L: {{ ang.male }}</span>
-                                    <span>P: {{ ang.female }}</span>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="flex items-center justify-between text-xs sm:text-[12.5px] text-slate-600 font-semibold mt-2.5">
+                        <span>{{ metrics.male }} siswa putra ({{ malePercentage }}%)</span>
+                        <span>{{ metrics.female }} siswa putri ({{ femalePercentage }}%)</span>
                     </div>
                 </div>
             </div>
@@ -947,16 +644,16 @@ function getClassMalePercent(item) {
                                 </div>
                             </div>
 
-                            <!-- Bar & Badge Laki-laki / Perempuan per Kelas (Senada Emerald & Mint) -->
+                            <!-- Bar & Badge Laki-laki / Perempuan per Kelas (Senada Emerald & Kuning) -->
                             <div class="pt-2 border-t border-slate-100 space-y-1.5">
                                 <div class="flex items-center justify-between text-[11px] font-bold">
                                     <span class="inline-flex items-center gap-1 text-emerald-800">
                                         <span class="px-1.5 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-[9.5px]">L</span>
                                         <span>{{ item.male || 0 }} Putra</span>
                                     </span>
-                                    <span class="inline-flex items-center gap-1 text-teal-800">
+                                    <span class="inline-flex items-center gap-1 text-amber-900">
                                         <span>{{ item.female || 0 }} Putri</span>
-                                        <span class="px-1.5 py-0.5 rounded bg-teal-50 border border-teal-200 text-[9.5px]">P</span>
+                                        <span class="px-1.5 py-0.5 rounded bg-yellow-50 border border-yellow-200 text-[9.5px]">P</span>
                                     </span>
                                 </div>
                                 <div class="w-full h-2 rounded-full bg-slate-100 overflow-hidden flex">
@@ -965,7 +662,7 @@ function getClassMalePercent(item) {
                                         :style="{ width: `${getClassMalePercent(item)}%` }"
                                     ></div>
                                     <div
-                                        class="bg-emerald-300 h-full"
+                                        class="bg-yellow-400 h-full"
                                         :style="{ width: `${100 - getClassMalePercent(item)}%` }"
                                     ></div>
                                 </div>
@@ -1031,7 +728,7 @@ function getClassMalePercent(item) {
                                             </span>
                                         </td>
                                         <td class="py-3.5 px-4 text-center align-middle">
-                                            <span class="inline-flex items-center justify-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-teal-50 text-teal-800 border border-teal-200">
+                                            <span class="inline-flex items-center justify-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-yellow-50 text-amber-900 border border-yellow-200">
                                                 {{ item.female || 0 }}
                                             </span>
                                         </td>
@@ -1043,7 +740,7 @@ function getClassMalePercent(item) {
                                                         :style="{ width: `${getClassMalePercent(item)}%` }"
                                                     ></div>
                                                     <div
-                                                        class="bg-emerald-300 h-full"
+                                                        class="bg-yellow-400 h-full"
                                                         :style="{ width: `${100 - getClassMalePercent(item)}%` }"
                                                     ></div>
                                                 </div>
@@ -1069,7 +766,7 @@ function getClassMalePercent(item) {
                                             </span>
                                         </td>
                                         <td class="py-3.5 px-4 text-center">
-                                            <span class="inline-flex items-center justify-center px-2.5 py-0.5 rounded-md text-xs font-extrabold bg-teal-100 text-teal-950 border border-teal-300">
+                                            <span class="inline-flex items-center justify-center px-2.5 py-0.5 rounded-md text-xs font-extrabold bg-yellow-100 text-amber-950 border border-yellow-300">
                                                 {{ classTableTotals.female }}
                                             </span>
                                         </td>

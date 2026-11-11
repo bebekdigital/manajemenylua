@@ -100,6 +100,7 @@ class StatisticsController extends Controller
                     'keterangan_tidak_aktif' => $student->keterangan_tidak_aktif ?? $record?->ket_tidak_aktif,
                     'program' => $record?->program ?? 'Umum',
                     'kelas' => $record?->classroom?->name,
+                    'tanggal_diterima' => $student->tanggal_diterima ? $student->tanggal_diterima->format('Y-m-d') : null,
                 ];
             })
             ->values()
@@ -108,7 +109,13 @@ class StatisticsController extends Controller
         return Inertia::render('Statistics/StudentStatistics', [
             'students' => $students,
             'studentsPerClass' => $studentsPerClass,
-            'selectedAcademicYear' => $selectedYear,
+            'selectedAcademicYear' => $selectedYear ? [
+                'id' => $selectedYear->id,
+                'name' => $selectedYear->name,
+                'semester' => $selectedYear->semester,
+                'start_date' => $selectedYear->start_date ? $selectedYear->start_date->format('Y-m-d') : null,
+                'end_date' => $selectedYear->end_date ? $selectedYear->end_date->format('Y-m-d') : null,
+            ] : null,
         ]);
     }
 
