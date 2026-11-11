@@ -39,6 +39,7 @@ const mapContainer = ref(null);
 let map = null;
 let geojsonLayer = null;
 let kabupatenLayer = null;
+let activeHoverLayer = null;
 
 const geojsonData = ref(null);
 const isLoading = ref(true);
@@ -302,6 +303,7 @@ function featureStyle(feature) {
         weight: 0.8,
         opacity: 0.8,
         color: '#94a3b8',
+        dashArray: null,
         fillOpacity: count > 0 ? 0.92 : 0.6,
     };
 }
@@ -389,8 +391,14 @@ async function loadGeoJsonAndInitMap() {
                 layer.on({
                     mouseover: (e) => {
                         const target = e.target;
+                        // Reset layer sebelumnya jika mouseover terpanggil sebelum mouseout selesai
+                        if (activeHoverLayer && activeHoverLayer !== target) {
+                            activeHoverLayer.setStyle(featureStyle(activeHoverLayer.feature));
+                        }
+                        activeHoverLayer = target;
+
                         target.setStyle({
-                            weight: 2.2,
+                            weight: 2,
                             color: '#047857',
                             fillOpacity: 1,
                         });
@@ -405,7 +413,11 @@ async function loadGeoJsonAndInitMap() {
                         };
                     },
                     mouseout: (e) => {
-                        geojsonLayer.resetStyle(e.target);
+                        const target = e.target;
+                        target.setStyle(featureStyle(target.feature));
+                        if (activeHoverLayer === target) {
+                            activeHoverLayer = null;
+                        }
                         hoveredFeature.value = null;
                     },
                     click: (e) => {
@@ -415,16 +427,26 @@ async function loadGeoJsonAndInitMap() {
             },
         }).addTo(map);
 
-        // Layer 2: Batas Kabupaten Tebal (Garis luar tegas & tebal)
+        // Reset hover saat kursor keluar dari kanvas peta
+        map.on('mouseout', () => {
+            if (activeHoverLayer) {
+                activeHoverLayer.setStyle(featureStyle(activeHoverLayer.feature));
+                activeHoverLayer = null;
+            }
+            hoveredFeature.value = null;
+        });
+
+        // Layer 2: Batas Kabupaten Putus-putus (Dashed Line)
         if (kabData) {
             kabupatenLayer = L.geoJSON(kabData, {
                 style: {
                     fill: false,
-                    weight: 2.8,       // TEBAL: Batas kabupaten terlihat tegas & tebal
-                    color: '#0f172a',    // Slate-900 tebal kontras
-                    opacity: 0.95,
+                    weight: 1.8,             // Tidak ketebalan, proporsional
+                    color: '#1e293b',          // Dark slate jelas
+                    dashArray: '6, 5',        // Garis putus-putus rapi
+                    opacity: 0.9,
                 },
-                interactive: false,    // Klik/hover tembus langsung ke kecamatan di bawahnya
+                interactive: false,          // Klik/hover tembus langsung ke kecamatan di bawahnya
             }).addTo(map);
         }
 
@@ -614,11 +636,11 @@ onBeforeUnmount(() => {
 
                 <!-- Legenda Garis Batas Wilayah -->
                 <div class="pt-1.5 border-t border-slate-200/70 flex items-center gap-3 text-[10px] text-slate-600 font-medium">
-                    <div class="flex items-center gap-1" title="Garis tebal batas kabupaten">
-                        <span class="w-4 h-0.5 bg-[#0f172a] inline-block rounded-full"></span>
+                    <div class="flex items-center gap-1.5" title="Garis putus-putus batas kabupaten">
+                        <span class="w-4 border-t-2 border-dashed border-[#1e293b] inline-block"></span>
                         <span class="font-bold text-slate-800">Batas Kabupaten</span>
                     </div>
-                    <div class="flex items-center gap-1" title="Garis tipis batas kecamatan">
+                    <div class="flex items-center gap-1.5" title="Garis halus batas kecamatan">
                         <span class="w-4 h-[1px] bg-[#94a3b8] inline-block"></span>
                         <span>Kecamatan</span>
                     </div>
