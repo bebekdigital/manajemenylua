@@ -12,27 +12,22 @@ class CheckPrograms extends Command
 
     public function handle()
     {
-        $this->info("=== student_academic_records ===");
-        $records = DB::table('student_academic_records')
-            ->select('program', DB::raw('count(1) as total'))
-            ->groupBy('program')
+        $this->info("Student count: " . DB::table('students')->count());
+        $this->info("Student Academic Record count: " . DB::table('student_academic_records')->count());
+        $this->info("Sample student_academic_records with program:");
+        $sample = DB::table('student_academic_records')
+            ->select('id', 'student_id', 'classroom_id', 'program')
+            ->limit(10)
             ->get();
-        $this->table(['program', 'total'], $records->map(fn($r) => (array)$r)->toArray());
+        $this->table(['id', 'student_id', 'classroom_id', 'program'], $sample->map(fn($r) => (array)$r)->toArray());
 
-        $this->info("=== students ===");
-        if (\Illuminate\Support\Facades\Schema::hasColumn('students', 'program')) {
-            $students = DB::table('students')
-                ->select('program', DB::raw('count(1) as total'))
-                ->groupBy('program')
-                ->get();
-            $this->table(['program', 'total'], $students->map(fn($r) => (array)$r)->toArray());
-        } else {
-            $this->info("Column program does not exist in students table.");
-        }
+        $this->info("Distinct programs in academic records:");
+        $distinct = DB::table('student_academic_records')->selectRaw('COALESCE(program, "NULL") as prog, count(1) as total')->groupBy('prog')->get();
+        $this->table(['prog', 'total'], $distinct->map(fn($r) => (array)$r)->toArray());
 
-        $this->info("=== school_programs ===");
-        $schoolPrograms = DB::table('school_programs')->get();
-        $this->table(['id', 'school_unit_id', 'name'], $schoolPrograms->map(fn($r) => ['id' => $r->id, 'school_unit_id' => $r->school_unit_id, 'name' => $r->name])->toArray());
+        $this->info("Classrooms:");
+        $classes = DB::table('classrooms')->select('id', 'name', 'unit', 'jenjang')->get();
+        $this->table(['id', 'name', 'unit', 'jenjang'], $classes->map(fn($r) => (array)$r)->toArray());
 
         return 0;
     }
