@@ -10,4 +10,4 @@ deployment:
     - /bin/cp -f ./public/favicon.png $DEPLOYPATH/favicon.png
     - /bin/cp -f ./public/rescue.js $DEPLOYPATH/rescue.js
     - /bin/cp -f ./public/.htaccess $DEPLOYPATH/.htaccess
-    - /bin/cp -f ./public/build/.htaccess $DEPLOYPATH/build/.htaccess
+    - test -f ./public/build/.htaccess && /bin/cp -f ./public/build/.htaccess $DEPLOYPATH/build/.htaccess || true
