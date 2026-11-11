@@ -765,70 +765,83 @@ function getClassMalePercent(item) {
             </div>
 
             <!-- ============================================================ -->
-            <!-- SEGMENTED CAPSULE TABS                                       -->
+            <!-- TOOLBAR FILTER & PERIODE TANGGAL                             -->
             <!-- ============================================================ -->
-            <div class="mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div class="bg-slate-100 p-1 rounded-full inline-flex items-center gap-0.5 overflow-x-auto no-scrollbar max-w-full border border-slate-200/90 shrink-0">
-                    <button
-                        v-for="tab in unitTabs"
-                        :key="tab.id"
-                        type="button"
-                        @click="activeUnit = tab.id"
-                        :class="[
-                            'inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs sm:text-[13px] transition-all duration-150 cursor-pointer shrink-0',
-                            activeUnit === tab.id
-                                ? 'bg-emerald-100 text-emerald-950 font-bold border border-emerald-300 shadow-2xs'
-                                : 'text-slate-600 hover:text-slate-900 font-medium border border-transparent'
-                        ]"
-                    >
-                        <span class="material-symbols-outlined text-[16px]" :class="{ 'filled-icon': activeUnit === tab.id }">{{ tab.icon }}</span>
-                        <span>{{ tab.label }}</span>
-                    </button>
+            <div class="mb-5 space-y-2.5">
+                <!-- Toolbar Filter (Satu Baris Horisontal, Scroll di Mobile Jika Melebihi Layar) -->
+                <div class="flex items-center justify-between gap-3 overflow-x-auto no-scrollbar pb-1 -mx-4 px-4 sm:mx-0 sm:px-0">
+                    <!-- Segmented Capsule Tabs Unit Sekolah -->
+                    <div class="bg-slate-100 p-1 rounded-full inline-flex items-center gap-0.5 border border-slate-200/90 shrink-0">
+                        <button
+                            v-for="tab in unitTabs"
+                            :key="tab.id"
+                            type="button"
+                            @click="activeUnit = tab.id"
+                            :class="[
+                                'inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-1.5 rounded-full text-xs sm:text-[13px] transition-all duration-150 cursor-pointer shrink-0',
+                                activeUnit === tab.id
+                                    ? 'bg-emerald-100 text-emerald-950 font-bold border border-emerald-300 shadow-2xs'
+                                    : 'text-slate-600 hover:text-slate-900 font-medium border border-transparent'
+                            ]"
+                        >
+                            <span class="material-symbols-outlined text-[16px]" :class="{ 'filled-icon': activeUnit === tab.id }">{{ tab.icon }}</span>
+                            <span>{{ tab.label }}</span>
+                        </button>
+                    </div>
+
+                    <!-- Dropdown Filter Tahun Ajaran & Semester (Terpisah, Tetap 1 Baris) -->
+                    <div class="flex items-center gap-2 shrink-0 flex-nowrap">
+                        <!-- Tombol Reset ke TA Sekarang (Muncul jika filter berbeda dari TA aktif saat ini) -->
+                        <button
+                            v-if="isDifferentFromCurrent"
+                            type="button"
+                            @click="resetToCurrentAcademicYear"
+                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs transition-all cursor-pointer shrink-0 whitespace-nowrap"
+                            title="Kembali ke Tahun Ajaran & Semester Aktif Sekarang"
+                        >
+                            <span class="material-symbols-outlined text-[15px]">restart_alt</span>
+                            <span>Reset ke TA Sekarang</span>
+                        </button>
+
+                        <!-- Dropdown Tahun Ajaran -->
+                        <div class="relative inline-flex items-center shrink-0">
+                            <span class="absolute left-3 text-slate-400 material-symbols-outlined text-[17px] pointer-events-none">calendar_month</span>
+                            <select
+                                v-model="selectedYearName"
+                                @change="handleFilterChange"
+                                class="appearance-none bg-white border border-slate-200/90 hover:border-emerald-300 text-slate-800 text-xs font-bold rounded-full pl-8 pr-7 py-1.5 shadow-2xs transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 cursor-pointer whitespace-nowrap"
+                            >
+                                <option v-for="yr in (availableAcademicYears && availableAcademicYears.length ? availableAcademicYears : [selectedYearName])" :key="yr" :value="yr">
+                                    TA {{ yr }}
+                                </option>
+                            </select>
+                            <span class="absolute right-2 text-slate-400 material-symbols-outlined text-[16px] pointer-events-none">expand_more</span>
+                        </div>
+
+                        <!-- Dropdown Semester -->
+                        <div class="relative inline-flex items-center shrink-0">
+                            <span class="absolute left-3 text-slate-400 material-symbols-outlined text-[17px] pointer-events-none">schedule</span>
+                            <select
+                                v-model="selectedSemester"
+                                @change="handleFilterChange"
+                                class="appearance-none bg-white border border-slate-200/90 hover:border-emerald-300 text-slate-800 text-xs font-bold rounded-full pl-8 pr-7 py-1.5 shadow-2xs transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 cursor-pointer whitespace-nowrap"
+                            >
+                                <option value="Semua">Semua Semester</option>
+                                <option value="Ganjil">Semester Ganjil</option>
+                                <option value="Genap">Semester Genap</option>
+                            </select>
+                            <span class="absolute right-2 text-slate-400 material-symbols-outlined text-[16px] pointer-events-none">expand_more</span>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Dropdown Filter Tahun Ajaran & Semester (Terpisah) -->
-                <div class="flex items-center gap-2 flex-wrap self-start sm:self-auto shrink-0">
-                    <!-- Tombol Reset ke TA Sekarang (Muncul jika filter berbeda dari TA aktif saat ini) -->
-                    <button
-                        v-if="isDifferentFromCurrent"
-                        type="button"
-                        @click="resetToCurrentAcademicYear"
-                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs transition-all cursor-pointer"
-                        title="Kembali ke Tahun Ajaran & Semester Aktif Sekarang"
-                    >
-                        <span class="material-symbols-outlined text-[15px]">restart_alt</span>
-                        <span>Reset ke TA Sekarang</span>
-                    </button>
-
-                    <!-- Dropdown Tahun Ajaran -->
-                    <div class="relative inline-flex items-center">
-                        <span class="absolute left-3 text-slate-400 material-symbols-outlined text-[17px] pointer-events-none">calendar_month</span>
-                        <select
-                            v-model="selectedYearName"
-                            @change="handleFilterChange"
-                            class="appearance-none bg-white border border-slate-200/90 hover:border-emerald-300 text-slate-800 text-xs font-bold rounded-full pl-8 pr-7 py-1.5 shadow-2xs transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 cursor-pointer"
-                        >
-                            <option v-for="yr in (availableAcademicYears && availableAcademicYears.length ? availableAcademicYears : [selectedYearName])" :key="yr" :value="yr">
-                                TA {{ yr }}
-                            </option>
-                        </select>
-                        <span class="absolute right-2 text-slate-400 material-symbols-outlined text-[16px] pointer-events-none">expand_more</span>
-                    </div>
-
-                    <!-- Dropdown Semester -->
-                    <div class="relative inline-flex items-center">
-                        <span class="absolute left-3 text-slate-400 material-symbols-outlined text-[17px] pointer-events-none">schedule</span>
-                        <select
-                            v-model="selectedSemester"
-                            @change="handleFilterChange"
-                            class="appearance-none bg-white border border-slate-200/90 hover:border-emerald-300 text-slate-800 text-xs font-bold rounded-full pl-8 pr-7 py-1.5 shadow-2xs transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 cursor-pointer"
-                        >
-                            <option value="Semua">Semua Semester</option>
-                            <option value="Ganjil">Semester Ganjil</option>
-                            <option value="Genap">Semester Genap</option>
-                        </select>
-                        <span class="absolute right-2 text-slate-400 material-symbols-outlined text-[16px] pointer-events-none">expand_more</span>
-                    </div>
+                <!-- Periode Tanggal (Di Bawah Toolbar Filter Sesuai Request User) -->
+                <div v-if="selectedPeriodLabel" class="flex items-center gap-1.5 text-xs text-slate-500 font-medium px-1">
+                    <span class="material-symbols-outlined text-[16px] text-emerald-700">date_range</span>
+                    <span class="text-slate-500 font-semibold">Periode Tanggal:</span>
+                    <span class="font-bold text-emerald-950 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200/80">
+                        {{ selectedPeriodLabel }}
+                    </span>
                 </div>
             </div>
 
@@ -848,19 +861,13 @@ function getClassMalePercent(item) {
                 </div>
 
                 <!-- Card 2: Siswa Baru -->
-                <div class="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs flex items-center justify-between gap-4">
-                    <div class="flex items-center gap-4 min-w-0">
-                        <div class="w-12 h-12 rounded-2xl bg-yellow-200 border border-yellow-300/80 flex items-center justify-center text-emerald-950 shadow-2xs shrink-0">
-                            <span class="material-symbols-outlined text-[24px]">person_add</span>
-                        </div>
-                        <div class="min-w-0">
-                            <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Siswa Baru</p>
-                            <p class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-0.5 leading-tight">{{ newStudentsCount }}</p>
-                        </div>
+                <div class="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-2xl bg-yellow-200 border border-yellow-300/80 flex items-center justify-center text-emerald-950 shadow-2xs shrink-0">
+                        <span class="material-symbols-outlined text-[24px]">person_add</span>
                     </div>
-                    <div v-if="selectedPeriodLabel" class="text-right shrink-0">
-                        <span class="text-[10.5px] font-semibold text-slate-400 block uppercase tracking-wider">Periode Tanggal</span>
-                        <span class="text-xs sm:text-[13px] font-bold text-emerald-800">{{ selectedPeriodLabel }}</span>
+                    <div class="min-w-0">
+                        <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Siswa Baru</p>
+                        <p class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-0.5 leading-tight">{{ newStudentsCount }}</p>
                     </div>
                 </div>
             </div>
