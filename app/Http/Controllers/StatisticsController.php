@@ -152,7 +152,7 @@ class StatisticsController extends Controller
                     'jk' => strtoupper(trim((string) ($student->jk ?? ''))),
                     'student_status' => $normalizedStatus,
                     'keterangan_tidak_aktif' => $student->keterangan_tidak_aktif ?? $record?->ket_tidak_aktif,
-                    'program' => $record?->program ?? 'Umum',
+                    'program' => $record?->program ?: ($student->getAttribute('program') ?: 'Fullday'),
                     'kelas' => $record?->classroom?->name,
                     'tanggal_diterima' => $student->tanggal_diterima ? $student->tanggal_diterima->format('Y-m-d') : null,
                 ];

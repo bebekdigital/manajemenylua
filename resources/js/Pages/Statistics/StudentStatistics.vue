@@ -343,6 +343,36 @@ const femalePercentage = computed(() => {
     return 100 - malePercentage.value;
 });
 
+const programMetrics = computed(() => {
+    const list = filteredStudents.value;
+    let fullday = 0;
+    let boarding = 0;
+
+    list.forEach(s => {
+        const isActive = (s.student_status || 'aktif').toLowerCase() === 'aktif';
+        if (isActive) {
+            const p = String(s.program || '').trim().toLowerCase();
+            if (p === 'boarding' || p.includes('boarding') || p.includes('pondok') || p.includes('pesantren') || p.includes('asrama')) {
+                boarding++;
+            } else {
+                fullday++;
+            }
+        }
+    });
+
+    const total = fullday + boarding;
+    const fulldayPercentage = total > 0 ? Math.round((fullday / total) * 100) : 0;
+    const boardingPercentage = total > 0 ? 100 - fulldayPercentage : 0;
+
+    return {
+        total,
+        fullday,
+        boarding,
+        fulldayPercentage,
+        boardingPercentage,
+    };
+});
+
 // ============================================================
 // Grafik Batang Jumlah Siswa Baru (x = TA, y = Jumlah Siswa)
 // ============================================================
@@ -1060,55 +1090,114 @@ function getClassMalePercent(item) {
             </div>
 
             <!-- ============================================================ -->
-            <!-- GENDER SISWA (BAR LAKI-LAKI & PEREMPUAN)                     -->
+            <!-- GENDER SISWA & PROGRAM SISWA (DESKTOP: SAMPING, MOBILE: BAWAH) -->
             <!-- ============================================================ -->
-            <div class="bg-white rounded-3xl border border-slate-200/90 p-4 sm:p-6 shadow-xs mb-5">
-                <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
-                    <div class="flex items-center gap-2">
-                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span>
-                        <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                            Gender Siswa
-                        </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 mb-5">
+                <!-- ============================================================ -->
+                <!-- GENDER SISWA (BAR LAKI-LAKI & PEREMPUAN)                     -->
+                <!-- ============================================================ -->
+                <div class="bg-white rounded-3xl border border-slate-200/90 p-4 sm:p-6 shadow-xs flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span>
+                            <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                                Gender Siswa
+                            </h3>
+                        </div>
+                        <span class="text-xs text-slate-500 font-semibold">
+                            {{ genderTotal }} Siswa
+                        </span>
                     </div>
-                    <span class="text-xs text-slate-500 font-semibold">
-                        {{ genderTotal }} Siswa
-                    </span>
+
+                    <!-- Box Sesuai Gambar User (Persis Screenshot dengan Persen di Bawah & Bar Perempuan Kuning) -->
+                    <div class="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
+                        <!-- Baris Atas: [L] Laki-laki ... Perempuan [P] (Tanpa persen di samping nama gender) -->
+                        <div class="flex items-center justify-between text-xs sm:text-[13.5px] font-bold mb-2.5 sm:mb-3">
+                            <div class="flex items-center gap-2 text-emerald-950">
+                                <span class="inline-flex items-center justify-center w-6 h-6 rounded-lg text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 shadow-2xs">L</span>
+                                <span>Laki-laki</span>
+                            </div>
+                            <div class="flex items-center gap-2 text-emerald-950">
+                                <span>Perempuan</span>
+                                <span class="inline-flex items-center justify-center w-6 h-6 rounded-lg text-[11px] font-bold bg-yellow-50 text-amber-900 border border-yellow-300 shadow-2xs">P</span>
+                            </div>
+                        </div>
+
+                        <!-- Dual Bar: Emerald Tua (#047857) untuk Putra & Kuning/Amber (#fbbf24) untuk Putri -->
+                        <div class="w-full h-3.5 sm:h-4 rounded-full bg-slate-100 overflow-hidden flex">
+                            <div
+                                v-if="genderTotal > 0"
+                                class="bg-[#047857] h-full transition-all duration-500"
+                                :style="{ width: `${malePercentage}%` }"
+                                :title="`Laki-laki: ${metrics.male} siswa (${malePercentage}%)`"
+                            ></div>
+                            <div
+                                v-if="genderTotal > 0"
+                                class="bg-[#fbbf24] h-full transition-all duration-500"
+                                :style="{ width: `${femalePercentage}%` }"
+                                :title="`Perempuan: ${metrics.female} siswa (${femalePercentage}%)`"
+                            ></div>
+                        </div>
+
+                        <!-- Baris Bawah: Total Putra & Putri Beserta Persen di Sebelah Angka Total -->
+                        <div class="flex items-center justify-between text-xs sm:text-[12.5px] text-slate-500 font-medium mt-2.5 sm:mt-3">
+                            <span>{{ metrics.male }} siswa putra <span class="font-bold text-slate-700">({{ malePercentage }}%)</span></span>
+                            <span>{{ metrics.female }} siswa putri <span class="font-bold text-slate-700">({{ femalePercentage }}%)</span></span>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Box Sesuai Gambar User (Persis Screenshot dengan Persen di Bawah & Bar Perempuan Kuning) -->
-                <div class="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
-                    <!-- Baris Atas: [L] Laki-laki ... Perempuan [P] (Tanpa persen di samping nama gender) -->
-                    <div class="flex items-center justify-between text-xs sm:text-[13.5px] font-bold mb-2.5 sm:mb-3">
-                        <div class="flex items-center gap-2 text-emerald-950">
-                            <span class="inline-flex items-center justify-center w-6 h-6 rounded-lg text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 shadow-2xs">L</span>
-                            <span>Laki-laki</span>
+                <!-- ============================================================ -->
+                <!-- PROGRAM SISWA (BAR FULLDAY & BOARDING)                        -->
+                <!-- ============================================================ -->
+                <div class="bg-white rounded-3xl border border-slate-200/90 p-4 sm:p-6 shadow-xs flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span>
+                            <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                                Program Siswa
+                            </h3>
                         </div>
-                        <div class="flex items-center gap-2 text-emerald-950">
-                            <span>Perempuan</span>
-                            <span class="inline-flex items-center justify-center w-6 h-6 rounded-lg text-[11px] font-bold bg-yellow-50 text-amber-900 border border-yellow-300 shadow-2xs">P</span>
-                        </div>
+                        <span class="text-xs text-slate-500 font-semibold">
+                            {{ programMetrics.total }} Siswa
+                        </span>
                     </div>
 
-                    <!-- Dual Bar: Emerald Tua (#047857) untuk Putra & Kuning/Amber (#fbbf24) untuk Putri -->
-                    <div class="w-full h-3.5 sm:h-4 rounded-full bg-slate-100 overflow-hidden flex">
-                        <div
-                            v-if="genderTotal > 0"
-                            class="bg-[#047857] h-full transition-all duration-500"
-                            :style="{ width: `${malePercentage}%` }"
-                            :title="`Laki-laki: ${metrics.male} siswa (${malePercentage}%)`"
-                        ></div>
-                        <div
-                            v-if="genderTotal > 0"
-                            class="bg-[#fbbf24] h-full transition-all duration-500"
-                            :style="{ width: `${femalePercentage}%` }"
-                            :title="`Perempuan: ${metrics.female} siswa (${femalePercentage}%)`"
-                        ></div>
-                    </div>
+                    <!-- Box Sesuai Style Gender Bar -->
+                    <div class="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
+                        <!-- Baris Atas: [F] Fullday ... Boarding [B] -->
+                        <div class="flex items-center justify-between text-xs sm:text-[13.5px] font-bold mb-2.5 sm:mb-3">
+                            <div class="flex items-center gap-2 text-emerald-950">
+                                <span class="inline-flex items-center justify-center w-6 h-6 rounded-lg text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 shadow-2xs">F</span>
+                                <span>Fullday</span>
+                            </div>
+                            <div class="flex items-center gap-2 text-slate-900">
+                                <span>Boarding</span>
+                                <span class="inline-flex items-center justify-center w-6 h-6 rounded-lg text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-2xs">B</span>
+                            </div>
+                        </div>
 
-                    <!-- Baris Bawah: Total Putra & Putri Beserta Persen di Sebelah Angka Total -->
-                    <div class="flex items-center justify-between text-xs sm:text-[12.5px] text-slate-500 font-medium mt-2.5 sm:mt-3">
-                        <span>{{ metrics.male }} siswa putra <span class="font-bold text-slate-700">({{ malePercentage }}%)</span></span>
-                        <span>{{ metrics.female }} siswa putri <span class="font-bold text-slate-700">({{ femalePercentage }}%)</span></span>
+                        <!-- Dual Bar: Emerald Tua (#047857) untuk Fullday & Indigo (#4f46e5) untuk Boarding -->
+                        <div class="w-full h-3.5 sm:h-4 rounded-full bg-slate-100 overflow-hidden flex">
+                            <div
+                                v-if="programMetrics.total > 0"
+                                class="bg-[#047857] h-full transition-all duration-500"
+                                :style="{ width: `${programMetrics.fulldayPercentage}%` }"
+                                :title="`Fullday: ${programMetrics.fullday} siswa (${programMetrics.fulldayPercentage}%)`"
+                            ></div>
+                            <div
+                                v-if="programMetrics.total > 0"
+                                class="bg-[#4f46e5] h-full transition-all duration-500"
+                                :style="{ width: `${programMetrics.boardingPercentage}%` }"
+                                :title="`Boarding: ${programMetrics.boarding} siswa (${programMetrics.boardingPercentage}%)`"
+                            ></div>
+                        </div>
+
+                        <!-- Baris Bawah: Total Fullday & Boarding Beserta Persen di Sebelah Angka Total -->
+                        <div class="flex items-center justify-between text-xs sm:text-[12.5px] text-slate-500 font-medium mt-2.5 sm:mt-3">
+                            <span>{{ programMetrics.fullday }} siswa fullday <span class="font-bold text-slate-700">({{ programMetrics.fulldayPercentage }}%)</span></span>
+                            <span>{{ programMetrics.boarding }} siswa boarding <span class="font-bold text-slate-700">({{ programMetrics.boardingPercentage }}%)</span></span>
+                        </div>
                     </div>
                 </div>
             </div>
