@@ -190,4 +190,70 @@ class StudentDetailEditTest extends TestCase
             'tingkat' => '1',
         ]);
     }
+
+    public function test_can_create_student_with_welfare_and_inactive_status(): void
+    {
+        $uniqueNisn = '3133661962';
+
+        $data = [
+            'nama' => 'Muhammad Ilham Al Haidar',
+            'nisn' => $uniqueNisn,
+            'nik' => '3313132803130001',
+            'jk' => 'L',
+            'tempat_lahir' => 'Karanganyar',
+            'tanggal_lahir' => '2013-03-28',
+            'agama' => 'Islam',
+            'unit' => 'SMP IT Tahfidzul Quran Ulil Albab Karanganyar',
+            'program' => 'Umum',
+            'jenjang' => 'SMP',
+            'tingkat' => '7',
+            'no_wa' => '085229257445',
+            'jalan' => 'Sidorejo',
+            'rt' => '01',
+            'rw' => '10',
+            'dusun' => 'Sidorejo',
+            'desa' => 'Selokaton',
+            'kecamatan' => 'Gondangrejo',
+            'kabupaten' => 'Karanganyar',
+            'provinsi' => 'Jawa Tengah',
+            'status_keluarga' => 'Anak Kandung',
+            'anak_ke' => 1,
+            'status_registrasi' => 'Siswa Baru',
+            'sekolah_asal' => 'MIM Mundu',
+            'tanggal_diterima' => '2025-07-14',
+            'status_keaktifan' => 'Tidak Aktif',
+            'keterangan_tidak_aktif' => 'Pindah ke pondok lain',
+            'tanggal_tidak_aktif' => '2025-08-01',
+            'status_kip' => false,
+            'no_kip' => null,
+            'nama_di_kip' => null,
+            'status_pip' => false,
+            'pip_keterangan' => null,
+            'desil' => 3,
+            'kebutuhan_khusus' => null,
+        ];
+
+        $response = $this->actingAs($this->user)->post('/students', $data);
+
+        $response->assertRedirect(route('students.show', ['nisn' => $uniqueNisn]));
+        $response->assertSessionHas('success');
+
+        $this->assertDatabaseHas('students', [
+            'nisn' => $uniqueNisn,
+            'nama' => 'Muhammad Ilham Al Haidar',
+            'status_keaktifan' => 'Tidak Aktif',
+            'desil' => 3,
+        ]);
+
+        $newStudent = Student::where('nisn', $uniqueNisn)->first();
+        $this->assertNotNull($newStudent);
+        $this->assertDatabaseHas('student_academic_records', [
+            'student_id' => $newStudent->id,
+            'program' => 'Umum',
+            'tingkat' => '7',
+            'student_status' => 'dropout',
+            'ket_tidak_aktif' => 'Pindah ke pondok lain',
+            'desil' => 3,
+        ]);
+    }
 }
