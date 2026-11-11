@@ -837,10 +837,9 @@ function getClassMalePercent(item) {
                     </div>
                 </div>
 
-                <!-- Periode Tanggal (Di Bawah Toolbar Filter Sesuai Request User) -->
+                <!-- Periode Tanggal (Tanpa Icon & Teks Huruf Kapital Sesuai Request User) -->
                 <div v-if="selectedPeriodLabel" class="flex items-center gap-1.5 text-xs text-slate-500 font-medium px-1">
-                    <span class="material-symbols-outlined text-[16px] text-emerald-700">date_range</span>
-                    <span class="text-slate-500 font-semibold">Periode Tanggal:</span>
+                    <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">PERIODE TANGGAL:</span>
                     <span class="font-bold text-emerald-950 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200/80">
                         {{ selectedPeriodLabel }}
                     </span>
