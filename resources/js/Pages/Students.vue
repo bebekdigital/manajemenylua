@@ -1032,6 +1032,23 @@ const downloadTemplate = async () => {
 
                             <!-- Pilihan Aksi Kelola Gabungan -->
                             <div class="space-y-2.5">
+                                <!-- 0. Tambah Siswa Baru (Manual) -->
+                                <Link
+                                    v-if="permissions.can_create"
+                                    href="/students/create"
+                                    @click="isKelolaOpen = false"
+                                    class="w-full flex items-center gap-3 p-3.5 rounded-2xl border border-emerald-300 bg-emerald-50/60 hover:bg-emerald-100/70 transition-all cursor-pointer group shadow-2xs text-left"
+                                >
+                                    <div class="w-10 h-10 rounded-xl bg-emerald-900 flex items-center justify-center text-yellow-200 group-hover:scale-105 transition-transform shrink-0">
+                                        <span class="material-symbols-outlined text-[22px]">person_add</span>
+                                    </div>
+                                    <div class="flex-1 text-left min-w-0">
+                                        <h4 class="text-xs font-bold text-emerald-950 truncate">Tambah Siswa</h4>
+                                        <p class="text-[11px] text-emerald-800 font-medium truncate mt-0.5">Input data siswa baru secara manual</p>
+                                    </div>
+                                    <span class="material-symbols-outlined text-[18px] text-emerald-700 group-hover:translate-x-0.5 transition-transform shrink-0">chevron_right</span>
+                                </Link>
+
                                 <!-- 1. Download Template -->
                                 <button
                                     v-if="permissions.can_export"
@@ -1141,9 +1158,11 @@ const downloadTemplate = async () => {
 
                     <!-- Desktop Action Buttons -->
                     <div class="flex items-center gap-2.5 shrink-0">
-                        <!-- Edit Data Dropdown -->
+                        <!-- Update Data Dropdown -->
                         <div v-if="canManageData" class="relative">
                             <EditDataButton
+                                label="Update Data"
+                                title="Update Data"
                                 :is-dropdown="true"
                                 :is-open="showEditDropdown"
                                 @click="showEditDropdown = !showEditDropdown"
@@ -1154,6 +1173,16 @@ const downloadTemplate = async () => {
 
                             <!-- Dropdown Menu -->
                             <div v-show="showEditDropdown" class="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-200 z-50 overflow-hidden py-1.5 animate-in fade-in zoom-in-95 duration-100">
+                                <Link
+                                    v-if="permissions.can_create"
+                                    href="/students/create"
+                                    class="flex items-center gap-2.5 px-4 py-2.5 text-[13px] font-bold text-emerald-950 bg-emerald-50/70 hover:bg-emerald-100/80 transition-colors w-full text-left"
+                                    @click="showEditDropdown = false"
+                                    title="Tambah Siswa Baru secara Manual"
+                                >
+                                    <span class="material-symbols-outlined text-[18px] text-emerald-800">person_add</span>
+                                    <span>Tambah Siswa</span>
+                                </Link>
                                 <Link
                                     v-if="permissions.can_update"
                                     href="/students/inline-edit"

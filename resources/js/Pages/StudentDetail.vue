@@ -3,6 +3,7 @@ import { ref, reactive, computed, onMounted, onUnmounted, nextTick, provide, wat
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import TabIdentitas from './Students/Tabs/TabIdentitas.vue';
+import TabRegistrasi from './Students/Tabs/TabRegistrasi.vue';
 
 defineOptions({
     layout: AppLayout,
@@ -757,158 +758,16 @@ onUnmounted(() => {
                 </div>
 
                 <!-- TAB: Registrasi -->
-                <div v-if="activeTab === 'registrasi'" class="space-y-6">
-                    <div>
-                        <div class="flex items-center gap-2 mb-4 pb-2 border-b border-slate-100">
-                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span>
-                            <h4 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Data Pendaftaran Siswa</h4>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-                            <div>
-                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Status Registrasi</label>
-                                <p class="mt-1">
-                                    <span
-                                        v-if="student.status_registrasi"
-                                        :class="[
-                                            'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border',
-                                            student.status_registrasi === 'Siswa Baru' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-blue-50 text-blue-800 border-blue-200'
-                                        ]"
-                                    >
-                                        {{ student.status_registrasi }}
-                                    </span>
-                                    <span v-else class="text-xs sm:text-sm font-semibold text-slate-900">-</span>
-                                </p>
-                            </div>
-                            <div>
-                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Sekolah Asal</label>
-                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.sekolah_asal || '-' }}</p>
-                            </div>
-                            <div>
-                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Diterima di Jenjang / Kelas</label>
-                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.diterima_di_jenjang || '-' }}</p>
-                            </div>
-                            <div>
-                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Tanggal Diterima</label>
-                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.formatted_tanggal_diterima || '-' }}</p>
-                            </div>
-                            <div class="md:col-span-2">
-                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Sumber Informasi PSB</label>
-                                <p class="mt-1">
-                                    <span
-                                        v-if="student.info_psb"
-                                        class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200"
-                                    >
-                                        <span class="material-symbols-outlined text-[14px]">campaign</span>
-                                        {{ student.info_psb }}
-                                    </span>
-                                    <span v-else class="text-xs sm:text-sm font-semibold text-slate-900">-</span>
-                                </p>
-                            </div>
-                        </div>
-
-                        <!-- Status Keaktifan Siswa -->
-                        <div class="mt-6 pt-5 border-t border-slate-100">
-                            <div class="flex items-center gap-2 mb-4 pb-2 border-b border-slate-100">
-                                <span
-                                    class="w-2.5 h-2.5 rounded-full inline-block"
-                                    :class="(student.status_keaktifan === 'Tidak Aktif' || student.student_status === 'tidak_aktif') ? 'bg-rose-500' : 'bg-emerald-600'"
-                                ></span>
-                                <h4 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Status Keaktifan Siswa</h4>
-                            </div>
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-4">
-                                <div>
-                                    <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Status Keaktifan</label>
-                                    <p class="mt-1">
-                                        <span
-                                            v-if="student.status_keaktifan === 'Tidak Aktif' || student.student_status === 'tidak_aktif'"
-                                            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200"
-                                        >
-                                            <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-                                            Tidak Aktif
-                                        </span>
-                                        <span
-                                            v-else
-                                            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200"
-                                        >
-                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
-                                            Aktif
-                                        </span>
-                                    </p>
-                                </div>
-                                <div>
-                                    <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Keterangan Tidak Aktif</label>
-                                    <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">
-                                        <span
-                                            v-if="student.keterangan_tidak_aktif || student.ket_tidak_aktif"
-                                            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200"
-                                        >
-                                            <span class="material-symbols-outlined text-[14px] text-amber-600">info</span>
-                                            {{ student.keterangan_tidak_aktif || student.ket_tidak_aktif }}
-                                        </span>
-                                        <span v-else class="text-slate-400 font-normal">-</span>
-                                    </p>
-                                </div>
-                                <div>
-                                    <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Tanggal Tidak Aktif</label>
-                                    <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">
-                                        <span v-if="student.tanggal_tidak_aktif" class="inline-flex items-center gap-1.5">
-                                            <span class="font-mono text-slate-800">{{ student.tanggal_tidak_aktif }}</span>
-                                            <span v-if="student.formatted_tanggal_tidak_aktif" class="text-xs font-normal text-slate-500">({{ student.formatted_tanggal_tidak_aktif }})</span>
-                                        </span>
-                                        <span v-else class="text-slate-400 font-normal">-</span>
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Riwayat Keaktifan Siswa Timeline -->
-                    <div class="mt-6 pt-2" v-if="student.riwayat_keaktifan && student.riwayat_keaktifan.length > 0">
-                        <div class="flex items-center gap-2 mb-4 pb-2 border-b border-slate-100">
-                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span>
-                            <h4 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Riwayat Keaktifan Siswa</h4>
-                        </div>
-                        <div class="overflow-x-auto rounded-2xl border border-slate-200 shadow-2xs relative">
-                            <table class="w-full text-left text-xs sm:text-sm border-collapse whitespace-nowrap">
-                                <thead>
-                                    <tr class="border-b border-slate-200 bg-slate-50">
-                                        <th class="p-3.5 font-bold text-slate-700 min-w-[160px] sticky left-0 z-10 border-r border-slate-200 bg-slate-50">Unit</th>
-                                        <th v-for="header in timelineHeaders" :key="header.key" class="p-3.5 font-bold text-slate-700 text-center">
-                                            {{ header.ta }} <br/>
-                                            <span class="text-xs text-slate-500 font-medium">{{ header.semester }}</span>
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-slate-100">
-                                    <tr v-for="row in timelineRows" :key="row.unit" class="hover:bg-slate-50/60">
-                                        <td class="p-3.5 text-slate-800 font-bold bg-white sticky left-0 z-10 border-r border-slate-100">
-                                            {{ row.unit }}
-                                        </td>
-                                        <td v-for="header in timelineHeaders" :key="header.key" class="p-3.5 text-center min-w-[160px]">
-                                            <template v-if="row.data[header.key]">
-                                                <span v-if="row.data[header.key].status === 'aktif'" class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-950 border border-emerald-300 shadow-2xs">
-                                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
-                                                    Kelas {{ row.data[header.key].kelas || 'Aktif' }}
-                                                </span>
-                                                <div v-else class="flex flex-col items-center justify-center">
-                                                    <span class="text-rose-700 font-bold capitalize text-xs bg-rose-50 border border-rose-200 px-2.5 py-0.5 rounded-full">
-                                                        {{ row.data[header.key].status.replace('_', ' ') }}
-                                                    </span>
-                                                    <span v-if="row.data[header.key].keterangan" class="text-[10px] text-rose-600 mt-1 max-w-[140px] truncate" :title="row.data[header.key].keterangan">
-                                                        ({{ row.data[header.key].keterangan }})
-                                                    </span>
-                                                </div>
-                                            </template>
-                                            <template v-else>
-                                                <span class="text-slate-300">-</span>
-                                            </template>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
+                <TabRegistrasi
+                    v-if="activeTab === 'registrasi'"
+                    :student="student"
+                    :can-edit="canEdit"
+                    :all-units="allUnits"
+                    :all-levels="allLevels"
+                    :timeline-headers="timelineHeaders"
+                    :timeline-rows="timelineRows"
+                    @editing-change="(val) => isEditing = val"
+                />
 
                 <!-- TAB: Kesejahteraan -->
                 <div v-if="activeTab === 'kesejahteraan'" class="space-y-6">

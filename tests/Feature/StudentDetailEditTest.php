@@ -92,5 +92,102 @@ class StudentDetailEditTest extends TestCase
 
         $response->assertSessionHasErrors(['nama', 'nisn', 'jk', 'tempat_lahir', 'tanggal_lahir']);
     }
-}
 
+    public function test_can_update_student_registration_data(): void
+    {
+        $student = Student::firstOrFail();
+
+        $response = $this->actingAs($this->user)->put("/students/{$student->id}", [
+            '_tab' => 'registrasi',
+            'status_registrasi' => 'Pindahan',
+            'sekolah_asal' => 'TK Islam Al-Falah',
+            'diterima_di_jenjang' => 'SD / Kelas 2',
+            'tanggal_diterima' => '2024-07-15',
+            'info_psb' => 'Brosur & Rekomendasi Teman',
+            'status_keaktifan' => 'Tidak Aktif',
+            'keterangan_tidak_aktif' => 'Mutasi / Pindah Sekolah',
+            'tanggal_tidak_aktif' => '2025-01-10',
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        $student->refresh();
+        $this->assertSame('Pindahan', $student->status_registrasi);
+        $this->assertSame('TK Islam Al-Falah', $student->sekolah_asal);
+        $this->assertSame('SD / Kelas 2', $student->diterima_di_jenjang);
+        $this->assertSame('2024-07-15', $student->tanggal_diterima->format('Y-m-d'));
+        $this->assertSame('Tidak Aktif', $student->status_keaktifan);
+        $this->assertSame('Mutasi / Pindah Sekolah', $student->keterangan_tidak_aktif);
+        $this->assertSame('2025-01-10', $student->tanggal_tidak_aktif->format('Y-m-d'));
+    }
+
+    public function test_can_access_student_create_page(): void
+    {
+        $response = $this->actingAs($this->user)->get('/students/create');
+
+        $response->assertStatus(200);
+        $response->assertInertia(fn (Assert $page) => $page
+            ->component('Students/Create')
+            ->has('allUnits')
+            ->has('allLevels')
+            ->has('allPrograms')
+            ->has('allClasses')
+        );
+    }
+
+    public function test_can_store_new_student_manually(): void
+    {
+        $uniqueNisn = '9988776655';
+
+        $data = [
+            'nama' => 'Zaidan Al-Farisi',
+            'nisn' => $uniqueNisn,
+            'nipd' => '24250999',
+            'nik' => '3313010101990001',
+            'no_kk' => '3313010101990002',
+            'jk' => 'L',
+            'tempat_lahir' => 'Solo',
+            'tanggal_lahir' => '2016-08-20',
+            'agama' => 'Islam',
+            'unit' => 'SDIT',
+            'program' => 'Tahfidz',
+            'jenjang' => 'SD',
+            'tingkat' => '1',
+            'jalan' => 'Jl. Lawu Timur No. 12',
+            'rt' => '02',
+            'rw' => '04',
+            'dusun' => 'Bejen',
+            'desa' => 'Bejen',
+            'kecamatan' => 'Karanganyar',
+            'kabupaten' => 'Karanganyar',
+            'provinsi' => 'Jawa Tengah',
+            'ayah_nama' => 'Budi Santoso',
+            'ibu_nama' => 'Siti Aminah',
+            'status_registrasi' => 'Siswa Baru',
+            'sekolah_asal' => 'TK Aisyiyah',
+            'tanggal_diterima' => '2024-07-01',
+            'status_keaktifan' => 'Aktif',
+        ];
+
+        $response = $this->actingAs($this->user)->post('/students', $data);
+
+        $response->assertRedirect(route('students.show', ['nisn' => $uniqueNisn]));
+        $response->assertSessionHas('success');
+
+        $this->assertDatabaseHas('students', [
+            'nisn' => $uniqueNisn,
+            'nama' => 'Zaidan Al-Farisi',
+            'unit' => 'SDIT',
+            'ayah_nama' => 'Budi Santoso',
+        ]);
+
+        $newStudent = Student::where('nisn', $uniqueNisn)->first();
+        $this->assertNotNull($newStudent);
+        $this->assertDatabaseHas('student_academic_records', [
+            'student_id' => $newStudent->id,
+            'program' => 'Tahfidz',
+            'tingkat' => '1',
+        ]);
+    }
+}

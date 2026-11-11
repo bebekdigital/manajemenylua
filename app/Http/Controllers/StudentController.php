@@ -175,6 +175,206 @@ class StudentController extends Controller
     }
 
     /**
+     * Show the form for creating a new student.
+     */
+    public function create(Request $request): Response
+    {
+        $user = $request->user();
+        if (! RolePermission::canAccess($user, 'student_data', 'create')) {
+            abort(403, 'Anda tidak memiliki hak akses untuk menambah data siswa.');
+        }
+
+        $activeYear = AcademicYear::current();
+
+        return Inertia::render('Students/Create', [
+            'allUnits' => SchoolUnit::orderBy('name')->pluck('name')->toArray(),
+            'allLevels' => SchoolLevel::orderBy('name')->pluck('name')->toArray(),
+            'allPrograms' => SchoolProgram::orderBy('name')->pluck('name')->unique()->values()->toArray(),
+            'allClasses' => Classroom::with('academicYear')->orderBy('name')->get()->map(fn ($c) => [
+                'id' => $c->id,
+                'name' => $c->name,
+                'unit' => $c->unit,
+                'jenjang' => $c->jenjang,
+                'grade' => $c->grade,
+                'academic_year_id' => $c->academic_year_id,
+            ])->toArray(),
+            'academicYears' => AcademicYear::orderByDesc('name')->get(['id', 'name', 'semester'])->toArray(),
+            'activeAcademicYear' => $activeYear,
+        ]);
+    }
+
+    /**
+     * Store a newly created student in storage.
+     */
+    public function store(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+        if (! RolePermission::canAccess($user, 'student_data', 'create')) {
+            abort(403, 'Anda tidak memiliki hak akses untuk menambah data siswa.');
+        }
+
+        $validated = $request->validate([
+            // Identitas Pokok
+            'nama' => ['required', 'string', 'max:255'],
+            'nisn' => ['required', 'string', 'max:20', 'unique:students,nisn'],
+            'nipd' => ['nullable', 'string', 'max:50'],
+            'nik' => ['nullable', 'string', 'max:30'],
+            'no_kk' => ['nullable', 'string', 'max:30'],
+            'jk' => ['required', 'in:L,P'],
+            'tempat_lahir' => ['required', 'string', 'max:100'],
+            'tanggal_lahir' => ['required', 'date'],
+            'agama' => ['nullable', 'string', 'max:50'],
+            'no_wa' => ['nullable', 'string', 'max:50'],
+            'no_wa_2' => ['nullable', 'string', 'max:50'],
+            'email' => ['nullable', 'email', 'max:100'],
+            'unit' => ['nullable', 'string', 'max:100'],
+            'program' => ['nullable', 'string', 'max:100'],
+            'jenjang' => ['nullable', 'string', 'max:50'],
+            'tingkat' => ['nullable', 'string', 'max:20'],
+            'classroom_id' => ['nullable', 'exists:classrooms,id'],
+            'kelas' => ['nullable', 'string', 'max:50'],
+
+            // Alamat
+            'jalan' => ['nullable', 'string', 'max:255'],
+            'rt' => ['nullable', 'string', 'max:10'],
+            'rw' => ['nullable', 'string', 'max:10'],
+            'dusun' => ['nullable', 'string', 'max:100'],
+            'desa' => ['nullable', 'string', 'max:100'],
+            'kecamatan' => ['nullable', 'string', 'max:100'],
+            'kabupaten' => ['nullable', 'string', 'max:100'],
+            'provinsi' => ['nullable', 'string', 'max:100'],
+            'jenis_tinggal' => ['nullable', 'string', 'max:100'],
+            'alat_transportasi' => ['nullable', 'string', 'max:100'],
+            'jarak_rumah' => ['nullable', 'string', 'max:50'],
+
+            // Keluarga
+            'status_keluarga' => ['nullable', 'string', 'max:50'],
+            'anak_ke' => ['nullable', 'integer', 'min:1', 'max:50'],
+            'has_bisnis' => ['nullable', 'boolean'],
+            'jenis_bisnis' => ['nullable', 'string', 'max:255'],
+            // Ayah
+            'ayah_nama' => ['nullable', 'string', 'max:255'],
+            'ayah_tahun_lahir' => ['nullable', 'integer', 'min:1920', 'max:'.(date('Y') + 1)],
+            'ayah_pendidikan' => ['nullable', 'string', 'max:100'],
+            'ayah_pekerjaan' => ['nullable', 'string', 'max:100'],
+            'ayah_penghasilan' => ['nullable', 'string', 'max:100'],
+            'ayah_nik' => ['nullable', 'string', 'max:30'],
+            'ayah_status' => ['nullable', 'string', 'max:50'],
+            // Ibu
+            'ibu_nama' => ['nullable', 'string', 'max:255'],
+            'ibu_tahun_lahir' => ['nullable', 'integer', 'min:1920', 'max:'.(date('Y') + 1)],
+            'ibu_pendidikan' => ['nullable', 'string', 'max:100'],
+            'ibu_pekerjaan' => ['nullable', 'string', 'max:100'],
+            'ibu_penghasilan' => ['nullable', 'string', 'max:100'],
+            'ibu_nik' => ['nullable', 'string', 'max:30'],
+            'ibu_status' => ['nullable', 'string', 'max:50'],
+            // Wali
+            'wali_nama' => ['nullable', 'string', 'max:255'],
+            'wali_tahun_lahir' => ['nullable', 'integer', 'min:1920', 'max:'.(date('Y') + 1)],
+            'wali_pendidikan' => ['nullable', 'string', 'max:100'],
+            'wali_pekerjaan' => ['nullable', 'string', 'max:100'],
+            'wali_penghasilan' => ['nullable', 'string', 'max:100'],
+            'wali_nik' => ['nullable', 'string', 'max:30'],
+            'wali_hubungan' => ['nullable', 'string', 'max:100'],
+
+            // Registrasi
+            'status_registrasi' => ['nullable', 'string', 'max:50'],
+            'sekolah_asal' => ['nullable', 'string', 'max:255'],
+            'diterima_di_jenjang' => ['nullable', 'string', 'max:50'],
+            'tanggal_diterima' => ['nullable', 'date'],
+            'info_psb' => ['nullable', 'string', 'max:100'],
+            'status_keaktifan' => ['nullable', 'string', 'max:50'],
+            'keterangan_tidak_aktif' => ['nullable', 'string', 'max:255'],
+            'tanggal_tidak_aktif' => ['nullable', 'date'],
+
+            // Kesejahteraan
+            'status_kip' => ['nullable', 'boolean'],
+            'no_kip' => ['nullable', 'string', 'max:100'],
+            'nama_di_kip' => ['nullable', 'string', 'max:255'],
+            'status_pip' => ['nullable', 'boolean'],
+            'pip_keterangan' => ['nullable', 'string', 'max:255'],
+            'desil' => ['nullable', 'integer', 'min:1', 'max:10'],
+            'kebutuhan_khusus' => ['nullable', 'string', 'max:255'],
+        ], [
+            'nama.required' => 'Nama lengkap siswa wajib diisi.',
+            'nisn.required' => 'NISN wajib diisi.',
+            'nisn.unique' => 'NISN ini sudah terdaftar di sistem.',
+            'jk.required' => 'Jenis kelamin wajib dipilih.',
+            'tempat_lahir.required' => 'Tempat lahir wajib diisi.',
+            'tanggal_lahir.required' => 'Tanggal lahir wajib diisi.',
+            'tanggal_lahir.date' => 'Format tanggal lahir tidak valid.',
+            'email.email' => 'Format email tidak valid.',
+        ]);
+
+        $student = DB::transaction(function () use ($validated) {
+            $isTidakAktif = in_array(strtolower($validated['status_keaktifan'] ?? 'aktif'), ['tidak aktif', 'tidak_aktif']);
+
+            // Auto calculate angkatan from tanggal_diterima or current year
+            $angkatan = null;
+            if (! empty($validated['tanggal_diterima'])) {
+                $angkatan = date('Y', strtotime($validated['tanggal_diterima']));
+            } else {
+                $angkatan = date('Y');
+            }
+
+            $studentData = array_merge($validated, [
+                'agama' => $validated['agama'] ?? 'Islam',
+                'angkatan' => $angkatan,
+                'status_keaktifan' => $isTidakAktif ? 'Tidak Aktif' : 'Aktif',
+                'keterangan_tidak_aktif' => $isTidakAktif ? ($validated['keterangan_tidak_aktif'] ?? null) : null,
+                'tanggal_tidak_aktif' => $isTidakAktif ? ($validated['tanggal_tidak_aktif'] ?? null) : null,
+                'has_bisnis' => (bool) ($validated['has_bisnis'] ?? false),
+                'status_kip' => (bool) ($validated['status_kip'] ?? false),
+                'status_pip' => (bool) ($validated['status_pip'] ?? false),
+            ]);
+
+            // Remove non-student table fields before create
+            unset($studentData['classroom_id']);
+            unset($studentData['kelas']);
+            unset($studentData['program']);
+            unset($studentData['tingkat']);
+
+            $student = Student::create($studentData);
+
+            // Buat record akademik untuk tahun ajaran aktif jika ada
+            $activeYear = AcademicYear::current();
+            if ($activeYear) {
+                // Cari atau cocokan classroom_id jika user memilih kelas
+                $classroomId = $validated['classroom_id'] ?? null;
+                if (! $classroomId && ! empty($validated['kelas'])) {
+                    $matchingClass = Classroom::where('academic_year_id', $activeYear->id)
+                        ->where('name', $validated['kelas'])
+                        ->first();
+                    if ($matchingClass) {
+                        $classroomId = $matchingClass->id;
+                    }
+                }
+
+                StudentAcademicRecord::create([
+                    'student_id' => $student->id,
+                    'academic_year_id' => $activeYear->id,
+                    'classroom_id' => $classroomId,
+                    'tingkat' => $validated['tingkat'] ?? null,
+                    'program' => $validated['program'] ?? 'Umum',
+                    'student_status' => $isTidakAktif ? 'dropout' : 'aktif',
+                    'ket_tidak_aktif' => $isTidakAktif ? ($validated['keterangan_tidak_aktif'] ?? null) : null,
+                    'tanggal_tidak_aktif' => $isTidakAktif ? ($validated['tanggal_tidak_aktif'] ?? null) : null,
+                    'desil' => $validated['desil'] ?? null,
+                    'status_pip' => (bool) ($validated['status_pip'] ?? false),
+                    'pip_keterangan' => $validated['pip_keterangan'] ?? null,
+                    'status_kip' => (bool) ($validated['status_kip'] ?? false),
+                    'no_kip' => $validated['no_kip'] ?? null,
+                ]);
+            }
+
+            return $student;
+        });
+
+        return redirect()->route('students.show', ['nisn' => $student->nisn])
+            ->with('success', "Siswa baru '{$student->nama}' berhasil ditambahkan ke database.");
+    }
+
+    /**
      * Display the student detail page.
      */
     public function show(string $nisn, Request $request): Response
@@ -325,6 +525,51 @@ class StudentController extends Controller
         }
 
         $student = Student::where('id', $id)->orWhere('nisn', $id)->firstOrFail();
+
+        // Handle Tab Registrasi
+        if ($request->input('_tab') === 'registrasi' || $request->has('status_registrasi') || $request->has('status_keaktifan')) {
+            $validated = $request->validate([
+                'status_registrasi' => ['nullable', 'string', 'max:50'],
+                'sekolah_asal' => ['nullable', 'string', 'max:255'],
+                'diterima_di_jenjang' => ['nullable', 'string', 'max:50'],
+                'tanggal_diterima' => ['nullable', 'date'],
+                'info_psb' => ['nullable', 'string', 'max:100'],
+                'status_keaktifan' => ['required', 'string', 'max:50'],
+                'keterangan_tidak_aktif' => ['nullable', 'string', 'max:255'],
+                'tanggal_tidak_aktif' => ['nullable', 'date'],
+            ], [
+                'status_keaktifan.required' => 'Status keaktifan wajib dipilih.',
+                'tanggal_diterima.date' => 'Format tanggal diterima tidak valid.',
+                'tanggal_tidak_aktif.date' => 'Format tanggal tidak aktif tidak valid.',
+            ]);
+
+            $isTidakAktif = in_array(strtolower(trim($validated['status_keaktifan'])), ['tidak aktif', 'tidak_aktif', 'non-aktif', 'non_aktif']);
+
+            $student->update([
+                'status_registrasi' => $validated['status_registrasi'] ?? null,
+                'sekolah_asal' => $validated['sekolah_asal'] ?? null,
+                'diterima_di_jenjang' => $validated['diterima_di_jenjang'] ?? null,
+                'tanggal_diterima' => $validated['tanggal_diterima'] ?? null,
+                'info_psb' => $validated['info_psb'] ?? null,
+                'status_keaktifan' => $isTidakAktif ? 'Tidak Aktif' : 'Aktif',
+                'keterangan_tidak_aktif' => $isTidakAktif ? ($validated['keterangan_tidak_aktif'] ?? null) : null,
+                'tanggal_tidak_aktif' => $isTidakAktif ? ($validated['tanggal_tidak_aktif'] ?? null) : null,
+            ]);
+
+            $activeYear = AcademicYear::current();
+            if ($activeYear) {
+                $record = $student->academicRecords()->where('academic_year_id', $activeYear->id)->first();
+                if ($record) {
+                    $record->update([
+                        'student_status' => $isTidakAktif ? 'dropout' : 'aktif',
+                        'ket_tidak_aktif' => $isTidakAktif ? ($validated['keterangan_tidak_aktif'] ?? null) : null,
+                        'tanggal_tidak_aktif' => $isTidakAktif ? ($validated['tanggal_tidak_aktif'] ?? null) : null,
+                    ]);
+                }
+            }
+
+            return redirect()->back()->with('success', "Data registrasi siswa '{$student->nama}' berhasil diperbarui.");
+        }
 
         $validated = $request->validate([
             'nama' => ['required', 'string', 'max:255'],

@@ -124,6 +124,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/profile/photo', [ProfileController::class, 'updatePhoto'])->name('profile.photo');
 
     Route::get('/students', [StudentController::class, 'index'])->name('students.index');
+    Route::get('/students/create', [StudentController::class, 'create'])->name('students.create');
+    Route::post('/students', [StudentController::class, 'store'])->name('students.store');
     Route::get('/students/inline-edit', [StudentController::class, 'inlineEdit'])->name('students.inline-edit');
     Route::post('/students/inline-update', [StudentController::class, 'inlineUpdate'])->name('students.inline-update');
     Route::get('/students/template', [StudentController::class, 'downloadTemplate'])->name('students.template');
