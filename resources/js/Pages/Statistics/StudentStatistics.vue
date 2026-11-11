@@ -768,10 +768,10 @@ function getClassMalePercent(item) {
             <!-- TOOLBAR FILTER & PERIODE TANGGAL                             -->
             <!-- ============================================================ -->
             <div class="mb-5 space-y-2.5">
-                <!-- Toolbar Filter (Satu Baris Horisontal, Scroll di Mobile Jika Melebihi Layar) -->
-                <div class="flex items-center justify-between gap-3 overflow-x-auto no-scrollbar pb-1 -mx-4 px-4 sm:mx-0 sm:px-0">
-                    <!-- Segmented Capsule Tabs Unit Sekolah -->
-                    <div class="bg-slate-100 p-1 rounded-full inline-flex items-center gap-0.5 border border-slate-200/90 shrink-0">
+                <!-- Baris Filter: Tab Unit di kiri, Filter TA & Semester di kanan -->
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <!-- Segmented Capsule Tabs Unit Sekolah (Semua, SDIT, SMPIT) - Tetap Normal -->
+                    <div class="bg-slate-100 p-1 rounded-full inline-flex items-center gap-0.5 border border-slate-200/90 self-start sm:self-auto shrink-0">
                         <button
                             v-for="tab in unitTabs"
                             :key="tab.id"
@@ -789,48 +789,50 @@ function getClassMalePercent(item) {
                         </button>
                     </div>
 
-                    <!-- Dropdown Filter Tahun Ajaran & Semester (Terpisah, Tetap 1 Baris) -->
-                    <div class="flex items-center gap-2 shrink-0 flex-nowrap">
-                        <!-- Tombol Reset ke TA Sekarang (Muncul jika filter berbeda dari TA aktif saat ini) -->
-                        <button
-                            v-if="isDifferentFromCurrent"
-                            type="button"
-                            @click="resetToCurrentAcademicYear"
-                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs transition-all cursor-pointer shrink-0 whitespace-nowrap"
-                            title="Kembali ke Tahun Ajaran & Semester Aktif Sekarang"
-                        >
-                            <span class="material-symbols-outlined text-[15px]">restart_alt</span>
-                            <span>Reset ke TA Sekarang</span>
-                        </button>
-
-                        <!-- Dropdown Tahun Ajaran -->
-                        <div class="relative inline-flex items-center shrink-0">
-                            <span class="absolute left-3 text-slate-400 material-symbols-outlined text-[17px] pointer-events-none">calendar_month</span>
-                            <select
-                                v-model="selectedYearName"
-                                @change="handleFilterChange"
-                                class="appearance-none bg-white border border-slate-200/90 hover:border-emerald-300 text-slate-800 text-xs font-bold rounded-full pl-8 pr-7 py-1.5 shadow-2xs transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 cursor-pointer whitespace-nowrap"
+                    <!-- Filter TA, Semester & Reset (Hanya bagian ini yang scrollable horizontal jika melebihi layar di Mobile) -->
+                    <div class="overflow-x-auto no-scrollbar max-w-full -mx-4 px-4 sm:mx-0 sm:px-0">
+                        <div class="flex items-center gap-2 flex-nowrap shrink-0 w-max">
+                            <!-- Tombol Reset ke TA Sekarang (Muncul jika filter berbeda dari TA aktif saat ini) -->
+                            <button
+                                v-if="isDifferentFromCurrent"
+                                type="button"
+                                @click="resetToCurrentAcademicYear"
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs transition-all cursor-pointer shrink-0 whitespace-nowrap"
+                                title="Kembali ke Tahun Ajaran & Semester Aktif Sekarang"
                             >
-                                <option v-for="yr in (availableAcademicYears && availableAcademicYears.length ? availableAcademicYears : [selectedYearName])" :key="yr" :value="yr">
-                                    TA {{ yr }}
-                                </option>
-                            </select>
-                            <span class="absolute right-2 text-slate-400 material-symbols-outlined text-[16px] pointer-events-none">expand_more</span>
-                        </div>
+                                <span class="material-symbols-outlined text-[15px]">restart_alt</span>
+                                <span>Reset ke TA Sekarang</span>
+                            </button>
 
-                        <!-- Dropdown Semester -->
-                        <div class="relative inline-flex items-center shrink-0">
-                            <span class="absolute left-3 text-slate-400 material-symbols-outlined text-[17px] pointer-events-none">schedule</span>
-                            <select
-                                v-model="selectedSemester"
-                                @change="handleFilterChange"
-                                class="appearance-none bg-white border border-slate-200/90 hover:border-emerald-300 text-slate-800 text-xs font-bold rounded-full pl-8 pr-7 py-1.5 shadow-2xs transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 cursor-pointer whitespace-nowrap"
-                            >
-                                <option value="Semua">Semua Semester</option>
-                                <option value="Ganjil">Semester Ganjil</option>
-                                <option value="Genap">Semester Genap</option>
-                            </select>
-                            <span class="absolute right-2 text-slate-400 material-symbols-outlined text-[16px] pointer-events-none">expand_more</span>
+                            <!-- Dropdown Tahun Ajaran -->
+                            <div class="relative inline-flex items-center shrink-0">
+                                <span class="absolute left-3 text-slate-400 material-symbols-outlined text-[17px] pointer-events-none">calendar_month</span>
+                                <select
+                                    v-model="selectedYearName"
+                                    @change="handleFilterChange"
+                                    class="appearance-none bg-white border border-slate-200/90 hover:border-emerald-300 text-slate-800 text-xs font-bold rounded-full pl-8 pr-7 py-1.5 shadow-2xs transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 cursor-pointer whitespace-nowrap"
+                                >
+                                    <option v-for="yr in (availableAcademicYears && availableAcademicYears.length ? availableAcademicYears : [selectedYearName])" :key="yr" :value="yr">
+                                        TA {{ yr }}
+                                    </option>
+                                </select>
+                                <span class="absolute right-2 text-slate-400 material-symbols-outlined text-[16px] pointer-events-none">expand_more</span>
+                            </div>
+
+                            <!-- Dropdown Semester -->
+                            <div class="relative inline-flex items-center shrink-0">
+                                <span class="absolute left-3 text-slate-400 material-symbols-outlined text-[17px] pointer-events-none">schedule</span>
+                                <select
+                                    v-model="selectedSemester"
+                                    @change="handleFilterChange"
+                                    class="appearance-none bg-white border border-slate-200/90 hover:border-emerald-300 text-slate-800 text-xs font-bold rounded-full pl-8 pr-7 py-1.5 shadow-2xs transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 cursor-pointer whitespace-nowrap"
+                                >
+                                    <option value="Semua">Semua Semester</option>
+                                    <option value="Ganjil">Semester Ganjil</option>
+                                    <option value="Genap">Semester Genap</option>
+                                </select>
+                                <span class="absolute right-2 text-slate-400 material-symbols-outlined text-[16px] pointer-events-none">expand_more</span>
+                            </div>
                         </div>
                     </div>
                 </div>
