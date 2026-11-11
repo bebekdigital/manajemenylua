@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 
 const props = defineProps({
     students: {
@@ -16,10 +16,37 @@ const props = defineProps({
     },
 });
 
-// State Filter & Pencarian
+// State Filter & Pencarian Bar Utama
 const searchQuery = ref('');
 const filterLimit = ref('10'); // '5', '10', '20', 'all'
-const includeUnrecorded = ref(true);
+
+// State Modal Pop-up Rincian Siswa
+const selectedSchoolModal = ref(null);
+const modalSearch = ref('');
+
+function openSchoolModal(schoolItem) {
+    selectedSchoolModal.value = schoolItem;
+    modalSearch.value = '';
+}
+
+function closeSchoolModal() {
+    selectedSchoolModal.value = null;
+    modalSearch.value = '';
+}
+
+function handleKeyDown(e) {
+    if (e.key === 'Escape' && selectedSchoolModal.value) {
+        closeSchoolModal();
+    }
+}
+
+onMounted(() => {
+    window.addEventListener('keydown', handleKeyDown);
+});
+
+onUnmounted(() => {
+    window.removeEventListener('keydown', handleKeyDown);
+});
 
 /**
  * Normalisasi nama sekolah asal:
@@ -127,43 +154,46 @@ function normalizeSchoolName(raw) {
 // Agregasi & Normalisasi Data
 const originStats = computed(() => {
     const list = props.students || [];
-    const countMap = {};
-    let unrecordedCount = 0;
-    let recordedCount = 0;
+    const schoolMap = {};
+    const unrecordedStudents = [];
     const totalStudents = list.length;
 
     list.forEach(student => {
         const norm = normalizeSchoolName(student.sekolah_asal);
         if (norm === 'Belum Terdata') {
-            unrecordedCount++;
+            unrecordedStudents.push(student);
         } else {
-            recordedCount++;
-            countMap[norm] = (countMap[norm] || 0) + 1;
+            if (!schoolMap[norm]) {
+                schoolMap[norm] = [];
+            }
+            schoolMap[norm].push(student);
         }
     });
 
-    const recordedList = Object.entries(countMap)
-        .map(([name, count]) => ({
+    const recordedList = Object.entries(schoolMap)
+        .map(([name, studentList]) => ({
             name,
-            count,
-            percentage: totalStudents > 0 ? Number(((count / totalStudents) * 100).toFixed(1)) : 0,
+            count: studentList.length,
+            percentage: totalStudents > 0 ? Number(((studentList.length / totalStudents) * 100).toFixed(1)) : 0,
+            students: studentList.sort((a, b) => (a.nama || '').localeCompare(b.nama || '')),
             isUnrecorded: false,
         }))
         .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
 
     const unrecordedItem = {
         name: 'Belum Terdata',
-        count: unrecordedCount,
-        percentage: totalStudents > 0 ? Number(((unrecordedCount / totalStudents) * 100).toFixed(1)) : 0,
+        count: unrecordedStudents.length,
+        percentage: totalStudents > 0 ? Number(((unrecordedStudents.length / totalStudents) * 100).toFixed(1)) : 0,
+        students: unrecordedStudents.sort((a, b) => (a.nama || '').localeCompare(b.nama || '')),
         isUnrecorded: true,
     };
 
     return {
         totalStudents,
-        recordedCount,
-        recordedPercentage: totalStudents > 0 ? Number(((recordedCount / totalStudents) * 100).toFixed(1)) : 0,
-        unrecordedCount,
-        unrecordedPercentage: totalStudents > 0 ? Number(((unrecordedCount / totalStudents) * 100).toFixed(1)) : 0,
+        recordedCount: totalStudents - unrecordedStudents.length,
+        recordedPercentage: totalStudents > 0 ? Number((((totalStudents - unrecordedStudents.length) / totalStudents) * 100).toFixed(1)) : 0,
+        unrecordedCount: unrecordedStudents.length,
+        unrecordedPercentage: totalStudents > 0 ? Number(((unrecordedStudents.length / totalStudents) * 100).toFixed(1)) : 0,
         uniqueSchoolCount: recordedList.length,
         schools: recordedList,
         unrecordedItem,
@@ -196,6 +226,23 @@ const maxCount = computed(() => {
     });
     return max;
 });
+
+// Siswa yang difilter di dalam modal pencarian pop-up
+const modalFilteredStudents = computed(() => {
+    if (!selectedSchoolModal.value) return [];
+    const q = modalSearch.value.trim().toLowerCase();
+    const students = selectedSchoolModal.value.students || [];
+    if (!q) return students;
+
+    return students.filter(s => {
+        const nama = (s.nama || '').toLowerCase();
+        const nisn = (s.nisn || '').toLowerCase();
+        const kelas = (s.kelas || '').toLowerCase();
+        const kec = (s.kecamatan || '').toLowerCase();
+        const kab = (s.kabupaten || '').toLowerCase();
+        return nama.includes(q) || nisn.includes(q) || kelas.includes(q) || kec.includes(q) || kab.includes(q);
+    });
+});
 </script>
 
 <template>
@@ -220,13 +267,17 @@ const maxCount = computed(() => {
                     <span class="material-symbols-outlined text-[14px]">school</span>
                     <span>{{ originStats.uniqueSchoolCount }} Sekolah Terdata</span>
                 </div>
-                <div
+                <button
                     v-if="originStats.unrecordedCount > 0"
-                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-50 border border-amber-200/80 text-amber-800 text-[11px] font-bold"
+                    type="button"
+                    @click="openSchoolModal(originStats.unrecordedItem)"
+                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200/80 text-amber-800 text-[11px] font-bold transition-all cursor-pointer shadow-2xs"
+                    title="Klik untuk melihat siswa yang belum mengisi data asal sekolah"
                 >
                     <span class="material-symbols-outlined text-[14px] text-amber-600">help_outline</span>
                     <span>{{ originStats.unrecordedCount }} Belum Terdata ({{ originStats.unrecordedPercentage }}%)</span>
-                </div>
+                    <span class="material-symbols-outlined text-[13px] text-amber-500">chevron_right</span>
+                </button>
             </div>
         </div>
 
@@ -279,34 +330,40 @@ const maxCount = computed(() => {
         </div>
 
         <!-- ============================================================ -->
-        <!-- STAT BAR: DATA BELUM TERDATA (JIKA ADA & DITAMPILKAN)        -->
+        <!-- STAT BAR: DATA BELUM TERDATA (KLIK UNTUK POP-UP SISWA)       -->
         <!-- ============================================================ -->
         <div
             v-if="originStats.unrecordedCount > 0 && (!searchQuery || 'belum terdata'.includes(searchQuery.toLowerCase()))"
-            class="mb-3.5 p-3 rounded-2xl bg-amber-50/70 border border-amber-200/80 space-y-2 transition-all"
+            @click="openSchoolModal(originStats.unrecordedItem)"
+            class="mb-3.5 p-3 rounded-2xl bg-amber-50/70 hover:bg-amber-100/70 border border-amber-200/80 space-y-2 transition-all cursor-pointer group shadow-2xs"
+            title="Klik untuk melihat nama-nama siswa yang belum terdata sekolah asalnya"
         >
-            <div class="flex items-center justify-between gap-2">
-                <div class="min-w-0 flex items-center gap-2">
-                    <span class="w-6 h-6 rounded-lg bg-amber-100 border border-amber-300 text-[11px] font-bold text-amber-800 flex items-center justify-center shrink-0">
+            <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0 flex items-start gap-2.5 flex-1">
+                    <span class="w-6 h-6 rounded-lg bg-amber-100 border border-amber-300 text-[11px] font-bold text-amber-800 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
                         <span class="material-symbols-outlined text-[14px]">help_outline</span>
                     </span>
-                    <div class="min-w-0">
+                    <div class="min-w-0 flex-1">
                         <div class="flex items-center gap-1.5 flex-wrap">
-                            <span class="text-xs font-bold text-amber-950">
+                            <span class="text-xs sm:text-[13px] font-bold text-amber-950 group-hover:text-amber-900 break-words leading-snug">
                                 Belum Terdata / Kosong
                             </span>
                             <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-200/70 text-amber-900">
                                 Perlu Dilengkapi
                             </span>
                         </div>
-                        <p class="text-[10.5px] text-amber-700/80 font-medium mt-0.5">
+                        <p class="text-[10.5px] text-amber-700/80 font-medium mt-0.5 break-words">
                             Siswa yang belum memiliki riwayat data sekolah asal di Tab Registrasi
+                        </p>
+                        <p class="text-[10px] text-amber-800 font-semibold group-hover:underline flex items-center gap-1 mt-1">
+                            <span>Klik untuk melihat daftar {{ originStats.unrecordedCount }} siswa</span>
+                            <span class="material-symbols-outlined text-[12px]">open_in_new</span>
                         </p>
                     </div>
                 </div>
 
                 <!-- Jumlah & Persen Font Beda -->
-                <div class="flex items-center gap-1.5 shrink-0 text-xs">
+                <div class="flex items-center gap-1.5 shrink-0 text-xs mt-0.5">
                     <span class="font-extrabold text-amber-950">
                         {{ originStats.unrecordedCount }} Siswa
                     </span>
@@ -326,20 +383,22 @@ const maxCount = computed(() => {
         </div>
 
         <!-- ============================================================ -->
-        <!-- DAFTAR STAT BAR ASAL SEKOLAH (RESPONSIVE)                   -->
+        <!-- DAFTAR STAT BAR ASAL SEKOLAH (KLIK UNTUK POP-UP SISWA)       -->
         <!-- ============================================================ -->
-        <div v-if="displayedSchools.length > 0" class="space-y-2.5 max-h-[500px] overflow-y-auto pr-1.5 custom-school-scrollbar">
+        <div v-if="displayedSchools.length > 0" class="space-y-2.5 max-h-[520px] overflow-y-auto pr-1.5 custom-school-scrollbar">
             <div
                 v-for="(item, idx) in displayedSchools"
                 :key="item.name"
-                class="p-2.5 sm:p-3 rounded-2xl bg-slate-50/70 hover:bg-slate-100/70 border border-slate-100 transition-all space-y-1.5"
+                @click="openSchoolModal(item)"
+                class="p-2.5 sm:p-3 rounded-2xl bg-slate-50/70 hover:bg-emerald-50/50 hover:border-emerald-200 border border-slate-100 transition-all space-y-2 cursor-pointer group shadow-2xs"
+                :title="`Klik untuk melihat nama-nama siswa dari ${item.name}`"
             >
-                <!-- Baris Atas: Keterangan Nama Sekolah di Atas Bar, Jumlah & Persen di Kanan -->
-                <div class="flex items-center justify-between gap-2">
-                    <div class="min-w-0 flex items-center gap-2">
+                <!-- Baris Atas: Ranking, Nama Sekolah (Lanjut ke bawah jika panjang / break-words), Jumlah & Persen -->
+                <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0 flex items-start gap-2.5 flex-1">
                         <!-- Ranking Badge -->
                         <span
-                            class="w-6 h-6 rounded-lg text-[10.5px] font-bold flex items-center justify-center shrink-0 border shadow-2xs"
+                            class="w-6 h-6 rounded-lg text-[10.5px] font-bold flex items-center justify-center shrink-0 border shadow-2xs mt-0.5 group-hover:scale-105 transition-transform"
                             :class="{
                                 'bg-amber-100 text-amber-900 border-amber-300 font-extrabold': idx === 0 && !searchQuery,
                                 'bg-slate-200 text-slate-800 border-slate-300 font-extrabold': idx === 1 && !searchQuery,
@@ -351,13 +410,20 @@ const maxCount = computed(() => {
                             {{ idx + 1 }}
                         </span>
 
-                        <span class="text-xs font-bold text-slate-900 truncate" :title="item.name">
-                            {{ item.name }}
-                        </span>
+                        <!-- Nama Sekolah: Wrap ke baris bawahnya jika tidak muat (bukan titik-titik) -->
+                        <div class="min-w-0 flex-1">
+                            <h4 class="text-xs sm:text-[13px] font-bold text-slate-900 group-hover:text-emerald-950 break-words leading-snug">
+                                {{ item.name }}
+                            </h4>
+                            <p class="text-[10px] text-slate-400 group-hover:text-emerald-700 font-medium flex items-center gap-1 mt-0.5 transition-colors">
+                                <span>Klik untuk melihat {{ item.count }} siswa</span>
+                                <span class="material-symbols-outlined text-[12px]">open_in_new</span>
+                            </p>
+                        </div>
                     </div>
 
                     <!-- Jumlah Siswa & Persen dengan Warna Font Berbeda -->
-                    <div class="flex items-center gap-1.5 shrink-0 text-xs">
+                    <div class="flex items-center gap-1.5 shrink-0 text-xs mt-0.5">
                         <span class="font-extrabold text-emerald-800">
                             {{ item.count }} Siswa
                         </span>
@@ -411,6 +477,173 @@ const maxCount = computed(() => {
             </p>
         </div>
     </div>
+
+    <!-- ============================================================ -->
+    <!-- MODAL POP-UP: DAFTAR NAMA SISWA BERDASARKAN ASAL SEKOLAH     -->
+    <!-- ============================================================ -->
+    <Teleport to="body">
+        <div
+            v-if="selectedSchoolModal"
+            class="fixed inset-0 z-[999] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 overflow-y-auto"
+            @click.self="closeSchoolModal"
+        >
+            <div
+                class="bg-white rounded-3xl border border-slate-200/90 shadow-2xl max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+            >
+                <!-- Modal Header -->
+                <div class="px-4 sm:px-6 py-4 border-b border-slate-100 flex items-start justify-between gap-3 bg-slate-50/70 shrink-0">
+                    <div class="flex items-start gap-3 min-w-0">
+                        <div
+                            class="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border shadow-2xs mt-0.5"
+                            :class="selectedSchoolModal.isUnrecorded
+                                ? 'bg-amber-100 border-amber-300 text-amber-800'
+                                : 'bg-emerald-100 border-emerald-300 text-emerald-800'"
+                        >
+                            <span class="material-symbols-outlined text-[22px]">
+                                {{ selectedSchoolModal.isUnrecorded ? 'help_outline' : 'school' }}
+                            </span>
+                        </div>
+                        <div class="min-w-0">
+                            <span
+                                class="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider inline-block mb-1"
+                                :class="selectedSchoolModal.isUnrecorded
+                                    ? 'bg-amber-200/70 text-amber-900'
+                                    : 'bg-emerald-100 text-emerald-900'"
+                            >
+                                {{ selectedSchoolModal.isUnrecorded ? 'Data Belum Terdata' : 'Sekolah Asal Siswa' }}
+                            </span>
+                            <h3 class="text-sm sm:text-base font-extrabold text-slate-900 break-words leading-snug">
+                                {{ selectedSchoolModal.name }}
+                            </h3>
+                            <p class="text-[11px] text-slate-500 font-medium mt-0.5">
+                                Total <span class="font-bold text-slate-800">{{ selectedSchoolModal.count }} Siswa</span>
+                                ({{ selectedSchoolModal.percentage }}% dari seluruh siswa) • {{ unit }} (TA {{ academicYear }})
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Tombol Tutup X -->
+                    <button
+                        type="button"
+                        @click="closeSchoolModal"
+                        class="text-slate-400 hover:text-slate-700 p-1.5 rounded-xl hover:bg-slate-200/60 transition-colors cursor-pointer shrink-0"
+                        title="Tutup (ESC)"
+                    >
+                        <span class="material-symbols-outlined text-[20px]">close</span>
+                    </button>
+                </div>
+
+                <!-- Modal Toolbar: Cari Nama Siswa & Counter -->
+                <div class="px-4 sm:px-6 py-2.5 bg-white border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shrink-0">
+                    <div class="relative w-full sm:w-80">
+                        <span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-[16px]">search</span>
+                        <input
+                            v-model="modalSearch"
+                            type="text"
+                            placeholder="Cari nama, NISN, atau kelas..."
+                            class="w-full pl-8 pr-7 py-1.5 rounded-xl border border-slate-200 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
+                        />
+                        <button
+                            v-if="modalSearch"
+                            type="button"
+                            @click="modalSearch = ''"
+                            class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-[15px] cursor-pointer"
+                        >
+                            close
+                        </button>
+                    </div>
+
+                    <span class="text-[11px] font-semibold text-slate-500">
+                        Menampilkan {{ modalFilteredStudents.length }} dari {{ selectedSchoolModal.count }} siswa
+                    </span>
+                </div>
+
+                <!-- Modal Body: Daftar Siswa (Scrollable) -->
+                <div class="flex-1 overflow-y-auto px-4 sm:px-6 py-3 space-y-2 custom-school-scrollbar">
+                    <div
+                        v-if="modalFilteredStudents.length > 0"
+                        class="space-y-2"
+                    >
+                        <div
+                            v-for="(student, sIdx) in modalFilteredStudents"
+                            :key="student.id || sIdx"
+                            class="p-2.5 sm:p-3 rounded-2xl bg-slate-50/80 hover:bg-emerald-50/40 border border-slate-200/80 flex items-center justify-between gap-3 transition-colors"
+                        >
+                            <!-- Identitas Siswa -->
+                            <div class="min-w-0 flex items-center gap-2.5">
+                                <span class="w-6 h-6 rounded-lg bg-white border border-slate-200 text-[10.5px] font-bold text-slate-600 flex items-center justify-center shrink-0">
+                                    {{ sIdx + 1 }}
+                                </span>
+
+                                <div class="min-w-0">
+                                    <div class="flex items-center gap-1.5 flex-wrap">
+                                        <span class="text-xs sm:text-[13px] font-bold text-slate-900 break-words">
+                                            {{ student.nama }}
+                                        </span>
+                                        <!-- Gender Badge -->
+                                        <span
+                                            class="text-[9.5px] font-bold px-1.5 py-0.2 rounded border"
+                                            :class="student.jk === 'L'
+                                                ? 'bg-sky-50 text-sky-800 border-sky-200'
+                                                : 'bg-rose-50 text-rose-800 border-rose-200'"
+                                        >
+                                            {{ student.jk === 'L' ? 'Laki-laki' : (student.jk === 'P' ? 'Perempuan' : student.jk) }}
+                                        </span>
+                                    </div>
+
+                                    <!-- Informasi Kelas, NISN, & Domisili -->
+                                    <div class="flex items-center gap-2 text-[10.5px] text-slate-500 font-medium flex-wrap mt-0.5">
+                                        <span v-if="student.kelas" class="font-bold text-emerald-800 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200/70">
+                                            Kelas {{ student.kelas }}
+                                        </span>
+                                        <span v-if="student.nisn">NISN: {{ student.nisn }}</span>
+                                        <span v-if="student.unit" class="text-slate-400">• {{ student.unit }}</span>
+                                        <span v-if="student.kecamatan" class="text-slate-400">• Kec. {{ student.kecamatan }}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Tombol Link Buka Detail Profil Siswa -->
+                            <a
+                                :href="`/students/${student.id}`"
+                                target="_blank"
+                                class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 hover:text-emerald-900 bg-white hover:bg-emerald-50 px-2.5 py-1.5 rounded-xl border border-slate-200 hover:border-emerald-300 shadow-2xs transition-all shrink-0 cursor-pointer"
+                                title="Buka profil siswa di tab baru"
+                            >
+                                <span class="hidden sm:inline">Detail</span>
+                                <span class="material-symbols-outlined text-[14px]">open_in_new</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Empty Search Inside Modal -->
+                    <div v-else class="py-12 text-center">
+                        <div class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center mx-auto mb-2 text-slate-400">
+                            <span class="material-symbols-outlined text-xl">person_search</span>
+                        </div>
+                        <p class="text-xs font-bold text-slate-700">Tidak ada siswa yang cocok</p>
+                        <p class="text-[11px] text-slate-400 mt-0.5">
+                            Coba kata kunci pencarian nama atau NISN lain.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Modal Footer -->
+                <div class="px-4 sm:px-6 py-3 border-t border-slate-100 bg-slate-50/70 flex items-center justify-between gap-3 shrink-0">
+                    <span class="text-[11px] text-slate-400 font-medium">
+                        Tekan <kbd class="px-1.5 py-0.5 rounded bg-white border border-slate-300 text-[10px] font-mono text-slate-600 shadow-2xs">ESC</kbd> untuk menutup
+                    </span>
+                    <button
+                        type="button"
+                        @click="closeSchoolModal"
+                        class="px-4 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold transition-all cursor-pointer shadow-xs"
+                    >
+                        Tutup
+                    </button>
+                </div>
+            </div>
+        </div>
+    </Teleport>
 </template>
 
 <style scoped>
