@@ -12,11 +12,13 @@ class CheckPrograms extends Command
 
     public function handle()
     {
-        $units = DB::table('school_units')->get();
-        $this->table(['id', 'name'], $units->map(fn($r) => ['id' => $r->id, 'name' => $r->name])->toArray());
+        $this->info("Distributions of unit:");
+        $units = DB::table('students')->selectRaw('unit, count(1) as total')->groupBy('unit')->get();
+        $this->table(['unit', 'total'], $units->map(fn($r) => (array)$r)->toArray());
 
-        $progs = DB::table('school_programs')->get();
-        $this->table(['id', 'school_unit_id', 'name'], $progs->map(fn($r) => ['id' => $r->id, 'school_unit_id' => $r->school_unit_id, 'name' => $r->name])->toArray());
+        $this->info("Distributions of jenis_tinggal:");
+        $jt = DB::table('students')->selectRaw('jenis_tinggal, count(1) as total')->groupBy('jenis_tinggal')->get();
+        $this->table(['jenis_tinggal', 'total'], $jt->map(fn($r) => (array)$r)->toArray());
 
         return 0;
     }
