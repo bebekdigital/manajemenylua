@@ -127,6 +127,7 @@ const form = useForm({
     unit: '',
     program: 'Umum',
     jenjang: '',
+    angkatan: '',
     tingkat: '',
     kelas: '',
     no_wa: '',
@@ -147,6 +148,7 @@ function initFormFromProps() {
     form.unit = props.student.unit || '';
     form.program = props.student.program || 'Umum';
     form.jenjang = props.student.jenjang || '';
+    form.angkatan = props.student.angkatan || '';
     form.tingkat = props.student.tingkat ? String(props.student.tingkat) : '';
     form.kelas = props.student.kelas || '';
     form.no_wa = props.student.no_wa || '';

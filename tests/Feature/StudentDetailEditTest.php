@@ -57,6 +57,7 @@ class StudentDetailEditTest extends TestCase
             'unit' => $student->unit,
             'program' => 'Fullday',
             'jenjang' => 'SD',
+            'angkatan' => '2024',
             'tingkat' => '3',
             'kelas' => '3A',
         ];
@@ -76,6 +77,7 @@ class StudentDetailEditTest extends TestCase
         $this->assertSame('2015-05-12', $student->tanggal_lahir->format('Y-m-d'));
         $this->assertSame('081234567890', $student->no_wa);
         $this->assertSame('ahmad.fulan@sekolah.sch.id', $student->email);
+        $this->assertSame('2024', $student->angkatan);
     }
 
     public function test_update_student_validates_required_fields(): void

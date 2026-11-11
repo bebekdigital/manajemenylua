@@ -587,6 +587,7 @@ class StudentController extends Controller
             'unit' => ['nullable', 'string', 'max:100'],
             'program' => ['nullable', 'string', 'max:100'],
             'jenjang' => ['nullable', 'string', 'max:50'],
+            'angkatan' => ['nullable', 'string', 'max:50'],
             'tingkat' => ['nullable', 'string', 'max:20'],
             'kelas' => ['nullable', 'string', 'max:50'],
         ], [
@@ -618,6 +619,7 @@ class StudentController extends Controller
             'email' => $validated['email'] ?? null,
             'unit' => $validated['unit'] ?? $student->unit,
             'jenjang' => $validated['jenjang'] ?? $student->jenjang,
+            'angkatan' => $validated['angkatan'] ?? null,
         ]);
 
         // Sinkronisasi program & jenjang ke Academic Record aktif siswa bila ada
