@@ -64,13 +64,13 @@ const soloRayaKecMap = computed(() => {
     return mapObj;
 });
 
-// Agregasi sebaran siswa aktif per kecamatan di Solo Raya & Luar Solo Raya
+// Agregasi sebaran siswa aktif per kecamatan di Solo Raya & Grobogan serta Luar Wilayah
 const distribution = computed(() => {
     const list = props.students || [];
     const countsByKey = {}; // featureKey -> count
     const outsideMap = {};  // regency / text -> count
     let outsideTotal = 0;
-    let soloRayaTotal = 0;
+    let coverageTotal = 0;
     let activeTotal = 0;
 
     list.forEach(s => {
@@ -101,10 +101,10 @@ const distribution = computed(() => {
 
             const featureKey = `${normalizeKey(matched.kecamatan)}_${normalizeKey(matched.kabupaten)}`;
             countsByKey[featureKey] = (countsByKey[featureKey] || 0) + 1;
-            soloRayaTotal++;
+            coverageTotal++;
         } else {
             outsideTotal++;
-            const groupName = rawKab ? `${rawKab} (Kec. ${rawKec || '-'})` : (rawKec || 'Luar Solo Raya');
+            const groupName = rawKab ? `${rawKab} (Kec. ${rawKec || '-'})` : (rawKec || 'Luar Wilayah');
             outsideMap[groupName] = (outsideMap[groupName] || 0) + 1;
         }
     });
@@ -117,13 +117,18 @@ const distribution = computed(() => {
         countsByKey,
         outsideList,
         outsideTotal,
-        soloRayaTotal,
+        coverageTotal,
+        soloRayaTotal: coverageTotal, // for backwards compat
         activeTotal,
     };
 });
 
-// Ranking Top Kecamatan di Solo Raya
-const topKecamatans = computed(() => {
+// Switcher mode: 'peta' atau 'bar'
+const activeView = ref('peta');
+const barSearchQuery = ref('');
+
+// Daftar seluruh kecamatan dengan jumlah siswa untuk tampilan Horizontal Bar
+const barKecamatans = computed(() => {
     if (!geojsonData.value?.features) return [];
     const list = [];
     geojsonData.value.features.forEach(f => {
@@ -140,7 +145,31 @@ const topKecamatans = computed(() => {
             });
         }
     });
-    return list.sort((a, b) => b.count - a.count).slice(0, 5);
+    return list.sort((a, b) => b.count - a.count);
+});
+
+const maxBarCount = computed(() => {
+    if (barKecamatans.value.length === 0) return 1;
+    return Math.max(...barKecamatans.value.map(k => k.count), 1);
+});
+
+const filteredBarKecamatans = computed(() => {
+    const q = barSearchQuery.value.trim().toLowerCase();
+    if (!q) return barKecamatans.value;
+    return barKecamatans.value.filter(item =>
+        item.kecamatan.toLowerCase().includes(q) ||
+        item.kabupaten.toLowerCase().includes(q)
+    );
+});
+
+watch(activeView, (newView) => {
+    if (newView === 'peta') {
+        nextTick(() => {
+            if (map) {
+                map.invalidateSize();
+            }
+        });
+    }
 });
 
 // Skala warna Choropleth Emerald
@@ -289,13 +318,13 @@ onBeforeUnmount(() => {
 
 <template>
     <div class="bg-white rounded-3xl border border-slate-200/90 p-4 sm:p-6 shadow-xs mb-5">
-        <!-- Header Peta & Stat Ringkas -->
+        <!-- Header: Judul, Tab Switcher [Peta / Bar], & Ringkasan Siswa -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-100">
             <div class="flex items-center gap-2">
                 <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span>
                 <div>
                     <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                        Peta Sebaran Domisili Siswa (Solo Raya)
+                        Sebaran Domisili Siswa (Solo Raya & Grobogan)
                     </h3>
                     <p class="text-[11px] text-slate-400 font-medium mt-0.5">
                         Berdasarkan kecamatan domisili siswa aktif — {{ unit }} (TA {{ academicYear }})
@@ -303,36 +332,66 @@ onBeforeUnmount(() => {
                 </div>
             </div>
 
-            <!-- Ringkasan Solo Raya vs Luar Solo Raya -->
+            <!-- Bagian Kanan: Toggle View [Peta | Bar] & Ringkasan -->
             <div class="flex items-center gap-2 self-start sm:self-auto shrink-0 flex-wrap">
+                <!-- Toggle Pilihan Peta / Bar -->
+                <div class="inline-flex items-center p-0.5 bg-slate-100/90 rounded-xl border border-slate-200/90 shadow-2xs">
+                    <button
+                        type="button"
+                        @click="activeView = 'peta'"
+                        class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs transition-all cursor-pointer"
+                        :class="activeView === 'peta'
+                            ? 'bg-white text-emerald-900 font-bold shadow-xs'
+                            : 'text-slate-500 hover:text-slate-800 font-semibold'"
+                    >
+                        <span class="material-symbols-outlined text-[15px]">map</span>
+                        <span>Peta</span>
+                    </button>
+                    <button
+                        type="button"
+                        @click="activeView = 'bar'"
+                        class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs transition-all cursor-pointer"
+                        :class="activeView === 'bar'
+                            ? 'bg-white text-emerald-900 font-bold shadow-xs'
+                            : 'text-slate-500 hover:text-slate-800 font-semibold'"
+                    >
+                        <span class="material-symbols-outlined text-[15px]">bar_chart</span>
+                        <span>Bar</span>
+                    </button>
+                </div>
+
+                <!-- Badge Total Wilayah Tercakup -->
                 <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-bold text-emerald-800 shadow-2xs">
                     <span class="w-2 h-2 rounded-full bg-emerald-600"></span>
-                    <span>Solo Raya: {{ distribution.soloRayaTotal }} Siswa</span>
+                    <span>{{ distribution.coverageTotal }} Siswa</span>
                     <span class="text-[11px] text-emerald-600 font-medium">
-                        ({{ distribution.activeTotal > 0 ? Math.round((distribution.soloRayaTotal / distribution.activeTotal) * 100) : 0 }}%)
+                        ({{ distribution.activeTotal > 0 ? Math.round((distribution.coverageTotal / distribution.activeTotal) * 100) : 0 }}%)
                     </span>
                 </div>
 
+                <!-- Tombol Luar Wilayah Modal -->
                 <button
                     v-if="distribution.outsideTotal > 0"
                     type="button"
                     @click="showOutsideModal = true"
                     class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-300 text-xs font-bold text-amber-900 transition-all cursor-pointer shadow-2xs"
-                    title="Klik untuk melihat rincian wilayah luar Solo Raya"
+                    title="Klik untuk melihat rincian wilayah luar Solo Raya & Grobogan"
                 >
                     <span class="w-2 h-2 rounded-full bg-amber-500"></span>
-                    <span>Luar Solo Raya: {{ distribution.outsideTotal }} Siswa</span>
+                    <span>Luar Wilayah: {{ distribution.outsideTotal }}</span>
                     <span class="material-symbols-outlined text-[14px]">info</span>
                 </button>
             </div>
         </div>
 
-        <!-- Kontainer Kanvas Peta -->
-        <div class="relative w-full h-[380px] sm:h-[460px] rounded-2xl border border-slate-200/90 overflow-hidden bg-slate-50">
+        <!-- ============================================================ -->
+        <!-- VIEW 1: TAMPILAN PETA VEKTOR                                 -->
+        <!-- ============================================================ -->
+        <div v-show="activeView === 'peta'" class="relative w-full h-[380px] sm:h-[460px] rounded-2xl border border-slate-200/90 overflow-hidden bg-slate-50">
             <!-- Loading State -->
             <div v-if="isLoading" class="absolute inset-0 bg-slate-50/90 z-20 flex flex-col items-center justify-center gap-2">
                 <span class="material-symbols-outlined text-3xl text-emerald-600 animate-spin">progress_activity</span>
-                <span class="text-xs font-semibold text-slate-500">Memuat batas wilayah kecamatan Solo Raya...</span>
+                <span class="text-xs font-semibold text-slate-500">Memuat batas wilayah kecamatan Solo Raya & Grobogan...</span>
             </div>
 
             <!-- Error State -->
@@ -352,24 +411,24 @@ onBeforeUnmount(() => {
             <!-- Leaflet Container -->
             <div ref="mapContainer" class="w-full h-full z-10"></div>
 
-            <!-- Floating Tool / Reset Button di Kanan Atas -->
+            <!-- Floating Tool / Reset Button di Kiri Atas -->
             <div class="absolute top-3 left-3 z-[400] flex items-center gap-2">
                 <button
                     type="button"
                     @click="resetZoom"
                     class="px-2.5 py-1.5 rounded-xl bg-white/95 hover:bg-white text-slate-700 text-xs font-bold shadow-md border border-slate-200/80 transition-all flex items-center gap-1 cursor-pointer"
-                    title="Kembalikan zoom ke seluruh Solo Raya"
+                    title="Kembalikan zoom ke seluruh wilayah"
                 >
                     <span class="material-symbols-outlined text-[15px]">crop_free</span>
                     <span class="hidden sm:inline">Reset Zoom</span>
                 </button>
             </div>
 
-            <!-- Live Status Hover Bar di Bawah Peta -->
+            <!-- Live Status Hover Bar di Kanan Bawah -->
             <div class="absolute bottom-3 right-3 z-[400] max-w-[260px] sm:max-w-xs bg-white/95 backdrop-blur-xs rounded-xl border border-slate-200/90 p-2 sm:p-2.5 shadow-md text-xs pointer-events-none">
                 <div v-if="hoveredFeature" class="flex flex-col">
                     <span class="text-[11px] font-bold text-emerald-800">Kec. {{ hoveredFeature.kecamatan }}</span>
-                    <span class="text-[10px] text-slate-500">{{ hoveredFeature.kabupaten }}</span>
+                    <span class="text-[10px] text-slate-500">Kab/Kota {{ hoveredFeature.kabupaten }}</span>
                     <span class="text-xs font-bold text-slate-900 mt-0.5">
                         {{ hoveredFeature.count }} Siswa
                         <span class="text-[10px] font-normal text-slate-500">
@@ -412,30 +471,86 @@ onBeforeUnmount(() => {
             </div>
         </div>
 
-        <!-- Rincian Top Kecamatan & Wilayah Lainnya -->
-        <div class="mt-4 pt-3 border-t border-slate-100 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs">
-            <div class="flex items-center gap-2 flex-wrap">
-                <span class="font-bold text-slate-700">Top Sebaran:</span>
-                <span
-                    v-for="(item, idx) in topKecamatans"
-                    :key="idx"
-                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 text-slate-700 font-medium text-[11px]"
-                >
-                    <span class="font-bold text-slate-900">{{ item.kecamatan }}</span>
-                    <span class="text-slate-400">({{ item.kabupaten }}):</span>
-                    <span class="font-bold text-emerald-700">{{ item.count }}</span>
-                </span>
-                <span v-if="topKecamatans.length === 0" class="text-slate-400 text-[11px]">
-                    Belum ada data kecamatan terdata.
-                </span>
+        <!-- ============================================================ -->
+        <!-- VIEW 2: TAMPILAN HORIZONTAL BAR SEBARAN KECAMATAN            -->
+        <!-- ============================================================ -->
+        <div v-show="activeView === 'bar'" class="w-full h-[380px] sm:h-[460px] rounded-2xl border border-slate-200/90 bg-white p-3 sm:p-4 flex flex-col">
+            <!-- Toolbar: Pencarian Cepat & Info Total Kecamatan -->
+            <div class="flex items-center justify-between gap-3 pb-3 mb-2 border-b border-slate-100 shrink-0">
+                <div class="relative w-full sm:w-72">
+                    <span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">search</span>
+                    <input
+                        v-model="barSearchQuery"
+                        type="text"
+                        placeholder="Cari kecamatan atau kabupaten..."
+                        class="w-full pl-8 pr-7 py-1.5 rounded-xl border border-slate-200 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
+                    />
+                    <button
+                        v-if="barSearchQuery"
+                        type="button"
+                        @click="barSearchQuery = ''"
+                        class="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-[16px] cursor-pointer"
+                    >
+                        close
+                    </button>
+                </div>
+                <div class="text-[11px] font-semibold text-slate-500 shrink-0">
+                    Menampilkan <span class="font-bold text-slate-800">{{ filteredBarKecamatans.length }}</span> kecamatan terdata
+                </div>
             </div>
 
-            <div v-if="distribution.outsideTotal > 0" class="text-[11px] text-slate-500 font-medium">
-                Terdapat <span class="font-bold text-amber-700">{{ distribution.outsideTotal }} siswa</span> di luar 7 kab/kota Solo Raya.
+            <!-- List Horizontal Bar (Scrollable) -->
+            <div class="flex-1 overflow-y-auto space-y-1.5 pr-1.5 custom-bar-scrollbar">
+                <div
+                    v-for="(item, idx) in filteredBarKecamatans"
+                    :key="`${item.kecamatan}_${item.kabupaten}`"
+                    class="flex items-center gap-2.5 sm:gap-3 py-2 px-2.5 sm:px-3 rounded-xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100"
+                >
+                    <!-- Nomor Peringkat -->
+                    <span
+                        class="w-7 text-center text-xs font-bold shrink-0"
+                        :class="idx < 3 ? 'text-emerald-700 bg-emerald-50 rounded-md py-0.5 border border-emerald-200' : 'text-slate-400'"
+                    >
+                        #{{ idx + 1 }}
+                    </span>
+
+                    <!-- Label Kecamatan & Kabupaten -->
+                    <div class="w-32 sm:w-48 shrink-0 truncate">
+                        <div class="text-xs font-bold text-slate-800 truncate" :title="`Kec. ${item.kecamatan}`">
+                            Kec. {{ item.kecamatan }}
+                        </div>
+                        <div class="text-[10px] sm:text-[11px] text-slate-400 font-medium truncate">
+                            Kab/Kota {{ item.kabupaten }}
+                        </div>
+                    </div>
+
+                    <!-- Horizontal Bar Track & Fill -->
+                    <div class="flex-1 min-w-[60px] h-3.5 bg-slate-100 rounded-full overflow-hidden p-0.5 border border-slate-200/80">
+                        <div
+                            class="h-full rounded-full bg-linear-to-r from-emerald-500 to-emerald-700 transition-all duration-300"
+                            :style="{ width: `${Math.max((item.count / maxBarCount) * 100, 3)}%` }"
+                        ></div>
+                    </div>
+
+                    <!-- Angka Siswa & Persentase -->
+                    <div class="w-20 sm:w-24 text-right shrink-0">
+                        <span class="text-xs font-bold text-emerald-800">{{ item.count }} Siswa</span>
+                        <span class="text-[10.5px] text-slate-400 ml-1">({{ item.percentage }}%)</span>
+                    </div>
+                </div>
+
+                <!-- Empty State jika tidak ada kecamatan cocok -->
+                <div v-if="filteredBarKecamatans.length === 0" class="h-full flex flex-col items-center justify-center py-12 text-center">
+                    <span class="material-symbols-outlined text-3xl text-slate-300 mb-1">location_off</span>
+                    <p class="text-xs font-bold text-slate-700">Tidak ada kecamatan ditemukan</p>
+                    <p class="text-[11px] text-slate-400 mt-0.5">
+                        {{ barSearchQuery ? 'Coba gunakan kata kunci pencarian lain.' : 'Belum ada data domisili siswa terdata pada filter ini.' }}
+                    </p>
+                </div>
             </div>
         </div>
 
-        <!-- Modal Detail Siswa Luar Solo Raya -->
+        <!-- Modal Detail Siswa Luar Cakupan -->
         <div
             v-if="showOutsideModal"
             class="fixed inset-0 bg-slate-900/40 backdrop-blur-2xs z-[999] flex items-center justify-center p-4"
@@ -445,7 +560,7 @@ onBeforeUnmount(() => {
                 <div class="flex items-center justify-between pb-3 border-b border-slate-100">
                     <div class="flex items-center gap-2">
                         <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-                        <h4 class="text-sm font-bold text-slate-900">Domisili Luar Solo Raya</h4>
+                        <h4 class="text-sm font-bold text-slate-900">Domisili Luar Cakupan</h4>
                     </div>
                     <button
                         type="button"
@@ -457,10 +572,10 @@ onBeforeUnmount(() => {
                 </div>
 
                 <p class="text-xs text-slate-500 mt-2 mb-3">
-                    Total {{ distribution.outsideTotal }} siswa terdata beralamat di luar 7 kabupaten/kota Solo Raya:
+                    Total {{ distribution.outsideTotal }} siswa terdata beralamat di luar wilayah Solo Raya & Kab. Grobogan:
                 </p>
 
-                <div class="max-h-60 overflow-y-auto space-y-1.5 pr-1">
+                <div class="max-h-60 overflow-y-auto space-y-1.5 pr-1 custom-bar-scrollbar">
                     <div
                         v-for="(item, idx) in distribution.outsideList"
                         :key="idx"
@@ -498,6 +613,22 @@ onBeforeUnmount(() => {
 }
 .leaflet-custom-tooltip::before {
     display: none !important;
+}
+
+/* Scrollbar halus untuk daftar horizontal bar */
+.custom-bar-scrollbar::-webkit-scrollbar {
+    width: 6px;
+}
+.custom-bar-scrollbar::-webkit-scrollbar-track {
+    background: #f8fafc;
+    border-radius: 9999px;
+}
+.custom-bar-scrollbar::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 9999px;
+}
+.custom-bar-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
 }
 </style>
 
