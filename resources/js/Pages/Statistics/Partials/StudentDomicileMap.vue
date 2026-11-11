@@ -186,6 +186,10 @@ const displayedKecamatans = computed(() => {
     return list;
 });
 
+const maxBarCount = computed(() => {
+    return displayedKecamatans.value[0]?.count || 1;
+});
+
 const horizontalBarChartData = computed(() => {
     const list = displayedKecamatans.value;
     return {
@@ -231,9 +235,13 @@ const horizontalBarChartOptions = computed(() => ({
             anchor: 'end',
             align: 'right',
             color: '#064e3b',
-            font: { weight: 'bold', size: 11, family: "'Plus Jakarta Sans', 'Inter', sans-serif" },
+            font: { weight: 'bold', size: 10.5, family: "'Plus Jakarta Sans', 'Inter', sans-serif" },
             offset: 4,
-            formatter: (value) => `${value} siswa`,
+            formatter: (value, ctx) => {
+                const item = displayedKecamatans.value[ctx.dataIndex];
+                if (!item) return `${value} siswa`;
+                return `${item.count} siswa (${item.percentage}%)`;
+            },
         },
     },
     scales: {
@@ -960,15 +968,63 @@ onBeforeUnmount(() => {
 
             <!-- Kontainer Grafik Horizontal Bar (Scrollable jika data banyak) -->
             <div class="flex-1 overflow-y-auto pr-2 custom-bar-scrollbar">
+                <!-- TAMPILAN DESKTOP: Chart.js Canvas (tetap seperti sekarang) -->
                 <div
                     v-if="displayedKecamatans.length > 0"
-                    class="w-full relative"
+                    class="hidden sm:block w-full relative"
                     :style="{ height: `${chartHeight}px`, minHeight: '340px' }"
                 >
                     <Bar
                         :data="horizontalBarChartData"
                         :options="horizontalBarChartOptions"
                     />
+                </div>
+
+                <!-- TAMPILAN MOBILE: Keterangan Kecamatan di ATAS Bar, Persen di samping jumlah dengan warna beda -->
+                <div
+                    v-if="displayedKecamatans.length > 0"
+                    class="block sm:hidden space-y-2.5 py-1"
+                >
+                    <div
+                        v-for="(item, idx) in displayedKecamatans"
+                        :key="`${item.kecamatan}-${item.kabupaten}-${idx}`"
+                        class="space-y-1.5 p-2 rounded-xl bg-slate-50/70 border border-slate-100"
+                    >
+                        <!-- Keterangan Kecamatan di Atas Bar & Jumlah/Persen di Kanan -->
+                        <div class="flex items-center justify-between gap-2">
+                            <div class="min-w-0 flex items-center gap-1.5">
+                                <span class="w-5 h-5 rounded-md bg-emerald-50 border border-emerald-200/80 text-[10px] font-bold text-emerald-800 flex items-center justify-center shrink-0">
+                                    {{ idx + 1 }}
+                                </span>
+                                <div class="min-w-0 truncate">
+                                    <span class="text-xs font-bold text-slate-900 truncate">
+                                        Kec. {{ item.kecamatan }}
+                                    </span>
+                                    <span class="text-[10.5px] text-slate-400 font-medium ml-1">
+                                        ({{ item.kabupaten }})
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Jumlah Siswa & Persen dengan Warna Font Berbeda -->
+                            <div class="flex items-center gap-1.5 shrink-0 text-xs">
+                                <span class="font-extrabold text-emerald-800">
+                                    {{ item.count }} Siswa
+                                </span>
+                                <span class="text-[10.5px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-200/80">
+                                    {{ item.percentage }}%
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Bar Horizontal Mobile -->
+                        <div class="w-full bg-slate-200/70 rounded-full h-2.5 overflow-hidden">
+                            <div
+                                class="bg-emerald-600 h-full rounded-full transition-all duration-500"
+                                :style="{ width: `${Math.max((item.count / maxBarCount) * 100, 3)}%` }"
+                            ></div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Empty State jika tidak ada data -->
