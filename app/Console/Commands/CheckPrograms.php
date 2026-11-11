@@ -4,7 +4,6 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 class CheckPrograms extends Command
 {
@@ -13,11 +12,11 @@ class CheckPrograms extends Command
 
     public function handle()
     {
-        $cols = Schema::getColumnListing('students');
-        $this->info("Students columns: " . implode(', ', $cols));
-        
-        $firstStudent = DB::table('students')->first();
-        $this->info("First student data: " . json_encode($firstStudent, JSON_PRETTY_PRINT));
+        $units = DB::table('school_units')->get();
+        $this->table(['id', 'name'], $units->map(fn($r) => ['id' => $r->id, 'name' => $r->name])->toArray());
+
+        $progs = DB::table('school_programs')->get();
+        $this->table(['id', 'school_unit_id', 'name'], $progs->map(fn($r) => ['id' => $r->id, 'school_unit_id' => $r->school_unit_id, 'name' => $r->name])->toArray());
 
         return 0;
     }
