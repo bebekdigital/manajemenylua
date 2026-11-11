@@ -16,6 +16,11 @@ import ChartDataLabels from 'chartjs-plugin-datalabels';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ChartDataLabels);
 
+// Perbesar toleransi geser Leaflet untuk layar sentuh/mobile (mencegah tap dianggap drag)
+if (L.Draggable?.prototype?.options) {
+    L.Draggable.prototype.options.clickTolerance = 25;
+}
+
 const props = defineProps({
     students: {
         type: Array,
@@ -388,6 +393,53 @@ function selectFeature(feature, layer, latlng = null) {
     }
 }
 
+function handleSelect(feature, layer, latlng = null) {
+    lastInteractionTime = Date.now();
+    isLockedByClick = true;
+    selectFeature(feature, layer, latlng);
+}
+
+function attachDirectTouchListeners(feature, layer) {
+    const el = layer.getElement ? layer.getElement() : layer._path;
+    if (!el) return;
+
+    let startX = 0;
+    let startY = 0;
+    let startTime = 0;
+
+    el.addEventListener('touchstart', (e) => {
+        if (e.touches && e.touches.length === 1) {
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+            startTime = Date.now();
+        }
+    }, { passive: true });
+
+    el.addEventListener('touchend', (e) => {
+        if (!startTime) return;
+        const touch = e.changedTouches ? e.changedTouches[0] : null;
+        if (touch) {
+            const dx = Math.abs(touch.clientX - startX);
+            const dy = Math.abs(touch.clientY - startY);
+            const dt = Date.now() - startTime;
+            startTime = 0;
+
+            // Jika pergeseran jari < 25px dan durasi < 600ms, ini adalah ketukan (TAP) valid!
+            if (dx < 25 && dy < 25 && dt < 600) {
+                let tapLatLng = null;
+                if (map && mapContainer.value) {
+                    try {
+                        const rect = mapContainer.value.getBoundingClientRect();
+                        const pt = L.point(touch.clientX - rect.left, touch.clientY - rect.top);
+                        tapLatLng = map.containerPointToLatLng(pt);
+                    } catch (_) {}
+                }
+                handleSelect(feature, layer, tapLatLng);
+            }
+        }
+    }, { passive: true });
+}
+
 async function loadGeoJsonAndInitMap() {
     try {
         isLoading.value = true;
@@ -422,6 +474,7 @@ async function loadGeoJsonAndInitMap() {
             minZoom: 8,
             maxZoom: 15,
             scrollWheelZoom: true,
+            tapTolerance: 25,
         });
 
         // Kontrol zoom di kanan atas
@@ -441,38 +494,43 @@ async function loadGeoJsonAndInitMap() {
             onEachFeature: (feature, layer) => {
                 layer.on({
                     mouseover: (e) => {
+                        if (Date.now() - lastInteractionTime < 800) return;
                         if (!isLockedByClick) {
-                            selectFeature(feature, e.target, e.latlng);
+                            selectFeature(feature, layer, e.latlng);
                         }
                     },
                     mousemove: (e) => {
+                        if (Date.now() - lastInteractionTime < 800) return;
                         if (!isLockedByClick && singleTooltip && map && map.hasLayer(singleTooltip)) {
                             singleTooltip.setLatLng(e.latlng);
                         }
                     },
                     mouseout: (e) => {
-                        const target = e.target;
+                        if (Date.now() - lastInteractionTime < 800) return;
                         if (!isLockedByClick) {
                             clearHover();
-                        } else if (activeHoverLayer !== target) {
-                            target.setStyle(featureStyle(target.feature));
+                        } else if (activeHoverLayer !== layer) {
+                            layer.setStyle(featureStyle(feature));
                         }
                     },
                     click: (e) => {
                         if (e.originalEvent) {
                             L.DomEvent.stopPropagation(e.originalEvent);
                         }
-                        lastInteractionTime = Date.now();
-                        isLockedByClick = true;
-                        selectFeature(feature, e.target, e.latlng);
+                        handleSelect(feature, layer, e.latlng);
                     },
                 });
             },
         }).addTo(map);
 
+        // Pasang direct touch listener ke setiap elemen SVG path poligon kecamatan
+        geojsonLayer.eachLayer((layer) => {
+            attachDirectTouchListeners(layer.feature, layer);
+        });
+
         // Klik pada area kosong peta mereset pilihan
         map.on('click', () => {
-            if (Date.now() - lastInteractionTime < 400) return;
+            if (Date.now() - lastInteractionTime < 600) return;
             isLockedByClick = false;
             clearHover();
         });
@@ -489,6 +547,13 @@ async function loadGeoJsonAndInitMap() {
                 },
                 interactive: false,          // Klik/hover tembus langsung ke kecamatan di bawahnya
             }).addTo(map);
+
+            kabupatenLayer.eachLayer(l => {
+                const el = l.getElement ? l.getElement() : l._path;
+                if (el) {
+                    el.style.pointerEvents = 'none';
+                }
+            });
         }
 
         map.fitBounds(geojsonLayer.getBounds(), { padding: [24, 24] });
@@ -648,7 +713,7 @@ onBeforeUnmount(() => {
             <!-- Live Status Hover & Touch Bar (Responsive: Bottom Sheet di Mobile, Pojok Kanan Bawah di Desktop) -->
             <div
                 v-if="hoveredFeature"
-                class="absolute bottom-3 left-3 right-3 sm:left-auto sm:right-3 sm:bottom-3 sm:max-w-xs z-[400] bg-white/95 backdrop-blur-xs rounded-xl border border-slate-200/90 p-2.5 sm:p-3 shadow-lg text-xs pointer-events-auto transition-all animate-in fade-in duration-150"
+                class="absolute bottom-3 left-3 right-3 sm:left-auto sm:right-3 sm:bottom-3 sm:max-w-xs z-[500] bg-white/95 backdrop-blur-xs rounded-xl border border-slate-200/90 p-2.5 sm:p-3 shadow-lg text-xs pointer-events-auto touch-manipulation transition-all animate-in fade-in duration-150"
             >
                 <div class="flex flex-col relative">
                     <button
