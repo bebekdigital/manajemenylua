@@ -25,7 +25,7 @@ class StatisticsController extends Controller
         Classroom::where('unit', 'LIKE', '%SD%')->where('jenjang', 'SMP')->update(['jenjang' => 'SD']);
 
         // 1. Ambil seluruh data tahun ajaran dari DB (database-agnostic)
-        $allAcademicYears = AcademicYear::all(['id', 'name', 'semester', 'start_date', 'end_date', 'is_active'])
+        $allAcademicYears = AcademicYear::all(['id', 'name', 'semester', 'start_date', 'end_date'])
             ->sortBy([
                 ['name', 'desc'],
                 ['semester', 'asc'],
