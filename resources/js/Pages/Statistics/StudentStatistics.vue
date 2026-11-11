@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
-import { Head } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Bar } from 'vue-chartjs';
 import {
@@ -33,7 +33,41 @@ const props = defineProps({
         type: Object,
         default: null,
     },
+    availableAcademicYears: {
+        type: Array,
+        default: () => [],
+    },
+    allAcademicYears: {
+        type: Array,
+        default: () => [],
+    },
 });
+
+// ============================================================
+// State Dropdown Filter Tahun Ajaran & Semester
+// ============================================================
+const selectedYearName = ref(
+    props.selectedAcademicYear?.name || (props.availableAcademicYears?.[0] ?? '2026/2027')
+);
+const selectedSemester = ref(props.selectedAcademicYear?.semester || 'Ganjil');
+
+watch(() => props.selectedAcademicYear, (newVal) => {
+    if (newVal) {
+        if (newVal.name) selectedYearName.value = newVal.name;
+        if (newVal.semester) selectedSemester.value = newVal.semester;
+    }
+}, { deep: true });
+
+function handleFilterChange() {
+    router.get('/statistics', {
+        academic_year: selectedYearName.value,
+        semester: selectedSemester.value,
+    }, {
+        preserveState: true,
+        preserveScroll: true,
+        replace: true,
+    });
+}
 
 // ============================================================
 // Scroll & Sticky Title Observer (Identik dengan Data Siswa & Pegawai)
@@ -128,37 +162,49 @@ const filteredClasses = computed(() => {
 });
 
 // ============================================================
-// Perhitungan Metrik Utama (Total, Aktif, Tidak Aktif, L, P, Siswa Baru)
+// Perhitungan Metrik Utama & Siswa Baru per TA & Semester
 // ============================================================
-function isNewStudent(student, academicYear) {
-    if (!student?.tanggal_diterima) return false;
-    const tgl = String(student.tanggal_diterima).slice(0, 10);
+function isNewStudentForYear(student, yearName, semesterFilter, allYearsList = []) {
+    if (!student?.tanggal_diterima && !student?.angkatan) return false;
+    const tgl = student.tanggal_diterima ? String(student.tanggal_diterima).slice(0, 10) : null;
 
-    // 1. Jika ada rentang tanggal mulai & selesai pada Tahun Ajaran
-    if (academicYear?.start_date && academicYear?.end_date) {
-        const start = String(academicYear.start_date).slice(0, 10);
-        const end = String(academicYear.end_date).slice(0, 10);
-        return tgl >= start && tgl <= end;
-    }
+    if (tgl) {
+        // Cek record spesifik pada allAcademicYears
+        const matchingRecords = (allYearsList || []).filter(y => y.name === yearName);
+        const filteredRecords = semesterFilter && semesterFilter !== 'Semua'
+            ? matchingRecords.filter(y => (y.semester || '').toLowerCase() === semesterFilter.toLowerCase())
+            : matchingRecords;
 
-    // 2. Fallback: deteksi berdasarkan nama Tahun Ajaran (misal '2026/2027')
-    if (academicYear?.name) {
-        const match = academicYear.name.match(/(\d{4})\s*[\/-]\s*(\d{4})/);
+        for (const rec of filteredRecords) {
+            if (rec.start_date && rec.end_date) {
+                const s = String(rec.start_date).slice(0, 10);
+                const e = String(rec.end_date).slice(0, 10);
+                if (tgl >= s && tgl <= e) return true;
+            }
+        }
+
+        // Fallback: deteksi dari nama tahun ajaran (misal '2026/2027')
+        const match = yearName.match(/(\d{4})\s*[\/-]\s*(\d{4})/);
         if (match) {
             const startYear = match[1];
             const endYear = match[2];
-            const sem = String(academicYear.semester || 'Ganjil').toLowerCase();
-            if (sem.includes('ganjil')) {
-                return tgl >= `${startYear}-01-01` && tgl <= `${startYear}-12-31`;
-            } else if (sem.includes('genap')) {
-                return tgl >= `${endYear}-01-01` && tgl <= `${endYear}-06-30`;
-            }
-            return tgl >= `${startYear}-01-01` && tgl <= `${endYear}-06-30`;
-        }
+            const sem = (semesterFilter || 'Semua').toLowerCase();
 
-        const singleMatch = academicYear.name.match(/(\d{4})/);
-        if (singleMatch) {
-            return tgl.startsWith(singleMatch[1]);
+            if (sem === 'ganjil') {
+                return tgl >= `${startYear}-01-01` && tgl <= `${startYear}-12-31`;
+            } else if (sem === 'genap') {
+                return tgl >= `${endYear}-01-01` && tgl <= `${endYear}-06-30`;
+            } else {
+                return tgl >= `${startYear}-01-01` && tgl <= `${endYear}-06-30`;
+            }
+        }
+    }
+
+    // Fallback: cek berdasarkan angkatan jika tanggal_diterima kosong
+    if (student.angkatan) {
+        const match = yearName.match(/(\d{4})/);
+        if (match && String(student.angkatan).trim() === match[1]) {
+            return true;
         }
     }
 
@@ -166,7 +212,9 @@ function isNewStudent(student, academicYear) {
 }
 
 const newStudentsCount = computed(() => {
-    return filteredStudents.value.filter(s => isNewStudent(s, props.selectedAcademicYear)).length;
+    return filteredStudents.value.filter(s =>
+        isNewStudentForYear(s, selectedYearName.value, selectedSemester.value, props.allAcademicYears)
+    ).length;
 });
 
 // ============================================================
@@ -231,6 +279,165 @@ const femalePercentage = computed(() => {
     if (genderTotal.value === 0) return 0;
     return 100 - malePercentage.value;
 });
+
+// ============================================================
+// Grafik Batang Jumlah Siswa Baru (x = TA, y = Jumlah Siswa)
+// ============================================================
+const newStudentsChartKey = ref(0);
+watch([activeUnit, selectedYearName, selectedSemester, () => props.students], () => {
+    newStudentsChartKey.value++;
+});
+
+const chartAcademicYears = computed(() => {
+    const set = new Set(props.availableAcademicYears || []);
+
+    (props.students || []).forEach(s => {
+        if (s.tanggal_diterima) {
+            const yr = parseInt(String(s.tanggal_diterima).slice(0, 4), 10);
+            const m = parseInt(String(s.tanggal_diterima).slice(5, 7), 10);
+            if (yr && yr > 2015) {
+                const ta = m >= 7 ? `${yr}/${yr + 1}` : `${yr - 1}/${yr}`;
+                set.add(ta);
+            }
+        }
+        if (s.angkatan) {
+            const a = parseInt(s.angkatan, 10);
+            if (a && a > 2015) {
+                set.add(`${a}/${a + 1}`);
+            }
+        }
+    });
+
+    if (set.size === 0) {
+        set.add('2024/2025');
+        set.add('2025/2026');
+        set.add('2026/2027');
+    }
+
+    return Array.from(set).sort((a, b) => {
+        const yA = parseInt(a.slice(0, 4), 10) || 0;
+        const yB = parseInt(b.slice(0, 4), 10) || 0;
+        return yA - yB;
+    });
+});
+
+const newStudentsPerYear = computed(() => {
+    return chartAcademicYears.value.map(year => {
+        const count = filteredStudents.value.filter(s =>
+            isNewStudentForYear(s, year, selectedSemester.value, props.allAcademicYears)
+        ).length;
+        return {
+            year,
+            count,
+        };
+    });
+});
+
+const newStudentsChartData = computed(() => {
+    const list = newStudentsPerYear.value;
+    return {
+        labels: list.map(item => item.year),
+        datasets: [
+            {
+                label: 'Jumlah Siswa Baru',
+                data: list.map(item => item.count),
+                backgroundColor: list.map(item => item.year === selectedYearName.value ? '#fbbf24' : '#047857'),
+                hoverBackgroundColor: list.map(item => item.year === selectedYearName.value ? '#f59e0b' : '#065f46'),
+                borderWidth: 0,
+                borderRadius: { topLeft: 6, topRight: 6, bottomLeft: 0, bottomRight: 0 },
+                borderSkipped: 'bottom',
+                maxBarThickness: 48,
+            },
+        ],
+    };
+});
+
+const newStudentsChartOptions = computed(() => ({
+    responsive: true,
+    maintainAspectRatio: false,
+    layout: {
+        padding: { top: 24 },
+    },
+    onClick: (event, elements) => {
+        if (elements && elements.length > 0) {
+            const index = elements[0].index;
+            const clickedYear = chartAcademicYears.value[index];
+            if (clickedYear && clickedYear !== selectedYearName.value) {
+                selectedYearName.value = clickedYear;
+                handleFilterChange();
+            }
+        }
+    },
+    plugins: {
+        legend: { display: false },
+        title: { display: false },
+        tooltip: {
+            backgroundColor: 'rgba(15, 23, 42, 0.92)',
+            titleFont: { size: 13, weight: 'bold', family: "'Plus Jakarta Sans', 'Inter', sans-serif" },
+            bodyFont: { size: 12, family: "'Plus Jakarta Sans', 'Inter', sans-serif" },
+            padding: 12,
+            cornerRadius: 12,
+            callbacks: {
+                title: (items) => `Tahun Ajaran ${items[0].label}`,
+                label: (item) => ` ${item.raw} Siswa Baru`,
+            },
+        },
+        datalabels: {
+            anchor: 'end',
+            align: 'top',
+            color: (ctx) => {
+                const year = chartAcademicYears.value[ctx.dataIndex];
+                return year === selectedYearName.value ? '#b45309' : '#047857';
+            },
+            font: { weight: 'bold', size: 11.5, family: "'Plus Jakarta Sans', 'Inter', sans-serif" },
+            offset: 2,
+            formatter: (value) => (value > 0 ? value : ''),
+        },
+    },
+    scales: {
+        x: {
+            title: {
+                display: true,
+                text: 'Tahun Ajaran (TA)',
+                color: '#64748b',
+                font: { size: 11.5, weight: '600', family: "'Plus Jakarta Sans', 'Inter', sans-serif" },
+                padding: { top: 8 },
+            },
+            grid: { display: false },
+            ticks: {
+                font: { size: 11.5, weight: '700', family: "'Plus Jakarta Sans', 'Inter', sans-serif" },
+                color: '#334155',
+            },
+            border: { display: false },
+        },
+        y: {
+            title: {
+                display: true,
+                text: 'Jumlah Siswa',
+                color: '#64748b',
+                font: { size: 11.5, weight: '600', family: "'Plus Jakarta Sans', 'Inter', sans-serif" },
+                padding: { bottom: 8 },
+            },
+            beginAtZero: true,
+            grid: {
+                color: 'rgba(226, 232, 240, 0.85)',
+                drawBorder: false,
+            },
+            ticks: {
+                font: { size: 11, family: "'Plus Jakarta Sans', 'Inter', sans-serif" },
+                color: '#94a3b8',
+                stepSize: 5,
+                precision: 0,
+                padding: 8,
+            },
+            border: { display: false },
+        },
+    },
+    animation: {
+        duration: 600,
+        easing: 'easeOutQuart',
+    },
+}));
 
 // ============================================================
 // Konfigurasi Grafik Bar (Total Siswa vs Laki-laki & Perempuan)
@@ -446,13 +653,37 @@ function getClassMalePercent(item) {
                     </button>
                 </div>
 
-                <!-- Badge Tahun Ajaran Aktif -->
-                <div
-                    v-if="selectedAcademicYear"
-                    class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-bold self-start sm:self-auto shrink-0 shadow-2xs"
-                >
-                    <span class="material-symbols-outlined text-[16px] text-emerald-700">calendar_month</span>
-                    <span>Tahun Ajaran {{ selectedAcademicYear.name }} • Semester {{ selectedAcademicYear.semester }}</span>
+                <!-- Dropdown Filter Tahun Ajaran & Semester (Terpisah) -->
+                <div class="flex items-center gap-2 flex-wrap self-start sm:self-auto shrink-0">
+                    <!-- Dropdown Tahun Ajaran -->
+                    <div class="relative inline-flex items-center">
+                        <span class="absolute left-3 text-slate-400 material-symbols-outlined text-[17px] pointer-events-none">calendar_month</span>
+                        <select
+                            v-model="selectedYearName"
+                            @change="handleFilterChange"
+                            class="appearance-none bg-white border border-slate-200/90 hover:border-emerald-300 text-slate-800 text-xs font-bold rounded-full pl-8 pr-7 py-1.5 shadow-2xs transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 cursor-pointer"
+                        >
+                            <option v-for="yr in (availableAcademicYears && availableAcademicYears.length ? availableAcademicYears : [selectedYearName])" :key="yr" :value="yr">
+                                TA {{ yr }}
+                            </option>
+                        </select>
+                        <span class="absolute right-2 text-slate-400 material-symbols-outlined text-[16px] pointer-events-none">expand_more</span>
+                    </div>
+
+                    <!-- Dropdown Semester -->
+                    <div class="relative inline-flex items-center">
+                        <span class="absolute left-3 text-slate-400 material-symbols-outlined text-[17px] pointer-events-none">schedule</span>
+                        <select
+                            v-model="selectedSemester"
+                            @change="handleFilterChange"
+                            class="appearance-none bg-white border border-slate-200/90 hover:border-emerald-300 text-slate-800 text-xs font-bold rounded-full pl-8 pr-7 py-1.5 shadow-2xs transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 cursor-pointer"
+                        >
+                            <option value="Semua">Semua Semester</option>
+                            <option value="Ganjil">Semester Ganjil</option>
+                            <option value="Genap">Semester Genap</option>
+                        </select>
+                        <span class="absolute right-2 text-slate-400 material-symbols-outlined text-[16px] pointer-events-none">expand_more</span>
+                    </div>
                 </div>
             </div>
 
@@ -484,6 +715,33 @@ function getClassMalePercent(item) {
             </div>
 
             <!-- ============================================================ -->
+            <!-- GRAFIK BATANG JUMLAH SISWA BARU (x = TA, y = Jumlah Siswa)   -->
+            <!-- ============================================================ -->
+            <div class="bg-white rounded-3xl border border-slate-200/90 p-4 sm:p-6 shadow-xs mb-5">
+                <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100 flex-wrap gap-2">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span>
+                        <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                            Jumlah Siswa Baru per Tahun Ajaran ({{ activeUnitLabel }})
+                        </h3>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs font-semibold text-slate-500">
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-900 border border-emerald-200 text-[11px] font-bold">
+                            <span class="w-2 h-2 rounded-full bg-yellow-400 inline-block"></span>
+                            <span>TA Terpilih: {{ selectedYearName }} ({{ selectedSemester === 'Semua' ? 'Semua Semester' : selectedSemester }})</span>
+                        </span>
+                    </div>
+                </div>
+
+                <div v-if="chartAcademicYears.length > 0" class="h-[240px] sm:h-[280px]">
+                    <Bar :key="newStudentsChartKey" :data="newStudentsChartData" :options="newStudentsChartOptions" />
+                </div>
+                <div v-else class="py-10 text-center text-slate-400 text-xs">
+                    Belum ada data periode siswa baru.
+                </div>
+            </div>
+
+            <!-- ============================================================ -->
             <!-- GENDER SISWA (BAR LAKI-LAKI & PEREMPUAN)                     -->
             <!-- ============================================================ -->
             <div class="bg-white rounded-3xl border border-slate-200/90 p-4 sm:p-6 shadow-xs mb-5">
@@ -504,10 +762,10 @@ function getClassMalePercent(item) {
                     <div class="flex items-center justify-between text-xs sm:text-[13.5px] font-bold mb-2.5">
                         <div class="flex items-center gap-2 text-emerald-950">
                             <span class="inline-flex items-center justify-center px-1.5 py-0.5 rounded-md text-[10.5px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-300">L</span>
-                            <span>Laki-laki ({{ malePercentage }}%)</span>
+                            <span>Laki-laki</span>
                         </div>
                         <div class="flex items-center gap-2 text-slate-900">
-                            <span>Perempuan ({{ femalePercentage }}%)</span>
+                            <span>Perempuan</span>
                             <span class="inline-flex items-center justify-center px-1.5 py-0.5 rounded-md text-[10.5px] font-bold bg-yellow-50 text-amber-900 border border-yellow-300">P</span>
                         </div>
                     </div>

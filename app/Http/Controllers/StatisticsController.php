@@ -24,28 +24,78 @@ class StatisticsController extends Controller
         Classroom::where('unit', 'LIKE', '%SMP%')->where('jenjang', 'SD')->update(['jenjang' => 'SMP']);
         Classroom::where('unit', 'LIKE', '%SD%')->where('jenjang', 'SMP')->update(['jenjang' => 'SD']);
 
-        $selectedYearId = $request->query('academic_year_id') ?? session('selected_academic_year_id');
-        $selectedYear = $selectedYearId
-            ? AcademicYear::find($selectedYearId)
-            : (AcademicYear::current() ?? AcademicYear::first());
+        // 1. Ambil seluruh data tahun ajaran dari DB (database-agnostic)
+        $allAcademicYears = AcademicYear::all(['id', 'name', 'semester', 'start_date', 'end_date', 'is_active'])
+            ->sortBy([
+                ['name', 'desc'],
+                ['semester', 'asc'],
+            ])
+            ->values();
 
-        if ($selectedYear && session('selected_academic_year_id') !== $selectedYear->id) {
-            session(['selected_academic_year_id' => $selectedYear->id]);
+        $availableYearNames = $allAcademicYears->pluck('name')->unique()->values()->all();
+
+        $currentYear = AcademicYear::current() ?? AcademicYear::first();
+        $defaultYearName = $currentYear?->name ?? ($availableYearNames[0] ?? '2026/2027');
+        $defaultSemester = $currentYear?->semester ?? 'Ganjil';
+
+        // Tangkap parameter filter tahun ajaran dan semester dari request
+        $requestedYearName = $request->query('academic_year') ?? $request->query('ta') ?? session('selected_academic_year_name');
+        $requestedSemester = $request->query('semester') ?? session('selected_semester');
+
+        $selectedYearName = ($requestedYearName && (in_array($requestedYearName, $availableYearNames) || empty($availableYearNames)))
+            ? $requestedYearName
+            : $defaultYearName;
+
+        $allowedSemesters = ['Semua', 'Ganjil', 'Genap'];
+        $selectedSemester = ($requestedSemester && in_array($requestedSemester, $allowedSemesters))
+            ? $requestedSemester
+            : $defaultSemester;
+
+        session([
+            'selected_academic_year_name' => $selectedYearName,
+            'selected_semester' => $selectedSemester,
+        ]);
+
+        // Cari record Tahun Ajaran yang sesuai untuk query data kelas & siswa
+        $matchingYears = $allAcademicYears->filter(function ($y) use ($selectedYearName, $selectedSemester) {
+            if ($y->name !== $selectedYearName) {
+                return false;
+            }
+            if ($selectedSemester !== 'Semua' && $y->semester !== $selectedSemester) {
+                return false;
+            }
+
+            return true;
+        });
+
+        if ($matchingYears->isEmpty()) {
+            $matchingYears = $allAcademicYears->filter(fn ($y) => $y->name === $selectedYearName);
         }
+
+        $matchingYearIds = $matchingYears->pluck('id')->all();
+        $firstMatch = $matchingYears->first();
+
+        $selectedYearData = [
+            'id' => $firstMatch?->id,
+            'name' => $selectedYearName,
+            'semester' => $selectedSemester,
+            'start_date' => $matchingYears->min('start_date') ? (is_string($matchingYears->min('start_date')) ? $matchingYears->min('start_date') : $matchingYears->min('start_date')->format('Y-m-d')) : null,
+            'end_date' => $matchingYears->max('end_date') ? (is_string($matchingYears->max('end_date')) ? $matchingYears->max('end_date') : $matchingYears->max('end_date')->format('Y-m-d')) : null,
+        ];
 
         $studentsPerClass = [];
 
-        if ($selectedYear) {
+        if (! empty($matchingYearIds)) {
             $studentsPerClass = StudentAcademicRecord::query()
                 ->leftJoin('students', 'students.id', '=', 'student_academic_records.student_id')
-                ->where('student_academic_records.academic_year_id', $selectedYear->id)
+                ->whereIn('student_academic_records.academic_year_id', $matchingYearIds)
                 ->where('student_academic_records.student_status', 'aktif')
                 ->whereNotNull('student_academic_records.classroom_id')
                 ->select(
                     'student_academic_records.classroom_id',
-                    DB::raw('COUNT(*) as total'),
-                    DB::raw("SUM(CASE WHEN UPPER(COALESCE(students.jk, '')) = 'L' THEN 1 ELSE 0 END) as male"),
-                    DB::raw("SUM(CASE WHEN UPPER(COALESCE(students.jk, '')) = 'P' THEN 1 ELSE 0 END) as female")
+                    DB::raw('COUNT(DISTINCT student_academic_records.student_id) as total'),
+                    DB::raw("COUNT(DISTINCT CASE WHEN UPPER(COALESCE(students.jk, '')) = 'L' THEN student_academic_records.student_id END) as male"),
+                    DB::raw("COUNT(DISTINCT CASE WHEN UPPER(COALESCE(students.jk, '')) = 'P' THEN student_academic_records.student_id END) as female")
                 )
                 ->groupBy('student_academic_records.classroom_id')
                 ->with('classroom:id,name,unit,jenjang,grade')
@@ -72,9 +122,9 @@ class StatisticsController extends Controller
 
         $students = Student::query()
             ->with([
-                'academicRecords' => function ($query) use ($selectedYear) {
-                    if ($selectedYear) {
-                        $query->where('academic_year_id', $selectedYear->id)->with('classroom:id,name,unit,jenjang,grade');
+                'academicRecords' => function ($query) use ($matchingYearIds) {
+                    if (! empty($matchingYearIds)) {
+                        $query->whereIn('academic_year_id', $matchingYearIds)->with('classroom:id,name,unit,jenjang,grade');
                     } else {
                         $query->latest('id')->limit(1)->with('classroom:id,name,unit,jenjang,grade');
                     }
@@ -109,13 +159,15 @@ class StatisticsController extends Controller
         return Inertia::render('Statistics/StudentStatistics', [
             'students' => $students,
             'studentsPerClass' => $studentsPerClass,
-            'selectedAcademicYear' => $selectedYear ? [
-                'id' => $selectedYear->id,
-                'name' => $selectedYear->name,
-                'semester' => $selectedYear->semester,
-                'start_date' => $selectedYear->start_date ? $selectedYear->start_date->format('Y-m-d') : null,
-                'end_date' => $selectedYear->end_date ? $selectedYear->end_date->format('Y-m-d') : null,
-            ] : null,
+            'selectedAcademicYear' => $selectedYearData,
+            'availableAcademicYears' => $availableYearNames,
+            'allAcademicYears' => $allAcademicYears->map(fn ($y) => [
+                'id' => $y->id,
+                'name' => $y->name,
+                'semester' => $y->semester,
+                'start_date' => $y->start_date ? (is_string($y->start_date) ? $y->start_date : $y->start_date->format('Y-m-d')) : null,
+                'end_date' => $y->end_date ? (is_string($y->end_date) ? $y->end_date : $y->end_date->format('Y-m-d')) : null,
+            ])->values()->toArray(),
         ]);
     }
 

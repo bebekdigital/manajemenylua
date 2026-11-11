@@ -30,6 +30,22 @@ class StudentStatisticsTest extends TestCase
             ->has('students')
             ->has('studentsPerClass')
             ->has('selectedAcademicYear')
+            ->has('availableAcademicYears')
+            ->has('allAcademicYears')
+        );
+    }
+
+    public function test_student_statistics_page_filters_by_academic_year_and_semester(): void
+    {
+        $response = $this->actingAs($this->user)->get('/statistics?academic_year=2024/2025&semester=Semua');
+
+        $response->assertStatus(200);
+        $response->assertInertia(fn (Assert $page) => $page
+            ->component('Statistics/StudentStatistics')
+            ->where('selectedAcademicYear.name', '2024/2025')
+            ->where('selectedAcademicYear.semester', 'Semua')
+            ->has('availableAcademicYears')
+            ->has('allAcademicYears')
         );
     }
 }
