@@ -142,6 +142,10 @@ class StatisticsController extends Controller
                 $normalizedStatus = strtolower(trim((string) $rawStatus)) === 'aktif' ? 'aktif' : 'tidak_aktif';
 
                 return [
+                    'id' => $student->id,
+                    'nama' => $student->nama,
+                    'nisn' => $student->nisn,
+                    'nipd' => $student->nipd,
                     'unit' => $student->unit ?? $record?->classroom?->unit ?? '-',
                     'jenjang' => $student->jenjang ?? $record?->classroom?->jenjang ?? '-',
                     'angkatan' => $student->angkatan,

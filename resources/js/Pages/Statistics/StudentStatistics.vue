@@ -284,7 +284,20 @@ const femalePercentage = computed(() => {
 // Grafik Batang Jumlah Siswa Baru (x = TA, y = Jumlah Siswa)
 // ============================================================
 const newStudentsChartKey = ref(0);
-watch([activeUnit, selectedYearName, selectedSemester, () => props.students], () => {
+const selectedChartYear = ref(
+    props.selectedAcademicYear?.name || (props.availableAcademicYears?.[0] ?? '2026/2027')
+);
+const showStudentsTab = ref(false);
+const studentGenderTab = ref('all'); // 'all' | 'L' | 'P'
+const studentSearchQuery = ref('');
+
+watch(selectedYearName, (newVal) => {
+    if (newVal) {
+        selectedChartYear.value = newVal;
+    }
+});
+
+watch([activeUnit, selectedYearName, selectedSemester, selectedChartYear, () => props.students], () => {
     newStudentsChartKey.value++;
 });
 
@@ -341,8 +354,8 @@ const newStudentsChartData = computed(() => {
             {
                 label: 'Jumlah Siswa Baru',
                 data: list.map(item => item.count),
-                backgroundColor: list.map(item => item.year === selectedYearName.value ? '#fbbf24' : '#047857'),
-                hoverBackgroundColor: list.map(item => item.year === selectedYearName.value ? '#f59e0b' : '#065f46'),
+                backgroundColor: list.map(item => item.year === selectedChartYear.value ? '#fbbf24' : '#047857'),
+                hoverBackgroundColor: list.map(item => item.year === selectedChartYear.value ? '#f59e0b' : '#065f46'),
                 borderWidth: 0,
                 borderRadius: { topLeft: 6, topRight: 6, bottomLeft: 0, bottomRight: 0 },
                 borderSkipped: 'bottom',
@@ -362,9 +375,9 @@ const newStudentsChartOptions = computed(() => ({
         if (elements && elements.length > 0) {
             const index = elements[0].index;
             const clickedYear = chartAcademicYears.value[index];
-            if (clickedYear && clickedYear !== selectedYearName.value) {
-                selectedYearName.value = clickedYear;
-                handleFilterChange();
+            if (clickedYear) {
+                selectedChartYear.value = clickedYear;
+                showStudentsTab.value = true;
             }
         }
     },
@@ -387,7 +400,7 @@ const newStudentsChartOptions = computed(() => ({
             align: 'top',
             color: (ctx) => {
                 const year = chartAcademicYears.value[ctx.dataIndex];
-                return year === selectedYearName.value ? '#b45309' : '#047857';
+                return year === selectedChartYear.value ? '#b45309' : '#047857';
             },
             font: { weight: 'bold', size: 11.5, family: "'Plus Jakarta Sans', 'Inter', sans-serif" },
             offset: 2,
@@ -438,6 +451,47 @@ const newStudentsChartOptions = computed(() => ({
         easing: 'easeOutQuart',
     },
 }));
+
+// Siswa baru yang masuk dalam Tahun Ajaran yang sedang dipilih pada grafik
+const studentsInSelectedChartYear = computed(() => {
+    if (!selectedChartYear.value) return [];
+    return filteredStudents.value.filter(s =>
+        isNewStudentForYear(s, selectedChartYear.value, selectedSemester.value, props.allAcademicYears)
+    );
+});
+
+const chartYearCounts = computed(() => {
+    const list = studentsInSelectedChartYear.value;
+    let male = 0;
+    let female = 0;
+    list.forEach(s => {
+        const jk = String(s.jk || '').toUpperCase();
+        if (jk === 'L') male++;
+        else if (jk === 'P') female++;
+    });
+    return { total: list.length, male, female };
+});
+
+const displayedNewStudents = computed(() => {
+    let list = studentsInSelectedChartYear.value;
+    if (studentGenderTab.value === 'L') {
+        list = list.filter(s => String(s.jk || '').toUpperCase() === 'L');
+    } else if (studentGenderTab.value === 'P') {
+        list = list.filter(s => String(s.jk || '').toUpperCase() === 'P');
+    }
+
+    if (studentSearchQuery.value.trim()) {
+        const q = studentSearchQuery.value.toLowerCase().trim();
+        list = list.filter(s =>
+            (s.nama && s.nama.toLowerCase().includes(q)) ||
+            (s.nipd && String(s.nipd).toLowerCase().includes(q)) ||
+            (s.nisn && String(s.nisn).toLowerCase().includes(q)) ||
+            (s.kelas && s.kelas.toLowerCase().includes(q)) ||
+            (s.unit && s.unit.toLowerCase().includes(q))
+        );
+    }
+    return list;
+});
 
 // ============================================================
 // Konfigurasi Grafik Bar (Total Siswa vs Laki-laki & Perempuan)
@@ -728,8 +782,18 @@ function getClassMalePercent(item) {
                     <div class="flex items-center gap-2 text-xs font-semibold text-slate-500">
                         <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-900 border border-emerald-200 text-[11px] font-bold">
                             <span class="w-2 h-2 rounded-full bg-yellow-400 inline-block"></span>
-                            <span>TA Terpilih: {{ selectedYearName }} ({{ selectedSemester === 'Semua' ? 'Semua Semester' : selectedSemester }})</span>
+                            <span>TA: {{ selectedChartYear }}</span>
                         </span>
+                        <button
+                            v-if="chartAcademicYears.length > 0"
+                            type="button"
+                            @click="showStudentsTab = !showStudentsTab"
+                            class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer border"
+                            :class="showStudentsTab ? 'bg-emerald-900 text-yellow-200 border-emerald-950 shadow-2xs' : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'"
+                        >
+                            <span class="material-symbols-outlined text-[15px]">{{ showStudentsTab ? 'expand_less' : 'group' }}</span>
+                            <span>{{ showStudentsTab ? 'Tutup Daftar' : `Nama Siswa (${chartYearCounts.total})` }}</span>
+                        </button>
                     </div>
                 </div>
 
@@ -738,6 +802,169 @@ function getClassMalePercent(item) {
                 </div>
                 <div v-else class="py-10 text-center text-slate-400 text-xs">
                     Belum ada data periode siswa baru.
+                </div>
+
+                <!-- Petunjuk interaktif klik batang -->
+                <div v-if="chartAcademicYears.length > 0 && !showStudentsTab" class="mt-3 text-center">
+                    <button
+                        type="button"
+                        @click="showStudentsTab = true"
+                        class="text-[11.5px] text-slate-500 hover:text-emerald-800 font-medium inline-flex items-center gap-1.5 cursor-pointer transition-colors"
+                    >
+                        <span class="material-symbols-outlined text-[15px] text-emerald-700">touch_app</span>
+                        <span>Klik salah satu batang grafik untuk menampilkan nama-nama siswa baru TA tersebut</span>
+                    </button>
+                </div>
+
+                <!-- ============================================================ -->
+                <!-- TAB RINCIAN NAMA SISWA BARU (MASIH 1 CONTAINER)              -->
+                <!-- ============================================================ -->
+                <div v-if="showStudentsTab" class="mt-6 pt-5 border-t border-slate-100">
+                    <!-- Tab Header: Judul & Sub-tabs Gender -->
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full bg-yellow-400 inline-block"></span>
+                                <h4 class="text-xs sm:text-sm font-bold text-slate-900">
+                                    Daftar Nama Siswa Baru — TA {{ selectedChartYear }}
+                                </h4>
+                                <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-950 border border-emerald-300">
+                                    {{ chartYearCounts.total }} Siswa
+                                </span>
+                            </div>
+                            <p class="text-[11.5px] text-slate-500 mt-0.5">
+                                Unit: {{ activeUnitLabel }} • Periode: {{ selectedSemester === 'Semua' ? 'Semua Semester' : `Semester ${selectedSemester}` }}
+                            </p>
+                        </div>
+
+                        <!-- Sub-tabs Gender: Semua, Laki-laki, Perempuan -->
+                        <div class="bg-slate-100 p-1 rounded-full inline-flex items-center gap-0.5 self-start sm:self-auto shrink-0 border border-slate-200/90">
+                            <button
+                                type="button"
+                                @click="studentGenderTab = 'all'"
+                                :class="[
+                                    'px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer',
+                                    studentGenderTab === 'all'
+                                        ? 'bg-emerald-900 text-yellow-200 shadow-2xs'
+                                        : 'text-slate-600 hover:text-slate-900'
+                                ]"
+                            >
+                                Semua ({{ chartYearCounts.total }})
+                            </button>
+                            <button
+                                type="button"
+                                @click="studentGenderTab = 'L'"
+                                :class="[
+                                    'inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer',
+                                    studentGenderTab === 'L'
+                                        ? 'bg-emerald-700 text-white shadow-2xs'
+                                        : 'text-slate-600 hover:text-slate-900'
+                                ]"
+                            >
+                                <span class="px-1 py-0.2 rounded bg-emerald-100 text-emerald-900 text-[9px] font-extrabold">L</span>
+                                <span>Putra ({{ chartYearCounts.male }})</span>
+                            </button>
+                            <button
+                                type="button"
+                                @click="studentGenderTab = 'P'"
+                                :class="[
+                                    'inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer',
+                                    studentGenderTab === 'P'
+                                        ? 'bg-yellow-400 text-emerald-950 shadow-2xs'
+                                        : 'text-slate-600 hover:text-slate-900'
+                                ]"
+                            >
+                                <span class="px-1 py-0.2 rounded bg-yellow-100 text-amber-900 text-[9px] font-extrabold">P</span>
+                                <span>Putri ({{ chartYearCounts.female }})</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Search Input jika data lebih dari 5 -->
+                    <div v-if="chartYearCounts.total > 5" class="mb-3 max-w-sm">
+                        <div class="relative">
+                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 material-symbols-outlined text-[17px]">search</span>
+                            <input
+                                v-model="studentSearchQuery"
+                                type="text"
+                                placeholder="Cari nama siswa atau kelas..."
+                                class="w-full bg-slate-50 border border-slate-200/90 rounded-xl pl-9 pr-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all"
+                            />
+                        </div>
+                    </div>
+
+                    <!-- Tampilan Daftar Siswa -->
+                    <div v-if="displayedNewStudents.length > 0">
+                        <!-- Mobile Cards -->
+                        <div class="md:hidden space-y-2 max-h-[340px] overflow-y-auto pr-0.5">
+                            <div
+                                v-for="(st, idx) in displayedNewStudents"
+                                :key="st.id || idx"
+                                class="p-3 rounded-xl bg-slate-50/80 border border-slate-200/80 flex items-center justify-between gap-3"
+                            >
+                                <div class="flex items-center gap-2.5 min-w-0">
+                                    <span
+                                        class="w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs shrink-0"
+                                        :class="st.jk === 'L' ? 'bg-emerald-100 text-emerald-900 border border-emerald-300' : 'bg-yellow-100 text-amber-900 border border-yellow-300'"
+                                    >
+                                        {{ st.jk || '-' }}
+                                    </span>
+                                    <div class="min-w-0">
+                                        <p class="text-xs font-bold text-slate-900 truncate">{{ st.nama || 'Siswa Tanpa Nama' }}</p>
+                                        <p class="text-[11px] text-slate-500 truncate">
+                                            {{ st.unit }} • Kelas: {{ st.kelas || '-' }}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="text-right shrink-0">
+                                    <span class="text-[10px] font-semibold text-slate-400 block">{{ st.tanggal_diterima || '-' }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Desktop Table -->
+                        <div class="hidden md:block overflow-hidden rounded-xl border border-slate-200/90 shadow-2xs max-h-[380px] overflow-y-auto">
+                            <table class="w-full text-left border-collapse text-xs">
+                                <thead class="sticky top-0 bg-slate-100 text-slate-700 border-b border-slate-200 uppercase text-[10.5px] font-bold tracking-wider">
+                                    <tr>
+                                        <th class="py-2.5 px-3.5 w-12 text-center">No</th>
+                                        <th class="py-2.5 px-3.5">Nama Siswa</th>
+                                        <th class="py-2.5 px-3.5 text-center w-24">Gender</th>
+                                        <th class="py-2.5 px-3.5">Unit Sekolah</th>
+                                        <th class="py-2.5 px-3.5">Kelas</th>
+                                        <th class="py-2.5 px-3.5 text-right">Tanggal Diterima</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 bg-white">
+                                    <tr
+                                        v-for="(st, idx) in displayedNewStudents"
+                                        :key="st.id || idx"
+                                        class="hover:bg-slate-50/80 transition-colors"
+                                    >
+                                        <td class="py-2.5 px-3.5 text-center text-slate-400 font-medium">{{ idx + 1 }}</td>
+                                        <td class="py-2.5 px-3.5 font-bold text-slate-900">{{ st.nama || '-' }}</td>
+                                        <td class="py-2.5 px-3.5 text-center">
+                                            <span
+                                                class="inline-flex items-center justify-center px-2 py-0.5 rounded text-[10.5px] font-bold"
+                                                :class="st.jk === 'L' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-yellow-50 text-amber-900 border border-yellow-300'"
+                                            >
+                                                {{ st.jk === 'L' ? 'L (Putra)' : (st.jk === 'P' ? 'P (Putri)' : '-') }}
+                                            </span>
+                                        </td>
+                                        <td class="py-2.5 px-3.5 text-slate-600 font-medium">{{ st.unit }}</td>
+                                        <td class="py-2.5 px-3.5 text-slate-600 font-medium">{{ st.kelas || '-' }}</td>
+                                        <td class="py-2.5 px-3.5 text-right text-slate-500 font-medium">{{ st.tanggal_diterima || '-' }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Empty State saat tidak ada siswa -->
+                    <div v-else class="py-8 text-center text-slate-400 text-xs">
+                        <span class="material-symbols-outlined text-2xl mb-1 text-slate-300 block">person_off</span>
+                        <span>Tidak ada siswa baru yang sesuai kriteria pada TA {{ selectedChartYear }}.</span>
+                    </div>
                 </div>
             </div>
 
@@ -757,38 +984,40 @@ function getClassMalePercent(item) {
                     </span>
                 </div>
 
-                <!-- Box Sesuai Gambar User -->
+                <!-- Box Sesuai Gambar User (Persis Screenshot) -->
                 <div class="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
-                    <div class="flex items-center justify-between text-xs sm:text-[13.5px] font-bold mb-2.5">
+                    <!-- Baris Atas: [L] Laki-laki (XX%) ... Perempuan (YY%) [P] -->
+                    <div class="flex items-center justify-between text-xs sm:text-[13.5px] font-bold mb-2.5 sm:mb-3">
                         <div class="flex items-center gap-2 text-emerald-950">
-                            <span class="inline-flex items-center justify-center px-1.5 py-0.5 rounded-md text-[10.5px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-300">L</span>
-                            <span>Laki-laki</span>
+                            <span class="inline-flex items-center justify-center w-6 h-6 rounded-lg text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 shadow-2xs">L</span>
+                            <span>Laki-laki ({{ malePercentage }}%)</span>
                         </div>
-                        <div class="flex items-center gap-2 text-slate-900">
-                            <span>Perempuan</span>
-                            <span class="inline-flex items-center justify-center px-1.5 py-0.5 rounded-md text-[10.5px] font-bold bg-yellow-50 text-amber-900 border border-yellow-300">P</span>
+                        <div class="flex items-center gap-2 text-emerald-950">
+                            <span>Perempuan ({{ femalePercentage }}%)</span>
+                            <span class="inline-flex items-center justify-center w-6 h-6 rounded-lg text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 shadow-2xs">P</span>
                         </div>
                     </div>
 
-                    <!-- Dual Bar: Emerald Tua untuk Putra & Kuning untuk Putri -->
+                    <!-- Dual Bar: Emerald Tua (#047857) untuk Putra & Mint Green (#6ee7b7) untuk Putri -->
                     <div class="w-full h-3.5 sm:h-4 rounded-full bg-slate-100 overflow-hidden flex">
                         <div
                             v-if="genderTotal > 0"
-                            class="bg-emerald-700 h-full transition-all duration-500"
+                            class="bg-[#047857] h-full transition-all duration-500"
                             :style="{ width: `${malePercentage}%` }"
                             :title="`Laki-laki: ${metrics.male} siswa (${malePercentage}%)`"
                         ></div>
                         <div
                             v-if="genderTotal > 0"
-                            class="bg-yellow-400 h-full transition-all duration-500"
+                            class="bg-[#6ee7b7] h-full transition-all duration-500"
                             :style="{ width: `${femalePercentage}%` }"
                             :title="`Perempuan: ${metrics.female} siswa (${femalePercentage}%)`"
                         ></div>
                     </div>
 
-                    <div class="flex items-center justify-between text-xs sm:text-[12.5px] text-slate-600 font-semibold mt-2.5">
-                        <span>{{ metrics.male }} siswa putra ({{ malePercentage }}%)</span>
-                        <span>{{ metrics.female }} siswa putri ({{ femalePercentage }}%)</span>
+                    <!-- Baris Bawah: Total Putra & Putri (Tanpa Persen di Bawah Sesuai Gambar) -->
+                    <div class="flex items-center justify-between text-xs sm:text-[12.5px] text-slate-500 font-medium mt-2.5 sm:mt-3">
+                        <span>{{ metrics.male }} siswa putra</span>
+                        <span>{{ metrics.female }} siswa putri</span>
                     </div>
                 </div>
             </div>
