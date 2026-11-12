@@ -108,7 +108,7 @@ function getAlamatLengkap(s) {
                         <th
                             @click="handleSort('nama')"
                             :class="[
-                                'py-3.5 px-3 text-[11.5px] font-bold uppercase tracking-wider cursor-pointer transition-colors select-none',
+                                'py-3.5 px-4 min-w-[280px] text-[11.5px] font-bold uppercase tracking-wider cursor-pointer transition-colors select-none',
                                 sortBy === 'nama' ? 'text-yellow-200' : 'text-white hover:text-yellow-200'
                             ]"
                         >
@@ -225,37 +225,35 @@ function getAlamatLengkap(s) {
                         </td>
 
                         <!-- Siswa: Nama Lengkap + JK Badge + NISN Sub-text (Mirip Tabel Pegawai) -->
-                        <td class="py-3.5 px-3 align-middle">
-                            <div class="flex items-start justify-between gap-2">
-                                <div class="min-w-0">
-                                    <div class="flex items-center gap-1.5 flex-wrap">
-                                        <Link
-                                            :href="`/students/${student.nisn}`"
-                                            class="text-[13.5px] font-bold text-slate-900 hover:text-emerald-700 transition-colors leading-tight"
-                                            title="Buka Detail Siswa"
-                                        >
-                                            {{ student.nama }}
-                                        </Link>
-                                        <!-- Badge Jenis Kelamin (Biru untuk L, Pink untuk P) -->
-                                        <span
-                                            v-if="student.jk"
-                                            :class="[
-                                                'text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 leading-none',
-                                                student.jk === 'L'
-                                                    ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                                                    : (student.jk === 'P'
-                                                        ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                                                        : 'bg-slate-100 text-slate-600 border border-slate-200')
-                                            ]"
-                                            :title="student.jk === 'L' ? 'Laki-laki' : (student.jk === 'P' ? 'Perempuan' : student.jk)"
-                                        >
-                                            {{ student.jk }}
-                                        </span>
-                                    </div>
-                                    <!-- NISN Sub-text (Font NISN jelas & kontras) -->
-                                    <div class="text-[12px] text-slate-600 font-mono font-medium mt-0.5 tracking-tight">
-                                        {{ student.nisn || 'NISN -' }}
-                                    </div>
+                        <td class="py-3.5 px-4 align-middle min-w-[280px]">
+                            <div class="flex flex-col justify-center">
+                                <div class="flex items-center gap-1.5 flex-nowrap">
+                                    <Link
+                                        :href="`/students/${student.nisn}`"
+                                        class="text-[13.5px] font-bold text-slate-900 hover:text-emerald-700 transition-colors whitespace-nowrap"
+                                        title="Buka Detail Siswa"
+                                    >
+                                        {{ student.nama }}
+                                    </Link>
+                                    <!-- Badge Jenis Kelamin (Biru untuk L, Pink untuk P) -->
+                                    <span
+                                        v-if="student.jk"
+                                        :class="[
+                                            'text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 leading-none',
+                                            student.jk === 'L'
+                                                ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                                                : (student.jk === 'P'
+                                                    ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                                                    : 'bg-slate-100 text-slate-600 border border-slate-200')
+                                        ]"
+                                        :title="student.jk === 'L' ? 'Laki-laki' : (student.jk === 'P' ? 'Perempuan' : student.jk)"
+                                    >
+                                        {{ student.jk }}
+                                    </span>
+                                </div>
+                                <!-- NISN Sub-text (Font NISN jelas & kontras) -->
+                                <div class="text-[12px] text-slate-500 font-mono font-medium mt-0.5 whitespace-nowrap tracking-tight">
+                                    {{ student.nisn || 'NISN -' }}
                                 </div>
                             </div>
                         </td>
@@ -284,11 +282,11 @@ function getAlamatLengkap(s) {
 
                         <!-- Unit (Menampung Unit Formal DAN Unit Asrama - Badge beda warna tanpa icon) -->
                         <td class="py-3.5 px-3 align-middle whitespace-nowrap">
-                            <div class="flex items-center gap-1.5 flex-wrap">
+                            <div class="flex items-center gap-1.5 flex-nowrap">
                                 <!-- Unit Formal Badge (Warna Netral Slate Berbingkai Tanpa Icon) -->
                                 <span
                                     v-if="student.unit"
-                                    class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-100 text-slate-800 border border-slate-300"
+                                    class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-100 text-slate-800 border border-slate-300 whitespace-nowrap"
                                     :title="'Unit Formal: ' + student.unit"
                                 >
                                     {{ student.unit }}
@@ -296,7 +294,7 @@ function getAlamatLengkap(s) {
                                 <!-- Unit Asrama / Pesantren Badge (Warna Berbeda: Indigo Berbingkai Tanpa Icon) -->
                                 <span
                                     v-if="student.unit_pesantren"
-                                    class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200"
+                                    class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 whitespace-nowrap shrink-0"
                                     :title="'Unit Asrama: ' + student.unit_pesantren"
                                 >
                                     {{ student.unit_pesantren }}
