@@ -280,9 +280,9 @@ function getAlamatLengkap(s) {
                             <span v-else class="text-slate-400 text-[12px]">-</span>
                         </td>
 
-                        <!-- Unit (Menampung Unit Formal DAN Unit Asrama - Badge beda warna tanpa icon) -->
+                        <!-- Unit (Menampung Unit Formal DAN Unit Asrama di bawahnya - Badge beda warna tanpa icon) -->
                         <td class="py-3.5 px-3 align-middle whitespace-nowrap">
-                            <div class="flex items-center gap-1.5 flex-nowrap">
+                            <div class="flex flex-col items-start gap-1">
                                 <!-- Unit Formal Badge (Warna Netral Slate Berbingkai Tanpa Icon) -->
                                 <span
                                     v-if="student.unit"
@@ -291,10 +291,10 @@ function getAlamatLengkap(s) {
                                 >
                                     {{ student.unit }}
                                 </span>
-                                <!-- Unit Asrama / Pesantren Badge (Warna Berbeda: Indigo Berbingkai Tanpa Icon) -->
+                                <!-- Unit Asrama / Pesantren Badge (Warna Berbeda: Indigo Berbingkai Tanpa Icon) di bawah Unit Formal -->
                                 <span
                                     v-if="student.unit_pesantren"
-                                    class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 whitespace-nowrap shrink-0"
+                                    class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 whitespace-nowrap"
                                     :title="'Unit Asrama: ' + student.unit_pesantren"
                                 >
                                     {{ student.unit_pesantren }}
