@@ -446,13 +446,14 @@ function onUnitSuccess() {
     showToast('success', 'Unit sekolah berhasil disimpan.');
 }
 
-function confirmUnitDelete(unit) {
+function confirmUnitDelete(unit, level) {
     openConfirmModal({
         title: 'Hapus Unit Sekolah',
-        message: 'Yakin ingin menghapus unit sekolah ini beserta kelas di dalamnya?',
+        message: level ? `Yakin ingin menghapus unit "${unit.name}" dari jenjang ${level.name}?` : `Yakin ingin menghapus unit "${unit.name}" ini beserta kelas di dalamnya?`,
         itemName: unit.name,
         onConfirm: (done) => {
             router.delete(`/portal/school-units/${unit.id}`, {
+                data: { level_id: level?.id },
                 preserveScroll: true,
                 onFinish: done,
                 onSuccess: () => {
@@ -1244,7 +1245,7 @@ onUnmounted(() => {
                                                         <button v-if="canUpdateAcademic" type="button" @click="openUnitEditModal(unit, level)" class="p-1 rounded-lg text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 transition-colors cursor-pointer" title="Edit Unit">
                                                             <span class="material-symbols-outlined text-[16px]">edit</span>
                                                         </button>
-                                                        <button v-if="canDeleteAcademic" type="button" @click="confirmUnitDelete(unit)" class="p-1 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer" title="Hapus Unit">
+                                                        <button v-if="canDeleteAcademic" type="button" @click="confirmUnitDelete(unit, level)" class="p-1 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer" title="Hapus Unit">
                                                             <span class="material-symbols-outlined text-[16px]">delete</span>
                                                         </button>
                                                     </div>
@@ -1392,7 +1393,7 @@ onUnmounted(() => {
                                             <button
                                                 v-if="canDeleteAcademic"
                                                 type="button"
-                                                @click="confirmUnitDelete(unit)"
+                                                @click="confirmUnitDelete(unit, level)"
                                                 class="p-1 text-slate-400 hover:text-rose-600 transition-colors"
                                                 title="Hapus Unit"
                                             >

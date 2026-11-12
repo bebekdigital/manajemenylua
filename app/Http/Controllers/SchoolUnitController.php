@@ -16,12 +16,21 @@ class SchoolUnitController extends Controller
         }
 
         $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:school_units,name',
+            'name' => 'required|string|max:255',
         ]);
 
-        $schoolLevel->units()->create([
-            'name' => $validated['name'],
-        ]);
+        $name = trim($validated['name']);
+
+        // Cari atau buat master unit sekolah
+        $unit = SchoolUnit::firstOrCreate(['name' => $name]);
+
+        // Cek apakah sudah terhubung dengan jenjang ini
+        $exists = $schoolLevel->units()->where('school_units.id', $unit->id)->exists();
+        if ($exists) {
+            return back()->with('error', 'Unit sudah ada di jenjang ini.');
+        }
+
+        $schoolLevel->units()->attach($unit->id);
 
         return back()->with('success', 'Unit berhasil ditambahkan.');
     }
@@ -37,20 +46,33 @@ class SchoolUnitController extends Controller
         ]);
 
         $schoolUnit->update([
-            'name' => $validated['name'],
+            'name' => trim($validated['name']),
         ]);
 
         return back()->with('success', 'Unit berhasil diperbarui.');
     }
 
-    public function destroy(SchoolUnit $schoolUnit)
+    public function destroy(Request $request, SchoolUnit $schoolUnit)
     {
         if (! RolePermission::canAccess(request()->user(), 'setting_academic', 'delete')) {
             abort(403, 'Anda tidak memiliki hak akses untuk menghapus unit sekolah.');
         }
 
-        // Add check here if units have relation to students/classrooms later
-        $schoolUnit->delete();
+        $levelId = $request->input('level_id');
+        if ($levelId) {
+            $schoolLevel = SchoolLevel::find($levelId);
+            $schoolLevel?->units()->detach($schoolUnit->id);
+
+            // Jika unit sudah tidak terikat di jenjang mana pun
+            if ($schoolUnit->levels()->count() === 0) {
+                $schoolUnit->programs()->detach();
+                $schoolUnit->delete();
+            }
+        } else {
+            $schoolUnit->levels()->detach();
+            $schoolUnit->programs()->detach();
+            $schoolUnit->delete();
+        }
 
         return back()->with('success', 'Unit berhasil dihapus.');
     }

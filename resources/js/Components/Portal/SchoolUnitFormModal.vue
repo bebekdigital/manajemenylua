@@ -45,21 +45,37 @@ const satuanPendidikanUnits = computed(() => {
     );
 });
 
-const hasSatuanPendidikan = computed(() => satuanPendidikanUnits.value.length > 0);
+// Pilihan unit: gabungan dari Satuan Pendidikan di Departemen dan Unit yang sudah ada di SchoolLevels
+const availableUnitOptions = computed(() => {
+    const map = new Map();
 
-// Daftar nama unit yang sudah terdaftar di seluruh jenjang (untuk mencegah duplikasi)
-const registeredUnitNames = computed(() => {
-    const list = [];
+    satuanPendidikanUnits.value.forEach(d => {
+        if (d && d.name && d.name.trim()) {
+            map.set(d.name.trim(), { id: d.id, name: d.name.trim() });
+        }
+    });
+
     if (props.schoolLevels && Array.isArray(props.schoolLevels)) {
         props.schoolLevels.forEach(lvl => {
             if (lvl && Array.isArray(lvl.units)) {
                 lvl.units.forEach(u => {
-                    if (u && u.name) list.push(u.name.trim().toLowerCase());
+                    if (u && u.name && u.name.trim() && !map.has(u.name.trim())) {
+                        map.set(u.name.trim(), { id: u.id, name: u.name.trim() });
+                    }
                 });
             }
         });
     }
-    return list;
+
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+});
+
+const hasAvailableUnits = computed(() => availableUnitOptions.value.length > 0);
+
+// Daftar nama unit yang sudah terdaftar pada jenjang yang sedang dipilih ini
+const currentLevelUnitNames = computed(() => {
+    if (!props.schoolLevel?.units || !Array.isArray(props.schoolLevel.units)) return [];
+    return props.schoolLevel.units.map(u => (u.name || '').trim().toLowerCase());
 });
 
 function isUnitDisabled(deptName) {
@@ -69,7 +85,7 @@ function isUnitDisabled(deptName) {
     if (props.editing && props.editing.name && props.editing.name.trim().toLowerCase() === cleanName) {
         return false;
     }
-    return registeredUnitNames.value.includes(cleanName);
+    return currentLevelUnitNames.value.includes(cleanName);
 }
 
 watch(
@@ -79,14 +95,14 @@ watch(
             form.clearErrors();
             if (props.editing) {
                 form.name = props.editing.name || '';
-                const matchInDropdown = satuanPendidikanUnits.value.some(
+                const matchInDropdown = availableUnitOptions.value.some(
                     d => d.name.trim().toLowerCase() === (props.editing.name || '').trim().toLowerCase()
                 );
                 isManualInput.value = !matchInDropdown && !!props.editing.name;
                 customName.value = isManualInput.value ? props.editing.name : '';
             } else {
                 form.reset();
-                isManualInput.value = !hasSatuanPendidikan.value;
+                isManualInput.value = !hasAvailableUnits.value;
                 customName.value = '';
             }
         }
@@ -167,20 +183,20 @@ function submit() {
                                         Unit Sekolah (Satuan Pendidikan) <span class="text-error">*</span>
                                     </label>
                                     <button
-                                        v-if="hasSatuanPendidikan"
+                                        v-if="hasAvailableUnits"
                                         type="button"
                                         @click="isManualInput = !isManualInput; if (!isManualInput) { form.name = ''; } else { form.name = customName; }"
                                         class="text-[11px] font-semibold text-emerald-800 hover:text-emerald-950 hover:underline cursor-pointer flex items-center gap-1 transition-colors"
                                     >
                                         <span class="material-symbols-outlined text-[13px]">
-                                            {{ isManualInput ? 'list' : 'edit_note' }}
+                                             {{ isManualInput ? 'list' : 'edit_note' }}
                                         </span>
                                         <span>{{ isManualInput ? 'Pilih dari Dropdown' : 'Input Manual' }}</span>
                                     </button>
                                 </div>
 
-                                <!-- Mode Dropdown (Ngambil dari Kelompok Unit: Satuan Pendidikan pada Diagram Organisasi) -->
-                                <div v-if="!isManualInput && hasSatuanPendidikan" class="space-y-1.5">
+                                <!-- Mode Dropdown (Ngambil dari Satuan Pendidikan Organisasi & Unit Terdaftar) -->
+                                <div v-if="!isManualInput && hasAvailableUnits" class="space-y-1.5">
                                     <div class="relative">
                                         <select
                                             :value="form.name"
@@ -191,12 +207,12 @@ function submit() {
                                         >
                                             <option value="" disabled>-- Pilih Unit Sekolah (Satuan Pendidikan) --</option>
                                             <option
-                                                v-for="dept in satuanPendidikanUnits"
+                                                v-for="dept in availableUnitOptions"
                                                 :key="dept.id"
                                                 :value="dept.name"
                                                 :disabled="isUnitDisabled(dept.name)"
                                             >
-                                                {{ dept.name }} {{ isUnitDisabled(dept.name) ? '(Sudah Terdaftar)' : '' }}
+                                                {{ dept.name }} {{ isUnitDisabled(dept.name) ? '(Sudah Ada di Jenjang Ini)' : '' }}
                                             </option>
                                             <option value="__custom__" class="font-semibold text-emerald-800">
                                                 + Tulis Nama Unit Lainnya (Manual)...
@@ -208,7 +224,7 @@ function submit() {
                                     </div>
                                     <p class="text-[11.5px] text-slate-500 flex items-center gap-1.5 pt-0.5">
                                         <span class="material-symbols-outlined text-[15px] text-emerald-700">info</span>
-                                        <span>Pilihan unit diambil dari <strong>Diagram Organisasi</strong> (Kelompok Unit: <em>Satuan Pendidikan</em>).</span>
+                                        <span>Pilihan unit diambil dari <strong>Diagram Organisasi</strong> dan unit yang sudah pernah ditambahkan.</span>
                                     </p>
                                 </div>
 
@@ -222,9 +238,9 @@ function submit() {
                                         placeholder="Contoh: SDIT Ulil Albab, SMPIT, dll."
                                         :class="{ 'border-error': form.errors.name }"
                                     />
-                                    <p v-if="!hasSatuanPendidikan" class="text-[11.5px] text-amber-800 bg-amber-50 border border-amber-200/90 p-2.5 rounded-xl flex items-start gap-1.5 mt-1 leading-relaxed">
+                                    <p v-if="!hasAvailableUnits" class="text-[11.5px] text-amber-800 bg-amber-50 border border-amber-200/90 p-2.5 rounded-xl flex items-start gap-1.5 mt-1 leading-relaxed">
                                         <span class="material-symbols-outlined text-[16px] text-amber-700 shrink-0 mt-0.5">info</span>
-                                        <span>Belum ada unit dengan kelompok <strong>Satuan Pendidikan</strong> di Diagram Organisasi. Anda dapat menambahkannya terlebih dahulu di tab <em>Organisasi &rarr; Daftar Unit</em> atau ketik nama secara manual di atas.</span>
+                                        <span>Belum ada unit yang terdaftar. Anda dapat mengetikkan nama unit sekolah baru di atas.</span>
                                     </p>
                                 </div>
 
