@@ -15,6 +15,10 @@ const props = defineProps({
         type: Object,
         default: null,
     },
+    schoolLevel: {
+        type: Object,
+        default: null,
+    },
     existingPrograms: {
         type: Array,
         default: () => [],
@@ -132,7 +136,10 @@ function submit() {
             onSuccess: () => emit('success'),
         });
     } else {
-        form.post(`/portal/school-units/${props.schoolUnit.id}/programs`, {
+        form.transform((data) => ({
+            ...data,
+            level_id: props.schoolLevel?.id,
+        })).post(`/portal/school-units/${props.schoolUnit.id}/programs`, {
             preserveScroll: true,
             onSuccess: () => emit('success'),
         });
@@ -176,6 +183,7 @@ function submit() {
                             <div v-if="schoolUnit && !isEditing" class="p-3 bg-surface-container-low rounded-xl border border-outline-variant/40 text-sm">
                                 <span class="text-on-surface-variant">Menambahkan program untuk unit: </span>
                                 <strong class="text-on-surface">{{ schoolUnit.name }}</strong>
+                                <span v-if="schoolLevel" class="text-slate-600 font-medium"> (Jenjang {{ schoolLevel.name }})</span>
                             </div>
 
                             <!-- MODE EDIT: Input Teks Langsung Untuk Mengubah Nama Program -->

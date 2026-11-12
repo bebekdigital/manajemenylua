@@ -26,6 +26,7 @@ class SchoolUnit extends Model
     public function programs(): BelongsToMany
     {
         return $this->belongsToMany(SchoolProgram::class, 'school_unit_program')
+            ->withPivot('school_level_id')
             ->withTimestamps();
     }
 

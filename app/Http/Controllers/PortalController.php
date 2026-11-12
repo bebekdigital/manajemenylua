@@ -11,6 +11,7 @@ use App\Models\RolePermission;
 use App\Models\SchoolLevel;
 use App\Models\SchoolProgram;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -70,7 +71,50 @@ class PortalController extends Controller
             ];
         });
 
-        $schoolLevels = SchoolLevel::with(['units.programs', 'units.classes'])->orderBy('order')->get();
+        $schoolLevels = SchoolLevel::with(['units.classes'])->orderBy('order')->get();
+
+        if (Schema::hasTable('school_unit_program') && Schema::hasTable('school_programs')) {
+            $hasLevelCol = Schema::hasColumn('school_unit_program', 'school_level_id');
+
+            $query = DB::table('school_unit_program')
+                ->join('school_programs', 'school_programs.id', '=', 'school_unit_program.school_program_id')
+                ->select(
+                    'school_programs.id',
+                    'school_programs.name',
+                    'school_unit_program.school_unit_id'
+                );
+
+            if ($hasLevelCol) {
+                $query->addSelect('school_unit_program.school_level_id');
+            }
+
+            $allPrograms = $query->orderBy('school_programs.name')->get();
+
+            foreach ($schoolLevels as $level) {
+                foreach ($level->units as $unit) {
+                    if ($hasLevelCol) {
+                        $unitProgs = $allPrograms
+                            ->where('school_unit_id', $unit->id)
+                            ->where('school_level_id', $level->id)
+                            ->map(fn ($p) => [
+                                'id' => $p->id,
+                                'name' => $p->name,
+                            ])
+                            ->values();
+                    } else {
+                        $unitProgs = $allPrograms
+                            ->where('school_unit_id', $unit->id)
+                            ->map(fn ($p) => [
+                                'id' => $p->id,
+                                'name' => $p->name,
+                            ])
+                            ->values();
+                    }
+
+                    $unit->setRelation('programs', $unitProgs);
+                }
+            }
+        }
 
         $existingPrograms = Schema::hasTable('school_programs')
             ? SchoolProgram::query()

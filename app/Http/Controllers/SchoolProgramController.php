@@ -19,20 +19,40 @@ class SchoolProgramController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'level_id' => 'nullable|exists:school_levels,id',
         ]);
 
         $name = trim($validated['name']);
+        $levelId = $validated['level_id'] ?? null;
+
+        // Jika level_id tidak dikirim, ambil level pertama dari unit ini
+        if (! $levelId) {
+            $levelId = $schoolUnit->levels()->value('school_levels.id');
+        }
 
         // Cari atau buat program master school_programs
         $program = SchoolProgram::firstOrCreate(['name' => $name]);
 
-        // Cek apakah sudah terhubung di unit ini
-        $exists = $schoolUnit->programs()->where('school_programs.id', $program->id)->exists();
-        if ($exists) {
-            return back()->with('error', 'Program sudah ada di unit ini.');
+        // Cek apakah sudah terhubung di unit dan jenjang ini
+        $query = DB::table('school_unit_program')
+            ->where('school_unit_id', $schoolUnit->id)
+            ->where('school_program_id', $program->id);
+
+        if ($levelId) {
+            $query->where('school_level_id', $levelId);
         }
 
-        $schoolUnit->programs()->attach($program->id);
+        if ($query->exists()) {
+            return back()->with('error', 'Program sudah ada di unit pada jenjang ini.');
+        }
+
+        DB::table('school_unit_program')->insert([
+            'school_level_id' => $levelId,
+            'school_unit_id' => $schoolUnit->id,
+            'school_program_id' => $program->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
 
         return back()->with('success', 'Program berhasil ditambahkan.');
     }
@@ -81,15 +101,31 @@ class SchoolProgramController extends Controller
         }
 
         $unitId = $request->input('unit_id');
-        if ($unitId) {
-            $schoolUnit = SchoolUnit::find($unitId);
-            $schoolUnit?->programs()->detach($schoolProgram->id);
+        $levelId = $request->input('level_id');
 
-            if ($schoolProgram->units()->count() === 0) {
+        if ($unitId) {
+            $query = DB::table('school_unit_program')
+                ->where('school_unit_id', $unitId)
+                ->where('school_program_id', $schoolProgram->id);
+
+            if ($levelId) {
+                $query->where('school_level_id', $levelId);
+            }
+
+            $query->delete();
+
+            // Jika program sudah tidak terikat di level/unit mana pun
+            $remaining = DB::table('school_unit_program')
+                ->where('school_program_id', $schoolProgram->id)
+                ->count();
+
+            if ($remaining === 0) {
                 $schoolProgram->delete();
             }
         } else {
-            $schoolProgram->units()->detach();
+            DB::table('school_unit_program')
+                ->where('school_program_id', $schoolProgram->id)
+                ->delete();
             $schoolProgram->delete();
         }
 

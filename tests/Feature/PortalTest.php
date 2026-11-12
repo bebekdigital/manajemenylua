@@ -5,7 +5,9 @@ namespace Tests\Feature;
 use App\Models\AcademicYear;
 use App\Models\Employee;
 use App\Models\EmployeePosition;
+use App\Models\SchoolLevel;
 use App\Models\SchoolProgram;
+use App\Models\SchoolUnit;
 use App\Models\Student;
 use App\Models\StudentAcademicRecord;
 use App\Models\User;
@@ -428,5 +430,52 @@ class PortalTest extends TestCase
 
         $program2->refresh();
         $this->assertEquals('Boarding', $program2->name);
+    }
+
+    public function test_program_in_one_level_does_not_appear_in_another_level_for_same_unit(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+        ]);
+
+        $smp = SchoolLevel::create(['name' => 'SMP', 'order' => 1]);
+        $sma = SchoolLevel::create(['name' => 'SMA', 'order' => 2]);
+
+        $unit = SchoolUnit::create(['name' => 'PPTQ Ulil Albab']);
+        $smp->units()->attach($unit->id);
+        $sma->units()->attach($unit->id);
+
+        // Tambahkan program "Boarding SMP" ke PPTQ di jenjang SMP
+        $response = $this->actingAs($admin)->post(route('portal.school-programs.store', $unit), [
+            'name' => 'Boarding SMP',
+            'level_id' => $smp->id,
+        ]);
+
+        $response->assertSessionHas('success');
+
+        // Buka portal dan periksa programs di setiap level
+        $portalRes = $this->actingAs($admin)->get(route('portal.index'));
+        $portalRes->assertOk();
+        $portalRes->assertInertia(fn (Assert $page) => $page
+            ->component('Portal')
+            ->has('schoolLevels', 2)
+            ->where('schoolLevels.0.units.0.programs.0.name', 'Boarding SMP')
+            ->has('schoolLevels.1.units.0.programs', 0)
+        );
+
+        // Hapus program dari jenjang SMP
+        $program = SchoolProgram::where('name', 'Boarding SMP')->firstOrFail();
+        $delRes = $this->actingAs($admin)->delete(route('portal.school-programs.destroy', $program), [
+            'unit_id' => $unit->id,
+            'level_id' => $smp->id,
+        ]);
+        $delRes->assertSessionHas('success');
+
+        // Pastikan di portal sudah tidak ada program di kedua jenjang
+        $afterDel = $this->actingAs($admin)->get(route('portal.index'));
+        $afterDel->assertInertia(fn (Assert $page) => $page
+            ->has('schoolLevels.0.units.0.programs', 0)
+            ->has('schoolLevels.1.units.0.programs', 0)
+        );
     }
 }

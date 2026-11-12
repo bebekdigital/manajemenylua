@@ -468,6 +468,7 @@ function confirmUnitDelete(unit, level) {
 const showProgramModal = ref(false);
 const editingProgram = ref(null);
 const selectedUnitForProgram = ref(null);
+const selectedLevelForProgram = ref(null);
 
 const allExistingPrograms = computed(() => {
     const set = new Set();
@@ -493,15 +494,17 @@ const allExistingPrograms = computed(() => {
     return Array.from(set).sort((a, b) => a.localeCompare(b));
 });
 
-function openProgramCreateModal(unit) {
+function openProgramCreateModal(unit, level) {
     editingProgram.value = null;
     selectedUnitForProgram.value = unit;
+    selectedLevelForProgram.value = level;
     showProgramModal.value = true;
 }
 
-function openProgramEditModal(program, unit) {
+function openProgramEditModal(program, unit, level) {
     editingProgram.value = { ...program };
     selectedUnitForProgram.value = unit;
+    selectedLevelForProgram.value = level;
     showProgramModal.value = true;
 }
 
@@ -509,6 +512,7 @@ function closeProgramModal() {
     showProgramModal.value = false;
     editingProgram.value = null;
     selectedUnitForProgram.value = null;
+    selectedLevelForProgram.value = null;
 }
 
 function onProgramSuccess() {
@@ -516,14 +520,16 @@ function onProgramSuccess() {
     showToast('success', 'Program pendidikan berhasil disimpan.');
 }
 
-function confirmProgramDelete(program, unit) {
+function confirmProgramDelete(program, unit, level) {
     openConfirmModal({
         title: 'Hapus Program Pendidikan',
-        message: unit ? `Yakin ingin menghapus program "${program.name}" dari unit ${unit.name}?` : 'Yakin ingin menghapus program pendidikan ini?',
+        message: level && unit
+            ? `Yakin ingin menghapus program "${program.name}" dari unit ${unit.name} (${level.name})?`
+            : (unit ? `Yakin ingin menghapus program "${program.name}" dari unit ${unit.name}?` : 'Yakin ingin menghapus program pendidikan ini?'),
         itemName: program.name,
         onConfirm: (done) => {
             router.delete(`/portal/school-programs/${program.id}`, {
-                data: { unit_id: unit?.id },
+                data: { unit_id: unit?.id, level_id: level?.id },
                 preserveScroll: true,
                 onFinish: done,
                 onSuccess: () => {
@@ -1259,10 +1265,10 @@ onUnmounted(() => {
                                                         <div v-for="program in unit.programs" :key="program.id" class="inline-flex items-center gap-1 bg-slate-50 border border-slate-200 pl-2.5 pr-1 py-1 rounded-lg text-xs font-medium text-slate-800">
                                                             <span>{{ program.name }}</span>
                                                             <div class="flex items-center ml-1">
-                                                                <button v-if="canUpdateAcademic" type="button" @click="openProgramEditModal(program, unit)" class="text-slate-400 hover:text-emerald-700 p-0.5 rounded cursor-pointer" title="Edit Program">
+                                                                <button v-if="canUpdateAcademic" type="button" @click="openProgramEditModal(program, unit, level)" class="text-slate-400 hover:text-emerald-700 p-0.5 rounded cursor-pointer" title="Edit Program">
                                                                     <span class="material-symbols-outlined text-[14px]">edit</span>
                                                                 </button>
-                                                                <button v-if="canDeleteAcademic" type="button" @click="confirmProgramDelete(program, unit)" class="text-slate-400 hover:text-rose-600 p-0.5 rounded cursor-pointer" title="Hapus Program">
+                                                                <button v-if="canDeleteAcademic" type="button" @click="confirmProgramDelete(program, unit, level)" class="text-slate-400 hover:text-rose-600 p-0.5 rounded cursor-pointer" title="Hapus Program">
                                                                     <span class="material-symbols-outlined text-[14px]">close</span>
                                                                 </button>
                                                             </div>
@@ -1271,7 +1277,7 @@ onUnmounted(() => {
                                                     <div v-else class="text-xs text-slate-400 italic">Belum ada program.</div>
 
                                                     <div v-if="canCreateAcademic">
-                                                        <button type="button" @click="openProgramCreateModal(unit)" class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 hover:bg-emerald-50 px-2 py-1 rounded-md transition-colors border border-emerald-200 cursor-pointer">
+                                                        <button type="button" @click="openProgramCreateModal(unit, level)" class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 hover:bg-emerald-50 px-2 py-1 rounded-md transition-colors border border-emerald-200 cursor-pointer">
                                                             <span class="material-symbols-outlined text-[14px]">add</span> Tambah Program
                                                         </button>
                                                     </div>
@@ -1412,17 +1418,17 @@ onUnmounted(() => {
                                                 class="inline-flex items-center gap-1 bg-slate-50 border border-slate-200 pl-2 pr-1 py-0.5 rounded-lg text-xs font-medium text-slate-800"
                                             >
                                                 <span>{{ program.name }}</span>
-                                                <button v-if="canUpdateAcademic" type="button" @click="openProgramEditModal(program, unit)" class="text-slate-400 hover:text-emerald-700 p-0.5">
+                                                <button v-if="canUpdateAcademic" type="button" @click="openProgramEditModal(program, unit, level)" class="text-slate-400 hover:text-emerald-700 p-0.5">
                                                     <span class="material-symbols-outlined text-[13px]">edit</span>
                                                 </button>
-                                                <button v-if="canDeleteAcademic" type="button" @click="confirmProgramDelete(program, unit)" class="text-slate-400 hover:text-rose-600 p-0.5">
+                                                <button v-if="canDeleteAcademic" type="button" @click="confirmProgramDelete(program, unit, level)" class="text-slate-400 hover:text-rose-600 p-0.5">
                                                     <span class="material-symbols-outlined text-[13px]">close</span>
                                                 </button>
                                             </div>
                                             <button
                                                 v-if="canCreateAcademic"
                                                 type="button"
-                                                @click="openProgramCreateModal(unit)"
+                                                @click="openProgramCreateModal(unit, level)"
                                                 class="inline-flex items-center gap-0.5 text-[10.5px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200"
                                             >
                                                 <span class="material-symbols-outlined text-[13px]">add</span> Program
@@ -2043,6 +2049,7 @@ onUnmounted(() => {
             :show="showProgramModal"
             :editing="editingProgram"
             :school-unit="selectedUnitForProgram"
+            :school-level="selectedLevelForProgram"
             :existing-programs="allExistingPrograms"
             @close="closeProgramModal"
             @success="onProgramSuccess"
