@@ -515,13 +515,14 @@ function onProgramSuccess() {
     showToast('success', 'Program pendidikan berhasil disimpan.');
 }
 
-function confirmProgramDelete(program) {
+function confirmProgramDelete(program, unit) {
     openConfirmModal({
         title: 'Hapus Program Pendidikan',
-        message: 'Yakin ingin menghapus program pendidikan ini?',
+        message: unit ? `Yakin ingin menghapus program "${program.name}" dari unit ${unit.name}?` : 'Yakin ingin menghapus program pendidikan ini?',
         itemName: program.name,
         onConfirm: (done) => {
             router.delete(`/portal/school-programs/${program.id}`, {
+                data: { unit_id: unit?.id },
                 preserveScroll: true,
                 onFinish: done,
                 onSuccess: () => {
@@ -1260,7 +1261,7 @@ onUnmounted(() => {
                                                                 <button v-if="canUpdateAcademic" type="button" @click="openProgramEditModal(program, unit)" class="text-slate-400 hover:text-emerald-700 p-0.5 rounded cursor-pointer" title="Edit Program">
                                                                     <span class="material-symbols-outlined text-[14px]">edit</span>
                                                                 </button>
-                                                                <button v-if="canDeleteAcademic" type="button" @click="confirmProgramDelete(program)" class="text-slate-400 hover:text-rose-600 p-0.5 rounded cursor-pointer" title="Hapus Program">
+                                                                <button v-if="canDeleteAcademic" type="button" @click="confirmProgramDelete(program, unit)" class="text-slate-400 hover:text-rose-600 p-0.5 rounded cursor-pointer" title="Hapus Program">
                                                                     <span class="material-symbols-outlined text-[14px]">close</span>
                                                                 </button>
                                                             </div>
@@ -1413,7 +1414,7 @@ onUnmounted(() => {
                                                 <button v-if="canUpdateAcademic" type="button" @click="openProgramEditModal(program, unit)" class="text-slate-400 hover:text-emerald-700 p-0.5">
                                                     <span class="material-symbols-outlined text-[13px]">edit</span>
                                                 </button>
-                                                <button v-if="canDeleteAcademic" type="button" @click="confirmProgramDelete(program)" class="text-slate-400 hover:text-rose-600 p-0.5">
+                                                <button v-if="canDeleteAcademic" type="button" @click="confirmProgramDelete(program, unit)" class="text-slate-400 hover:text-rose-600 p-0.5">
                                                     <span class="material-symbols-outlined text-[13px]">close</span>
                                                 </button>
                                             </div>

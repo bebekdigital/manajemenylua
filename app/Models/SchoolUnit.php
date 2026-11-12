@@ -15,7 +15,8 @@ class SchoolUnit extends Model
 
     public function programs()
     {
-        return $this->hasMany(SchoolProgram::class);
+        return $this->belongsToMany(SchoolProgram::class, 'school_unit_program')
+            ->withTimestamps();
     }
 
     public function classes()

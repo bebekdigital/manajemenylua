@@ -19,14 +19,18 @@ class SchoolProgramController extends Controller
             'name' => 'required|string|max:255',
         ]);
 
-        $exists = $schoolUnit->programs()->where('name', $validated['name'])->exists();
+        $name = trim($validated['name']);
+
+        // Cari atau buat program master school_programs
+        $program = SchoolProgram::firstOrCreate(['name' => $name]);
+
+        // Cek apakah sudah terhubung di unit ini
+        $exists = $schoolUnit->programs()->where('school_programs.id', $program->id)->exists();
         if ($exists) {
             return back()->with('error', 'Program sudah ada di unit ini.');
         }
 
-        $schoolUnit->programs()->create([
-            'name' => $validated['name'],
-        ]);
+        $schoolUnit->programs()->attach($program->id);
 
         return back()->with('success', 'Program berhasil ditambahkan.');
     }
@@ -41,29 +45,38 @@ class SchoolProgramController extends Controller
             'name' => 'required|string|max:255',
         ]);
 
-        $exists = $schoolProgram->unit->programs()
-            ->where('name', $validated['name'])
-            ->where('id', '!=', $schoolProgram->id)
-            ->exists();
+        $name = trim($validated['name']);
 
-        if ($exists) {
-            return back()->with('error', 'Program sudah ada di unit ini.');
+        $duplicate = SchoolProgram::where('name', $name)->where('id', '!=', $schoolProgram->id)->exists();
+        if ($duplicate) {
+            return back()->with('error', 'Nama program tersebut sudah ada.');
         }
 
         $schoolProgram->update([
-            'name' => $validated['name'],
+            'name' => $name,
         ]);
 
         return back()->with('success', 'Program berhasil diperbarui.');
     }
 
-    public function destroy(SchoolProgram $schoolProgram)
+    public function destroy(Request $request, SchoolProgram $schoolProgram)
     {
-        if (! RolePermission::canAccess(request()->user(), 'setting_academic', 'delete')) {
+        if (! RolePermission::canAccess($request->user(), 'setting_academic', 'delete')) {
             abort(403, 'Anda tidak memiliki hak akses untuk menghapus program pendidikan.');
         }
 
-        $schoolProgram->delete();
+        $unitId = $request->input('unit_id');
+        if ($unitId) {
+            $schoolUnit = SchoolUnit::find($unitId);
+            $schoolUnit?->programs()->detach($schoolProgram->id);
+
+            if ($schoolProgram->units()->count() === 0) {
+                $schoolProgram->delete();
+            }
+        } else {
+            $schoolProgram->units()->detach();
+            $schoolProgram->delete();
+        }
 
         return back()->with('success', 'Program berhasil dihapus.');
     }

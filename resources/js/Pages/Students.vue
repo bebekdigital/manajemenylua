@@ -51,6 +51,7 @@ const unitTabs = [
     { id: 'all', label: 'Semua Jenjang Pendidikan', icon: 'school' },
     { id: 'SDIT', label: 'SDIT', icon: 'school' },
     { id: 'SMPIT', label: 'SMPIT', icon: 'domain' },
+    { id: 'PPTQ', label: 'PPTQ', icon: 'mosque' },
 ];
 
 const activeUnitTab = ref(localStorage.getItem('activeUnitTab') || 'all');
@@ -59,36 +60,30 @@ watch(activeUnitTab, (newVal) => {
     localStorage.setItem('activeUnitTab', newVal);
 });
 
+function matchesStudentUnit(s, unitId) {
+    if (unitId === 'all') return true;
+    const u = (s.unit || '').toUpperCase();
+    const p = (s.program || '').toUpperCase();
+    if (unitId === 'SDIT') {
+        return u.includes('SDIT') || u.includes('SD IT') || u === 'SD';
+    }
+    if (unitId === 'SMPIT') {
+        return u.includes('SMPIT') || u.includes('SMP IT') || u === 'SMP';
+    }
+    if (unitId === 'PPTQ') {
+        return u.includes('PPTQ') || p.includes('BOARDING');
+    }
+    return false;
+}
+
 function unitStudentCount(unitId) {
     if (unitId === 'all') return props.students.length;
-
-    return props.students.filter(s => {
-        if (!s.unit) return false;
-        const u = s.unit.toUpperCase();
-        if (unitId === 'SDIT') {
-            return u.includes('SDIT') || u.includes('SD IT') || u === 'SD';
-        }
-        if (unitId === 'SMPIT') {
-            return u.includes('SMPIT') || u.includes('SMP IT') || u === 'SMP';
-        }
-        return false;
-    }).length;
+    return props.students.filter(s => matchesStudentUnit(s, unitId)).length;
 }
 
 const unitTabStudents = computed(() => {
     if (activeUnitTab.value === 'all') return props.students;
-
-    return props.students.filter(s => {
-        if (!s.unit) return false;
-        const u = s.unit.toUpperCase();
-        if (activeUnitTab.value === 'SDIT') {
-            return u.includes('SDIT') || u.includes('SD IT') || u === 'SD';
-        }
-        if (activeUnitTab.value === 'SMPIT') {
-            return u.includes('SMPIT') || u.includes('SMP IT') || u === 'SMP';
-        }
-        return false;
-    });
+    return props.students.filter(s => matchesStudentUnit(s, activeUnitTab.value));
 });
 
 const activeUnitTabLabel = computed(() => {
@@ -100,6 +95,7 @@ const unitOptions = computed(() => [
     { value: 'all', label: `Semua Jenjang Pendidikan (${unitStudentCount('all')})` },
     { value: 'SDIT', label: `SDIT (${unitStudentCount('SDIT')})` },
     { value: 'SMPIT', label: `SMPIT (${unitStudentCount('SMPIT')})` },
+    { value: 'PPTQ', label: `PPTQ (${unitStudentCount('PPTQ')})` },
 ]);
 
 function switchUnitTab(unitId) {

@@ -279,7 +279,16 @@ function getAlamatLengkap(s) {
 
                         <!-- Unit -->
                         <td class="py-3.5 px-3 text-[12.5px] font-medium text-slate-700 align-middle whitespace-nowrap">
-                            {{ student.unit || '-' }}
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <span>{{ student.unit || '-' }}</span>
+                                <span
+                                    v-if="student.program && student.program !== 'Umum'"
+                                    class="inline-flex items-center px-1.5 py-0.5 rounded text-[10.5px] font-bold"
+                                    :class="student.program.toLowerCase().includes('boarding') ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-emerald-100 text-emerald-800 border border-emerald-200'"
+                                >
+                                    {{ student.program }}
+                                </span>
+                            </div>
                         </td>
 
                         <!-- Angkatan -->

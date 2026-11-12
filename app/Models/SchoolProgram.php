@@ -3,13 +3,15 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class SchoolProgram extends Model
 {
-    protected $fillable = ['school_unit_id', 'name'];
+    protected $fillable = ['name'];
 
-    public function unit()
+    public function units(): BelongsToMany
     {
-        return $this->belongsTo(SchoolUnit::class, 'school_unit_id');
+        return $this->belongsToMany(SchoolUnit::class, 'school_unit_program')
+            ->withTimestamps();
     }
 }

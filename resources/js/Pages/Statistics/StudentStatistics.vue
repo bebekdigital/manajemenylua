@@ -145,15 +145,19 @@ onUnmounted(() => {
 const activeUnit = ref('all');
 const chartMode = ref('total'); // 'total' | 'gender'
 
-function matchesUnit(unitValue, targetUnit) {
+function matchesUnit(studentOrUnit, targetUnit) {
     if (targetUnit === 'all') return true;
-    if (!unitValue) return false;
-    const u = String(unitValue).toUpperCase().trim();
+    if (!studentOrUnit) return false;
+    const u = String(typeof studentOrUnit === 'object' ? studentOrUnit.unit : studentOrUnit || '').toUpperCase().trim();
+    const p = String(typeof studentOrUnit === 'object' ? studentOrUnit.program : '').toUpperCase().trim();
     if (targetUnit === 'SDIT') {
         return u.includes('SDIT') || u.includes('SD IT') || u === 'SD';
     }
     if (targetUnit === 'SMPIT') {
         return u.includes('SMPIT') || u.includes('SMP IT') || u === 'SMP';
+    }
+    if (targetUnit === 'PPTQ') {
+        return u.includes('PPTQ') || p.includes('BOARDING');
     }
     return u === targetUnit.toUpperCase();
 }
@@ -162,6 +166,7 @@ const unitTabs = computed(() => [
     { id: 'all', label: 'Semua', icon: 'school' },
     { id: 'SDIT', label: 'SDIT', icon: 'school' },
     { id: 'SMPIT', label: 'SMPIT', icon: 'domain' },
+    { id: 'PPTQ', label: 'PPTQ', icon: 'mosque' },
 ]);
 
 const activeUnitLabel = computed(() => {
@@ -174,7 +179,7 @@ const activeUnitLabel = computed(() => {
 // ============================================================
 const filteredStudents = computed(() => {
     if (!props.students || props.students.length === 0) return [];
-    return props.students.filter(s => matchesUnit(s.unit, activeUnit.value));
+    return props.students.filter(s => matchesUnit(s, activeUnit.value));
 });
 
 const filteredClasses = computed(() => {
