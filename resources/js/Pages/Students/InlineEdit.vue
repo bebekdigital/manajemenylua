@@ -8,6 +8,10 @@ defineOptions({ layout: AppLayout });
 const props = defineProps({
     students: { type: Array, required: true },
     selectedAcademicYear: { type: Object, default: null },
+    allUnits: { type: Array, default: () => [] },
+    allLevels: { type: Array, default: () => [] },
+    allPrograms: { type: Array, default: () => [] },
+    allClassrooms: { type: Array, default: () => [] },
 });
 
 // ============================================================
@@ -17,48 +21,196 @@ const students = reactive(props.students.map(s => ({ ...s })));
 
 const isSaving = ref(false);
 const saveError = ref(null);
+const successMessage = ref(null);
+
+// ============================================================
+// Dropdown Options (selaras dengan Edit di Detail Siswa)
+// ============================================================
+
+// 1. Pilihan Unit Sekolah Formal (SDIT, SMPIT, SMAIT)
+const formalUnitOptions = computed(() => {
+    const list = (props.allUnits || []).filter(u => {
+        const upper = (u || '').toUpperCase();
+        return !upper.includes('PPTQ') && !upper.includes('PESANTREN') && !upper.includes('PONDOK');
+    });
+    if (list.length > 0) return list;
+    return ['SDIT Ulil Albab', 'SMP IT Tahfidzul Quran Ulil Albab Karanganyar', 'SMA IT Ulil Albab'];
+});
+
+// 2. Pilihan Unit Kepesantrenan / Asrama (PPTQ Ulil Albab)
+const pesantrenUnitOptions = computed(() => {
+    const list = (props.allUnits || []).filter(u => {
+        const upper = (u || '').toUpperCase();
+        return upper.includes('PPTQ') || upper.includes('PESANTREN') || upper.includes('PONDOK');
+    });
+    if (list.length > 0) return list;
+    return ['PPTQ Ulil Albab'];
+});
+
+// 3. Pilihan Program Pendidikan
+const programOptions = computed(() => {
+    const set = new Set();
+    (props.allPrograms || []).forEach(p => {
+        if (p && typeof p === 'string' && p.trim()) set.add(p.trim());
+    });
+    students.forEach(s => {
+        if (s.program && typeof s.program === 'string' && s.program.trim()) {
+            set.add(s.program.trim());
+        }
+    });
+    if (set.size === 0) {
+        set.add('Fullday');
+        set.add('Boarding');
+        set.add('Umum');
+    }
+    return Array.from(set);
+});
+
+// 4. Pilihan Jenjang Pendidikan
+const levelOptions = computed(() => {
+    if (props.allLevels && props.allLevels.length > 0) {
+        return props.allLevels;
+    }
+    return ['PAUD', 'TK', 'SD', 'SMP', 'SMA'];
+});
+
+// 5. Pilihan Angkatan
+const angkatanOptions = computed(() => {
+    const set = new Set();
+    students.forEach(s => {
+        if (s.angkatan) set.add(String(s.angkatan).trim());
+    });
+    return Array.from(set).sort((a, b) => {
+        const nA = Number(a);
+        const nB = Number(b);
+        if (!isNaN(nA) && !isNaN(nB)) return nB - nA;
+        return b.localeCompare(a);
+    });
+});
+
+// 6. Pilihan Kelas
+const classroomOptions = computed(() => {
+    const set = new Set(props.allClassrooms || []);
+    students.forEach(s => {
+        if (s.kelas && typeof s.kelas === 'string' && s.kelas.trim()) {
+            set.add(s.kelas.trim());
+        }
+    });
+    return Array.from(set).sort();
+});
+
+// 7. Pilihan Jenis Kelamin
+const jkOptions = [
+    { value: 'L', label: 'L (Laki-laki)' },
+    { value: 'P', label: 'P (Perempuan)' },
+];
+
+// 8. Pilihan Status Siswa
+const statusOptions = [
+    { value: 'aktif', label: 'Aktif' },
+    { value: 'mutasi_masuk', label: 'Mutasi Masuk' },
+    { value: 'mutasi_keluar', label: 'Mutasi Keluar' },
+    { value: 'lulus', label: 'Lulus' },
+    { value: 'mengulang', label: 'Mengulang' },
+    { value: 'dropout', label: 'Drop Out' },
+];
+
+const agamaOptions = ['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha', 'Konghucu'];
+
+const statusKeluargaOptions = ['Anak Kandung', 'Anak Angkat', 'Anak Tiri', 'Lainnya'];
+
+const infoPsbOptions = [
+    'Media Sosial', 'Brosur/Flyer', 'Website Sekolah', 'Rekomendasi Teman',
+    'Rekomendasi Keluarga', 'Alumni', 'Pameran Pendidikan', 'Spanduk/Banner', 'Lainnya'
+];
+
+const statusOrtuOptions = ['Hidup', 'Meninggal'];
+
+const pendidikanOptions = [
+    'Tidak Sekolah', 'SD / Sederajat', 'SMP / Sederajat', 'SMA / SMK / Sederajat',
+    'D1', 'D2', 'D3', 'D4 / S1', 'S2', 'S3'
+];
+
+const pekerjaanOptions = [
+    'Tidak Bekerja', 'PNS / ASN', 'TNI / POLRI', 'Karyawan Swasta',
+    'Wiraswasta / Pedagang', 'Petani / Peternak', 'Buruh', 'Guru / Dosen',
+    'Dokter / Tenaga Medis', 'Pensiunan', 'Lainnya'
+];
+
+const penghasilanOptions = [
+    'Tidak Berpenghasilan', 'Kurang dari Rp 1.000.000', 'Rp 1.000.000 - Rp 2.000.000',
+    'Rp 2.000.000 - Rp 3.000.000', 'Rp 3.000.000 - Rp 5.000.000',
+    'Rp 5.000.000 - Rp 10.000.000', 'Lebih dari Rp 10.000.000'
+];
+
+// Helper functions for dropdown options
+function getOptionValue(opt) {
+    if (opt && typeof opt === 'object' && 'value' in opt) return opt.value;
+    return opt;
+}
+
+function getOptionLabel(opt) {
+    if (opt && typeof opt === 'object' && 'label' in opt) return opt.label;
+    return opt;
+}
+
+function hasOption(options, val) {
+    if (!options || !Array.isArray(options)) return false;
+    return options.some(opt => getOptionValue(opt) === val);
+}
 
 // ============================================================
 // Column Groups (collapsible)
 // ============================================================
 const columnGroups = reactive([
-    { key: 'identitas', label: 'Identitas', icon: 'person', expanded: true, color: 'bg-blue-600' },
-    { key: 'akademik', label: 'Akademik', icon: 'school', expanded: true, color: 'bg-emerald-600' },
-    { key: 'registrasi', label: 'Registrasi', icon: 'how_to_reg', expanded: false, color: 'bg-violet-600' },
-    { key: 'alamat', label: 'Alamat', icon: 'home', expanded: false, color: 'bg-orange-600' },
-    { key: 'keluarga_ayah', label: 'Ayah', icon: 'man', expanded: false, color: 'bg-cyan-600' },
-    { key: 'keluarga_ibu', label: 'Ibu', icon: 'woman', expanded: false, color: 'bg-pink-600' },
-    { key: 'keluarga_wali', label: 'Wali', icon: 'supervisor_account', expanded: false, color: 'bg-purple-600' },
-    { key: 'bantuan', label: 'Bantuan', icon: 'volunteer_activism', expanded: false, color: 'bg-amber-600' },
+    { key: 'identitas', label: 'Identitas', icon: 'person', expanded: true },
+    { key: 'akademik', label: 'Akademik', icon: 'school', expanded: true },
+    { key: 'registrasi', label: 'Registrasi', icon: 'how_to_reg', expanded: false },
+    { key: 'alamat', label: 'Alamat', icon: 'home', expanded: false },
+    { key: 'keluarga_ayah', label: 'Ayah', icon: 'man', expanded: false },
+    { key: 'keluarga_ibu', label: 'Ibu', icon: 'woman', expanded: false },
+    { key: 'keluarga_wali', label: 'Wali', icon: 'supervisor_account', expanded: false },
+    { key: 'bantuan', label: 'Bantuan', icon: 'volunteer_activism', expanded: false },
 ]);
 
-const columns = {
+const columns = computed(() => ({
     identitas: [
         { key: 'nama', label: 'Nama Lengkap', type: 'text', width: 'w-48' },
         { key: 'nipd', label: 'NIPD', type: 'text', width: 'w-28' },
+        { key: 'angkatan', label: 'Angkatan', type: 'select', options: angkatanOptions.value, width: 'w-28' },
         { key: 'nik', label: 'NIK', type: 'text', width: 'w-40' },
         { key: 'no_kk', label: 'No KK', type: 'text', width: 'w-40' },
-        { key: 'jk', label: 'JK', type: 'select', options: ['L', 'P'], width: 'w-20' },
+        { key: 'jk', label: 'JK', type: 'select', options: jkOptions, width: 'w-24' },
         { key: 'tempat_lahir', label: 'Tempat Lahir', type: 'text', width: 'w-36' },
         { key: 'tanggal_lahir', label: 'Tgl Lahir', type: 'date', width: 'w-36' },
-        { key: 'agama', label: 'Agama', type: 'select', options: ['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha', 'Konghucu'], width: 'w-28' },
+        { key: 'agama', label: 'Agama', type: 'select', options: agamaOptions, width: 'w-28' },
         { key: 'no_wa', label: 'No WA', type: 'text', width: 'w-32' },
     ],
     akademik: [
-        { key: 'unit', label: 'Unit', type: 'text', width: 'w-44' },
-        { key: 'program', label: 'Program', type: 'select', options: ['Umum', 'Fullday', 'Boarding'], width: 'w-28' },
-        { key: 'jenjang', label: 'Jenjang', type: 'select', options: ['SD', 'SMP', 'SMA'], width: 'w-24' },
+        { key: 'unit', label: 'Unit Formal', type: 'select', options: formalUnitOptions.value, width: 'w-48' },
+        {
+            key: 'unit_pesantren',
+            label: 'Unit Asrama / Pesantren',
+            type: 'select',
+            options: [
+                { value: '', label: '-- Tidak Berasrama (Non-Boarding) --' },
+                ...pesantrenUnitOptions.value.map(p => ({ value: p, label: p }))
+            ],
+            width: 'w-52'
+        },
+        { key: 'program', label: 'Program Pendidikan', type: 'select', options: programOptions.value, width: 'w-36' },
+        { key: 'jenjang', label: 'Jenjang', type: 'select', options: levelOptions.value, width: 'w-28' },
         { key: 'tingkat', label: 'Tingkat', type: 'number', width: 'w-20' },
-        { key: 'kelas', label: 'Kelas', type: 'text', width: 'w-24' },
-        { key: 'student_status', label: 'Status Siswa', type: 'select', options: ['aktif', 'mutasi_masuk', 'mutasi_keluar', 'lulus', 'mengulang', 'dropout'], width: 'w-32' },
+        { key: 'kelas', label: 'Kelas', type: 'select', options: classroomOptions.value, width: 'w-28' },
+        { key: 'student_status', label: 'Status Siswa', type: 'select', options: statusOptions, width: 'w-36' },
     ],
     registrasi: [
         { key: 'sekolah_asal', label: 'Sekolah Asal', type: 'text', width: 'w-40' },
-        { key: 'status_keluarga', label: 'Status Keluarga', type: 'text', width: 'w-36' },
+        { key: 'status_keluarga', label: 'Status Keluarga', type: 'select', options: statusKeluargaOptions, width: 'w-36' },
         { key: 'anak_ke', label: 'Anak Ke', type: 'number', width: 'w-24' },
-        { key: 'diterima_di_jenjang', label: 'Diterima di Jenjang', type: 'text', width: 'w-40' },
+        { key: 'diterima_di_jenjang', label: 'Diterima di Jenjang', type: 'select', options: levelOptions.value, width: 'w-40' },
         { key: 'tanggal_diterima', label: 'Tgl Diterima', type: 'date', width: 'w-36' },
-        { key: 'info_psb', label: 'Sumber Info PSB', type: 'select', options: ['Media Sosial', 'Brosur/Flyer', 'Website Sekolah', 'Rekomendasi Teman', 'Rekomendasi Keluarga', 'Alumni', 'Pameran Pendidikan', 'Spanduk/Banner', 'Lainnya'], width: 'w-44' },
+        { key: 'info_psb', label: 'Sumber Info PSB', type: 'select', options: infoPsbOptions, width: 'w-44' },
     ],
     alamat: [
         { key: 'jalan', label: 'Jalan', type: 'text', width: 'w-48' },
@@ -72,24 +224,24 @@ const columns = {
     keluarga_ayah: [
         { key: 'ayah_nama', label: 'Nama Ayah', type: 'text', width: 'w-40' },
         { key: 'ayah_tahun_lahir', label: 'Thn Lahir', type: 'number', width: 'w-24' },
-        { key: 'ayah_pendidikan', label: 'Pendidikan', type: 'text', width: 'w-32' },
-        { key: 'ayah_pekerjaan', label: 'Pekerjaan', type: 'text', width: 'w-36' },
-        { key: 'ayah_penghasilan', label: 'Penghasilan', type: 'text', width: 'w-44' },
-        { key: 'ayah_status', label: 'Status', type: 'select', options: ['Hidup', 'Meninggal'], width: 'w-28' },
+        { key: 'ayah_pendidikan', label: 'Pendidikan', type: 'select', options: pendidikanOptions, width: 'w-36' },
+        { key: 'ayah_pekerjaan', label: 'Pekerjaan', type: 'select', options: pekerjaanOptions, width: 'w-36' },
+        { key: 'ayah_penghasilan', label: 'Penghasilan', type: 'select', options: penghasilanOptions, width: 'w-44' },
+        { key: 'ayah_status', label: 'Status', type: 'select', options: statusOrtuOptions, width: 'w-28' },
     ],
     keluarga_ibu: [
         { key: 'ibu_nama', label: 'Nama Ibu', type: 'text', width: 'w-40' },
         { key: 'ibu_tahun_lahir', label: 'Thn Lahir', type: 'number', width: 'w-24' },
-        { key: 'ibu_pendidikan', label: 'Pendidikan', type: 'text', width: 'w-32' },
-        { key: 'ibu_pekerjaan', label: 'Pekerjaan', type: 'text', width: 'w-36' },
-        { key: 'ibu_penghasilan', label: 'Penghasilan', type: 'text', width: 'w-44' },
-        { key: 'ibu_status', label: 'Status', type: 'select', options: ['Hidup', 'Meninggal'], width: 'w-28' },
+        { key: 'ibu_pendidikan', label: 'Pendidikan', type: 'select', options: pendidikanOptions, width: 'w-36' },
+        { key: 'ibu_pekerjaan', label: 'Pekerjaan', type: 'select', options: pekerjaanOptions, width: 'w-36' },
+        { key: 'ibu_penghasilan', label: 'Penghasilan', type: 'select', options: penghasilanOptions, width: 'w-44' },
+        { key: 'ibu_status', label: 'Status', type: 'select', options: statusOrtuOptions, width: 'w-28' },
     ],
     keluarga_wali: [
         { key: 'wali_nama', label: 'Nama Wali', type: 'text', width: 'w-40' },
         { key: 'wali_hubungan', label: 'Hubungan', type: 'text', width: 'w-32' },
-        { key: 'wali_pekerjaan', label: 'Pekerjaan', type: 'text', width: 'w-36' },
-        { key: 'wali_penghasilan', label: 'Penghasilan', type: 'text', width: 'w-44' },
+        { key: 'wali_pekerjaan', label: 'Pekerjaan', type: 'select', options: pekerjaanOptions, width: 'w-36' },
+        { key: 'wali_penghasilan', label: 'Penghasilan', type: 'select', options: penghasilanOptions, width: 'w-44' },
     ],
     bantuan: [
         { key: 'desil', label: 'Desil', type: 'number', width: 'w-20' },
@@ -98,10 +250,10 @@ const columns = {
         { key: 'status_kip', label: 'KIP', type: 'checkbox', width: 'w-20' },
         { key: 'no_kip', label: 'No KIP', type: 'text', width: 'w-36' },
     ],
-};
+}));
 
 // All flat columns (for bulk edit dropdown)
-const allColumns = Object.values(columns).flat();
+const allColumns = computed(() => Object.values(columns.value).flat());
 
 // ============================================================
 // Search & Selection
@@ -115,7 +267,8 @@ const filteredStudents = computed(() => {
     return students.filter(s =>
         s.nama?.toLowerCase().includes(q) ||
         s.nisn?.includes(q) ||
-        s.nipd?.includes(q)
+        s.nipd?.includes(q) ||
+        String(s.angkatan || '').toLowerCase().includes(q)
     );
 });
 
@@ -149,7 +302,11 @@ const showBulkPanel = ref(false);
 const bulkField = ref('');
 const bulkValue = ref('');
 const bulkMode = ref('selected'); // 'selected' or 'all'
-const bulkColumn = computed(() => allColumns.find(c => c.key === bulkField.value));
+const bulkColumn = computed(() => allColumns.value.find(c => c.key === bulkField.value));
+
+function onBulkFieldChange() {
+    bulkValue.value = '';
+}
 
 function applyBulk() {
     if (!bulkField.value) return;
@@ -157,11 +314,27 @@ function applyBulk() {
         ? students
         : students.filter(s => selectedRows.value.has(s.nisn));
 
-    const val = bulkColumn.value?.type === 'number' ? Number(bulkValue.value) :
-                bulkColumn.value?.type === 'checkbox' ? Boolean(bulkValue.value) :
-                bulkValue.value;
+    if (targets.length === 0) {
+        saveError.value = 'Tidak ada siswa yang dipilih. Silakan pilih baris siswa terlebih dahulu atau gunakan opsi "Semua".';
+        return;
+    }
 
-    targets.forEach(s => { s[bulkField.value] = val; });
+    let val = bulkValue.value;
+    if (bulkColumn.value?.type === 'number') {
+        val = val === '' ? null : Number(val);
+    } else if (bulkColumn.value?.type === 'checkbox') {
+        val = Boolean(val);
+    }
+
+    targets.forEach(s => {
+        s[bulkField.value] = val;
+    });
+
+    const displayVal = val === '' || val === null || val === undefined ? '(dikosongkan)' : val;
+    successMessage.value = `Berhasil menerapkan nilai "${displayVal}" pada ${targets.length} siswa untuk kolom ${bulkColumn.value?.label}. Jangan lupa klik "Simpan Perubahan".`;
+    setTimeout(() => {
+        if (successMessage.value) successMessage.value = null;
+    }, 6000);
 
     bulkValue.value = '';
     bulkField.value = '';
@@ -174,11 +347,16 @@ function applyBulk() {
 function saveChanges() {
     isSaving.value = true;
     saveError.value = null;
+    successMessage.value = null;
 
     router.post('/students/inline-update', { students: students }, {
         preserveScroll: true,
         onSuccess: () => {
             isSaving.value = false;
+            successMessage.value = 'Perubahan data siswa berhasil disimpan ke database.';
+            setTimeout(() => {
+                if (successMessage.value) successMessage.value = null;
+            }, 5000);
         },
         onError: (errors) => {
             saveError.value = Object.values(errors).join(', ') || 'Terjadi kesalahan saat menyimpan data.';
@@ -198,400 +376,534 @@ function toggleGroup(key) {
     if (g) g.expanded = !g.expanded;
 }
 
-function visibleCols(groupKey) {
-    const g = columnGroups.find(g => g.key === groupKey);
-    return g?.expanded ? columns[groupKey] : [];
-}
+const visibleGroups = computed(() => columnGroups.filter(g => columns.value[g.key]));
 
-const visibleGroups = computed(() => columnGroups.filter(g => columns[g.key]));
-
-// Column span per group (min 1 for header when collapsed)
 function groupSpan(groupKey) {
     const g = columnGroups.find(g => g.key === groupKey);
-    return g?.expanded ? (columns[groupKey]?.length ?? 1) : 1;
+    return g?.expanded ? (columns.value[groupKey]?.length ?? 1) : 1;
 }
 </script>
 
 <template>
-    <Head title="Inline Edit Data Siswa" />
+    <Head title="Edit Data Massal Siswa - Ulil Albab" />
 
-    <div class="flex-1 overflow-y-auto p-4 md:p-margin-desktop">
-        <!-- ======================================================
-             PAGE HEADER
-        ====================================================== -->
-        <div class="mb-5 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-            <div>
-                <div class="flex items-center gap-1.5 text-xs text-on-surface-variant mb-1">
-                    <Link href="/students" class="hover:text-primary hover:underline transition-colors">Database Siswa</Link>
-                    <span class="material-symbols-outlined text-[14px]">chevron_right</span>
-                    <span class="font-medium text-on-surface">Edit Data Massal</span>
-                </div>
-                <h2 class="text-xl sm:text-2xl text-primary font-bold leading-tight">Edit Data Massal</h2>
-                <p class="text-[13px] text-on-surface-variant mt-0.5">
-                    Edit langsung di tabel • Klik header grup untuk tampilkan/sembunyikan kolom
-                    <span v-if="selectedAcademicYear" class="ml-2 inline-flex items-center gap-1 px-2 py-0.5 bg-primary/10 text-primary rounded-full text-[11px] font-semibold">
-                        <span class="material-symbols-outlined text-[13px]">calendar_month</span>
-                        {{ selectedAcademicYear.name }}
-                    </span>
-                </p>
-            </div>
+    <div class="flex-1 overflow-y-auto p-4 md:p-margin-desktop bg-white min-h-screen">
+        <div class="max-w-[1440px] mx-auto">
+            <!-- ======================================================
+                 PAGE HEADER
+            ====================================================== -->
+            <div class="mb-5 sm:mb-6 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                <div class="min-w-0">
+                    <!-- Breadcrumb -->
+                    <div class="flex items-center gap-1.5 text-xs text-slate-500 mb-1">
+                        <Link href="/students" class="hover:text-emerald-800 transition-colors">Database Siswa</Link>
+                        <span class="material-symbols-outlined text-[14px] text-slate-400">chevron_right</span>
+                        <span class="font-medium text-slate-800">Edit Data Massal</span>
+                    </div>
 
-            <div class="flex items-center gap-2 shrink-0 flex-wrap justify-end">
-                <!-- Bulk Edit Toggle -->
-                <button
-                    type="button"
-                    @click="showBulkPanel = !showBulkPanel"
-                    :class="[
-                        'inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border font-semibold text-xs transition-all',
-                        showBulkPanel
-                            ? 'bg-amber-50 border-amber-400 text-amber-700'
-                            : 'bg-white border-slate-300 text-slate-700 hover:border-amber-400 hover:text-amber-700'
-                    ]"
-                >
-                    <span class="material-symbols-outlined text-[16px]">edit_attributes</span>
-                    Bulk Edit
-                    <span v-if="selectedRows.size > 0" class="bg-amber-500 text-white rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none">{{ selectedRows.size }}</span>
-                </button>
-
-                <Link
-                    href="/students"
-                    class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-300 text-slate-700 bg-white font-semibold text-xs hover:border-slate-400 transition-all"
-                >
-                    <span class="material-symbols-outlined text-[16px]">arrow_back</span>
-                    Kembali
-                </Link>
-
-                <button
-                    type="button"
-                    @click="saveChanges"
-                    :disabled="isSaving"
-                    class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-on-primary font-semibold text-xs transition-all shadow-sm hover:shadow-md disabled:opacity-50 cursor-pointer"
-                >
-                    <span class="material-symbols-outlined text-[16px]">{{ isSaving ? 'hourglass_empty' : 'save' }}</span>
-                    {{ isSaving ? 'Menyimpan...' : 'Simpan Perubahan' }}
-                </button>
-            </div>
-        </div>
-
-        <!-- Error Banner -->
-        <div
-            v-if="saveError"
-            class="mb-4 p-3 bg-red-50 border border-red-300 rounded-2xl flex items-start gap-2 text-sm text-red-700"
-        >
-            <span class="material-symbols-outlined text-[18px] shrink-0 mt-0.5">error</span>
-            <div>
-                <strong>Gagal menyimpan:</strong> {{ saveError }}
-                <button type="button" @click="saveError = null" class="ml-2 underline text-red-500 hover:text-red-700">Tutup</button>
-            </div>
-        </div>
-
-        <!-- ======================================================
-             BULK EDIT PANEL
-        ====================================================== -->
-        <transition
-            enter-active-class="transition-all duration-200 ease-out"
-            enter-from-class="opacity-0 -translate-y-2"
-            enter-to-class="opacity-100 translate-y-0"
-            leave-active-class="transition-all duration-150 ease-in"
-            leave-from-class="opacity-100 translate-y-0"
-            leave-to-class="opacity-0 -translate-y-2"
-        >
-            <div v-if="showBulkPanel" class="mb-4 p-4 bg-amber-50 border border-amber-300 rounded-2xl shadow-sm">
-                <div class="flex items-center gap-2 mb-3">
-                    <span class="material-symbols-outlined text-amber-600 text-[20px]">edit_attributes</span>
-                    <h3 class="font-bold text-amber-800 text-sm">Bulk Edit — Terapkan Nilai ke Banyak Baris Sekaligus</h3>
+                    <!-- Judul Utama -->
+                    <h1 class="text-xl sm:text-2xl md:text-[26px] font-bold text-slate-900 tracking-tight leading-tight">
+                        Edit Data Massal Siswa
+                    </h1>
+                    <p class="text-xs sm:text-[13.5px] text-slate-500 mt-1 font-medium flex items-center gap-2 flex-wrap">
+                        <span>Edit langsung nilai pada tabel atau gunakan Bulk Edit untuk mengubah banyak baris sekaligus</span>
+                        <span v-if="selectedAcademicYear" class="inline-flex items-center gap-1 px-2.5 py-0.5 bg-emerald-50 text-emerald-900 border border-emerald-200/90 rounded-full text-xs font-bold">
+                            <span class="material-symbols-outlined text-[14px]">calendar_month</span>
+                            TA {{ selectedAcademicYear.name }}
+                        </span>
+                    </p>
                 </div>
 
-                <div class="flex flex-wrap items-end gap-3">
-                    <!-- Target -->
-                    <div class="flex flex-col gap-1">
-                        <label class="text-[10px] font-bold uppercase tracking-wider text-amber-700">Target Siswa</label>
-                        <div class="flex rounded-lg overflow-hidden border border-amber-300">
-                            <button
-                                type="button"
-                                @click="bulkMode = 'selected'"
-                                :class="['px-3 py-1.5 text-xs font-semibold transition-colors', bulkMode === 'selected' ? 'bg-amber-500 text-white' : 'bg-white text-amber-700 hover:bg-amber-100']"
-                            >
-                                Terpilih ({{ selectedRows.size }})
-                            </button>
-                            <button
-                                type="button"
-                                @click="bulkMode = 'all'"
-                                :class="['px-3 py-1.5 text-xs font-semibold transition-colors', bulkMode === 'all' ? 'bg-amber-500 text-white' : 'bg-white text-amber-700 hover:bg-amber-100']"
-                            >
-                                Semua ({{ students.length }})
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Field Selector -->
-                    <div class="flex flex-col gap-1 min-w-[180px]">
-                        <label class="text-[10px] font-bold uppercase tracking-wider text-amber-700">Pilih Kolom</label>
-                        <select
-                            v-model="bulkField"
-                            class="px-3 py-1.5 text-xs border border-amber-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-400"
-                        >
-                            <option value="">— Pilih kolom —</option>
-                            <optgroup v-for="grp in visibleGroups" :key="grp.key" :label="grp.label">
-                                <option v-for="col in columns[grp.key]" :key="col.key" :value="col.key">
-                                    {{ col.label }}
-                                </option>
-                            </optgroup>
-                        </select>
-                    </div>
-
-                    <!-- Value Input -->
-                    <div v-if="bulkField" class="flex flex-col gap-1 min-w-[160px]">
-                        <label class="text-[10px] font-bold uppercase tracking-wider text-amber-700">Nilai Baru</label>
-                        <template v-if="bulkColumn?.type === 'select'">
-                            <select v-model="bulkValue" class="px-3 py-1.5 text-xs border border-amber-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-400">
-                                <option value="">— Pilih —</option>
-                                <option v-for="opt in bulkColumn.options" :key="opt" :value="opt">{{ opt }}</option>
-                            </select>
-                        </template>
-                        <template v-else-if="bulkColumn?.type === 'checkbox'">
-                            <select v-model="bulkValue" class="px-3 py-1.5 text-xs border border-amber-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-400">
-                                <option value="">— Pilih —</option>
-                                <option :value="true">Ya</option>
-                                <option :value="false">Tidak</option>
-                            </select>
-                        </template>
-                        <template v-else-if="bulkColumn?.type === 'date'">
-                            <input v-model="bulkValue" type="date" class="px-3 py-1.5 text-xs border border-amber-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-400" />
-                        </template>
-                        <template v-else>
-                            <input v-model="bulkValue" type="text" placeholder="Masukkan nilai..." class="px-3 py-1.5 text-xs border border-amber-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-400" />
-                        </template>
-                    </div>
-
-                    <!-- Apply Button -->
+                <!-- Tombol Aksi Header -->
+                <div class="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                    <!-- Bulk Edit Toggle -->
                     <button
                         type="button"
-                        @click="applyBulk"
-                        :disabled="!bulkField || bulkValue === ''"
-                        class="inline-flex items-center gap-1.5 px-4 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-bold disabled:opacity-40 cursor-pointer transition-colors"
+                        @click="showBulkPanel = !showBulkPanel"
+                        :class="[
+                            'inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border text-xs sm:text-sm transition-all shadow-2xs cursor-pointer font-bold',
+                            showBulkPanel
+                                ? 'bg-emerald-100 border-emerald-300 text-emerald-950 shadow-xs'
+                                : 'bg-white border-slate-300 text-slate-700 hover:border-emerald-300 hover:text-emerald-900'
+                        ]"
                     >
-                        <span class="material-symbols-outlined text-[15px]">bolt</span>
-                        Terapkan
+                        <span class="material-symbols-outlined text-[18px] text-emerald-700">bolt</span>
+                        <span>Bulk Edit</span>
+                        <span
+                            v-if="selectedRows.size > 0"
+                            class="bg-emerald-900 text-yellow-200 rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none"
+                        >
+                            {{ selectedRows.size }}
+                        </span>
+                    </button>
+
+                    <!-- Kembali ke Database Siswa -->
+                    <Link
+                        href="/students"
+                        class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-300 text-slate-700 bg-white font-semibold text-xs sm:text-sm hover:bg-slate-50 hover:border-slate-400 transition-all shadow-2xs"
+                    >
+                        <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+                        <span>Kembali</span>
+                    </Link>
+
+                    <!-- Simpan Perubahan -->
+                    <button
+                        type="button"
+                        @click="saveChanges"
+                        :disabled="isSaving"
+                        class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-bold text-xs sm:text-sm transition-all shadow-xs disabled:opacity-50 cursor-pointer active:scale-95 border border-emerald-950/30"
+                    >
+                        <span class="material-symbols-outlined text-[18px]">{{ isSaving ? 'hourglass_empty' : 'save' }}</span>
+                        <span>{{ isSaving ? 'Menyimpan...' : 'Simpan Perubahan' }}</span>
                     </button>
                 </div>
             </div>
-        </transition>
 
-        <!-- ======================================================
-             TOOLBAR (Search + Stats)
-        ====================================================== -->
-        <div class="mb-3 flex flex-wrap items-center gap-3">
-            <!-- Search -->
-            <div class="relative">
-                <span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-[17px]">search</span>
-                <input
-                    v-model="searchQuery"
-                    type="text"
-                    placeholder="Cari nama, NISN, NIPD..."
-                    class="pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors w-56"
-                />
-            </div>
-
-            <!-- Selection info -->
-            <div v-if="selectedRows.size > 0" class="text-xs text-on-surface-variant">
-                <span class="font-semibold text-primary">{{ selectedRows.size }}</span> baris dipilih
-                <button type="button" @click="selectedRows = new Set()" class="ml-2 text-error hover:underline">Batalkan pilihan</button>
-            </div>
-
-            <!-- Groups Legend -->
-            <div class="flex flex-wrap gap-1.5 ml-auto">
-                <button
-                    v-for="grp in visibleGroups"
-                    :key="grp.key"
-                    type="button"
-                    @click="toggleGroup(grp.key)"
-                    :class="[
-                        'inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all cursor-pointer',
-                        columnGroups.find(g => g.key === grp.key)?.expanded
-                            ? `${grp.color} text-white border-transparent shadow-sm`
-                            : 'bg-white border-slate-300 text-slate-600 hover:border-slate-400'
-                    ]"
-                    :title="`Klik untuk ${columnGroups.find(g => g.key === grp.key)?.expanded ? 'sembunyikan' : 'tampilkan'} kolom ${grp.label}`"
+            <!-- Flash & Error Banner -->
+            <transition
+                enter-active-class="transition-all duration-200 ease-out"
+                enter-from-class="opacity-0 -translate-y-2"
+                enter-to-class="opacity-100 translate-y-0"
+                leave-active-class="transition-all duration-150 ease-in"
+                leave-from-class="opacity-100 translate-y-0"
+                leave-to-class="opacity-0 -translate-y-2"
+            >
+                <div
+                    v-if="successMessage"
+                    class="mb-4 p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-start justify-between gap-3 text-sm text-emerald-900 shadow-2xs"
                 >
-                    <span class="material-symbols-outlined text-[13px]">{{ grp.icon }}</span>
-                    {{ grp.label }}
+                    <div class="flex items-start gap-2.5">
+                        <span class="material-symbols-outlined text-emerald-700 text-[20px] shrink-0 mt-0.5">check_circle</span>
+                        <div class="font-medium leading-relaxed">{{ successMessage }}</div>
+                    </div>
+                    <button type="button" @click="successMessage = null" class="text-emerald-700 hover:text-emerald-900 p-0.5 rounded-full">
+                        <span class="material-symbols-outlined text-[16px]">close</span>
+                    </button>
+                </div>
+            </transition>
+
+            <div
+                v-if="saveError"
+                class="mb-4 p-3.5 bg-rose-50 border border-rose-200 rounded-2xl flex items-start justify-between gap-3 text-sm text-rose-800 shadow-2xs"
+            >
+                <div class="flex items-start gap-2.5">
+                    <span class="material-symbols-outlined text-rose-600 text-[20px] shrink-0 mt-0.5">error</span>
+                    <div>
+                        <strong class="font-bold">Gagal menyimpan data:</strong> {{ saveError }}
+                    </div>
+                </div>
+                <button type="button" @click="saveError = null" class="text-rose-600 hover:text-rose-800 p-0.5 rounded-full">
+                    <span class="material-symbols-outlined text-[16px]">close</span>
                 </button>
             </div>
-        </div>
 
-        <!-- ======================================================
-             TABLE
-        ====================================================== -->
-        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-            <div class="overflow-auto" style="max-height: calc(100vh - 290px);">
-                <table class="text-left border-collapse min-w-max w-full">
-                    <!-- ============ THEAD ROW 1: Group Headers ============ -->
-                    <thead class="sticky top-0 z-30">
-                        <tr>
-                            <!-- Sticky cols: checkbox + no + nisn + nama -->
-                            <th class="p-0 sticky left-0 z-40 bg-slate-800" rowspan="2">
-                                <div class="flex items-center justify-center w-10 h-full p-2">
-                                    <input
-                                        type="checkbox"
-                                        :checked="allSelected"
-                                        :indeterminate="someSelected"
-                                        @change="toggleSelectAll"
-                                        class="w-3.5 h-3.5 rounded accent-primary cursor-pointer"
-                                    />
-                                </div>
-                            </th>
-                            <th class="p-2 text-[11px] font-semibold text-white bg-slate-800 sticky left-10 z-40 w-10" rowspan="2">#</th>
-                            <th class="p-2 text-[11px] font-semibold text-white uppercase bg-slate-800 sticky left-[80px] z-40 w-32 border-r border-slate-600" rowspan="2">NISN</th>
-
-                            <!-- Dynamic group headers -->
-                            <th
-                                v-for="grp in visibleGroups"
-                                :key="grp.key"
-                                :colspan="groupSpan(grp.key)"
-                                :class="[grp.color, 'text-center text-[11px] font-bold text-white px-2 py-2 border-r border-white/20 cursor-pointer select-none']"
-                                @click="toggleGroup(grp.key)"
-                            >
-                                <div class="flex items-center justify-center gap-1">
-                                    <span class="material-symbols-outlined text-[14px]">{{ grp.icon }}</span>
-                                    <span>{{ grp.label }}</span>
-                                    <span class="material-symbols-outlined text-[14px] opacity-70">
-                                        {{ columnGroups.find(g => g.key === grp.key)?.expanded ? 'expand_less' : 'expand_more' }}
-                                    </span>
-                                </div>
-                            </th>
-                        </tr>
-
-                        <!-- ============ THEAD ROW 2: Column Sub-headers ============ -->
-                        <tr>
-                            <template v-for="grp in visibleGroups" :key="grp.key">
-                                <template v-if="columnGroups.find(g => g.key === grp.key)?.expanded">
-                                    <th
-                                        v-for="col in columns[grp.key]"
-                                        :key="col.key"
-                                        :class="[grp.color, 'text-left text-[10px] font-semibold text-white/90 uppercase tracking-wider px-2 py-1.5 border-r border-white/10 whitespace-nowrap', col.width]"
-                                    >{{ col.label }}</th>
-                                </template>
-                                <th v-else :class="[grp.color, 'text-[10px] font-semibold text-white/80 text-center px-2 py-1.5 border-r border-white/10']">
-                                    <span class="material-symbols-outlined text-[13px]">more_horiz</span>
-                                </th>
-                            </template>
-                        </tr>
-                    </thead>
-
-                    <!-- ============ TBODY ============ -->
-                    <tbody class="divide-y divide-slate-100">
-                        <tr
-                            v-for="(student, index) in filteredStudents"
-                            :key="student.nisn"
-                            :class="[
-                                'transition-colors group',
-                                selectedRows.has(student.nisn) ? 'bg-amber-50 hover:bg-amber-100/70' : 'hover:bg-slate-50'
-                            ]"
+            <!-- ======================================================
+                 BULK EDIT PANEL (Style Web: Card Emerald, Capsule Toggle, Clean Dropdowns)
+            ====================================================== -->
+            <transition
+                enter-active-class="transition-all duration-200 ease-out"
+                enter-from-class="opacity-0 -translate-y-2"
+                enter-to-class="opacity-100 translate-y-0"
+                leave-active-class="transition-all duration-150 ease-in"
+                leave-from-class="opacity-100 translate-y-0"
+                leave-to-class="opacity-0 -translate-y-2"
+            >
+                <div v-if="showBulkPanel" class="mb-5 p-4 sm:p-5 bg-white border border-emerald-200/90 rounded-2xl shadow-sm ring-1 ring-emerald-500/10">
+                    <div class="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-100">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-200/80 flex items-center justify-center text-emerald-800 shrink-0">
+                                <span class="material-symbols-outlined text-[20px]">bolt</span>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-slate-900 text-sm">Bulk Edit Nilai Kolom Massal</h3>
+                                <p class="text-xs text-slate-500">Terapkan satu nilai ke seluruh baris terpilih atau semua siswa sekaligus</p>
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            @click="showBulkPanel = false"
+                            class="w-7 h-7 rounded-full bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center cursor-pointer transition-colors"
                         >
-                            <!-- Checkbox -->
-                            <td class="p-0 sticky left-0 z-20 border-r border-slate-200" :class="selectedRows.has(student.nisn) ? 'bg-amber-50' : 'bg-white group-hover:bg-slate-50'">
-                                <div class="flex items-center justify-center w-10 p-2">
-                                    <input
-                                        type="checkbox"
-                                        :checked="selectedRows.has(student.nisn)"
-                                        @change="toggleRow(student.nisn)"
-                                        class="w-3.5 h-3.5 rounded accent-amber-500 cursor-pointer"
-                                    />
-                                </div>
-                            </td>
+                            <span class="material-symbols-outlined text-[18px]">close</span>
+                        </button>
+                    </div>
 
-                            <!-- No -->
-                            <td class="px-2 py-1.5 text-[11px] text-slate-500 sticky left-10 z-20 border-r border-slate-100" :class="selectedRows.has(student.nisn) ? 'bg-amber-50' : 'bg-white group-hover:bg-slate-50'">
-                                {{ index + 1 }}
-                            </td>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+                        <!-- 1. Target Siswa -->
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Target Siswa</label>
+                            <div class="bg-slate-100 p-1 rounded-xl inline-flex items-center gap-1 border border-slate-200/90 w-full">
+                                <button
+                                    type="button"
+                                    @click="bulkMode = 'selected'"
+                                    :class="[
+                                        'flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer text-center',
+                                        bulkMode === 'selected'
+                                            ? 'bg-emerald-900 text-yellow-200 shadow-2xs'
+                                            : 'text-slate-600 hover:text-slate-900 font-semibold'
+                                    ]"
+                                >
+                                    Terpilih ({{ selectedRows.size }})
+                                </button>
+                                <button
+                                    type="button"
+                                    @click="bulkMode = 'all'"
+                                    :class="[
+                                        'flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer text-center',
+                                        bulkMode === 'all'
+                                            ? 'bg-emerald-900 text-yellow-200 shadow-2xs'
+                                            : 'text-slate-600 hover:text-slate-900 font-semibold'
+                                    ]"
+                                >
+                                    Semua ({{ students.length }})
+                                </button>
+                            </div>
+                        </div>
 
-                            <!-- NISN (readonly) -->
-                            <td class="px-2 py-1.5 text-[11px] text-slate-600 font-mono sticky left-[80px] z-20 border-r border-slate-200" :class="selectedRows.has(student.nisn) ? 'bg-amber-50' : 'bg-white group-hover:bg-slate-50'">
-                                {{ student.nisn }}
-                            </td>
+                        <!-- 2. Pilih Kolom -->
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Pilih Kolom</label>
+                            <select
+                                v-model="bulkField"
+                                @change="onBulkFieldChange"
+                                class="w-full px-3 py-2 text-xs sm:text-sm border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:border-emerald-700 shadow-2xs transition-all cursor-pointer"
+                            >
+                                <option value="">-- Pilih Kolom --</option>
+                                <optgroup v-for="grp in visibleGroups" :key="grp.key" :label="grp.label">
+                                    <option v-for="col in columns[grp.key]" :key="col.key" :value="col.key">
+                                        {{ col.label }}
+                                    </option>
+                                </optgroup>
+                            </select>
+                        </div>
 
-                            <!-- Dynamic columns per group -->
-                            <template v-for="grp in visibleGroups" :key="grp.key">
-                                <template v-if="columnGroups.find(g => g.key === grp.key)?.expanded">
-                                    <td
-                                        v-for="col in columns[grp.key]"
-                                        :key="col.key"
-                                        class="p-1 border-r border-slate-100"
+                        <!-- 3. Nilai Baru (Disesuaikan dengan data dropdown detail siswa) -->
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                                Nilai Baru
+                                <span v-if="bulkColumn" class="text-emerald-800 font-normal lowercase">({{ bulkColumn.label }})</span>
+                            </label>
+
+                            <div v-if="!bulkField" class="px-3 py-2 text-xs text-slate-400 bg-slate-50 border border-slate-200 rounded-xl">
+                                Pilih kolom terlebih dahulu
+                            </div>
+                            <template v-else>
+                                <!-- Select Type Dropdown (Unit Formal, Unit Asrama, Program, Jenjang, Status, JK, dll.) -->
+                                <select
+                                    v-if="bulkColumn?.type === 'select'"
+                                    v-model="bulkValue"
+                                    class="w-full px-3 py-2 text-xs sm:text-sm border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:border-emerald-700 shadow-2xs transition-all cursor-pointer"
+                                >
+                                    <option value="">-- Pilih Nilai Baru --</option>
+                                    <option
+                                        v-for="(opt, idx) in bulkColumn.options"
+                                        :key="idx"
+                                        :value="getOptionValue(opt)"
                                     >
-                                        <!-- Checkbox type -->
-                                        <div v-if="col.type === 'checkbox'" class="flex items-center justify-center">
-                                            <input
-                                                type="checkbox"
-                                                v-model="student[col.key]"
-                                                class="w-3.5 h-3.5 rounded accent-primary cursor-pointer"
-                                            />
-                                        </div>
-                                        <!-- Select type -->
-                                        <select
-                                            v-else-if="col.type === 'select'"
-                                            v-model="student[col.key]"
-                                            :class="['w-full px-1.5 py-1 text-[11px] border border-slate-200 rounded focus:border-primary focus:ring-1 focus:ring-primary outline-none bg-white transition-colors', col.width]"
+                                        {{ getOptionLabel(opt) }}
+                                    </option>
+                                </select>
+
+                                <!-- Checkbox / Boolean Type (PIP, KIP) -->
+                                <select
+                                    v-else-if="bulkColumn?.type === 'checkbox'"
+                                    v-model="bulkValue"
+                                    class="w-full px-3 py-2 text-xs sm:text-sm border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:border-emerald-700 shadow-2xs transition-all cursor-pointer"
+                                >
+                                    <option value="">-- Pilih --</option>
+                                    <option :value="true">Ya</option>
+                                    <option :value="false">Tidak</option>
+                                </select>
+
+                                <!-- Date Type -->
+                                <input
+                                    v-else-if="bulkColumn?.type === 'date'"
+                                    v-model="bulkValue"
+                                    type="date"
+                                    class="w-full px-3 py-2 text-xs sm:text-sm border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:border-emerald-700 shadow-2xs transition-all"
+                                />
+
+                                <!-- Number Type -->
+                                <input
+                                    v-else-if="bulkColumn?.type === 'number'"
+                                    v-model="bulkValue"
+                                    type="number"
+                                    placeholder="Masukkan angka..."
+                                    class="w-full px-3 py-2 text-xs sm:text-sm border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:border-emerald-700 shadow-2xs transition-all"
+                                />
+
+                                <!-- Text Type Default -->
+                                <input
+                                    v-else
+                                    v-model="bulkValue"
+                                    type="text"
+                                    :placeholder="`Masukkan nilai ${bulkColumn?.label}...`"
+                                    class="w-full px-3 py-2 text-xs sm:text-sm border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:border-emerald-700 shadow-2xs transition-all"
+                                />
+                            </template>
+                        </div>
+
+                        <!-- 4. Tombol Terapkan -->
+                        <div>
+                            <button
+                                type="button"
+                                @click="applyBulk"
+                                :disabled="!bulkField || (bulkValue === '' && bulkColumn?.type !== 'select')"
+                                class="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-900 hover:bg-emerald-800 text-yellow-200 rounded-xl text-xs sm:text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-all shadow-xs active:scale-95 border border-emerald-950/30"
+                            >
+                                <span class="material-symbols-outlined text-[17px]">bolt</span>
+                                <span>Terapkan Massal</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </transition>
+
+            <!-- ======================================================
+                 TOOLBAR (Search + Selection + Group Legend)
+            ====================================================== -->
+            <div class="mb-4 flex flex-wrap items-center gap-3">
+                <!-- Pencarian -->
+                <div class="relative w-72">
+                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px] pointer-events-none">search</span>
+                    <input
+                        v-model="searchQuery"
+                        type="text"
+                        placeholder="Cari nama, NISN, NIPD, angkatan..."
+                        class="w-full pl-9 pr-8 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-700 shadow-2xs transition-all"
+                    />
+                    <button
+                        v-if="searchQuery"
+                        type="button"
+                        @click="searchQuery = ''"
+                        class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-full"
+                    >
+                        <span class="material-symbols-outlined text-[14px]">close</span>
+                    </button>
+                </div>
+
+                <!-- Info Baris Terpilih -->
+                <div v-if="selectedRows.size > 0" class="inline-flex items-center gap-2 px-3 py-1 bg-emerald-50 border border-emerald-200/90 rounded-full text-xs font-semibold text-emerald-900">
+                    <span><strong>{{ selectedRows.size }}</strong> siswa dipilih</span>
+                    <button type="button" @click="selectedRows = new Set()" class="text-rose-600 hover:underline text-[11px] font-bold">Batalkan</button>
+                </div>
+
+                <!-- Grup Kolom Toggle (Kapsul Seragam Style Web Ulil Albab) -->
+                <div class="flex flex-wrap gap-1.5 ml-auto">
+                    <button
+                        v-for="grp in visibleGroups"
+                        :key="grp.key"
+                        type="button"
+                        @click="toggleGroup(grp.key)"
+                        :class="[
+                            'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer shadow-2xs',
+                            columnGroups.find(g => g.key === grp.key)?.expanded
+                                ? 'bg-emerald-900 text-yellow-200 border-emerald-950/30'
+                                : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300 hover:text-slate-900'
+                        ]"
+                        :title="`Klik untuk ${columnGroups.find(g => g.key === grp.key)?.expanded ? 'sembunyikan' : 'tampilkan'} kolom ${grp.label}`"
+                    >
+                        <span class="material-symbols-outlined text-[15px]">{{ grp.icon }}</span>
+                        <span>{{ grp.label }}</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- ======================================================
+                 TABLE DATA (Thead Dark Forest Green #004b23 & Crisp Subheaders)
+            ====================================================== -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="overflow-auto" style="max-height: calc(100vh - 290px);">
+                    <table class="text-left border-collapse min-w-max w-full">
+                        <!-- ============ THEAD ROW 1: Group Headers ============ -->
+                        <thead class="sticky top-0 z-30">
+                            <tr class="bg-[#004b23] text-white">
+                                <!-- Sticky Checkbox -->
+                                <th class="p-0 sticky left-0 z-40 bg-[#004b23] border-r border-emerald-800" rowspan="2">
+                                    <div class="flex items-center justify-center w-10 h-full p-2">
+                                        <input
+                                            type="checkbox"
+                                            :checked="allSelected"
+                                            :indeterminate="someSelected"
+                                            @change="toggleSelectAll"
+                                            class="w-3.5 h-3.5 rounded accent-emerald-700 cursor-pointer"
+                                        />
+                                    </div>
+                                </th>
+                                <th class="p-2 text-[11px] font-bold text-white bg-[#004b23] sticky left-10 z-40 w-10 text-center border-r border-emerald-800" rowspan="2">#</th>
+                                <th class="p-2 text-[11px] font-bold text-white uppercase bg-[#004b23] sticky left-[80px] z-40 w-32 border-r border-emerald-800" rowspan="2">NISN</th>
+
+                                <!-- Dynamic Group Headers -->
+                                <th
+                                    v-for="grp in visibleGroups"
+                                    :key="grp.key"
+                                    :colspan="groupSpan(grp.key)"
+                                    class="text-center text-[11px] font-bold text-white px-3 py-2 border-r border-emerald-800/80 cursor-pointer select-none bg-[#004b23] hover:bg-[#00381a] transition-colors"
+                                    @click="toggleGroup(grp.key)"
+                                >
+                                    <div class="flex items-center justify-center gap-1.5">
+                                        <span class="material-symbols-outlined text-[15px] text-emerald-200">{{ grp.icon }}</span>
+                                        <span>{{ grp.label }}</span>
+                                        <span class="material-symbols-outlined text-[14px] text-emerald-300/80">
+                                            {{ columnGroups.find(g => g.key === grp.key)?.expanded ? 'expand_less' : 'expand_more' }}
+                                        </span>
+                                    </div>
+                                </th>
+                            </tr>
+
+                            <!-- ============ THEAD ROW 2: Column Sub-headers ============ -->
+                            <tr class="bg-[#00381a] text-white">
+                                <template v-for="grp in visibleGroups" :key="grp.key">
+                                    <template v-if="columnGroups.find(g => g.key === grp.key)?.expanded">
+                                        <th
+                                            v-for="col in columns[grp.key]"
+                                            :key="col.key"
+                                            :class="['text-left text-[10px] font-bold text-emerald-100 uppercase tracking-wider px-2 py-1.5 border-r border-emerald-900 whitespace-nowrap', col.width]"
                                         >
-                                            <option value="">-</option>
-                                            <option v-for="opt in col.options" :key="opt" :value="opt">{{ opt }}</option>
-                                        </select>
-                                        <!-- Date type -->
+                                            {{ col.label }}
+                                        </th>
+                                    </template>
+                                    <th v-else class="text-[10px] font-semibold text-emerald-200/80 text-center px-2 py-1.5 border-r border-emerald-900">
+                                        <span class="material-symbols-outlined text-[13px]">more_horiz</span>
+                                    </th>
+                                </template>
+                            </tr>
+                        </thead>
+
+                        <!-- ============ TBODY ============ -->
+                        <tbody class="divide-y divide-slate-100">
+                            <tr
+                                v-for="(student, index) in filteredStudents"
+                                :key="student.nisn"
+                                :class="[
+                                    'transition-colors group',
+                                    selectedRows.has(student.nisn) ? 'bg-emerald-50/70 hover:bg-emerald-100/60' : 'hover:bg-slate-50'
+                                ]"
+                            >
+                                <!-- Checkbox -->
+                                <td class="p-0 sticky left-0 z-20 border-r border-slate-200" :class="selectedRows.has(student.nisn) ? 'bg-emerald-50' : 'bg-white group-hover:bg-slate-50'">
+                                    <div class="flex items-center justify-center w-10 p-2">
                                         <input
-                                            v-else-if="col.type === 'date'"
-                                            type="date"
-                                            v-model="student[col.key]"
-                                            :class="['w-full px-1.5 py-1 text-[11px] border border-slate-200 rounded focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors', col.width]"
+                                            type="checkbox"
+                                            :checked="selectedRows.has(student.nisn)"
+                                            @change="toggleRow(student.nisn)"
+                                            class="w-3.5 h-3.5 rounded accent-emerald-700 cursor-pointer"
                                         />
-                                        <!-- Number type -->
-                                        <input
-                                            v-else-if="col.type === 'number'"
-                                            type="number"
-                                            v-model="student[col.key]"
-                                            :class="['w-full px-1.5 py-1 text-[11px] border border-slate-200 rounded focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors', col.width]"
-                                        />
-                                        <!-- Text default -->
-                                        <input
-                                            v-else
-                                            type="text"
-                                            v-model="student[col.key]"
-                                            :class="['w-full px-1.5 py-1 text-[11px] border border-slate-200 rounded focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors', col.width]"
-                                        />
+                                    </div>
+                                </td>
+
+                                <!-- No -->
+                                <td class="px-2 py-1.5 text-[11px] text-slate-500 font-medium text-center sticky left-10 z-20 border-r border-slate-100" :class="selectedRows.has(student.nisn) ? 'bg-emerald-50' : 'bg-white group-hover:bg-slate-50'">
+                                    {{ index + 1 }}
+                                </td>
+
+                                <!-- NISN (readonly) -->
+                                <td class="px-2 py-1.5 text-[11px] text-slate-700 font-mono font-semibold sticky left-[80px] z-20 border-r border-slate-200" :class="selectedRows.has(student.nisn) ? 'bg-emerald-50' : 'bg-white group-hover:bg-slate-50'">
+                                    {{ student.nisn }}
+                                </td>
+
+                                <!-- Dynamic Columns -->
+                                <template v-for="grp in visibleGroups" :key="grp.key">
+                                    <template v-if="columnGroups.find(g => g.key === grp.key)?.expanded">
+                                        <td
+                                            v-for="col in columns[grp.key]"
+                                            :key="col.key"
+                                            class="p-1 border-r border-slate-100"
+                                        >
+                                            <!-- Checkbox type -->
+                                            <div v-if="col.type === 'checkbox'" class="flex items-center justify-center">
+                                                <input
+                                                    type="checkbox"
+                                                    v-model="student[col.key]"
+                                                    class="w-4 h-4 rounded accent-emerald-700 cursor-pointer"
+                                                />
+                                            </div>
+
+                                            <!-- Select type (Unit Formal, Unit Asrama, Program, Jenjang, Status, dll.) -->
+                                            <select
+                                                v-else-if="col.type === 'select'"
+                                                v-model="student[col.key]"
+                                                :class="['w-full px-2 py-1 text-[11.5px] border border-slate-200 rounded-lg focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none bg-white transition-colors cursor-pointer', col.width]"
+                                            >
+                                                <option value="">-</option>
+                                                <option
+                                                    v-for="(opt, optIdx) in col.options"
+                                                    :key="optIdx"
+                                                    :value="getOptionValue(opt)"
+                                                >
+                                                    {{ getOptionLabel(opt) }}
+                                                </option>
+                                                <!-- Jika ada nilai lama yg belum ada di daftar opsi -->
+                                                <option
+                                                    v-if="student[col.key] && !hasOption(col.options, student[col.key])"
+                                                    :value="student[col.key]"
+                                                >
+                                                    {{ student[col.key] }}
+                                                </option>
+                                            </select>
+
+                                            <!-- Date type -->
+                                            <input
+                                                v-else-if="col.type === 'date'"
+                                                type="date"
+                                                v-model="student[col.key]"
+                                                :class="['w-full px-2 py-1 text-[11.5px] border border-slate-200 rounded-lg focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none transition-colors bg-white', col.width]"
+                                            />
+
+                                            <!-- Number type -->
+                                            <input
+                                                v-else-if="col.type === 'number'"
+                                                type="number"
+                                                v-model="student[col.key]"
+                                                :class="['w-full px-2 py-1 text-[11.5px] border border-slate-200 rounded-lg focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none transition-colors bg-white', col.width]"
+                                            />
+
+                                            <!-- Text default -->
+                                            <input
+                                                v-else
+                                                type="text"
+                                                v-model="student[col.key]"
+                                                :class="['w-full px-2 py-1 text-[11.5px] border border-slate-200 rounded-lg focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none transition-colors bg-white', col.width]"
+                                            />
+                                        </td>
+                                    </template>
+                                    <!-- Collapsed Group placeholder -->
+                                    <td v-else class="p-2 border-r border-slate-100 text-center">
+                                        <span class="text-[10px] text-slate-300">—</span>
                                     </td>
                                 </template>
-                                <!-- Collapsed group — show icon -->
-                                <td v-else class="p-2 border-r border-slate-100 text-center">
-                                    <span class="text-[10px] text-slate-400">—</span>
+                            </tr>
+
+                            <!-- Empty state -->
+                            <tr v-if="filteredStudents.length === 0">
+                                <td :colspan="3 + visibleGroups.reduce((sum, g) => sum + groupSpan(g.key), 0)" class="py-16 text-center">
+                                    <div class="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-3 text-slate-400">
+                                        <span class="material-symbols-outlined text-2xl">search_off</span>
+                                    </div>
+                                    <p class="text-sm font-bold text-slate-700">Tidak ada data yang sesuai</p>
+                                    <p class="text-xs text-slate-400 mt-1">Coba sesuaikan kata kunci pencarian Anda.</p>
                                 </td>
-                            </template>
-                        </tr>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
 
-                        <!-- Empty state -->
-                        <tr v-if="filteredStudents.length === 0">
-                            <td :colspan="6 + visibleGroups.reduce((sum, g) => sum + groupSpan(g.key), 0)" class="py-16 text-center">
-                                <span class="material-symbols-outlined text-4xl text-slate-300 block mb-2">search_off</span>
-                                <p class="text-sm text-slate-500">Tidak ada data yang sesuai.</p>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Footer -->
-            <div class="px-4 py-3 border-t border-slate-100 flex items-center justify-between bg-slate-50/50">
-                <span class="text-xs text-slate-500">
-                    Menampilkan <strong class="text-slate-700">{{ filteredStudents.length }}</strong> dari <strong class="text-slate-700">{{ students.length }}</strong> siswa
-                    <span v-if="selectedRows.size > 0"> · <strong class="text-amber-600">{{ selectedRows.size }} dipilih</strong></span>
-                </span>
-                <button
-                    type="button"
-                    @click="saveChanges"
-                    :disabled="isSaving"
-                    class="inline-flex items-center gap-1.5 px-4 py-1.5 bg-primary text-on-primary rounded-lg text-xs font-bold disabled:opacity-50 cursor-pointer transition-all hover:shadow-md"
-                >
-                    <span class="material-symbols-outlined text-[14px]">{{ isSaving ? 'hourglass_empty' : 'save' }}</span>
-                    {{ isSaving ? 'Menyimpan...' : 'Simpan Perubahan' }}
-                </button>
+                <!-- Footer Tabel -->
+                <div class="px-4 py-3 border-t border-slate-200 flex items-center justify-between bg-slate-50/70">
+                    <span class="text-xs text-slate-500 font-medium">
+                        Menampilkan <strong class="text-slate-800 font-bold">{{ filteredStudents.length }}</strong> dari <strong class="text-slate-800 font-bold">{{ students.length }}</strong> siswa
+                        <span v-if="selectedRows.size > 0"> · <strong class="text-emerald-800 font-bold">{{ selectedRows.size }} dipilih</strong></span>
+                    </span>
+                    <button
+                        type="button"
+                        @click="saveChanges"
+                        :disabled="isSaving"
+                        class="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-900 hover:bg-emerald-800 text-yellow-200 rounded-xl text-xs font-bold disabled:opacity-50 cursor-pointer transition-all shadow-xs active:scale-95 border border-emerald-950/30"
+                    >
+                        <span class="material-symbols-outlined text-[16px]">{{ isSaving ? 'hourglass_empty' : 'save' }}</span>
+                        <span>{{ isSaving ? 'Menyimpan...' : 'Simpan Perubahan' }}</span>
+                    </button>
+                </div>
             </div>
         </div>
     </div>

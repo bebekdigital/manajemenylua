@@ -692,6 +692,7 @@ class StudentController extends Controller
                     'nisn' => $student->nisn,
                     'nama' => $student->nama,
                     'nipd' => $student->nipd,
+                    'angkatan' => $student->angkatan,
                     'nik' => $student->nik,
                     'no_kk' => $student->no_kk,
                     'jk' => $student->jk,
@@ -753,6 +754,10 @@ class StudentController extends Controller
         return Inertia::render('Students/InlineEdit', [
             'students' => $students,
             'selectedAcademicYear' => $selectedYearId ? AcademicYear::find($selectedYearId) : null,
+            'allUnits' => fn () => SchoolUnit::orderBy('name')->pluck('name')->toArray(),
+            'allLevels' => fn () => SchoolLevel::orderBy('name')->pluck('name')->toArray(),
+            'allPrograms' => fn () => SchoolProgram::orderBy('name')->pluck('name')->unique()->values()->toArray(),
+            'allClassrooms' => fn () => Classroom::when($selectedYearId, fn ($q) => $q->where('academic_year_id', $selectedYearId))->orderBy('name')->pluck('name')->unique()->values()->toArray(),
         ]);
     }
 
@@ -771,6 +776,7 @@ class StudentController extends Controller
             'students.*.nisn' => ['required', 'string'],
             'students.*.nama' => ['required', 'string'],
             'students.*.nipd' => ['nullable', 'string'],
+            'students.*.angkatan' => ['nullable', 'string', 'max:50'],
             'students.*.nik' => ['nullable', 'string'],
             'students.*.no_kk' => ['nullable', 'string'],
             'students.*.jk' => ['nullable', 'string'],
@@ -780,6 +786,7 @@ class StudentController extends Controller
             'students.*.no_wa' => ['nullable', 'string'],
             'students.*.sekolah_asal' => ['nullable', 'string'],
             'students.*.unit' => ['nullable', 'string'],
+            'students.*.unit_pesantren' => ['nullable', 'string'],
             'students.*.program' => ['nullable', 'string'],
             'students.*.jenjang' => ['nullable', 'string'],
             'students.*.tingkat' => ['nullable', 'numeric'],
@@ -830,7 +837,7 @@ class StudentController extends Controller
                 }
 
                 // 1. Update Student model (all columns on unified students table)
-                $student->update([
+                $studentUpdateData = [
                     'nama' => $d['nama'],
                     'nipd' => $d['nipd'] ?? $student->nipd,
                     'nik' => $d['nik'] ?? $student->nik,
@@ -875,7 +882,16 @@ class StudentController extends Controller
                     'pip_keterangan' => $d['pip_keterangan'] ?? $student->pip_keterangan,
                     'status_kip' => $d['status_kip'] ?? $student->status_kip,
                     'no_kip' => $d['no_kip'] ?? $student->no_kip,
-                ]);
+                ];
+
+                if (array_key_exists('unit_pesantren', $d)) {
+                    $studentUpdateData['unit_pesantren'] = $d['unit_pesantren'] ?: null;
+                }
+                if (array_key_exists('angkatan', $d)) {
+                    $studentUpdateData['angkatan'] = $d['angkatan'] ?: null;
+                }
+
+                $student->update($studentUpdateData);
 
                 // 2. Update academic record
                 if ($selectedYearId) {
@@ -910,7 +926,7 @@ class StudentController extends Controller
                         $classroomId = $classroom->id;
                     }
 
-                    $record->update([
+                    $recordUpdateData = [
                         'tingkat' => $d['tingkat'] ?? $record->tingkat,
                         'program' => $d['program'] ?? $record->program,
                         'student_status' => $d['student_status'] ?? $record->student_status,
@@ -920,7 +936,13 @@ class StudentController extends Controller
                         'pip_keterangan' => $d['pip_keterangan'] ?? $record->pip_keterangan,
                         'status_kip' => $d['status_kip'] ?? $record->status_kip,
                         'no_kip' => $d['no_kip'] ?? $record->no_kip,
-                    ]);
+                    ];
+
+                    if (array_key_exists('unit_pesantren', $d)) {
+                        $recordUpdateData['unit_pesantren'] = $d['unit_pesantren'] ?: null;
+                    }
+
+                    $record->update($recordUpdateData);
                 }
             }
         });

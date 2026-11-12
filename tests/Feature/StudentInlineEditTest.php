@@ -52,6 +52,9 @@ class StudentInlineEditTest extends TestCase
                 [
                     'nisn' => $student->nisn,
                     'nama' => 'Nama Diubah',
+                    'unit' => 'SMP IT Tahfidzul Quran Ulil Albab Karanganyar',
+                    'unit_pesantren' => 'PPTQ Ulil Albab',
+                    'angkatan' => '8',
                     'ayah_nama' => 'Ayah Diubah',
                     'ibu_nama' => 'Ibu Diubah',
                     'wali_nama' => 'Wali Diubah',
@@ -64,6 +67,9 @@ class StudentInlineEditTest extends TestCase
         $response->assertRedirect();
         $student->refresh();
         $this->assertSame('Nama Diubah', $student->nama);
+        $this->assertSame('SMP IT Tahfidzul Quran Ulil Albab Karanganyar', $student->unit);
+        $this->assertSame('PPTQ Ulil Albab', $student->unit_pesantren);
+        $this->assertSame('8', $student->angkatan);
         $this->assertSame('Ayah Diubah', $student->ayah_nama);
         $this->assertSame('Ibu Diubah', $student->ibu_nama);
         $this->assertSame('Wali Diubah', $student->wali_nama);
