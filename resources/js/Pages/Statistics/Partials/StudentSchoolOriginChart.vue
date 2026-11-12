@@ -218,9 +218,6 @@ const displayedSchools = computed(() => {
 // Nilai count tertinggi untuk proporsi bar
 const maxCount = computed(() => {
     let max = 1;
-    if (originStats.value.unrecordedCount > max) {
-        max = originStats.value.unrecordedCount;
-    }
     originStats.value.schools.forEach(s => {
         if (s.count > max) max = s.count;
     });
@@ -336,58 +333,6 @@ const modalFilteredStudents = computed(() => {
                 <span class="text-[11px] text-slate-400 font-medium hidden md:inline">
                     ({{ displayedSchools.length }} dari {{ originStats.uniqueSchoolCount }} sekolah)
                 </span>
-            </div>
-        </div>
-
-        <!-- ============================================================ -->
-        <!-- STAT BAR: DATA BELUM TERDATA (KLIK UNTUK POP-UP SISWA)       -->
-        <!-- ============================================================ -->
-        <div
-            v-if="originStats.unrecordedCount > 0 && (!searchQuery || 'belum terdata'.includes(searchQuery.toLowerCase()))"
-            @click="openSchoolModal(originStats.unrecordedItem)"
-            class="mb-3.5 p-3 rounded-2xl bg-amber-50/70 hover:bg-amber-100/70 border border-amber-200/80 space-y-2 transition-all cursor-pointer group shadow-2xs"
-            title="Klik untuk melihat nama-nama siswa yang belum terdata sekolah asalnya"
-        >
-            <div class="flex items-start justify-between gap-3">
-                <div class="min-w-0 flex items-start gap-2.5 flex-1">
-                    <span class="w-6 h-6 rounded-lg bg-amber-100 border border-amber-300 text-[11px] font-bold text-amber-800 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
-                        <span class="material-symbols-outlined text-[14px]">help_outline</span>
-                    </span>
-                    <div class="min-w-0 flex-1">
-                        <div class="flex items-center gap-1.5 flex-wrap">
-                            <span class="text-xs sm:text-[13px] font-bold text-amber-950 group-hover:text-amber-900 break-words leading-snug">
-                                Belum Terdata / Kosong
-                            </span>
-                            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-200/70 text-amber-900">
-                                Perlu Dilengkapi
-                            </span>
-                        </div>
-                        <p class="text-[10.5px] text-amber-700/80 font-medium mt-0.5 break-words">
-                            Siswa yang belum memiliki riwayat data sekolah asal di Tab Registrasi
-                        </p>
-                    </div>
-                </div>
-
-                <!-- Jumlah, Persen, & Icon open_in_new -->
-                <div class="flex items-center gap-1.5 shrink-0 text-xs mt-0.5">
-                    <span class="font-extrabold text-amber-950">
-                        {{ originStats.unrecordedCount }} Siswa
-                    </span>
-                    <span class="text-[10.5px] font-bold text-amber-900 bg-amber-100 px-2 py-0.5 rounded-md border border-amber-300">
-                        {{ originStats.unrecordedPercentage }}%
-                    </span>
-                    <span class="material-symbols-outlined text-[16px] text-amber-600 group-hover:text-amber-900 transition-colors ml-0.5">
-                        open_in_new
-                    </span>
-                </div>
-            </div>
-
-            <!-- Bar Horizontal Belum Terdata -->
-            <div class="w-full bg-amber-200/60 rounded-full h-2.5 overflow-hidden">
-                <div
-                    class="bg-amber-500 h-full rounded-full transition-all duration-500"
-                    :style="{ width: `${Math.max((originStats.unrecordedCount / maxCount) * 100, 3)}%` }"
-                ></div>
             </div>
         </div>
 
