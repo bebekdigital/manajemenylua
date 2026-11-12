@@ -33,8 +33,6 @@ const modalTitle = computed(() => isEditing.value ? 'Edit Program' : 'Tambah Pro
 const selectedProgram = ref('');
 const isCustomMode = ref(false);
 
-const defaultPrograms = ['Umum', 'Boarding', 'Fullday', 'Tahfidz', 'Reguler', 'Kitab'];
-
 // Kumpulan seluruh program yang sudah pernah ditambahkan di seluruh unit
 const allAvailablePrograms = computed(() => {
     const set = new Set();
@@ -45,8 +43,6 @@ const allAvailablePrograms = computed(() => {
             set.add(str.trim());
         }
     });
-
-    defaultPrograms.forEach(p => set.add(p));
 
     return Array.from(set).sort((a, b) => a.localeCompare(b));
 });
@@ -86,8 +82,13 @@ watch(
                 }
             } else {
                 form.reset();
-                selectedProgram.value = '';
-                isCustomMode.value = false;
+                if (allAvailablePrograms.value.length === 0) {
+                    selectedProgram.value = '__CUSTOM__';
+                    isCustomMode.value = true;
+                } else {
+                    selectedProgram.value = '';
+                    isCustomMode.value = false;
+                }
             }
         }
     }
@@ -202,7 +203,9 @@ function submit() {
                                     class="w-full px-4 py-2.5 bg-surface-container-low border border-outline-variant/60 rounded-xl text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
                                     :class="{ 'border-error': form.errors.name }"
                                 >
-                                    <option value="" disabled>-- Pilih dari Program yang Pernah Ditambahkan --</option>
+                                    <option value="" disabled>
+                                        {{ allAvailablePrograms.length > 0 ? '-- Pilih dari Program yang Pernah Ditambahkan --' : '-- Belum Ada Program Sebelumnya --' }}
+                                    </option>
                                     <option
                                         v-for="prog in allAvailablePrograms"
                                         :key="prog"
@@ -223,6 +226,7 @@ function submit() {
                                         Nama Program Baru <span class="text-error">*</span>
                                     </label>
                                     <button
+                                        v-if="allAvailablePrograms.length > 0"
                                         type="button"
                                         @click="switchToSelectMode"
                                         class="text-xs text-primary hover:underline font-semibold cursor-pointer"

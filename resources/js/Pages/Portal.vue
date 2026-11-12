@@ -489,8 +489,6 @@ const allExistingPrograms = computed(() => {
         }
     });
 
-    ['Umum', 'Boarding', 'Fullday', 'Tahfidz'].forEach(def => set.add(def));
-
     return Array.from(set).sort((a, b) => a.localeCompare(b));
 });
 
