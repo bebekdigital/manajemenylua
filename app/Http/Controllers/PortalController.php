@@ -9,6 +9,7 @@ use App\Models\Employee;
 use App\Models\OrganizationLevel;
 use App\Models\RolePermission;
 use App\Models\SchoolLevel;
+use App\Models\SchoolProgram;
 use App\Models\User;
 use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
@@ -70,6 +71,16 @@ class PortalController extends Controller
         });
 
         $schoolLevels = SchoolLevel::with(['units.programs', 'units.classes'])->orderBy('order')->get();
+
+        $existingPrograms = Schema::hasTable('school_programs')
+            ? SchoolProgram::query()
+                ->whereNotNull('name')
+                ->where('name', '!=', '')
+                ->distinct()
+                ->orderBy('name')
+                ->pluck('name')
+                ->values()
+            : collect([]);
 
         $departments = Schema::hasTable('departments')
             ? Department::with('positions')->orderBy('order')->orderBy('name')->get()
@@ -187,6 +198,7 @@ class PortalController extends Controller
             'academicYears' => $academicYears,
             'users' => $users,
             'schoolLevels' => $schoolLevels,
+            'existingPrograms' => $existingPrograms,
             'departments' => $departments,
             'allSchoolPositions' => [],
             'organizationPositions' => $organizationPositions,

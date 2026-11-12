@@ -36,6 +36,10 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    existingPrograms: {
+        type: Array,
+        default: () => [],
+    },
     departments: {
         type: Array,
         default: () => [],
@@ -463,6 +467,32 @@ function confirmUnitDelete(unit) {
 const showProgramModal = ref(false);
 const editingProgram = ref(null);
 const selectedUnitForProgram = ref(null);
+
+const allExistingPrograms = computed(() => {
+    const set = new Set();
+
+    (props.schoolLevels || []).forEach(level => {
+        (level.units || []).forEach(unit => {
+            (unit.programs || []).forEach(p => {
+                const name = typeof p === 'string' ? p : p?.name;
+                if (name && typeof name === 'string' && name.trim()) {
+                    set.add(name.trim());
+                }
+            });
+        });
+    });
+
+    (props.existingPrograms || []).forEach(p => {
+        const name = typeof p === 'string' ? p : p?.name;
+        if (name && typeof name === 'string' && name.trim()) {
+            set.add(name.trim());
+        }
+    });
+
+    ['Umum', 'Boarding', 'Fullday', 'Tahfidz'].forEach(def => set.add(def));
+
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+});
 
 function openProgramCreateModal(unit) {
     editingProgram.value = null;
@@ -2013,6 +2043,7 @@ onUnmounted(() => {
             :show="showProgramModal"
             :editing="editingProgram"
             :school-unit="selectedUnitForProgram"
+            :existing-programs="allExistingPrograms"
             @close="closeProgramModal"
             @success="onProgramSuccess"
         />
