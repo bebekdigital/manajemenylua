@@ -77,7 +77,11 @@ const form = useForm({
     tempat_lahir: '',
     tanggal_lahir: '',
     agama: 'Islam',
-    unit: props.allUnits?.[0] || 'SDIT',
+    unit: (props.allUnits || []).find(u => {
+        const upper = (u || '').toUpperCase();
+        return !upper.includes('PPTQ') && !upper.includes('PESANTREN') && !upper.includes('PONDOK');
+    }) || props.allUnits?.[0] || 'SDIT',
+    unit_pesantren: '',
     program: 'Umum',
     jenjang: props.allLevels?.[0] || 'SD',
     tingkat: '',
@@ -147,13 +151,78 @@ const form = useForm({
     kebutuhan_khusus: '',
 });
 
+// Pilihan Unit Sekolah Formal (SDIT, SMPIT, SMAIT)
+const formalUnitOptions = computed(() => {
+    const list = (props.allUnits || []).filter(u => {
+        const upper = (u || '').toUpperCase();
+        return !upper.includes('PPTQ') && !upper.includes('PESANTREN') && !upper.includes('PONDOK');
+    });
+    return list.length > 0 ? list : (props.allUnits || []);
+});
+
+// Pilihan Unit Kepesantrenan / Asrama (PPTQ Ulil Albab)
+const pesantrenUnitOptions = computed(() => {
+    const list = (props.allUnits || []).filter(u => {
+        const upper = (u || '').toUpperCase();
+        return upper.includes('PPTQ') || upper.includes('PESANTREN') || upper.includes('PONDOK');
+    });
+    if (list.length === 0) {
+        return ['PPTQ Ulil Albab'];
+    }
+    return list;
+});
+
+// Pilihan Program Pendidikan
+const programOptions = computed(() => {
+    const set = new Set();
+    (props.allPrograms || []).forEach(p => {
+        if (p && typeof p === 'string' && p.trim()) set.add(p.trim());
+    });
+    if (set.size === 0) {
+        set.add('Fullday');
+        set.add('Boarding');
+        set.add('Umum');
+    }
+    if (form.program) set.add(form.program);
+    return Array.from(set);
+});
+
+function onPesantrenUnitChange() {
+    if (form.unit_pesantren) {
+        const currentProg = (form.program || '').toLowerCase();
+        if (!currentProg.includes('boarding')) {
+            const boardingMatch = programOptions.value.find(p => p.toLowerCase().includes('boarding'));
+            form.program = boardingMatch || 'Boarding';
+        }
+    } else {
+        const currentProg = (form.program || '').toLowerCase();
+        if (currentProg.includes('boarding')) {
+            const nonBoardingMatch = programOptions.value.find(p => !p.toLowerCase().includes('boarding'));
+            form.program = nonBoardingMatch || 'Fullday';
+        }
+    }
+}
+
+function onProgramChange() {
+    const prog = (form.program || '').toLowerCase();
+    if (prog.includes('boarding')) {
+        if (!form.unit_pesantren) {
+            form.unit_pesantren = pesantrenUnitOptions.value[0] || 'PPTQ Ulil Albab';
+        }
+    } else {
+        if (form.unit_pesantren) {
+            form.unit_pesantren = '';
+        }
+    }
+}
+
 // Daftar kelas yang relevan dengan unit yang dipilih
 const filteredClasses = computed(() => {
     if (!props.allClasses || props.allClasses.length === 0) return [];
     if (!form.unit) return props.allClasses;
     return props.allClasses.filter((c) => {
         if (!c.unit) return true;
-        return c.unit.toUpperCase().includes(form.unit.toUpperCase());
+        return c.unit.toUpperCase().includes(form.unit.toUpperCase()) || form.unit.toUpperCase().includes(c.unit.toUpperCase());
     });
 });
 
@@ -548,20 +617,57 @@ onUnmounted(() => {
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
-                            <!-- Unit Sekolah -->
+                            <!-- 1. Unit Sekolah Formal -->
                             <div>
                                 <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
-                                    Unit Sekolah
+                                    Unit Sekolah Formal
                                 </label>
                                 <select
                                     v-model="form.unit"
                                     class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200/90 text-xs sm:text-sm font-semibold text-slate-900 bg-white shadow-2xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all cursor-pointer"
                                 >
-                                    <option v-for="u in allUnits" :key="u" :value="u">{{ u }}</option>
+                                    <option v-for="u in formalUnitOptions" :key="u" :value="u">{{ u }}</option>
+                                    <option v-if="form.unit && !formalUnitOptions.includes(form.unit)" :value="form.unit">{{ form.unit }}</option>
                                 </select>
+                                <p class="text-[11px] text-slate-500 mt-1">Satuan pendidikan formal (Kemdikbud/Kemenag).</p>
                             </div>
 
-                            <!-- Jenjang -->
+                            <!-- 2. Unit Kepesantrenan / Asrama -->
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+                                    Unit Kepesantrenan / Asrama
+                                </label>
+                                <select
+                                    v-model="form.unit_pesantren"
+                                    @change="onPesantrenUnitChange"
+                                    class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200/90 text-xs sm:text-sm font-semibold text-slate-900 bg-white shadow-2xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all cursor-pointer"
+                                >
+                                    <option value="">-- Tidak Berasrama (Non-Boarding) --</option>
+                                    <option v-for="p in pesantrenUnitOptions" :key="p" :value="p">{{ p }}</option>
+                                    <option v-if="form.unit_pesantren && !pesantrenUnitOptions.includes(form.unit_pesantren)" :value="form.unit_pesantren">{{ form.unit_pesantren }}</option>
+                                </select>
+                                <p class="text-[11px] text-slate-500 mt-1">Pilih pondok pesantren jika siswa tinggal di asrama.</p>
+                            </div>
+
+                            <!-- 3. Program Pendidikan -->
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+                                    Program Pendidikan
+                                </label>
+                                <select
+                                    v-model="form.program"
+                                    @change="onProgramChange"
+                                    class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200/90 text-xs sm:text-sm font-semibold text-slate-900 bg-white shadow-2xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all cursor-pointer"
+                                >
+                                    <option v-for="p in programOptions" :key="p" :value="p">{{ p }}</option>
+                                </select>
+                                <p class="text-[11px] text-slate-500 mt-1">
+                                    <span v-if="form.unit_pesantren" class="text-indigo-600 font-medium">Siswa asrama: {{ form.unit_pesantren }}</span>
+                                    <span v-else>Siswa non-asrama (Fullday / Reguler).</span>
+                                </p>
+                            </div>
+
+                            <!-- 4. Jenjang -->
                             <div>
                                 <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
                                     Jenjang
@@ -574,21 +680,20 @@ onUnmounted(() => {
                                 </select>
                             </div>
 
-                            <!-- Program -->
+                            <!-- 5. Tingkat / Tingkatan Kelas -->
                             <div>
                                 <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
-                                    Program
+                                    Tingkat (1 - 12)
                                 </label>
-                                <select
-                                    v-model="form.program"
-                                    class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200/90 text-xs sm:text-sm font-semibold text-slate-900 bg-white shadow-2xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all cursor-pointer"
-                                >
-                                    <option v-for="p in allPrograms" :key="p" :value="p">{{ p }}</option>
-                                    <option value="Umum">Umum</option>
-                                </select>
+                                <input
+                                    v-model="form.tingkat"
+                                    type="text"
+                                    placeholder="cth. 1 atau 7"
+                                    class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200/90 text-xs sm:text-sm font-semibold text-slate-900 placeholder-slate-400 bg-white shadow-2xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                                />
                             </div>
 
-                            <!-- Kelas / Rombel -->
+                            <!-- 6. Kelas / Rombel -->
                             <div>
                                 <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
                                     Kelas / Rombel (Tahun Ajaran Aktif)
@@ -605,20 +710,7 @@ onUnmounted(() => {
                                 </select>
                             </div>
 
-                            <!-- Tingkat / Tingkatan Kelas -->
-                            <div>
-                                <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
-                                    Tingkat (1 - 12)
-                                </label>
-                                <input
-                                    v-model="form.tingkat"
-                                    type="text"
-                                    placeholder="cth. 1 atau 7"
-                                    class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200/90 text-xs sm:text-sm font-semibold text-slate-900 placeholder-slate-400 bg-white shadow-2xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-                                />
-                            </div>
-
-                            <!-- No. WhatsApp Siswa / Ortu -->
+                            <!-- 7. No. WhatsApp Siswa / Ortu -->
                             <div>
                                 <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
                                     Nomor WhatsApp (Utama)
@@ -631,7 +723,7 @@ onUnmounted(() => {
                                 />
                             </div>
 
-                            <!-- No. WhatsApp Alternatif -->
+                            <!-- 8. No. WhatsApp Alternatif -->
                             <div>
                                 <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
                                     Nomor WhatsApp (Alternatif)
@@ -644,8 +736,8 @@ onUnmounted(() => {
                                 />
                             </div>
 
-                            <!-- Email Siswa / Ortu -->
-                            <div class="md:col-span-2">
+                            <!-- 9. Email Siswa / Ortu -->
+                            <div>
                                 <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
                                     Email Siswa / Orang Tua
                                 </label>

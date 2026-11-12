@@ -147,6 +147,7 @@ class StatisticsController extends Controller
                     'nisn' => $student->nisn,
                     'nipd' => $student->nipd,
                     'unit' => $student->unit ?? $record?->classroom?->unit ?? '-',
+                    'unit_pesantren' => $student->unit_pesantren ?? $record?->unit_pesantren,
                     'jenjang' => $student->jenjang ?? $record?->classroom?->jenjang ?? '-',
                     'angkatan' => $student->angkatan,
                     'jk' => strtoupper(trim((string) ($student->jk ?? ''))),

@@ -108,6 +108,7 @@ class StudentController extends Controller
                     'no_kk' => $student->no_kk,
                     'agama' => $student->agama,
                     'unit' => $student->unit,
+                    'unit_pesantren' => $student->unit_pesantren ?? $record?->unit_pesantren,
                     'program' => $student->program ?? $record?->program,
                     'angkatan' => $student->angkatan,
                     'photo_url' => $student->photo_url,
@@ -229,6 +230,7 @@ class StudentController extends Controller
             'no_wa_2' => ['nullable', 'string', 'max:50'],
             'email' => ['nullable', 'email', 'max:100'],
             'unit' => ['nullable', 'string', 'max:100'],
+            'unit_pesantren' => ['nullable', 'string', 'max:100'],
             'program' => ['nullable', 'string', 'max:100'],
             'jenjang' => ['nullable', 'string', 'max:50'],
             'tingkat' => ['nullable', 'string', 'max:20'],
@@ -357,6 +359,7 @@ class StudentController extends Controller
                     'classroom_id' => $classroomId,
                     'tingkat' => $validated['tingkat'] ?? null,
                     'program' => $validated['program'] ?? 'Umum',
+                    'unit_pesantren' => $validated['unit_pesantren'] ?? null,
                     'student_status' => $isTidakAktif ? 'dropout' : 'aktif',
                     'ket_tidak_aktif' => $isTidakAktif ? ($validated['keterangan_tidak_aktif'] ?? null) : null,
                     'tanggal_tidak_aktif' => $isTidakAktif ? ($validated['tanggal_tidak_aktif'] ?? null) : null,
@@ -418,6 +421,7 @@ class StudentController extends Controller
             'no_kk' => $studentModel->no_kk,
             'agama' => $studentModel->agama,
             'unit' => $studentModel->unit,
+            'unit_pesantren' => $studentModel->unit_pesantren ?? $currentRecord?->unit_pesantren,
             'program' => $studentModel->program ?? $currentRecord?->program,
             'photo_url' => $studentModel->photo_url,
             'jenjang' => $currentRecord?->classroom?->jenjang ?? $studentModel->jenjang ?? $studentModel->diterima_di_jenjang,
@@ -512,6 +516,7 @@ class StudentController extends Controller
             'permissions' => $permissions,
             'allUnits' => fn () => SchoolUnit::orderBy('name')->pluck('name')->toArray(),
             'allLevels' => fn () => SchoolLevel::orderBy('name')->pluck('name')->toArray(),
+            'allPrograms' => fn () => SchoolProgram::orderBy('name')->pluck('name')->unique()->values()->toArray(),
         ]);
     }
 
@@ -586,6 +591,7 @@ class StudentController extends Controller
             'no_wa_2' => ['nullable', 'string', 'max:50'],
             'email' => ['nullable', 'email', 'max:100'],
             'unit' => ['nullable', 'string', 'max:100'],
+            'unit_pesantren' => ['nullable', 'string', 'max:100'],
             'program' => ['nullable', 'string', 'max:100'],
             'jenjang' => ['nullable', 'string', 'max:50'],
             'angkatan' => ['nullable', 'string', 'max:50'],
@@ -619,6 +625,7 @@ class StudentController extends Controller
             'no_wa_2' => $validated['no_wa_2'] ?? null,
             'email' => $validated['email'] ?? null,
             'unit' => $validated['unit'] ?? $student->unit,
+            'unit_pesantren' => array_key_exists('unit_pesantren', $validated) ? $validated['unit_pesantren'] : $student->unit_pesantren,
             'jenjang' => $validated['jenjang'] ?? $student->jenjang,
             'angkatan' => $validated['angkatan'] ?? null,
         ]);
@@ -629,6 +636,9 @@ class StudentController extends Controller
             $recordUpdates = [];
             if (isset($validated['program'])) {
                 $recordUpdates['program'] = $validated['program'];
+            }
+            if (array_key_exists('unit_pesantren', $validated)) {
+                $recordUpdates['unit_pesantren'] = $validated['unit_pesantren'];
             }
             if (isset($validated['tingkat'])) {
                 $recordUpdates['tingkat'] = $validated['tingkat'];
@@ -692,6 +702,7 @@ class StudentController extends Controller
                     'sekolah_asal' => $student->sekolah_asal,
                     // Akademik
                     'unit' => $student->unit,
+                    'unit_pesantren' => $student->unit_pesantren ?? $record?->unit_pesantren,
                     'program' => $student->program ?? $record?->program,
                     'jenjang' => $record?->classroom?->jenjang ?? $student->diterima_di_jenjang,
                     'tingkat' => $record?->tingkat,
@@ -1194,10 +1205,10 @@ class StudentController extends Controller
             $levels = collect(['SD', 'SMP']);
         }
 
-        $units = SchoolUnit::with('level')
+        $units = SchoolUnit::with('levels')
             ->get()
             ->sortBy([
-                fn ($a, $b) => ($a->level?->order ?? 0) <=> ($b->level?->order ?? 0),
+                fn ($a, $b) => ($a->levels->min('order') ?? 0) <=> ($b->levels->min('order') ?? 0),
                 fn ($a, $b) => strcmp($a->name, $b->name),
             ])
             ->pluck('name')

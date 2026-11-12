@@ -19,6 +19,7 @@ class Student extends Model
         'no_kk',
         'jenjang',
         'unit',
+        'unit_pesantren',
         'angkatan',
         'jk',
         'tempat_lahir',

@@ -282,6 +282,14 @@ function getAlamatLengkap(s) {
                             <div class="flex items-center gap-1.5 flex-wrap">
                                 <span>{{ student.unit || '-' }}</span>
                                 <span
+                                    v-if="student.unit_pesantren"
+                                    class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10.5px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200"
+                                    :title="'Unit Kepesantrenan: ' + student.unit_pesantren"
+                                >
+                                    <span class="material-symbols-outlined text-[13px]">mosque</span>
+                                    <span>{{ student.unit_pesantren }}</span>
+                                </span>
+                                <span
                                     v-if="student.program && student.program !== 'Umum'"
                                     class="inline-flex items-center px-1.5 py-0.5 rounded text-[10.5px] font-bold"
                                     :class="student.program.toLowerCase().includes('boarding') ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-emerald-100 text-emerald-800 border border-emerald-200'"

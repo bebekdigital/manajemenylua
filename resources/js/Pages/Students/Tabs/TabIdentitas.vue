@@ -1,5 +1,5 @@
 <script setup>
-import { inject, nextTick, ref, watch } from 'vue';
+import { computed, inject, nextTick, ref, watch } from 'vue';
 
 const props = defineProps({
     student: {
@@ -26,12 +26,82 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    allPrograms: {
+        type: Array,
+        default: () => [],
+    },
 });
 
 const emit = defineEmits(['startEdit', 'cancelEdit', 'saveChanges']);
 
 const showToast = inject('showToast', null);
 const localErrors = ref({});
+
+// Pilihan Unit Sekolah Formal (SDIT, SMPIT, SMAIT)
+const formalUnitOptions = computed(() => {
+    return (props.allUnits || []).filter(u => {
+        const upper = (u || '').toUpperCase();
+        return !upper.includes('PPTQ') && !upper.includes('PESANTREN') && !upper.includes('PONDOK');
+    });
+});
+
+// Pilihan Unit Kepesantrenan / Asrama (PPTQ Ulil Albab)
+const pesantrenUnitOptions = computed(() => {
+    const list = (props.allUnits || []).filter(u => {
+        const upper = (u || '').toUpperCase();
+        return upper.includes('PPTQ') || upper.includes('PESANTREN') || upper.includes('PONDOK');
+    });
+    if (list.length === 0) {
+        return ['PPTQ Ulil Albab'];
+    }
+    return list;
+});
+
+// Pilihan Program Pendidikan
+const programOptions = computed(() => {
+    const set = new Set();
+    (props.allPrograms || []).forEach(p => {
+        if (p && typeof p === 'string' && p.trim()) set.add(p.trim());
+    });
+    if (set.size === 0) {
+        set.add('Fullday');
+        set.add('Boarding');
+        set.add('Umum');
+    }
+    if (props.form.program) set.add(props.form.program);
+    return Array.from(set);
+});
+
+function onPesantrenUnitChange() {
+    clearFieldError('unit_pesantren');
+    if (props.form.unit_pesantren) {
+        const currentProg = (props.form.program || '').toLowerCase();
+        if (!currentProg.includes('boarding')) {
+            const boardingMatch = programOptions.value.find(p => p.toLowerCase().includes('boarding'));
+            props.form.program = boardingMatch || 'Boarding';
+        }
+    } else {
+        const currentProg = (props.form.program || '').toLowerCase();
+        if (currentProg.includes('boarding')) {
+            const nonBoardingMatch = programOptions.value.find(p => !p.toLowerCase().includes('boarding'));
+            props.form.program = nonBoardingMatch || 'Fullday';
+        }
+    }
+}
+
+function onProgramChange() {
+    clearFieldError('program');
+    const prog = (props.form.program || '').toLowerCase();
+    if (prog.includes('boarding')) {
+        if (!props.form.unit_pesantren) {
+            props.form.unit_pesantren = pesantrenUnitOptions.value[0] || 'PPTQ Ulil Albab';
+        }
+    } else {
+        if (props.form.unit_pesantren) {
+            props.form.unit_pesantren = '';
+        }
+    }
+}
 
 const requiredFields = [
     { key: 'nama', label: 'Nama Lengkap', id: 'field-nama' },
@@ -562,27 +632,51 @@ watch(
 
             <!-- VIEW MODE - CONTAINER 2 -->
             <div v-if="!isEditing" class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                <!-- 1. Unit Sekolah Formal -->
                 <div>
-                    <label class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Unit Sekolah</label>
-                    <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.unit || '-' }}</p>
+                    <label class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Unit Sekolah Formal</label>
+                    <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1 flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-[16px] text-emerald-700">school</span>
+                        <span>{{ student.unit || '-' }}</span>
+                    </p>
                 </div>
+
+                <!-- 2. Unit Kepesantrenan / Asrama -->
                 <div>
-                    <label class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Program</label>
+                    <label class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Unit Kepesantrenan / Asrama</label>
+                    <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">
+                        <span v-if="student.unit_pesantren" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                            <span class="material-symbols-outlined text-[14px]">mosque</span>
+                            <span>{{ student.unit_pesantren }}</span>
+                        </span>
+                        <span v-else class="text-slate-400 text-xs italic">
+                            Tidak Berasrama (Non-Boarding)
+                        </span>
+                    </p>
+                </div>
+
+                <!-- 3. Program Pendidikan -->
+                <div>
+                    <label class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Program Pendidikan</label>
                     <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">
                         <span :class="[
                             'inline-flex items-center px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-semibold',
-                            student.program === 'Boarding' ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' :
-                            student.program === 'Fullday' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' :
+                            (student.program || '').toLowerCase().includes('boarding') ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' :
+                            (student.program || '').toLowerCase().includes('fullday') ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' :
                             'bg-slate-100 text-slate-700 border border-slate-200'
                         ]">
                             {{ student.program || 'Umum' }}
                         </span>
                     </p>
                 </div>
+
+                <!-- 4. Jenjang -->
                 <div>
                     <label class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Jenjang</label>
                     <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.jenjang || '-' }}</p>
                 </div>
+
+                <!-- 5. Angkatan -->
                 <div>
                     <label class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Angkatan</label>
                     <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">
@@ -592,22 +686,23 @@ watch(
                         <span v-else class="text-slate-400">-</span>
                     </p>
                 </div>
+
+                <!-- 6. Tingkat & Kelas -->
                 <div>
-                    <label class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Tingkat</label>
-                    <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.tingkat || '-' }}</p>
-                </div>
-                <div>
-                    <label class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Kelas</label>
-                    <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.kelas || '-' }}</p>
+                    <label class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Tingkat / Kelas</label>
+                    <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">
+                        {{ student.tingkat ? `Tingkat ${student.tingkat}` : '' }}
+                        {{ student.kelas ? `(${student.kelas})` : (student.tingkat ? '' : '-') }}
+                    </p>
                 </div>
             </div>
 
             <!-- EDIT MODE - CONTAINER 2 -->
             <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <!-- Unit Sekolah -->
+                <!-- Field 1: Unit Sekolah Formal -->
                 <div>
                     <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
-                        Unit Sekolah
+                        Unit Sekolah Formal <span class="text-error">*</span>
                     </label>
                     <select
                         v-if="allUnits && allUnits.length > 0"
@@ -616,8 +711,8 @@ watch(
                         @change="clearFieldError('unit')"
                         class="w-full px-3.5 py-2 sm:py-2.5 bg-white rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none transition-all border border-outline-variant/60 focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
                     >
-                        <option value="">-- Pilih Unit Sekolah --</option>
-                        <option v-for="u in allUnits" :key="u" :value="u">{{ u }}</option>
+                        <option value="">-- Pilih Unit Formal --</option>
+                        <option v-for="u in (formalUnitOptions.length > 0 ? formalUnitOptions : allUnits)" :key="u" :value="u">{{ u }}</option>
                         <option v-if="form.unit && !allUnits.includes(form.unit)" :value="form.unit">{{ form.unit }}</option>
                     </select>
                     <input
@@ -629,34 +724,55 @@ watch(
                         @input="clearFieldError('unit')"
                         class="w-full px-3.5 py-2 sm:py-2.5 bg-white rounded-xl text-xs sm:text-sm text-on-surface placeholder:text-outline focus:outline-none transition-all border border-outline-variant/60 focus:border-primary focus:ring-2 focus:ring-primary/20"
                     />
+                    <p class="text-[11px] text-slate-500 mt-1">Satuan pendidikan formal siswa (Kemdikbud/Kemenag).</p>
                     <div v-if="hasError('unit')" class="text-rose-600 font-medium text-xs mt-1.5 flex items-center gap-1">
                         <span class="material-symbols-outlined text-[14px]">error</span>
                         <span>{{ getError('unit') }}</span>
                     </div>
                 </div>
 
-                <!-- Program -->
+                <!-- Field 2: Unit Kepesantrenan / Asrama -->
                 <div>
                     <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
-                        Program
+                        Unit Kepesantrenan / Asrama
+                    </label>
+                    <select
+                        id="field-unit-pesantren"
+                        v-model="form.unit_pesantren"
+                        @change="onPesantrenUnitChange"
+                        class="w-full px-3.5 py-2 sm:py-2.5 bg-white rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none transition-all border border-outline-variant/60 focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                    >
+                        <option value="">-- Tidak Berasrama (Non-Boarding) --</option>
+                        <option v-for="p in pesantrenUnitOptions" :key="p" :value="p">{{ p }}</option>
+                        <option v-if="form.unit_pesantren && !pesantrenUnitOptions.includes(form.unit_pesantren)" :value="form.unit_pesantren">{{ form.unit_pesantren }}</option>
+                    </select>
+                    <p class="text-[11px] text-slate-500 mt-1">Pilih pondok pesantren jika siswa tinggal di asrama.</p>
+                </div>
+
+                <!-- Field 3: Program -->
+                <div>
+                    <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
+                        Program Pendidikan
                     </label>
                     <select
                         id="field-program"
                         v-model="form.program"
-                        @change="clearFieldError('program')"
+                        @change="onProgramChange"
                         class="w-full px-3.5 py-2 sm:py-2.5 bg-white rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none transition-all border border-outline-variant/60 focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
                     >
-                        <option value="Umum">Umum</option>
-                        <option value="Fullday">Fullday</option>
-                        <option value="Boarding">Boarding</option>
+                        <option v-for="prog in programOptions" :key="prog" :value="prog">{{ prog }}</option>
                     </select>
+                    <p class="text-[11px] text-slate-500 mt-1">
+                        <span v-if="form.unit_pesantren" class="text-indigo-600 font-medium">Siswa terdata di unit pesantren: {{ form.unit_pesantren }}</span>
+                        <span v-else>Siswa non-asrama (Fullday / Reguler).</span>
+                    </p>
                     <div v-if="hasError('program')" class="text-rose-600 font-medium text-xs mt-1.5 flex items-center gap-1">
                         <span class="material-symbols-outlined text-[14px]">error</span>
                         <span>{{ getError('program') }}</span>
                     </div>
                 </div>
 
-                <!-- Jenjang -->
+                <!-- Field 4: Jenjang -->
                 <div>
                     <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
                         Jenjang
@@ -692,7 +808,7 @@ watch(
                     </div>
                 </div>
 
-                <!-- Angkatan -->
+                <!-- Field 5: Angkatan -->
                 <div>
                     <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
                         Angkatan
@@ -701,7 +817,7 @@ watch(
                         id="field-angkatan"
                         v-model="form.angkatan"
                         type="text"
-                        placeholder="Contoh: 2024 atau 2025"
+                        placeholder="Contoh: 8, 9, 10"
                         @input="clearFieldError('angkatan')"
                         class="w-full px-3.5 py-2 sm:py-2.5 bg-white rounded-xl text-xs sm:text-sm text-on-surface placeholder:text-outline focus:outline-none transition-all border border-outline-variant/60 focus:border-primary focus:ring-2 focus:ring-primary/20"
                     />
@@ -711,41 +827,41 @@ watch(
                     </div>
                 </div>
 
-                <!-- Tingkat -->
-                <div>
-                    <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
-                        Tingkat
-                    </label>
-                    <input
-                        id="field-tingkat"
-                        v-model="form.tingkat"
-                        type="text"
-                        placeholder="Contoh: 1, 2, 7, 10"
-                        @input="clearFieldError('tingkat')"
-                        class="w-full px-3.5 py-2 sm:py-2.5 bg-white rounded-xl text-xs sm:text-sm text-on-surface placeholder:text-outline focus:outline-none transition-all border border-outline-variant/60 focus:border-primary focus:ring-2 focus:ring-primary/20"
-                    />
-                    <div v-if="hasError('tingkat')" class="text-rose-600 font-medium text-xs mt-1.5 flex items-center gap-1">
-                        <span class="material-symbols-outlined text-[14px]">error</span>
-                        <span>{{ getError('tingkat') }}</span>
+                <!-- Field 6: Tingkat & Kelas -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
+                            Tingkat
+                        </label>
+                        <input
+                            id="field-tingkat"
+                            v-model="form.tingkat"
+                            type="text"
+                            placeholder="Contoh: 1, 2, 7, 10"
+                            @input="clearFieldError('tingkat')"
+                            class="w-full px-3.5 py-2 sm:py-2.5 bg-white rounded-xl text-xs sm:text-sm text-on-surface placeholder:text-outline focus:outline-none transition-all border border-outline-variant/60 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                        />
+                        <div v-if="hasError('tingkat')" class="text-rose-600 font-medium text-xs mt-1.5 flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[14px]">error</span>
+                            <span>{{ getError('tingkat') }}</span>
+                        </div>
                     </div>
-                </div>
-
-                <!-- Kelas -->
-                <div>
-                    <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
-                        Kelas
-                    </label>
-                    <input
-                        id="field-kelas"
-                        v-model="form.kelas"
-                        type="text"
-                        placeholder="Contoh: 1A, 7B"
-                        @input="clearFieldError('kelas')"
-                        class="w-full px-3.5 py-2 sm:py-2.5 bg-white rounded-xl text-xs sm:text-sm text-on-surface placeholder:text-outline focus:outline-none transition-all border border-outline-variant/60 focus:border-primary focus:ring-2 focus:ring-primary/20"
-                    />
-                    <div v-if="hasError('kelas')" class="text-rose-600 font-medium text-xs mt-1.5 flex items-center gap-1">
-                        <span class="material-symbols-outlined text-[14px]">error</span>
-                        <span>{{ getError('kelas') }}</span>
+                    <div>
+                        <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
+                            Kelas
+                        </label>
+                        <input
+                            id="field-kelas"
+                            v-model="form.kelas"
+                            type="text"
+                            placeholder="Contoh: 1A, 7B"
+                            @input="clearFieldError('kelas')"
+                            class="w-full px-3.5 py-2 sm:py-2.5 bg-white rounded-xl text-xs sm:text-sm text-on-surface placeholder:text-outline focus:outline-none transition-all border border-outline-variant/60 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                        />
+                        <div v-if="hasError('kelas')" class="text-rose-600 font-medium text-xs mt-1.5 flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[14px]">error</span>
+                            <span>{{ getError('kelas') }}</span>
+                        </div>
                     </div>
                 </div>
             </div>

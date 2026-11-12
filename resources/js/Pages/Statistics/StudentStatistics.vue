@@ -149,6 +149,7 @@ function matchesUnit(studentOrUnit, targetUnit) {
     if (targetUnit === 'all') return true;
     if (!studentOrUnit) return false;
     const u = String(typeof studentOrUnit === 'object' ? studentOrUnit.unit : studentOrUnit || '').toUpperCase().trim();
+    const up = String(typeof studentOrUnit === 'object' ? studentOrUnit.unit_pesantren : '').toUpperCase().trim();
     const p = String(typeof studentOrUnit === 'object' ? studentOrUnit.program : '').toUpperCase().trim();
     if (targetUnit === 'SDIT') {
         return u.includes('SDIT') || u.includes('SD IT') || u === 'SD';
@@ -156,8 +157,11 @@ function matchesUnit(studentOrUnit, targetUnit) {
     if (targetUnit === 'SMPIT') {
         return u.includes('SMPIT') || u.includes('SMP IT') || u === 'SMP';
     }
+    if (targetUnit === 'SMAIT') {
+        return u.includes('SMAIT') || u.includes('SMA IT') || u === 'SMA';
+    }
     if (targetUnit === 'PPTQ') {
-        return u.includes('PPTQ') || p.includes('BOARDING');
+        return u.includes('PPTQ') || up.includes('PPTQ') || p.includes('BOARDING');
     }
     return u === targetUnit.toUpperCase();
 }
@@ -166,6 +170,7 @@ const unitTabs = computed(() => [
     { id: 'all', label: 'Semua', icon: 'school' },
     { id: 'SDIT', label: 'SDIT', icon: 'school' },
     { id: 'SMPIT', label: 'SMPIT', icon: 'domain' },
+    { id: 'SMAIT', label: 'SMAIT', icon: 'account_balance' },
     { id: 'PPTQ', label: 'PPTQ', icon: 'mosque' },
 ]);
 

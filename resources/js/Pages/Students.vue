@@ -51,6 +51,7 @@ const unitTabs = [
     { id: 'all', label: 'Semua Jenjang Pendidikan', icon: 'school' },
     { id: 'SDIT', label: 'SDIT', icon: 'school' },
     { id: 'SMPIT', label: 'SMPIT', icon: 'domain' },
+    { id: 'SMAIT', label: 'SMAIT', icon: 'account_balance' },
     { id: 'PPTQ', label: 'PPTQ', icon: 'mosque' },
 ];
 
@@ -63,6 +64,7 @@ watch(activeUnitTab, (newVal) => {
 function matchesStudentUnit(s, unitId) {
     if (unitId === 'all') return true;
     const u = (s.unit || '').toUpperCase();
+    const up = (s.unit_pesantren || '').toUpperCase();
     const p = (s.program || '').toUpperCase();
     if (unitId === 'SDIT') {
         return u.includes('SDIT') || u.includes('SD IT') || u === 'SD';
@@ -70,8 +72,11 @@ function matchesStudentUnit(s, unitId) {
     if (unitId === 'SMPIT') {
         return u.includes('SMPIT') || u.includes('SMP IT') || u === 'SMP';
     }
+    if (unitId === 'SMAIT') {
+        return u.includes('SMAIT') || u.includes('SMA IT') || u === 'SMA';
+    }
     if (unitId === 'PPTQ') {
-        return u.includes('PPTQ') || p.includes('BOARDING');
+        return u.includes('PPTQ') || up.includes('PPTQ') || p.includes('BOARDING');
     }
     return false;
 }
@@ -95,6 +100,7 @@ const unitOptions = computed(() => [
     { value: 'all', label: `Semua Jenjang Pendidikan (${unitStudentCount('all')})` },
     { value: 'SDIT', label: `SDIT (${unitStudentCount('SDIT')})` },
     { value: 'SMPIT', label: `SMPIT (${unitStudentCount('SMPIT')})` },
+    { value: 'SMAIT', label: `SMAIT (${unitStudentCount('SMAIT')})` },
     { value: 'PPTQ', label: `PPTQ (${unitStudentCount('PPTQ')})` },
 ]);
 
@@ -360,6 +366,9 @@ const filteredStudents = computed(() => {
             (s.nama || '').toLowerCase().includes(query) ||
             (s.nisn || '').includes(query) ||
             (s.nipd || '').includes(query) ||
+            (s.unit || '').toLowerCase().includes(query) ||
+            (s.unit_pesantren || '').toLowerCase().includes(query) ||
+            (s.program || '').toLowerCase().includes(query) ||
             (s.angkatan || '').toString().toLowerCase().includes(query) ||
             (s.no_wa || '').includes(query)
         );

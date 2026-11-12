@@ -157,6 +157,7 @@ class AdministrationController extends Controller
                     'no_kk' => $student->no_kk ?? '-',
                     'agama' => $student->agama ?? 'Islam',
                     'unit' => $student->unit ?? 'SMPIT Ulil Albab',
+                    'unit_pesantren' => $student->unit_pesantren ?? $record?->unit_pesantren ?? '-',
                     'program' => $student->program ?? 'Fullday',
                     'jenjang' => $record?->jenjang ?? 'SMP',
                     'tingkat' => $record?->tingkat,

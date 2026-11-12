@@ -33,6 +33,10 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    allPrograms: {
+        type: Array,
+        default: () => [],
+    },
 });
 
 const page = usePage();
@@ -125,6 +129,7 @@ const form = useForm({
     tanggal_lahir: '',
     agama: 'Islam',
     unit: '',
+    unit_pesantren: '',
     program: 'Umum',
     jenjang: '',
     angkatan: '',
@@ -146,6 +151,7 @@ function initFormFromProps() {
     form.tanggal_lahir = props.student.tanggal_lahir || '';
     form.agama = props.student.agama || 'Islam';
     form.unit = props.student.unit || '';
+    form.unit_pesantren = props.student.unit_pesantren || '';
     form.program = props.student.program || 'Umum';
     form.jenjang = props.student.jenjang || '';
     form.angkatan = props.student.angkatan || '';
@@ -512,6 +518,7 @@ onUnmounted(() => {
                     :can-edit="canEdit"
                     :all-units="allUnits"
                     :all-levels="allLevels"
+                    :all-programs="allPrograms"
                     @start-edit="startEdit"
                     @cancel-edit="cancelEdit"
                     @save-changes="saveChanges"
@@ -766,6 +773,7 @@ onUnmounted(() => {
                     :can-edit="canEdit"
                     :all-units="allUnits"
                     :all-levels="allLevels"
+                    :all-programs="allPrograms"
                     :timeline-headers="timelineHeaders"
                     :timeline-rows="timelineRows"
                     @editing-change="(val) => isEditing = val"

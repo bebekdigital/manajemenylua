@@ -258,4 +258,85 @@ class StudentDetailEditTest extends TestCase
             'desil' => 3,
         ]);
     }
+
+    public function test_can_update_student_formal_unit_and_pesantren_unit(): void
+    {
+        $student = Student::firstOrFail();
+
+        $updateData = [
+            'nama' => $student->nama,
+            'nisn' => $student->nisn,
+            'jk' => $student->jk ?: 'L',
+            'tempat_lahir' => $student->tempat_lahir ?: 'Karanganyar',
+            'tanggal_lahir' => $student->tanggal_lahir ? $student->tanggal_lahir->format('Y-m-d') : '2012-01-01',
+            'unit' => 'SMP IT Tahfidzul Quran Ulil Albab Karanganyar',
+            'unit_pesantren' => 'PPTQ Ulil Albab',
+            'program' => 'Boarding',
+            'jenjang' => 'SMP',
+            'angkatan' => '2024',
+            'tingkat' => '7',
+        ];
+
+        $response = $this->actingAs($this->user)->put("/students/{$student->id}", $updateData);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        $student->refresh();
+        $this->assertSame('SMP IT Tahfidzul Quran Ulil Albab Karanganyar', $student->unit);
+        $this->assertSame('PPTQ Ulil Albab', $student->unit_pesantren);
+
+        $this->assertDatabaseHas('students', [
+            'id' => $student->id,
+            'unit' => 'SMP IT Tahfidzul Quran Ulil Albab Karanganyar',
+            'unit_pesantren' => 'PPTQ Ulil Albab',
+        ]);
+
+        $this->assertDatabaseHas('student_academic_records', [
+            'student_id' => $student->id,
+            'program' => 'Boarding',
+            'unit_pesantren' => 'PPTQ Ulil Albab',
+        ]);
+    }
+
+    public function test_can_create_student_with_formal_unit_and_pesantren_unit(): void
+    {
+        $uniqueNisn = '9977553311';
+
+        $data = [
+            'nama' => 'Santri Boarding SMP',
+            'nisn' => $uniqueNisn,
+            'jk' => 'L',
+            'tempat_lahir' => 'Karanganyar',
+            'tanggal_lahir' => '2012-05-15',
+            'agama' => 'Islam',
+            'unit' => 'SMP IT Tahfidzul Quran Ulil Albab Karanganyar',
+            'unit_pesantren' => 'PPTQ Ulil Albab',
+            'program' => 'Boarding',
+            'jenjang' => 'SMP',
+            'tingkat' => '7',
+            'status_registrasi' => 'Siswa Baru',
+            'status_keaktifan' => 'Aktif',
+        ];
+
+        $response = $this->actingAs($this->user)->post('/students', $data);
+
+        $response->assertRedirect(route('students.show', ['nisn' => $uniqueNisn]));
+        $response->assertSessionHas('success');
+
+        $this->assertDatabaseHas('students', [
+            'nisn' => $uniqueNisn,
+            'nama' => 'Santri Boarding SMP',
+            'unit' => 'SMP IT Tahfidzul Quran Ulil Albab Karanganyar',
+            'unit_pesantren' => 'PPTQ Ulil Albab',
+        ]);
+
+        $newStudent = Student::where('nisn', $uniqueNisn)->first();
+        $this->assertNotNull($newStudent);
+        $this->assertDatabaseHas('student_academic_records', [
+            'student_id' => $newStudent->id,
+            'unit_pesantren' => 'PPTQ Ulil Albab',
+            'program' => 'Boarding',
+        ]);
+    }
 }
