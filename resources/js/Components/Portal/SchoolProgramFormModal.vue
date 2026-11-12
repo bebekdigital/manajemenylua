@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, computed, onMounted, onUnmounted } from 'vue';
+import { ref, watch, computed } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 
 const props = defineProps({
@@ -30,9 +30,8 @@ const form = useForm({
 const isEditing = computed(() => !!props.editing);
 const modalTitle = computed(() => isEditing.value ? 'Edit Program' : 'Tambah Program');
 
-// State Dropdown & Combobox
-const isDropdownOpen = ref(false);
-const inputContainerRef = ref(null);
+const selectedProgram = ref('');
+const isCustomMode = ref(false);
 
 const defaultPrograms = ['Umum', 'Boarding', 'Fullday', 'Tahfidz', 'Reguler', 'Kitab'];
 
@@ -68,65 +67,69 @@ function isProgramAlreadyInUnit(name) {
     return currentUnitProgramNames.value.has(name.trim().toLowerCase());
 }
 
-// Program yang difilter saat user mengetik di input
-const filteredPrograms = computed(() => {
-    const q = (form.name || '').trim().toLowerCase();
-    if (!q) return allAvailablePrograms.value;
-    return allAvailablePrograms.value.filter(p => p.toLowerCase().includes(q));
-});
-
-const hasExactMatch = computed(() => {
-    const q = (form.name || '').trim().toLowerCase();
-    if (!q) return true;
-    return allAvailablePrograms.value.some(p => p.toLowerCase() === q);
-});
-
-function openDropdown() {
-    isDropdownOpen.value = true;
-}
-
-function toggleDropdown() {
-    isDropdownOpen.value = !isDropdownOpen.value;
-}
-
-function selectProgram(name) {
-    if (isProgramAlreadyInUnit(name)) return;
-    form.name = name;
-    isDropdownOpen.value = false;
-    form.clearErrors('name');
-}
-
-function handleClickOutside(event) {
-    if (inputContainerRef.value && !inputContainerRef.value.contains(event.target)) {
-        isDropdownOpen.value = false;
-    }
-}
-
-onMounted(() => {
-    document.addEventListener('click', handleClickOutside);
-});
-
-onUnmounted(() => {
-    document.removeEventListener('click', handleClickOutside);
-});
-
 watch(
     () => props.show,
     (val) => {
         if (val) {
+            form.clearErrors();
             if (props.editing) {
                 form.name = props.editing.name;
+                const match = allAvailablePrograms.value.find(
+                    p => p.toLowerCase() === (props.editing.name || '').toLowerCase()
+                );
+                if (match) {
+                    selectedProgram.value = match;
+                    isCustomMode.value = false;
+                } else {
+                    selectedProgram.value = '__CUSTOM__';
+                    isCustomMode.value = true;
+                }
             } else {
                 form.reset();
+                selectedProgram.value = '';
+                isCustomMode.value = false;
             }
-            form.clearErrors();
-            isDropdownOpen.value = false;
         }
     }
 );
 
+function onSelectChange() {
+    if (selectedProgram.value === '__CUSTOM__') {
+        isCustomMode.value = true;
+        form.name = '';
+    } else {
+        isCustomMode.value = false;
+        form.name = selectedProgram.value;
+    }
+    form.clearErrors('name');
+}
+
+function switchToCustomMode() {
+    isCustomMode.value = true;
+    selectedProgram.value = '__CUSTOM__';
+    form.name = '';
+    form.clearErrors('name');
+}
+
+function switchToSelectMode() {
+    isCustomMode.value = false;
+    selectedProgram.value = '';
+    form.name = '';
+    form.clearErrors('name');
+}
+
 function submit() {
-    isDropdownOpen.value = false;
+    if (isCustomMode.value) {
+        form.name = (form.name || '').trim();
+    } else {
+        form.name = (selectedProgram.value || '').trim();
+    }
+
+    if (!form.name) {
+        form.setError('name', 'Nama program wajib diisi atau dipilih.');
+        return;
+    }
+
     if (props.editing) {
         form.put(`/portal/school-programs/${props.editing.id}`, {
             preserveScroll: true,
@@ -172,132 +175,71 @@ function submit() {
                             </button>
                         </div>
 
-                        <form @submit.prevent="submit" class="px-6 py-5 space-y-5">
+                        <form @submit.prevent="submit" class="px-6 py-5 space-y-4">
                             <div v-if="schoolUnit && !isEditing" class="p-3 bg-surface-container-low rounded-xl border border-outline-variant/40 text-sm">
                                 <span class="text-on-surface-variant">Menambahkan program untuk unit: </span>
                                 <strong class="text-on-surface">{{ schoolUnit.name }}</strong>
                             </div>
 
-                            <div>
+                            <!-- Pilihan 1: Dropdown Sederhana -->
+                            <div v-if="!isCustomMode">
                                 <div class="flex items-center justify-between mb-1.5">
                                     <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider">
-                                        Nama Program <span class="text-error">*</span>
+                                        Pilih Program <span class="text-error">*</span>
                                     </label>
-                                    <span class="text-[11px] text-on-surface-variant font-medium">
-                                        Pilih dari dropdown atau isi sendiri
-                                    </span>
-                                </div>
-
-                                <!-- Combobox Container: Input Text + Dropdown Pilihan -->
-                                <div ref="inputContainerRef" class="relative">
-                                    <div class="relative flex items-center">
-                                        <input
-                                            v-model="form.name"
-                                            type="text"
-                                            required
-                                            autocomplete="off"
-                                            @focus="openDropdown"
-                                            class="w-full pl-4 pr-10 py-2.5 bg-surface-container-low border border-outline-variant/60 rounded-xl text-sm text-on-surface placeholder:text-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-                                            placeholder="Pilih dari dropdown atau ketik nama program..."
-                                            :class="{ 'border-error': form.errors.name }"
-                                        />
-                                        <button
-                                            type="button"
-                                            @click.stop="toggleDropdown"
-                                            class="absolute right-2 p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-variant transition-colors cursor-pointer"
-                                            title="Buka pilihan program yang pernah ditambahkan"
-                                        >
-                                            <span
-                                                class="material-symbols-outlined text-[20px] transition-transform duration-200"
-                                                :class="{ 'rotate-180': isDropdownOpen }"
-                                            >
-                                                expand_more
-                                            </span>
-                                        </button>
-                                    </div>
-
-                                    <!-- Floating Dropdown Menu -->
-                                    <div
-                                        v-if="isDropdownOpen"
-                                        class="absolute left-0 right-0 top-full mt-1.5 bg-surface-container-lowest border border-outline-variant/50 rounded-2xl shadow-xl z-50 overflow-hidden max-h-60 overflow-y-auto animate-in fade-in duration-100"
-                                    >
-                                        <!-- Header Dropdown -->
-                                        <div class="px-3.5 py-2 bg-surface-container-low/70 border-b border-outline-variant/30 flex items-center justify-between text-[11px] font-semibold text-on-surface-variant">
-                                            <span>PROGRAM YANG PERNAH DITAMBAHKAN</span>
-                                            <span class="text-[10px] text-outline font-normal">Klik untuk memilih</span>
-                                        </div>
-
-                                        <!-- List Programs -->
-                                        <div class="p-1 space-y-0.5">
-                                            <button
-                                                v-for="prog in filteredPrograms"
-                                                :key="prog"
-                                                type="button"
-                                                @click="selectProgram(prog)"
-                                                :disabled="isProgramAlreadyInUnit(prog)"
-                                                class="w-full text-left px-3.5 py-2 rounded-xl text-xs font-medium flex items-center justify-between gap-2 transition-colors cursor-pointer"
-                                                :class="[
-                                                    isProgramAlreadyInUnit(prog)
-                                                        ? 'opacity-40 cursor-not-allowed bg-surface-container-low/40 text-on-surface-variant'
-                                                        : (form.name === prog
-                                                            ? 'bg-primary/10 text-primary font-bold'
-                                                            : 'text-on-surface hover:bg-surface-variant/60')
-                                                ]"
-                                            >
-                                                <div class="flex items-center gap-2 min-w-0">
-                                                    <span class="material-symbols-outlined text-[16px] text-primary" v-if="form.name === prog">
-                                                        check
-                                                    </span>
-                                                    <span class="material-symbols-outlined text-[16px] text-outline" v-else>
-                                                        school
-                                                    </span>
-                                                    <span class="truncate">{{ prog }}</span>
-                                                </div>
-
-                                                <span v-if="isProgramAlreadyInUnit(prog)" class="text-[10px] text-outline font-medium shrink-0">
-                                                    (Sudah ada di unit ini)
-                                                </span>
-                                            </button>
-
-                                            <!-- Opsi gunakan input manual jika belum ada di list -->
-                                            <button
-                                                v-if="form.name && !hasExactMatch"
-                                                type="button"
-                                                @click="isDropdownOpen = false"
-                                                class="w-full text-left px-3.5 py-2 rounded-xl text-xs font-semibold text-primary bg-primary/5 hover:bg-primary/10 border border-primary/20 flex items-center gap-2 transition-colors cursor-pointer mt-1"
-                                            >
-                                                <span class="material-symbols-outlined text-[16px]">add_circle</span>
-                                                <span class="truncate">Gunakan <strong>"{{ form.name }}"</strong> sebagai program baru</span>
-                                            </button>
-
-                                            <!-- Empty State jika pencarian tidak cocok -->
-                                            <div v-if="filteredPrograms.length === 0 && !form.name" class="p-4 text-center text-xs text-on-surface-variant">
-                                                Belum ada program terdaftar. Ketik nama program di atas.
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div v-if="form.errors.name" class="text-error text-xs mt-1.5">{{ form.errors.name }}</div>
-                                </div>
-
-                                <!-- Pilihan Cepat (Quick Chips) -->
-                                <div v-if="allAvailablePrograms.length > 0" class="mt-2.5 flex items-center gap-1.5 flex-wrap">
-                                    <span class="text-[11px] text-on-surface-variant font-semibold">Pilihan cepat:</span>
                                     <button
-                                        v-for="prog in allAvailablePrograms.slice(0, 6)"
-                                        :key="prog"
                                         type="button"
-                                        @click="selectProgram(prog)"
-                                        :disabled="isProgramAlreadyInUnit(prog)"
-                                        class="px-2.5 py-1 rounded-lg text-xs font-medium transition-all border cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                                        :class="form.name === prog
-                                            ? 'bg-primary text-on-primary border-primary shadow-2xs font-bold'
-                                            : 'bg-surface-container-low text-on-surface hover:bg-surface-container-high border-outline-variant/60'"
-                                        :title="isProgramAlreadyInUnit(prog) ? 'Program sudah ada di unit ini' : `Pilih program ${prog}`"
+                                        @click="switchToCustomMode"
+                                        class="text-xs text-primary hover:underline font-semibold cursor-pointer"
                                     >
-                                        {{ prog }}
+                                        Atau isi sendiri &rarr;
                                     </button>
                                 </div>
+
+                                <select
+                                    v-model="selectedProgram"
+                                    @change="onSelectChange"
+                                    class="w-full px-4 py-2.5 bg-surface-container-low border border-outline-variant/60 rounded-xl text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
+                                    :class="{ 'border-error': form.errors.name }"
+                                >
+                                    <option value="" disabled>-- Pilih dari Program yang Pernah Ditambahkan --</option>
+                                    <option
+                                        v-for="prog in allAvailablePrograms"
+                                        :key="prog"
+                                        :value="prog"
+                                        :disabled="isProgramAlreadyInUnit(prog)"
+                                    >
+                                        {{ prog }}{{ isProgramAlreadyInUnit(prog) ? ' (Sudah ada di unit ini)' : '' }}
+                                    </option>
+                                    <option value="__CUSTOM__">+ Isi Sendiri (Program Baru)...</option>
+                                </select>
+                                <div v-if="form.errors.name" class="text-error text-xs mt-1.5">{{ form.errors.name }}</div>
+                            </div>
+
+                            <!-- Pilihan 2: Input Ketik Sendiri (Manual) -->
+                            <div v-else>
+                                <div class="flex items-center justify-between mb-1.5">
+                                    <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider">
+                                        Nama Program Baru <span class="text-error">*</span>
+                                    </label>
+                                    <button
+                                        type="button"
+                                        @click="switchToSelectMode"
+                                        class="text-xs text-primary hover:underline font-semibold cursor-pointer"
+                                    >
+                                        &larr; Pilih dari dropdown
+                                    </button>
+                                </div>
+
+                                <input
+                                    v-model="form.name"
+                                    type="text"
+                                    autofocus
+                                    class="w-full px-4 py-2.5 bg-surface-container-low border border-outline-variant/60 rounded-xl text-sm text-on-surface placeholder:text-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                                    placeholder="Ketik nama program baru di sini..."
+                                    :class="{ 'border-error': form.errors.name }"
+                                />
+                                <div v-if="form.errors.name" class="text-error text-xs mt-1.5">{{ form.errors.name }}</div>
                             </div>
 
                             <div class="flex items-center justify-end gap-3 pt-3 border-t border-outline-variant/30">
@@ -326,32 +268,6 @@ function submit() {
         </Transition>
     </Teleport>
 </template>
-
-<style scoped>
-.modal-backdrop-enter-active,
-.modal-backdrop-leave-active {
-    transition: opacity 0.2s ease;
-}
-.modal-backdrop-enter-from,
-.modal-backdrop-leave-to {
-    opacity: 0;
-}
-.modal-content-enter-active {
-    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-.modal-content-leave-active {
-    transition: all 0.15s ease-in;
-}
-.modal-content-enter-from {
-    opacity: 0;
-    transform: scale(0.95) translateY(8px);
-}
-.modal-content-leave-to {
-    opacity: 0;
-    transform: scale(0.98) translateY(4px);
-}
-</style>
-
 
 <style scoped>
 .modal-backdrop-enter-active,
