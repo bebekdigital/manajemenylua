@@ -104,23 +104,7 @@ function getAlamatLengkap(s) {
                             No
                         </th>
 
-                        <!-- NISN -->
-                        <th
-                            @click="handleSort('nisn')"
-                            :class="[
-                                'py-3.5 px-3 text-[11.5px] font-bold uppercase tracking-wider cursor-pointer transition-colors select-none',
-                                sortBy === 'nisn' ? 'text-yellow-200' : 'text-white hover:text-yellow-200'
-                            ]"
-                        >
-                            <div class="inline-flex items-center gap-1">
-                                <span>NISN</span>
-                                <span class="material-symbols-outlined text-[14px]" :class="sortBy === 'nisn' ? 'text-yellow-300' : 'text-emerald-300/60'">
-                                    {{ sortBy === 'nisn' ? (sortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward') : 'unfold_more' }}
-                                </span>
-                            </div>
-                        </th>
-
-                        <!-- Nama Siswa -->
+                        <!-- Siswa (Nama Siswa, JK, NISN) -->
                         <th
                             @click="handleSort('nama')"
                             :class="[
@@ -136,18 +120,18 @@ function getAlamatLengkap(s) {
                             </div>
                         </th>
 
-                        <!-- NIPD -->
+                        <!-- Angkatan (Pengganti Kolom NIPD) -->
                         <th
-                            @click="handleSort('nipd')"
+                            @click="handleSort('angkatan')"
                             :class="[
-                                'py-3.5 px-3 text-[11.5px] font-bold uppercase tracking-wider cursor-pointer transition-colors select-none',
-                                sortBy === 'nipd' ? 'text-yellow-200' : 'text-white hover:text-yellow-200'
+                                'py-3.5 px-3 text-[11.5px] font-bold uppercase tracking-wider text-center cursor-pointer transition-colors select-none',
+                                sortBy === 'angkatan' ? 'text-yellow-200' : 'text-white hover:text-yellow-200'
                             ]"
                         >
-                            <div class="inline-flex items-center gap-1">
-                                <span>NIPD</span>
-                                <span class="material-symbols-outlined text-[14px]" :class="sortBy === 'nipd' ? 'text-yellow-300' : 'text-emerald-300/60'">
-                                    {{ sortBy === 'nipd' ? (sortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward') : 'unfold_more' }}
+                            <div class="inline-flex items-center justify-center gap-1">
+                                <span>Angkatan</span>
+                                <span class="material-symbols-outlined text-[14px]" :class="sortBy === 'angkatan' ? 'text-yellow-300' : 'text-emerald-300/60'">
+                                    {{ sortBy === 'angkatan' ? (sortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward') : 'unfold_more' }}
                                 </span>
                             </div>
                         </th>
@@ -168,7 +152,7 @@ function getAlamatLengkap(s) {
                             </div>
                         </th>
 
-                        <!-- Unit -->
+                        <!-- Unit (Unit Formal & Unit Asrama) -->
                         <th
                             @click="handleSort('unit')"
                             :class="[
@@ -184,25 +168,20 @@ function getAlamatLengkap(s) {
                             </div>
                         </th>
 
-                        <!-- Angkatan -->
+                        <!-- Program (Kolom setelah Unit) -->
                         <th
-                            @click="handleSort('angkatan')"
+                            @click="handleSort('program')"
                             :class="[
-                                'py-3.5 px-3 text-[11.5px] font-bold uppercase tracking-wider text-center cursor-pointer transition-colors select-none',
-                                sortBy === 'angkatan' ? 'text-yellow-200' : 'text-white hover:text-yellow-200'
+                                'py-3.5 px-3 text-[11.5px] font-bold uppercase tracking-wider cursor-pointer transition-colors select-none',
+                                sortBy === 'program' ? 'text-yellow-200' : 'text-white hover:text-yellow-200'
                             ]"
                         >
-                            <div class="inline-flex items-center justify-center gap-1">
-                                <span>Angkatan</span>
-                                <span class="material-symbols-outlined text-[14px]" :class="sortBy === 'angkatan' ? 'text-yellow-300' : 'text-emerald-300/60'">
-                                    {{ sortBy === 'angkatan' ? (sortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward') : 'unfold_more' }}
+                            <div class="inline-flex items-center gap-1">
+                                <span>Program</span>
+                                <span class="material-symbols-outlined text-[14px]" :class="sortBy === 'program' ? 'text-yellow-300' : 'text-emerald-300/60'">
+                                    {{ sortBy === 'program' ? (sortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward') : 'unfold_more' }}
                                 </span>
                             </div>
-                        </th>
-
-                        <!-- JK -->
-                        <th class="py-3.5 px-3 w-14 text-center text-[11.5px] font-bold uppercase tracking-wider select-none">
-                            JK
                         </th>
 
                         <!-- TTL -->
@@ -241,29 +220,55 @@ function getAlamatLengkap(s) {
                         class="hover:bg-slate-50/80 transition-colors group"
                     >
                         <!-- No -->
-                        <td class="py-3.5 px-3 text-[12px] text-slate-500 font-medium text-center align-middle">
+                        <td class="py-3.5 px-3 text-[12px] text-slate-500 font-medium text-center align-middle whitespace-nowrap">
                             {{ startEntry + index }}
                         </td>
 
-                        <!-- NISN -->
-                        <td class="py-3.5 px-3 font-mono text-[12px] text-slate-700 font-semibold align-middle whitespace-nowrap">
-                            {{ student.nisn }}
-                        </td>
-
-                        <!-- Nama Siswa (Link bersih tanpa ikon mata yang mengganggu) -->
+                        <!-- Siswa: Nama Lengkap + JK Badge + NISN Sub-text (Mirip Tabel Pegawai) -->
                         <td class="py-3.5 px-3 align-middle">
-                            <Link
-                                :href="`/students/${student.nisn}`"
-                                class="font-bold text-slate-900 hover:text-emerald-700 transition-colors text-[13px] whitespace-nowrap block"
-                                title="Buka Detail Siswa"
-                            >
-                                {{ student.nama }}
-                            </Link>
+                            <div class="flex items-start justify-between gap-2">
+                                <div class="min-w-0">
+                                    <div class="flex items-center gap-1.5 flex-wrap">
+                                        <Link
+                                            :href="`/students/${student.nisn}`"
+                                            class="text-[13.5px] font-bold text-slate-900 hover:text-emerald-700 transition-colors leading-tight"
+                                            title="Buka Detail Siswa"
+                                        >
+                                            {{ student.nama }}
+                                        </Link>
+                                        <!-- Badge Jenis Kelamin (Biru untuk L, Pink untuk P) -->
+                                        <span
+                                            v-if="student.jk"
+                                            :class="[
+                                                'text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 leading-none',
+                                                student.jk === 'L'
+                                                    ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                                                    : (student.jk === 'P'
+                                                        ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                                                        : 'bg-slate-100 text-slate-600 border border-slate-200')
+                                            ]"
+                                            :title="student.jk === 'L' ? 'Laki-laki' : (student.jk === 'P' ? 'Perempuan' : student.jk)"
+                                        >
+                                            {{ student.jk }}
+                                        </span>
+                                    </div>
+                                    <!-- NISN Sub-text (Font NISN jelas & kontras) -->
+                                    <div class="text-[12px] text-slate-600 font-mono font-medium mt-0.5 tracking-tight">
+                                        {{ student.nisn || 'NISN -' }}
+                                    </div>
+                                </div>
+                            </div>
                         </td>
 
-                        <!-- NIPD -->
-                        <td class="py-3.5 px-3 font-mono text-[12px] text-slate-600 font-medium align-middle whitespace-nowrap">
-                            {{ student.nipd || '-' }}
+                        <!-- Angkatan (Pengganti Kolom NIPD) -->
+                        <td class="py-3.5 px-3 align-middle text-center whitespace-nowrap">
+                            <span
+                                v-if="student.angkatan"
+                                class="inline-flex items-center justify-center px-2 py-0.5 bg-slate-100 text-slate-700 border border-slate-200 rounded-md text-[11px] font-semibold"
+                            >
+                                {{ student.angkatan }}
+                            </span>
+                            <span v-else class="text-slate-400 text-[12px]">-</span>
                         </td>
 
                         <!-- Jenjang -->
@@ -277,54 +282,41 @@ function getAlamatLengkap(s) {
                             <span v-else class="text-slate-400 text-[12px]">-</span>
                         </td>
 
-                        <!-- Unit -->
-                        <td class="py-3.5 px-3 text-[12.5px] font-medium text-slate-700 align-middle whitespace-nowrap">
+                        <!-- Unit (Menampung Unit Formal DAN Unit Asrama - Badge beda warna tanpa icon) -->
+                        <td class="py-3.5 px-3 align-middle whitespace-nowrap">
                             <div class="flex items-center gap-1.5 flex-wrap">
-                                <span>{{ student.unit || '-' }}</span>
+                                <!-- Unit Formal Badge (Warna Netral Slate Berbingkai Tanpa Icon) -->
+                                <span
+                                    v-if="student.unit"
+                                    class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-100 text-slate-800 border border-slate-300"
+                                    :title="'Unit Formal: ' + student.unit"
+                                >
+                                    {{ student.unit }}
+                                </span>
+                                <!-- Unit Asrama / Pesantren Badge (Warna Berbeda: Indigo Berbingkai Tanpa Icon) -->
                                 <span
                                     v-if="student.unit_pesantren"
-                                    class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10.5px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200"
-                                    :title="'Unit Kepesantrenan: ' + student.unit_pesantren"
+                                    class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200"
+                                    :title="'Unit Asrama: ' + student.unit_pesantren"
                                 >
-                                    <span class="material-symbols-outlined text-[13px]">mosque</span>
-                                    <span>{{ student.unit_pesantren }}</span>
+                                    {{ student.unit_pesantren }}
                                 </span>
-                                <span
-                                    v-if="student.program && student.program !== 'Umum'"
-                                    class="inline-flex items-center px-1.5 py-0.5 rounded text-[10.5px] font-bold"
-                                    :class="student.program.toLowerCase().includes('boarding') ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-emerald-100 text-emerald-800 border border-emerald-200'"
-                                >
-                                    {{ student.program }}
-                                </span>
+                                <span v-if="!student.unit && !student.unit_pesantren" class="text-slate-400 text-[12px]">-</span>
                             </div>
                         </td>
 
-                        <!-- Angkatan -->
-                        <td class="py-3.5 px-3 align-middle text-center whitespace-nowrap">
+                        <!-- Program (Kolom Baru Setelah Kolom Unit) -->
+                        <td class="py-3.5 px-3 align-middle whitespace-nowrap">
                             <span
-                                v-if="student.angkatan"
-                                class="inline-flex items-center justify-center px-2 py-0.5 bg-slate-100 text-slate-700 border border-slate-200 rounded-md text-[11px] font-semibold"
+                                v-if="student.program"
+                                class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold"
+                                :class="student.program.toLowerCase().includes('boarding')
+                                    ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                                    : (student.program.toLowerCase().includes('fullday')
+                                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                        : 'bg-slate-100 text-slate-700 border border-slate-200')"
                             >
-                                {{ student.angkatan }}
-                            </span>
-                            <span v-else class="text-slate-400 text-[12px]">-</span>
-                        </td>
-
-                        <!-- JK (Warna Badge Dibedakan: L = Biru, P = Pink/Fuchsia) -->
-                        <td class="py-3.5 px-3 align-middle text-center whitespace-nowrap">
-                            <span
-                                v-if="student.jk"
-                                :class="[
-                                    'inline-flex items-center justify-center w-6 h-6 rounded-md text-[11px] font-bold mx-auto',
-                                    student.jk === 'L'
-                                        ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                                        : student.jk === 'P'
-                                            ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                                            : 'bg-slate-100 text-slate-600 border border-slate-200'
-                                ]"
-                                :title="student.jk === 'L' ? 'Laki-laki' : (student.jk === 'P' ? 'Perempuan' : student.jk)"
-                            >
-                                {{ student.jk }}
+                                {{ student.program }}
                             </span>
                             <span v-else class="text-slate-400 text-[12px]">-</span>
                         </td>
@@ -347,7 +339,7 @@ function getAlamatLengkap(s) {
 
                     <!-- Empty state -->
                     <tr v-if="students.length === 0">
-                        <td colspan="11" class="py-12 text-center">
+                        <td colspan="9" class="py-12 text-center">
                             <span class="material-symbols-outlined text-4xl text-slate-300 mb-2 block">person_search</span>
                             <p class="text-[13.5px] font-medium text-slate-600">Tidak ada data siswa ditemukan.</p>
                             <p class="text-[12px] text-slate-400 mt-0.5">Coba sesuaikan kata kunci pencarian atau filter yang dipilih.</p>

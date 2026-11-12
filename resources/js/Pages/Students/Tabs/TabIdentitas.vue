@@ -635,9 +635,8 @@ watch(
                 <!-- 1. Unit Sekolah Formal -->
                 <div>
                     <label class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Unit Sekolah Formal</label>
-                    <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1 flex items-center gap-1.5">
-                        <span class="material-symbols-outlined text-[16px] text-emerald-700">school</span>
-                        <span>{{ student.unit || '-' }}</span>
+                    <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">
+                        {{ student.unit || '-' }}
                     </p>
                 </div>
 
@@ -645,13 +644,7 @@ watch(
                 <div>
                     <label class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Unit Kepesantrenan / Asrama</label>
                     <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">
-                        <span v-if="student.unit_pesantren" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                            <span class="material-symbols-outlined text-[14px]">mosque</span>
-                            <span>{{ student.unit_pesantren }}</span>
-                        </span>
-                        <span v-else class="text-slate-400 text-xs italic">
-                            Tidak Berasrama (Non-Boarding)
-                        </span>
+                        {{ student.unit_pesantren || '-' }}
                     </p>
                 </div>
 
