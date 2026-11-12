@@ -35,13 +35,19 @@ return new class extends Migration
                     'unit_pesantren' => 'PPTQ Ulil Albab',
                 ]);
 
-            // 2. Siswa yang programnya Boarding
-            DB::table('students')
+            // 2. Siswa yang memiliki record akademik Boarding
+            $boardingStudentIds = DB::table('student_academic_records')
                 ->where(function ($q) {
                     $q->where('program', 'like', '%Boarding%')
                         ->orWhere('program', 'like', '%boarding%');
                 })
-                ->update(['unit_pesantren' => 'PPTQ Ulil Albab']);
+                ->pluck('student_id');
+
+            if ($boardingStudentIds->isNotEmpty()) {
+                DB::table('students')
+                    ->whereIn('id', $boardingStudentIds)
+                    ->update(['unit_pesantren' => 'PPTQ Ulil Albab']);
+            }
         }
 
         if (Schema::hasTable('student_academic_records') && Schema::hasColumn('student_academic_records', 'unit_pesantren')) {
