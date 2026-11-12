@@ -6,6 +6,8 @@ use App\Models\RolePermission;
 use App\Models\SchoolProgram;
 use App\Models\SchoolUnit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class SchoolProgramController extends Controller
 {
@@ -46,6 +48,7 @@ class SchoolProgramController extends Controller
         ]);
 
         $name = trim($validated['name']);
+        $oldName = $schoolProgram->name;
 
         $duplicate = SchoolProgram::where('name', $name)->where('id', '!=', $schoolProgram->id)->exists();
         if ($duplicate) {
@@ -55,6 +58,18 @@ class SchoolProgramController extends Controller
         $schoolProgram->update([
             'name' => $name,
         ]);
+
+        if ($oldName !== $name) {
+            DB::table('student_academic_records')
+                ->where('program', $oldName)
+                ->update(['program' => $name]);
+
+            if (Schema::hasColumn('students', 'program')) {
+                DB::table('students')
+                    ->where('program', $oldName)
+                    ->update(['program' => $name]);
+            }
+        }
 
         return back()->with('success', 'Program berhasil diperbarui.');
     }

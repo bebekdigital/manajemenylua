@@ -5,6 +5,9 @@ namespace Tests\Feature;
 use App\Models\AcademicYear;
 use App\Models\Employee;
 use App\Models\EmployeePosition;
+use App\Models\SchoolProgram;
+use App\Models\Student;
+use App\Models\StudentAcademicRecord;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -365,5 +368,65 @@ class PortalTest extends TestCase
         $afterRes->assertInertia(fn (Assert $page) => $page
             ->where('auth.user.must_change_password', false)
         );
+    }
+
+    public function test_authorized_user_can_update_school_program_name_and_sync_records(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+        ]);
+
+        $program = SchoolProgram::create(['name' => 'Boarding Lama']);
+
+        $academicYear = AcademicYear::create([
+            'name' => '2026/2027',
+            'semester' => 'Ganjil',
+            'start_date' => '2026-07-01',
+            'end_date' => '2026-12-31',
+            'is_active' => true,
+        ]);
+
+        $student = Student::create([
+            'nisn' => '1234567890',
+            'nama' => 'Ahmad Santri',
+        ]);
+
+        $record = StudentAcademicRecord::create([
+            'student_id' => $student->id,
+            'academic_year_id' => $academicYear->id,
+            'program' => 'Boarding Lama',
+            'status' => 'Aktif',
+        ]);
+
+        $response = $this->actingAs($admin)->put(route('portal.school-programs.update', $program), [
+            'name' => 'Boarding Baru',
+        ]);
+
+        $response->assertSessionHas('success');
+
+        $program->refresh();
+        $this->assertEquals('Boarding Baru', $program->name);
+
+        $record->refresh();
+        $this->assertEquals('Boarding Baru', $record->program);
+    }
+
+    public function test_update_school_program_fails_on_duplicate_name(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+        ]);
+
+        SchoolProgram::create(['name' => 'Fullday']);
+        $program2 = SchoolProgram::create(['name' => 'Boarding']);
+
+        $response = $this->actingAs($admin)->put(route('portal.school-programs.update', $program2), [
+            'name' => 'Fullday',
+        ]);
+
+        $response->assertSessionHas('error');
+
+        $program2->refresh();
+        $this->assertEquals('Boarding', $program2->name);
     }
 }

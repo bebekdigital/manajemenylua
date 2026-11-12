@@ -69,17 +69,10 @@ watch(
         if (val) {
             form.clearErrors();
             if (props.editing) {
-                form.name = props.editing.name;
-                const match = allAvailablePrograms.value.find(
-                    p => p.toLowerCase() === (props.editing.name || '').toLowerCase()
-                );
-                if (match) {
-                    selectedProgram.value = match;
-                    isCustomMode.value = false;
-                } else {
-                    selectedProgram.value = '__CUSTOM__';
-                    isCustomMode.value = true;
-                }
+                // Mode Edit: Langsung isi nama program untuk diubah
+                form.name = props.editing.name || '';
+                selectedProgram.value = '';
+                isCustomMode.value = true;
             } else {
                 form.reset();
                 if (allAvailablePrograms.value.length === 0) {
@@ -120,7 +113,9 @@ function switchToSelectMode() {
 }
 
 function submit() {
-    if (isCustomMode.value) {
+    if (isEditing.value) {
+        form.name = (form.name || '').trim();
+    } else if (isCustomMode.value) {
         form.name = (form.name || '').trim();
     } else {
         form.name = (selectedProgram.value || '').trim();
@@ -177,74 +172,99 @@ function submit() {
                         </div>
 
                         <form @submit.prevent="submit" class="px-6 py-5 space-y-4">
+                            <!-- Info Unit saat Tambah -->
                             <div v-if="schoolUnit && !isEditing" class="p-3 bg-surface-container-low rounded-xl border border-outline-variant/40 text-sm">
                                 <span class="text-on-surface-variant">Menambahkan program untuk unit: </span>
                                 <strong class="text-on-surface">{{ schoolUnit.name }}</strong>
                             </div>
 
-                            <!-- Pilihan 1: Dropdown Sederhana -->
-                            <div v-if="!isCustomMode">
-                                <div class="flex items-center justify-between mb-1.5">
-                                    <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider">
-                                        Pilih Program <span class="text-error">*</span>
-                                    </label>
-                                    <button
-                                        type="button"
-                                        @click="switchToCustomMode"
-                                        class="text-xs text-primary hover:underline font-semibold cursor-pointer"
-                                    >
-                                        Atau isi sendiri &rarr;
-                                    </button>
-                                </div>
-
-                                <select
-                                    v-model="selectedProgram"
-                                    @change="onSelectChange"
-                                    class="w-full px-4 py-2.5 bg-surface-container-low border border-outline-variant/60 rounded-xl text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
-                                    :class="{ 'border-error': form.errors.name }"
-                                >
-                                    <option value="" disabled>
-                                        {{ allAvailablePrograms.length > 0 ? '-- Pilih dari Program yang Pernah Ditambahkan --' : '-- Belum Ada Program Sebelumnya --' }}
-                                    </option>
-                                    <option
-                                        v-for="prog in allAvailablePrograms"
-                                        :key="prog"
-                                        :value="prog"
-                                        :disabled="isProgramAlreadyInUnit(prog)"
-                                    >
-                                        {{ prog }}{{ isProgramAlreadyInUnit(prog) ? ' (Sudah ada di unit ini)' : '' }}
-                                    </option>
-                                    <option value="__CUSTOM__">+ Isi Sendiri (Program Baru)...</option>
-                                </select>
-                                <div v-if="form.errors.name" class="text-error text-xs mt-1.5">{{ form.errors.name }}</div>
-                            </div>
-
-                            <!-- Pilihan 2: Input Ketik Sendiri (Manual) -->
-                            <div v-else>
-                                <div class="flex items-center justify-between mb-1.5">
-                                    <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider">
-                                        Nama Program Baru <span class="text-error">*</span>
-                                    </label>
-                                    <button
-                                        v-if="allAvailablePrograms.length > 0"
-                                        type="button"
-                                        @click="switchToSelectMode"
-                                        class="text-xs text-primary hover:underline font-semibold cursor-pointer"
-                                    >
-                                        &larr; Pilih dari dropdown
-                                    </button>
-                                </div>
-
+                            <!-- MODE EDIT: Input Teks Langsung Untuk Mengubah Nama Program -->
+                            <div v-if="isEditing">
+                                <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
+                                    Nama Program <span class="text-error">*</span>
+                                </label>
                                 <input
                                     v-model="form.name"
                                     type="text"
                                     autofocus
                                     class="w-full px-4 py-2.5 bg-surface-container-low border border-outline-variant/60 rounded-xl text-sm text-on-surface placeholder:text-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-                                    placeholder="Ketik nama program baru di sini..."
+                                    placeholder="Contoh: Fullday, Boarding, dll."
                                     :class="{ 'border-error': form.errors.name }"
                                 />
                                 <div v-if="form.errors.name" class="text-error text-xs mt-1.5">{{ form.errors.name }}</div>
+
+                                <p class="text-[11.5px] text-slate-500 flex items-center gap-1.5 pt-2">
+                                    <span class="material-symbols-outlined text-[15px] text-emerald-700">info</span>
+                                    <span>Perubahan nama program ini akan otomatis tersinkronisasi ke seluruh siswa dan unit yang menggunakannya.</span>
+                                </p>
                             </div>
+
+                            <!-- MODE TAMBAH: Pilihan Dropdown / Manual -->
+                            <template v-else>
+                                <!-- Pilihan 1: Dropdown Sederhana -->
+                                <div v-if="!isCustomMode">
+                                    <div class="flex items-center justify-between mb-1.5">
+                                        <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider">
+                                            Pilih Program <span class="text-error">*</span>
+                                        </label>
+                                        <button
+                                            type="button"
+                                            @click="switchToCustomMode"
+                                            class="text-xs text-primary hover:underline font-semibold cursor-pointer"
+                                        >
+                                            Atau isi sendiri &rarr;
+                                        </button>
+                                    </div>
+
+                                    <select
+                                        v-model="selectedProgram"
+                                        @change="onSelectChange"
+                                        class="w-full px-4 py-2.5 bg-surface-container-low border border-outline-variant/60 rounded-xl text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
+                                        :class="{ 'border-error': form.errors.name }"
+                                    >
+                                        <option value="" disabled>
+                                            {{ allAvailablePrograms.length > 0 ? '-- Pilih dari Program yang Pernah Ditambahkan --' : '-- Belum Ada Program Sebelumnya --' }}
+                                        </option>
+                                        <option
+                                            v-for="prog in allAvailablePrograms"
+                                            :key="prog"
+                                            :value="prog"
+                                            :disabled="isProgramAlreadyInUnit(prog)"
+                                        >
+                                            {{ prog }}{{ isProgramAlreadyInUnit(prog) ? ' (Sudah ada di unit ini)' : '' }}
+                                        </option>
+                                        <option value="__CUSTOM__">+ Isi Sendiri (Program Baru)...</option>
+                                    </select>
+                                    <div v-if="form.errors.name" class="text-error text-xs mt-1.5">{{ form.errors.name }}</div>
+                                </div>
+
+                                <!-- Pilihan 2: Input Ketik Sendiri (Manual) -->
+                                <div v-else>
+                                    <div class="flex items-center justify-between mb-1.5">
+                                        <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider">
+                                            Nama Program Baru <span class="text-error">*</span>
+                                        </label>
+                                        <button
+                                            v-if="allAvailablePrograms.length > 0"
+                                            type="button"
+                                            @click="switchToSelectMode"
+                                            class="text-xs text-primary hover:underline font-semibold cursor-pointer"
+                                        >
+                                            &larr; Pilih dari dropdown
+                                        </button>
+                                    </div>
+
+                                    <input
+                                        v-model="form.name"
+                                        type="text"
+                                        autofocus
+                                        class="w-full px-4 py-2.5 bg-surface-container-low border border-outline-variant/60 rounded-xl text-sm text-on-surface placeholder:text-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                                        placeholder="Ketik nama program baru di sini..."
+                                        :class="{ 'border-error': form.errors.name }"
+                                    />
+                                    <div v-if="form.errors.name" class="text-error text-xs mt-1.5">{{ form.errors.name }}</div>
+                                </div>
+                            </template>
 
                             <div class="flex items-center justify-end gap-3 pt-3 border-t border-outline-variant/30">
                                 <button
