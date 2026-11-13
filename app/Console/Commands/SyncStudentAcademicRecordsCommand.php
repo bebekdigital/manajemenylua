@@ -20,13 +20,15 @@ class SyncStudentAcademicRecordsCommand extends Command
     public function handle()
     {
         if ($this->option('test-stats')) {
-            $this->info('Checking Student Programs and Unit Pesantren...');
-            $boarding = Student::whereNotNull('unit_pesantren')->where('unit_pesantren', '!=', '')->count();
-            $nonBoarding = Student::where(function ($q) {
-                $q->whereNull('unit_pesantren')->orWhere('unit_pesantren', '');
-            })->count();
-            $this->line("Students with unit_pesantren (Boarding): {$boarding}");
-            $this->line("Students without unit_pesantren (Fullday): {$nonBoarding}");
+            $this->info('Checking Distinct unit_pesantren in students:');
+            $distinct = Student::select('unit_pesantren', DB::raw('count(*) as c'))->groupBy('unit_pesantren')->get();
+            foreach ($distinct as $d) {
+                $this->line("unit_pesantren: '{$d->unit_pesantren}' | Count: {$d->c}");
+            }
+            $sample = Student::select('id', 'nama', 'unit', 'unit_pesantren')->take(5)->get();
+            foreach ($sample as $s) {
+                $this->line("ID: {$s->id} | {$s->nama} | Unit: {$s->unit} | Pesantren: {$s->unit_pesantren}");
+            }
 
             return 0;
         }
