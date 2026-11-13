@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ylua-pwa-v57';
+const CACHE_NAME = 'ylua-pwa-v58';
 const CURRENT_CACHES = [CACHE_NAME];
 
 const PRECACHE_ASSETS = [
