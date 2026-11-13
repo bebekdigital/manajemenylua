@@ -904,11 +904,20 @@ class StudentController extends Controller
                 if (array_key_exists('angkatan', $d)) {
                     $studentUpdateData['angkatan'] = $d['angkatan'] ?: null;
                 }
+                if (isset($d['student_status'])) {
+                    $normStatus = strtolower(trim((string) $d['student_status']));
+                    $studentUpdateData['status_keaktifan'] = in_array($normStatus, ['tidak_aktif', 'tidak aktif', 'dropout', 'mutasi_keluar']) ? 'Tidak Aktif' : 'Aktif';
+                }
 
                 $student->update($studentUpdateData);
 
-                // 2. Update academic record
+                // 2. Update academic record untuk tahun ajaran yang dipilih (dan semester seinduk jika ada)
                 if ($selectedYearId) {
+                    $selectedYear = AcademicYear::find($selectedYearId);
+                    $targetYearIds = $selectedYear
+                        ? AcademicYear::where('name', $selectedYear->name)->pluck('id')->all()
+                        : [$selectedYearId];
+
                     $record = StudentAcademicRecord::where('student_id', $student->id)
                         ->where('academic_year_id', $selectedYearId)
                         ->first();
@@ -958,7 +967,10 @@ class StudentController extends Controller
                         $recordUpdateData['unit_pesantren'] = $d['unit_pesantren'] ?: null;
                     }
 
-                    $record->update($recordUpdateData);
+                    // Update semua record di tahun ajaran yang sama (Ganjil & Genap)
+                    StudentAcademicRecord::where('student_id', $student->id)
+                        ->whereIn('academic_year_id', $targetYearIds)
+                        ->update($recordUpdateData);
                 }
             }
         });

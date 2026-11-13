@@ -2,11 +2,9 @@
 
 namespace App\Console\Commands;
 
-use App\Http\Controllers\StatisticsController;
 use App\Models\AcademicYear;
 use App\Models\Student;
 use App\Models\StudentAcademicRecord;
-use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
@@ -115,13 +113,26 @@ class SyncStudentAcademicRecordsCommand extends Command
                     ->where('academic_year_id', $year->id)
                     ->first();
 
+                // Tentukan program: pertahankan yang ada jika valid, jika kosong tentukan berdasarkan pesantren & jenjang
+                $program = $existingRecord?->program;
+                if (! $program) {
+                    $hasPesantren = ! empty($student->unit_pesantren) && stripos($student->unit_pesantren, 'PPTQ') !== false;
+                    if ($student->jenjang === 'SMP') {
+                        $program = $hasPesantren ? 'Boarding SMP' : 'Fullday SMP';
+                    } elseif ($student->jenjang === 'SMA') {
+                        $program = $hasPesantren ? 'Boarding SMA' : 'Fullday SMA';
+                    } else {
+                        $program = 'Umum SDIT';
+                    }
+                }
+
                 $recordData = [
                     'student_id' => $student->id,
                     'academic_year_id' => $year->id,
                     'unit' => $student->unit,
                     'jenjang' => $student->jenjang,
                     'tingkat' => $actualTingkat,
-                    'program' => $student->program,
+                    'program' => $program,
                     'unit_pesantren' => $student->unit_pesantren,
                     'student_status' => $studentStatus,
                     'ket_tidak_aktif' => $student->keterangan_tidak_aktif,
