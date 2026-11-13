@@ -129,7 +129,7 @@ const academicYearRows = computed(() => {
 
     const map = new Map();
     props.student.riwayat_keaktifan.forEach(r => {
-        if (!r.academic_year) return;
+        if (!r.academic_year || r.status === '-') return;
         const key = `${r.academic_year}__${r.semester || ''}`;
         if (!map.has(key)) {
             map.set(key, {

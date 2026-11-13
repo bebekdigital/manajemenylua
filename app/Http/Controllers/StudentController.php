@@ -550,33 +550,32 @@ class StudentController extends Controller
 
                     if ($hasInactiveState) {
                         // Jika di riwayat semester sebelumnya sudah tidak aktif (termasuk tidak aktif sebagian),
-                        // maka TA-TA selanjutnya tidak usah ditulis status keaktifannya, tapi ditulis strip (-) saja.
+                        // maka semester-semester selanjutnya dihilangkan total (tidak perlu ditampilkan barisnya).
                         if ($inactiveStartThreshold !== null && $startDate > $inactiveStartThreshold) {
-                            $statusKeaktifanSemester = '-';
-                            $ketSemester = null;
-                        } else {
-                            $ketSemester = $masterKet ?: (strcasecmp($masterKeaktifan, 'Lulus') === 0 ? 'Lulus' : 'Tidak Aktif');
+                            continue;
+                        }
 
-                            if ($tglTidakAktif && $startDate && $endDate) {
-                                if ($tglTidakAktif <= $startDate) {
-                                    $statusKeaktifanSemester = 'Tidak Aktif';
-                                    $inactiveStartThreshold = $startDate;
-                                } elseif ($tglTidakAktif > $endDate) {
-                                    $statusKeaktifanSemester = 'Aktif';
-                                    $ketSemester = null; // Masih aktif penuh pada semester ini
-                                } else {
-                                    // Tanggal di tengah-tengah rentang semester -> Tidak Aktif-Sebagian
-                                    $statusKeaktifanSemester = 'Tidak Aktif-Sebagian';
-                                    $inactiveStartThreshold = $startDate;
-                                }
+                        $ketSemester = $masterKet ?: (strcasecmp($masterKeaktifan, 'Lulus') === 0 ? 'Lulus' : 'Tidak Aktif');
+
+                        if ($tglTidakAktif && $startDate && $endDate) {
+                            if ($tglTidakAktif <= $startDate) {
+                                $statusKeaktifanSemester = 'Tidak Aktif';
+                                $inactiveStartThreshold = $startDate;
+                            } elseif ($tglTidakAktif > $endDate) {
+                                $statusKeaktifanSemester = 'Aktif';
+                                $ketSemester = null; // Masih aktif penuh pada semester ini
                             } else {
-                                if (strcasecmp($masterKeaktifan, 'Lulus') === 0 || strcasecmp($masterKet, 'Lulus') === 0) {
-                                    $statusKeaktifanSemester = 'Lulus';
-                                } else {
-                                    $statusKeaktifanSemester = 'Tidak Aktif';
-                                }
+                                // Tanggal di tengah-tengah rentang semester -> Tidak Aktif-Sebagian
+                                $statusKeaktifanSemester = 'Tidak Aktif-Sebagian';
                                 $inactiveStartThreshold = $startDate;
                             }
+                        } else {
+                            if (strcasecmp($masterKeaktifan, 'Lulus') === 0 || strcasecmp($masterKet, 'Lulus') === 0) {
+                                $statusKeaktifanSemester = 'Lulus';
+                            } else {
+                                $statusKeaktifanSemester = 'Tidak Aktif';
+                            }
+                            $inactiveStartThreshold = $startDate;
                         }
                     }
 
