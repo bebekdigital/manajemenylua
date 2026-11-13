@@ -676,11 +676,10 @@ function formatStatus(status) {
                                 class="w-full px-3.5 py-2 rounded-xl border border-rose-200 text-xs sm:text-sm font-semibold text-rose-950 bg-white shadow-2xs focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all cursor-pointer"
                             >
                                 <option value="">-- Pilih Keterangan --</option>
-                                <option value="Lulus">Lulus</option>
-                                <option value="Mutasi / Pindah Sekolah">Mutasi / Pindah Sekolah</option>
+                                <option value="Mutasi Keluar">Mutasi Keluar</option>
                                 <option value="Dikeluarkan">Dikeluarkan</option>
-                                <option value="Mengundurkan Diri">Mengundurkan Diri</option>
-                                <option value="Meninggal Dunia">Meninggal Dunia</option>
+                                <option value="Putus Sekolah">Putus Sekolah</option>
+                                <option value="Meninggal">Meninggal</option>
                                 <option value="Lainnya">Lainnya</option>
                             </select>
                         </div>

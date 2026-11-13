@@ -226,8 +226,8 @@ const maxCount = computed(() => {
 
 function isStudentActive(student) {
     if (!student) return false;
-    const status = (student.student_status || student.status_keaktifan || '').toString().toLowerCase().trim();
-    return status === 'aktif';
+    const status = (student.status_keaktifan || student.student_status || '').toString().toLowerCase().trim();
+    return status === 'aktif' && !student.keterangan_tidak_aktif;
 }
 
 function getStudentStatusLabel(student) {

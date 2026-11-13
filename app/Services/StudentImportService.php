@@ -2,7 +2,10 @@
 
 namespace App\Services;
 
+use App\Models\AcademicYear;
+use App\Models\Classroom;
 use App\Models\Student;
+use App\Models\StudentAcademicRecord;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use PhpOffice\PhpSpreadsheet\IOFactory;
@@ -108,9 +111,36 @@ class StudentImportService
                     'tanggal_diterima' => $this->parseDate($row['BH'] ?? null),
                     'info_psb' => $this->cleanString($row['BI'] ?? null),
                     'status_registrasi' => $this->cleanString($row['BJ'] ?? null),
-                    'status_keaktifan' => in_array(strtolower(trim((string) ($row['BK'] ?? ''))), ['tidak aktif', 'tidak_aktif', 'non-aktif', 'non_aktif']) ? 'Tidak Aktif' : 'Aktif',
-                    'keterangan_tidak_aktif' => in_array(strtolower(trim((string) ($row['BK'] ?? ''))), ['tidak aktif', 'tidak_aktif', 'non-aktif', 'non_aktif']) ? $this->cleanString($row['BL'] ?? null) : null,
-                    'tanggal_tidak_aktif' => in_array(strtolower(trim((string) ($row['BK'] ?? ''))), ['tidak aktif', 'tidak_aktif', 'non-aktif', 'non_aktif']) ? $this->parseDate($row['BM'] ?? null) : null,
+                    'status_keaktifan' => (function () use ($row) {
+                        $raw = strtolower(trim((string) ($row['BK'] ?? '')));
+                        if ($raw === 'lulus') {
+                            return 'Lulus';
+                        }
+                        if (in_array($raw, ['tidak aktif', 'tidak_aktif', 'non-aktif', 'non_aktif'])) {
+                            return 'Tidak Aktif';
+                        }
+
+                        return 'Aktif';
+                    })(),
+                    'keterangan_tidak_aktif' => (function () use ($row) {
+                        $raw = strtolower(trim((string) ($row['BK'] ?? '')));
+                        if ($raw === 'lulus') {
+                            return 'Lulus';
+                        }
+                        if (in_array($raw, ['tidak aktif', 'tidak_aktif', 'non-aktif', 'non_aktif'])) {
+                            return $this->cleanString($row['BL'] ?? null) ?: 'Lainnya';
+                        }
+
+                        return null;
+                    })(),
+                    'tanggal_tidak_aktif' => (function () use ($row) {
+                        $raw = strtolower(trim((string) ($row['BK'] ?? '')));
+                        if ($raw === 'lulus' || in_array($raw, ['tidak aktif', 'tidak_aktif', 'non-aktif', 'non_aktif'])) {
+                            return $this->parseDate($row['BM'] ?? null) ?: now()->toDateString();
+                        }
+
+                        return null;
+                    })(),
                     'ayah_nama' => $this->cleanString($row['Y'] ?? null),
                     'ayah_tahun_lahir' => $this->cleanInteger($row['Z'] ?? null),
                     'ayah_pendidikan' => $this->cleanString($row['AA'] ?? null),
@@ -173,6 +203,58 @@ class StudentImportService
 
                 $studentMap[$nisn] = $student;
                 $studentMap[$nisn]->jenjang_from_excel = $studentData['jenjang'] ?? 'SD';
+
+                // Otomatis sinkronkan ke riwayat akademik Tahun Ajaran Aktif
+                // Admin tidak perlu lagi melakukan pemetaan riwayat manual untuk siswa baru/impor
+                $activeYear = AcademicYear::current();
+                if ($activeYear) {
+                    $classroomId = null;
+                    $tingkat = null;
+                    $kelasInput = $this->cleanString($row['BG'] ?? null);
+                    if ($kelasInput) {
+                        $matchingClass = Classroom::where('academic_year_id', $activeYear->id)
+                            ->where(function ($q) use ($kelasInput) {
+                                $q->where('name', $kelasInput)
+                                    ->orWhere('name', 'like', "%{$kelasInput}%");
+                            })
+                            ->first();
+                        if ($matchingClass) {
+                            $classroomId = $matchingClass->id;
+                            $tingkat = $matchingClass->grade;
+                        }
+                    }
+
+                    $isTidakAktif = $student->status_keaktifan === 'Tidak Aktif' || $student->status_keaktifan === 'Lulus';
+                    $ketTidakAktif = $isTidakAktif ? $student->keterangan_tidak_aktif : null;
+                    $tglTidakAktif = $isTidakAktif ? $student->tanggal_tidak_aktif : null;
+
+                    $record = StudentAcademicRecord::where('student_id', $student->id)
+                        ->where('academic_year_id', $activeYear->id)
+                        ->first();
+
+                    $recordData = [
+                        'unit' => $student->unit,
+                        'jenjang' => $student->jenjang,
+                        'student_status' => 'Naik Kelas',
+                        'ket_tidak_aktif' => $ketTidakAktif,
+                        'tanggal_tidak_aktif' => $tglTidakAktif,
+                    ];
+
+                    if ($classroomId) {
+                        $recordData['classroom_id'] = $classroomId;
+                        $recordData['tingkat'] = $tingkat;
+                    }
+
+                    if ($record) {
+                        $record->update(array_filter($recordData, fn ($v) => ! is_null($v)));
+                    } else {
+                        StudentAcademicRecord::create(array_merge([
+                            'student_id' => $student->id,
+                            'academic_year_id' => $activeYear->id,
+                        ], $recordData));
+                    }
+                    $academicRecordsCount++;
+                }
 
                 // Handle Family Data
                 $familyData = array_filter([

@@ -177,9 +177,19 @@ class StatisticsController extends Controller
             ->get()
             ->map(function (Student $student) {
                 $record = $student->academicRecords->first();
-                $rawStatus = $record?->student_status ?? ($student->status_keaktifan ?: 'aktif');
 
-                $normalizedStatus = strtolower(trim((string) $rawStatus)) === 'aktif' ? 'aktif' : 'tidak_aktif';
+                // Cek status keaktifan dari master student dan catatan ket_tidak_aktif pada record semester
+                $masterStatus = strtolower(trim((string) ($student->status_keaktifan ?: 'aktif')));
+                $recordKet = $record?->ket_tidak_aktif;
+
+                $isInactive = $masterStatus === 'tidak aktif'
+                    || str_contains($masterStatus, 'tidak')
+                    || $masterStatus === 'lulus'
+                    || (! empty($recordKet) && strcasecmp($recordKet, 'aktif') !== 0);
+
+                $normalizedStatus = $isInactive ? 'tidak_aktif' : 'aktif';
+                $displayStatusKeaktifan = $student->status_keaktifan ?: ($normalizedStatus === 'aktif' ? 'Aktif' : 'Tidak Aktif');
+                $keteranganTidakAktif = $recordKet ?: $student->keterangan_tidak_aktif;
 
                 return [
                     'id' => $student->id,
@@ -193,8 +203,8 @@ class StatisticsController extends Controller
                     'tingkat' => $record?->tingkat,
                     'jk' => strtoupper(trim((string) ($student->jk ?? ''))),
                     'student_status' => $normalizedStatus,
-                    'status_keaktifan' => $student->status_keaktifan ?: ($normalizedStatus === 'aktif' ? 'Aktif' : 'Tidak Aktif'),
-                    'keterangan_tidak_aktif' => $record?->ket_tidak_aktif ?? $student->keterangan_tidak_aktif,
+                    'status_keaktifan' => $displayStatusKeaktifan,
+                    'keterangan_tidak_aktif' => $keteranganTidakAktif,
                     'program' => $record?->program ?: ($student->getAttribute('program') ?: 'Umum'),
                     'kelas' => $record?->classroom?->name ?? ($record?->tingkat ? "Kelas {$record->tingkat}" : '-'),
                     'tanggal_diterima' => $student->tanggal_diterima ? $student->tanggal_diterima->format('Y-m-d') : null,

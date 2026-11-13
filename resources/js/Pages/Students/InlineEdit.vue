@@ -119,15 +119,13 @@ const statusKeaktifanOptions = [
     { value: 'Lulus', label: 'Lulus' },
 ];
 
-// 10. Pilihan Keterangan Tidak Aktif
+// 10. Pilihan Keterangan Tidak Aktif (Mutasi Keluar, Dikeluarkan, Putus Sekolah, Meninggal, Lainnya)
 const ketTidakAktifOptions = [
     { value: '', label: '-- Kosong (Aktif) --' },
     { value: 'Mutasi Keluar', label: 'Mutasi Keluar' },
-    { value: 'Drop Out', label: 'Drop Out' },
     { value: 'Dikeluarkan', label: 'Dikeluarkan' },
-    { value: 'Mengundurkan Diri', label: 'Mengundurkan Diri' },
-    { value: 'Meninggal Dunia', label: 'Meninggal Dunia' },
-    { value: 'Lulus', label: 'Lulus' },
+    { value: 'Putus Sekolah', label: 'Putus Sekolah' },
+    { value: 'Meninggal', label: 'Meninggal' },
     { value: 'Lainnya', label: 'Lainnya' },
 ];
 
@@ -219,12 +217,11 @@ const columns = computed(() => ({
         { key: 'tingkat', label: 'Tingkat', type: 'number', width: 'w-20' },
         { key: 'kelas', label: 'Kelas', type: 'select', options: classroomOptions.value, width: 'w-28' },
         { key: 'student_status', label: 'Status per Semester', type: 'select', options: statusPerSemesterOptions, width: 'w-44' },
-        { key: 'ket_tidak_aktif', label: 'Ket. Tidak Aktif', type: 'select', options: ketTidakAktifOptions, width: 'w-44' },
     ],
     registrasi: [
-        { key: 'status_keaktifan', label: 'Status Keaktifan (Master)', type: 'select', options: statusKeaktifanOptions, width: 'w-44' },
-        { key: 'keterangan_tidak_aktif', label: 'Ket. Tidak Aktif (Master)', type: 'select', options: ketTidakAktifOptions, width: 'w-44' },
-        { key: 'tanggal_tidak_aktif', label: 'Tgl Tidak Aktif (Master)', type: 'date', width: 'w-36' },
+        { key: 'status_keaktifan', label: 'Status Keaktifan', type: 'select', options: statusKeaktifanOptions, width: 'w-40' },
+        { key: 'keterangan_tidak_aktif', label: 'Ket. Tidak Aktif', type: 'select', options: ketTidakAktifOptions, width: 'w-44' },
+        { key: 'tanggal_tidak_aktif', label: 'Tgl Tidak Aktif', type: 'date', width: 'w-36' },
         { key: 'sekolah_asal', label: 'Sekolah Asal', type: 'text', width: 'w-40' },
         { key: 'status_keluarga', label: 'Status Keluarga', type: 'select', options: statusKeluargaOptions, width: 'w-36' },
         { key: 'anak_ke', label: 'Anak Ke', type: 'number', width: 'w-24' },
@@ -302,10 +299,10 @@ const statusCounts = computed(() => {
     let lulus = 0;
     students.forEach(s => {
         const masterStatus = (s.status_keaktifan || '').toLowerCase().trim();
-        const semKet = (s.ket_tidak_aktif || '').toLowerCase().trim();
-        if (masterStatus === 'lulus' || semKet === 'lulus') {
+        const ket = (s.keterangan_tidak_aktif || s.ket_tidak_aktif || '').toLowerCase().trim();
+        if (masterStatus === 'lulus' || ket === 'lulus') {
             lulus++;
-        } else if (masterStatus === 'tidak aktif' || masterStatus.includes('tidak') || (semKet && semKet !== 'lulus')) {
+        } else if (masterStatus === 'tidak aktif' || masterStatus.includes('tidak') || (ket && ket !== 'lulus')) {
             tidakAktif++;
         } else {
             aktif++;
@@ -326,22 +323,22 @@ const filteredStudents = computed(() => {
     if (activeStatusFilter.value === 'aktif') {
         list = list.filter(s => {
             const masterStatus = (s.status_keaktifan || '').toLowerCase().trim();
-            const semKet = (s.ket_tidak_aktif || '').toLowerCase().trim();
-            if (masterStatus === 'lulus' || semKet === 'lulus') return false;
-            if (masterStatus === 'tidak aktif' || masterStatus.includes('tidak') || (semKet && semKet !== 'lulus')) return false;
+            const ket = (s.keterangan_tidak_aktif || s.ket_tidak_aktif || '').toLowerCase().trim();
+            if (masterStatus === 'lulus' || ket === 'lulus') return false;
+            if (masterStatus === 'tidak aktif' || masterStatus.includes('tidak') || (ket && ket !== 'lulus')) return false;
             return true;
         });
     } else if (activeStatusFilter.value === 'tidak_aktif') {
         list = list.filter(s => {
             const masterStatus = (s.status_keaktifan || '').toLowerCase().trim();
-            const semKet = (s.ket_tidak_aktif || '').toLowerCase().trim();
-            return masterStatus === 'tidak aktif' || masterStatus.includes('tidak') || (semKet && semKet !== 'lulus');
+            const ket = (s.keterangan_tidak_aktif || s.ket_tidak_aktif || '').toLowerCase().trim();
+            return masterStatus === 'tidak aktif' || masterStatus.includes('tidak') || (ket && ket !== 'lulus');
         });
     } else if (activeStatusFilter.value === 'lulus') {
         list = list.filter(s => {
             const masterStatus = (s.status_keaktifan || '').toLowerCase().trim();
-            const semKet = (s.ket_tidak_aktif || '').toLowerCase().trim();
-            return masterStatus === 'lulus' || semKet === 'lulus';
+            const ket = (s.keterangan_tidak_aktif || s.ket_tidak_aktif || '').toLowerCase().trim();
+            return masterStatus === 'lulus' || ket === 'lulus';
         });
     }
 
@@ -424,7 +421,7 @@ function clearAllSemesters() {
 
 function onBulkFieldChange() {
     bulkValue.value = '';
-    if ((bulkField.value === 'student_status' || bulkField.value === 'ket_tidak_aktif') && props.selectedAcademicYear) {
+    if ((bulkField.value === 'student_status' || bulkField.value === 'keterangan_tidak_aktif' || bulkField.value === 'status_keaktifan') && props.selectedAcademicYear) {
         bulkSelectedSemesters.value = [props.selectedAcademicYear.id];
     }
 }
@@ -449,10 +446,23 @@ function applyBulk() {
 
     targets.forEach(s => {
         s[bulkField.value] = val;
+        // Sinkronisasi otomatis keaktifan & keterangan di tabel client
+        if (bulkField.value === 'keterangan_tidak_aktif') {
+            if (val) {
+                s.status_keaktifan = 'Tidak Aktif';
+            }
+        } else if (bulkField.value === 'status_keaktifan') {
+            if (val === 'Aktif') {
+                s.keterangan_tidak_aktif = '';
+                s.tanggal_tidak_aktif = null;
+            } else if (val === 'Lulus') {
+                s.keterangan_tidak_aktif = 'Lulus';
+            }
+        }
     });
 
-    // Jika yang di-bulk adalah student_status atau ket_tidak_aktif, simpan target semesternya
-    if (bulkField.value === 'student_status' || bulkField.value === 'ket_tidak_aktif') {
+    // Jika yang di-bulk adalah student_status, keterangan_tidak_aktif, atau status_keaktifan, simpan target semesternya
+    if (bulkField.value === 'student_status' || bulkField.value === 'keterangan_tidak_aktif' || bulkField.value === 'status_keaktifan') {
         let targetYears = [];
         if (bulkSemesterScope.value === 'current') {
             targetYears = [props.selectedAcademicYear?.id || currentAcademicYearId.value];
@@ -474,7 +484,7 @@ function applyBulk() {
 
     const displayVal = val === '' || val === null || val === undefined ? '(dikosongkan)' : val;
     let scopeMsg = '';
-    if (bulkField.value === 'student_status' || bulkField.value === 'ket_tidak_aktif') {
+    if (bulkField.value === 'student_status' || bulkField.value === 'keterangan_tidak_aktif' || bulkField.value === 'status_keaktifan') {
         const countSem = activeTargetYearIds.value.size;
         scopeMsg = ` pada ${countSem} semester`;
     }
@@ -823,8 +833,8 @@ function groupSpan(groupKey) {
                         </div>
                     </div>
 
-                    <!-- Opsi Target Semester (Muncul saat mengubah Status per Semester atau Ket. Tidak Aktif) -->
-                    <div v-if="bulkField === 'student_status' || bulkField === 'ket_tidak_aktif'" class="mt-4 pt-3.5 border-t border-emerald-100">
+                    <!-- Opsi Target Semester (Muncul saat mengubah Status per Semester, Ket. Tidak Aktif, atau Status Keaktifan) -->
+                    <div v-if="bulkField === 'student_status' || bulkField === 'keterangan_tidak_aktif' || bulkField === 'status_keaktifan'" class="mt-4 pt-3.5 border-t border-emerald-100">
                         <div class="flex items-center justify-between gap-2 mb-2 flex-wrap">
                             <label class="text-xs font-bold uppercase tracking-wider text-emerald-950 flex items-center gap-1.5">
                                 <span class="material-symbols-outlined text-[16px] text-emerald-700">event_repeat</span>
