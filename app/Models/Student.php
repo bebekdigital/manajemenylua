@@ -39,7 +39,6 @@ class Student extends Model
         'keterangan_tidak_aktif',
         'tanggal_tidak_aktif',
         'jalan',
-        'rt_rw',
         'rt',
         'rw',
         'dusun',

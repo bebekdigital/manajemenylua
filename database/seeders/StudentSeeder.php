@@ -467,6 +467,13 @@ class StudentSeeder extends Seeder
             );
 
             $data = array_merge($data, $familyData);
+            if (isset($data['rt_rw'])) {
+                if (preg_match('/(?:RT\s*)?(\d+)\s*[\/\-]\s*(?:RW\s*)?(\d+)/i', $data['rt_rw'], $m)) {
+                    $data['rt'] = $m[1];
+                    $data['rw'] = $m[2];
+                }
+                unset($data['rt_rw']);
+            }
             $student = Student::create($data);
 
             // Create academic record linked to active TA (2025/2026 Ganjil)

@@ -214,7 +214,8 @@ const columns = computed(() => ({
     ],
     alamat: [
         { key: 'jalan', label: 'Jalan', type: 'text', width: 'w-48' },
-        { key: 'rt_rw', label: 'RT/RW', type: 'text', width: 'w-24' },
+        { key: 'rt', label: 'RT', type: 'text', width: 'w-16' },
+        { key: 'rw', label: 'RW', type: 'text', width: 'w-16' },
         { key: 'dusun', label: 'Dusun', type: 'text', width: 'w-32' },
         { key: 'desa', label: 'Desa', type: 'text', width: 'w-32' },
         { key: 'kecamatan', label: 'Kecamatan', type: 'text', width: 'w-32' },

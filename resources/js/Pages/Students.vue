@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue';
 import { Head, usePage, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import StudentToolbar from '@/Components/Students/StudentToolbar.vue';
@@ -187,11 +187,80 @@ onUnmounted(() => {
     }
 });
 
-const flashSuccess = computed(() => !dismissedFlash.value ? page.props.flash?.success : null);
-const flashError = computed(() => !dismissedFlash.value ? page.props.flash?.error : null);
+const toast = reactive({
+    show: false,
+    type: 'success',
+    title: '',
+    message: '',
+    progress: 100,
+});
+
+let toastTimer = null;
+let toastInterval = null;
+
+function showToast(type, message, title = null) {
+    if (!message) return;
+
+    if (toastTimer) {
+        clearTimeout(toastTimer);
+        toastTimer = null;
+    }
+    if (toastInterval) {
+        clearInterval(toastInterval);
+        toastInterval = null;
+    }
+
+    toast.type = type;
+    toast.title = title || (type === 'success' ? 'Edit Massal Berhasil' : 'Terjadi Kesalahan');
+    toast.message = message;
+    toast.progress = 100;
+    toast.show = true;
+
+    const duration = 4000;
+    const startTime = Date.now();
+
+    toastInterval = setInterval(() => {
+        const elapsed = Date.now() - startTime;
+        const remaining = Math.max(0, 100 - (elapsed / duration) * 100);
+        toast.progress = remaining;
+        if (remaining <= 0) {
+            clearInterval(toastInterval);
+            toastInterval = null;
+        }
+    }, 25);
+
+    toastTimer = setTimeout(() => {
+        closeToast();
+    }, duration);
+}
+
+function closeToast() {
+    toast.show = false;
+    if (toastTimer) {
+        clearTimeout(toastTimer);
+        toastTimer = null;
+    }
+    if (toastInterval) {
+        clearInterval(toastInterval);
+        toastInterval = null;
+    }
+}
+
+watch(
+    () => [page.props.flash?.success, page.props.flash?.error],
+    ([newSuccess, newError]) => {
+        if (newSuccess) {
+            const isMassal = newSuccess.toLowerCase().includes('massal');
+            showToast('success', newSuccess, isMassal ? 'Edit Massal Berhasil' : 'Operasi Berhasil');
+        } else if (newError) {
+            showToast('error', newError, 'Terjadi Kesalahan');
+        }
+    },
+    { deep: true, immediate: true }
+);
 
 function onImportSuccess() {
-    dismissedFlash.value = false;
+    // Dipicu oleh event import sukses
 }
 
 // Rekap Status Keaktifan
@@ -1266,46 +1335,7 @@ const downloadTemplate = async () => {
                     </div>
                 </div>
 
-                <!-- Flash Notifications Desktop -->
-                <div
-                    v-if="flashSuccess"
-                    class="mb-5 p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-start justify-between gap-3 animate-in fade-in duration-200"
-                >
-                    <div class="flex items-start gap-3">
-                        <span class="material-symbols-outlined text-emerald-700 text-2xl shrink-0 mt-0.5">check_circle</span>
-                        <div>
-                            <h4 class="text-[13.5px] font-bold text-emerald-900">Operasi Berhasil</h4>
-                            <p class="text-[12.5px] text-emerald-800 mt-0.5 leading-relaxed">{{ flashSuccess }}</p>
-                        </div>
-                    </div>
-                    <button
-                        type="button"
-                        @click="dismissedFlash = true"
-                        class="text-emerald-700 hover:text-emerald-950 p-1 rounded-full hover:bg-emerald-100 transition-colors cursor-pointer"
-                    >
-                        <span class="material-symbols-outlined text-lg">close</span>
-                    </button>
-                </div>
 
-                <div
-                    v-if="flashError"
-                    class="mb-5 p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-start justify-between gap-3 animate-in fade-in duration-200"
-                >
-                    <div class="flex items-start gap-3">
-                        <span class="material-symbols-outlined text-rose-600 text-2xl shrink-0 mt-0.5">error</span>
-                        <div>
-                            <h4 class="text-[13.5px] font-bold text-rose-900">Terjadi Kesalahan</h4>
-                            <p class="text-[12.5px] text-rose-800 mt-0.5 leading-relaxed">{{ flashError }}</p>
-                        </div>
-                    </div>
-                    <button
-                        type="button"
-                        @click="dismissedFlash = true"
-                        class="text-rose-600 hover:text-rose-900 p-1 rounded-full hover:bg-rose-100 transition-colors cursor-pointer"
-                    >
-                        <span class="material-symbols-outlined text-lg">close</span>
-                    </button>
-                </div>
 
                 <!-- Toolbar Desktop -->
                 <StudentToolbar
@@ -1371,6 +1401,65 @@ const downloadTemplate = async () => {
                     <p class="text-slate-600 text-sm">Mohon tunggu sebentar, file Excel sedang dibuat. Waktu pembuatan bergantung pada ukuran data.</p>
                 </div>
             </div>
+        </Teleport>
+        <!-- Floating Toast Notification (Teleport ke body) -->
+        <Teleport to="body">
+            <Transition
+                enter-active-class="transform ease-out duration-300 transition"
+                enter-from-class="translate-y-2 opacity-0 sm:translate-y-0 sm:translate-x-2"
+                enter-to-class="translate-y-0 opacity-100 sm:translate-x-0"
+                leave-active-class="transition ease-in duration-200"
+                leave-from-class="opacity-100"
+                leave-to-class="opacity-0"
+            >
+                <div
+                    v-if="toast.show"
+                    class="fixed top-5 right-4 sm:top-6 sm:right-6 z-[9999] max-w-sm w-[calc(100%-2rem)] bg-white rounded-2xl shadow-2xl border overflow-hidden"
+                    :class="toast.type === 'success' ? 'border-emerald-200 shadow-emerald-950/20' : 'border-rose-200 shadow-rose-950/20'"
+                    role="alert"
+                >
+                    <div class="p-4 flex items-start gap-3">
+                        <div
+                            :class="[
+                                'w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-2xs',
+                                toast.type === 'success' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                            ]"
+                        >
+                            <span class="material-symbols-outlined text-[20px]">
+                                {{ toast.type === 'success' ? 'check_circle' : 'error' }}
+                            </span>
+                        </div>
+                        <div class="flex-1 min-w-0 pr-1">
+                            <h4
+                                class="text-xs sm:text-sm font-bold leading-tight"
+                                :class="toast.type === 'success' ? 'text-emerald-950' : 'text-rose-950'"
+                            >
+                                {{ toast.title }}
+                            </h4>
+                            <p class="text-xs text-slate-600 mt-1 leading-relaxed break-words font-medium">
+                                {{ toast.message }}
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            @click="closeToast"
+                            class="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
+                            title="Tutup pemberitahuan"
+                        >
+                            <span class="material-symbols-outlined text-[18px]">close</span>
+                        </button>
+                    </div>
+
+                    <!-- Progress Bar Mundur -->
+                    <div class="w-full bg-slate-100 h-1 overflow-hidden">
+                        <div
+                            class="h-full transition-all duration-75 ease-linear"
+                            :class="toast.type === 'success' ? 'bg-emerald-600' : 'bg-rose-600'"
+                            :style="{ width: `${toast.progress}%` }"
+                        ></div>
+                    </div>
+                </div>
+            </Transition>
         </Teleport>
     </div>
 </template>

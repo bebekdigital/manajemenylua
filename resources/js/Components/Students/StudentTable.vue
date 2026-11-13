@@ -85,7 +85,8 @@ function handleSort(field) {
  * Builds a combined address string from address parts
  */
 function getAlamatLengkap(s) {
-    return [s.jalan, s.rt_rw, s.dusun, s.desa, s.kecamatan, s.kabupaten, s.provinsi]
+    const rtRw = (s.rt || s.rw) ? `RT ${s.rt || '-'}/RW ${s.rw || '-'}` : (s.rt_rw || null);
+    return [s.jalan, rtRw, s.dusun, s.desa, s.kecamatan, s.kabupaten, s.provinsi]
         .filter(Boolean)
         .join(', ');
 }

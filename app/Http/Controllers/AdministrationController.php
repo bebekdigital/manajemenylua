@@ -121,7 +121,7 @@ class AdministrationController extends Controller
                 // Alamat lengkap
                 $alamatParts = array_filter([
                     $student->jalan,
-                    $student->rt_rw ? "RT/RW {$student->rt_rw}" : null,
+                    ($student->rt || $student->rw) ? ('RT '.($student->rt ?: '-').' / RW '.($student->rw ?: '-')) : null,
                     $student->dusun,
                     $student->desa,
                     $student->kecamatan,
