@@ -42,6 +42,23 @@ class SyncStudentAcademicRecordsCommand extends Command
             $this->line("TA ID: {$r->academic_year_id} | Tingkat: {$r->tingkat} | Status: {$r->student_status} | Count: {$r->count}");
         }
 
+        $this->info("\nChecking Sample Students from each Angkatan...");
+        $samples = Student::query()
+            ->select('id', 'nama', 'nipd', 'angkatan', 'tanggal_diterima', 'tanggal_lahir')
+            ->whereIn('id', function ($q) {
+                $q->selectRaw('min(id)')->from('students')->groupBy('angkatan');
+            })
+            ->get();
+        foreach ($samples as $s) {
+            $this->line("Angkatan: {$s->angkatan} | NIPD: {$s->nipd} | Nama: {$s->nama} | Tgl Masuk: {$s->tanggal_diterima?->format('Y-m-d')} | Lahir: {$s->tanggal_lahir?->format('Y-m-d')}");
+        }
+
+        $this->info("\nChecking Existing Classrooms...");
+        $classes = \App\Models\Classroom::with('academicYear')->get();
+        foreach ($classes as $c) {
+            $this->line("Class ID: {$c->id} | Name: {$c->name} | Grade: {$c->grade} | Jenjang: {$c->jenjang} | TA: {$c->academicYear?->name} ({$c->academicYear?->semester})");
+        }
+
         return 0;
     }
 }
