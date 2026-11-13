@@ -21,6 +21,7 @@ class SyncStudentAcademicRecordsCommand extends Command
             $student = Student::where('nisn', $nisn)->first();
             if (! $student) {
                 $this->error("Siswa dengan NISN {$nisn} tidak ditemukan.");
+
                 return 1;
             }
             $this->info("=== Data Siswa: {$student->nama} (NISN: {$student->nisn}) ===");
@@ -31,13 +32,14 @@ class SyncStudentAcademicRecordsCommand extends Command
             $this->line("Tanggal Diterima: {$student->tanggal_diterima}");
             $this->line("Unit: {$student->unit} | Pesantren: {$student->unit_pesantren}");
 
-            $this->info("--- Riwayat di StudentAcademicRecord: ---");
+            $this->info('--- Riwayat di StudentAcademicRecord: ---');
             $records = StudentAcademicRecord::where('student_id', $student->id)
                 ->with('academicYear')
                 ->get();
             foreach ($records as $r) {
                 $this->line("TA: {$r->academicYear?->name} {$r->academicYear?->semester} (ID: {$r->academic_year_id}) | Tingkat: {$r->tingkat} | Status: '{$r->student_status}' | Ket: '{$r->ket_tidak_aktif}' | Program: '{$r->program}'");
             }
+
             return 0;
         }
         if ($this->option('test-stats')) {
@@ -115,16 +117,28 @@ class SyncStudentAcademicRecordsCommand extends Command
                 if ($isAlumni) {
                     $studentStatus = 'lulus';
                 } elseif ($isInactiveGlobally) {
+                    $ketLower = strtolower(trim((string) $student->keterangan_tidak_aktif));
+                    $targetInactiveStatus = 'tidak_aktif';
+                    if (str_contains($ketLower, 'mutasi')) {
+                        $targetInactiveStatus = 'mutasi_keluar';
+                    } elseif (str_contains($ketLower, 'lulus')) {
+                        $targetInactiveStatus = 'lulus';
+                    } elseif (str_contains($ketLower, 'keluar') || str_contains($ketLower, 'drop')) {
+                        $targetInactiveStatus = 'dropout';
+                    } elseif (str_contains($ketLower, 'undur')) {
+                        $targetInactiveStatus = 'mengundurkan_diri';
+                    }
+
                     if ($student->tanggal_tidak_aktif) {
                         $tglTidakAktif = Carbon::parse($student->tanggal_tidak_aktif);
                         if ($year->end_date && $year->end_date->lt($tglTidakAktif)) {
                             $studentStatus = 'aktif';
                         } else {
-                            $studentStatus = 'dropout';
+                            $studentStatus = $targetInactiveStatus;
                         }
                     } else {
-                        // Jika tidak ada tanggal_tidak_aktif: aktif di tahun lampau, dropout di TA aktif sekarang (2026/2027)
-                        $studentStatus = ($schoolYear >= 2026) ? 'dropout' : 'aktif';
+                        // Jika tidak ada tanggal_tidak_aktif: aktif di tahun lampau, tidak aktif di TA aktif sekarang (2026/2027)
+                        $studentStatus = ($schoolYear >= 2026) ? $targetInactiveStatus : 'aktif';
                     }
                 }
 
@@ -158,8 +172,8 @@ class SyncStudentAcademicRecordsCommand extends Command
                     'program' => $program,
                     'unit_pesantren' => $student->unit_pesantren,
                     'student_status' => $studentStatus,
-                    'ket_tidak_aktif' => $student->keterangan_tidak_aktif,
-                    'tanggal_tidak_aktif' => $student->tanggal_tidak_aktif,
+                    'ket_tidak_aktif' => $studentStatus === 'aktif' ? null : $student->keterangan_tidak_aktif,
+                    'tanggal_tidak_aktif' => $studentStatus === 'aktif' ? null : $student->tanggal_tidak_aktif,
                     'desil' => $student->desil,
                     'status_pip' => (bool) ($student->status_pip ?? false),
                     'pip_keterangan' => $student->pip_keterangan,

@@ -183,19 +183,31 @@ function getCellData(row, unit) {
     );
     if (!record) return null;
 
+    const isNonActive = record.status && record.status !== 'aktif';
+    let ket = isNonActive ? (record.keterangan || null) : null;
+    
+    // Jangan tampilkan keterangan jika sama persis dengan nama statusnya (agar tidak redundan)
+    if (ket && record.status) {
+        const normKet = ket.toLowerCase().replace(/[\s/_-]+/g, '');
+        const normStatus = record.status.toLowerCase().replace(/[\s/_-]+/g, '');
+        if (normKet === normStatus || normKet.includes(normStatus) || normStatus.includes(normKet)) {
+            ket = null;
+        }
+    }
+
     if (unit.type === 'formal') {
         if (record.unit && record.unit !== unit.name) return null;
         return {
             status: record.status || 'aktif',
             subtext: record.kelas ? `Kelas ${record.kelas}` : (record.tingkat ? `Tingkat ${record.tingkat}` : null),
-            keterangan: record.keterangan || null,
+            keterangan: ket,
         };
     } else {
         if (!record.unit_pesantren || record.unit_pesantren !== unit.name) return null;
         return {
             status: record.status || 'aktif',
             subtext: record.program || 'Santri',
-            keterangan: record.keterangan || null,
+            keterangan: ket,
         };
     }
 }
@@ -211,7 +223,7 @@ function getStatusBadgeClass(status) {
     if (s.includes('mutasi')) {
         return 'bg-amber-50 text-amber-800 border-amber-200';
     }
-    if (s.includes('drop') || s.includes('tidak')) {
+    if (s.includes('drop') || s.includes('tidak') || s.includes('undur')) {
         return 'bg-rose-50 text-rose-800 border-rose-200';
     }
     return 'bg-slate-50 text-slate-700 border-slate-200';
@@ -219,8 +231,19 @@ function getStatusBadgeClass(status) {
 
 function formatStatus(status) {
     if (!status) return 'Aktif';
-    const s = status.replace(/_/g, ' ');
-    return s.charAt(0).toUpperCase() + s.slice(1);
+    const map = {
+        'aktif': 'Aktif',
+        'mutasi_keluar': 'Mutasi Keluar',
+        'mutasi_masuk': 'Mutasi Masuk',
+        'dropout': 'Drop Out',
+        'tidak_aktif': 'Tidak Aktif',
+        'lulus': 'Lulus',
+        'mengundurkan_diri': 'Mengundurkan Diri',
+    };
+    const s = status.toLowerCase().trim();
+    if (map[s]) return map[s];
+    const formatted = s.replace(/_/g, ' ');
+    return formatted.charAt(0).toUpperCase() + formatted.slice(1);
 }
 </script>
 
