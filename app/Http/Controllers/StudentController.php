@@ -684,7 +684,30 @@ class StudentController extends Controller
             abort(403, 'Anda tidak memiliki hak akses untuk mengubah data siswa.');
         }
 
-        $selectedYearId = session('selected_academic_year_id') ?? AcademicYear::current()?->id;
+        if ($request->has('academic_year_id') && $request->filled('academic_year_id')) {
+            $selectedYearId = (int) $request->query('academic_year_id');
+            session(['selected_academic_year_id' => $selectedYearId]);
+        } else {
+            $selectedYearId = session('selected_academic_year_id') ?? AcademicYear::current()?->id;
+        }
+
+        $allAcademicYears = AcademicYear::orderByDesc('start_date')
+            ->orderByRaw("FIELD(semester, 'Genap', 'Ganjil')")
+            ->get();
+
+        $currentYear = AcademicYear::current();
+        $academicYearsList = $allAcademicYears->map(function ($ay) use ($currentYear) {
+            return [
+                'id' => $ay->id,
+                'name' => $ay->name,
+                'semester' => $ay->semester,
+                'label' => "TA {$ay->name} - {$ay->semester}",
+                'is_current' => ($currentYear && $ay->id === $currentYear->id),
+                'start_date' => $ay->start_date?->format('Y-m-d'),
+            ];
+        })->values()->all();
+
+        $selectedYear = $selectedYearId ? AcademicYear::find($selectedYearId) : $currentYear;
 
         $students = Student::with([
             'siblings',
@@ -768,7 +791,8 @@ class StudentController extends Controller
 
         return Inertia::render('Students/InlineEdit', [
             'students' => $students,
-            'selectedAcademicYear' => $selectedYearId ? AcademicYear::find($selectedYearId) : null,
+            'selectedAcademicYear' => $selectedYear,
+            'allAcademicYears' => $academicYearsList,
             'allUnits' => fn () => SchoolUnit::orderBy('name')->pluck('name')->toArray(),
             'allLevels' => fn () => SchoolLevel::orderBy('name')->pluck('name')->toArray(),
             'allPrograms' => fn () => SchoolProgram::orderBy('name')->pluck('name')->unique()->values()->toArray(),
@@ -787,6 +811,11 @@ class StudentController extends Controller
         }
 
         $validated = $request->validate([
+            'academic_year_id' => ['nullable', 'integer', 'exists:academic_years,id'],
+            'target_academic_year_ids' => ['nullable', 'array'],
+            'target_academic_year_ids.*' => ['integer', 'exists:academic_years,id'],
+            'multi_semester_students' => ['nullable', 'array'],
+            'multi_semester_students.*' => ['string'],
             'students' => ['required', 'array'],
             'students.*.nisn' => ['required', 'string'],
             'students.*.nama' => ['required', 'string'],
@@ -843,9 +872,15 @@ class StudentController extends Controller
             'students.*.no_kip' => ['nullable', 'string'],
         ]);
 
-        $selectedYearId = session('selected_academic_year_id') ?? AcademicYear::current()?->id;
+        $selectedYearId = $request->input('academic_year_id')
+            ?? session('selected_academic_year_id')
+            ?? AcademicYear::current()?->id;
 
-        DB::transaction(function () use ($validated, $selectedYearId) {
+        $targetAcademicYearIds = $request->input('target_academic_year_ids') ?? [];
+        $multiSemesterStudents = $request->input('multi_semester_students') ?? [];
+        $currentYear = AcademicYear::current();
+
+        DB::transaction(function () use ($validated, $selectedYearId, $targetAcademicYearIds, $multiSemesterStudents, $currentYear) {
             foreach ($validated['students'] as $d) {
                 $student = Student::where('nisn', $d['nisn'])->first();
                 if (! $student) {
@@ -907,29 +942,75 @@ class StudentController extends Controller
                 if (array_key_exists('angkatan', $d)) {
                     $studentUpdateData['angkatan'] = $d['angkatan'] ?: null;
                 }
-                if (isset($d['student_status'])) {
-                    $normStatus = strtolower(trim((string) $d['student_status']));
-                    $studentUpdateData['status_keaktifan'] = in_array($normStatus, ['tidak_aktif', 'tidak aktif', 'dropout', 'mutasi_keluar']) ? 'Tidak Aktif' : 'Aktif';
+
+                // Tentukan target Tahun Ajaran untuk siswa ini
+                $isMulti = in_array($student->nisn, $multiSemesterStudents);
+                if ($isMulti && ! empty($targetAcademicYearIds)) {
+                    $studentYearIds = $targetAcademicYearIds;
+                } else {
+                    $selectedYear = $selectedYearId ? AcademicYear::find($selectedYearId) : null;
+                    $studentYearIds = $selectedYear
+                        ? AcademicYear::where('name', $selectedYear->name)->pluck('id')->all()
+                        : ($selectedYearId ? [$selectedYearId] : []);
+                }
+
+                // Normalisasi status siswa & ket_tidak_aktif
+                $rawStatus = isset($d['student_status']) ? strtolower(trim((string) $d['student_status'])) : null;
+                $statusVal = 'aktif';
+                $ketVal = null;
+
+                if ($rawStatus) {
+                    if (str_contains($rawStatus, 'mutasi_keluar') || $rawStatus === 'mutasi keluar') {
+                        $statusVal = 'mutasi_keluar';
+                        $ketVal = 'Mutasi Keluar';
+                    } elseif (str_contains($rawStatus, 'mutasi_masuk') || $rawStatus === 'mutasi masuk') {
+                        $statusVal = 'mutasi_masuk';
+                    } elseif (str_contains($rawStatus, 'lulus')) {
+                        $statusVal = 'lulus';
+                        $ketVal = 'Lulus';
+                    } elseif (str_contains($rawStatus, 'drop') || str_contains($rawStatus, 'keluar')) {
+                        $statusVal = 'dropout';
+                        $ketVal = 'Drop Out';
+                    } elseif (str_contains($rawStatus, 'ulang')) {
+                        $statusVal = 'mengulang';
+                    } elseif (str_contains($rawStatus, 'tidak')) {
+                        $statusVal = 'dropout';
+                        $ketVal = 'Tidak Aktif';
+                    } else {
+                        $statusVal = 'aktif';
+                        $ketVal = null;
+                    }
+                }
+
+                // Sinkronkan status_keaktifan pada data master Student jika mencakup semester aktif berjalan
+                if ($currentYear && in_array($currentYear->id, $studentYearIds)) {
+                    if ($statusVal === 'aktif') {
+                        $studentUpdateData['status_keaktifan'] = 'Aktif';
+                        $studentUpdateData['keterangan_tidak_aktif'] = null;
+                        $studentUpdateData['tanggal_tidak_aktif'] = null;
+                    } else {
+                        $studentUpdateData['status_keaktifan'] = 'Tidak Aktif';
+                        $studentUpdateData['keterangan_tidak_aktif'] = $ketVal;
+                        if (! $student->tanggal_tidak_aktif) {
+                            $studentUpdateData['tanggal_tidak_aktif'] = now()->toDateString();
+                        }
+                    }
                 }
 
                 $student->update($studentUpdateData);
 
-                // 2. Update academic record untuk tahun ajaran yang dipilih (dan semester seinduk jika ada)
-                if ($selectedYearId) {
-                    $selectedYear = AcademicYear::find($selectedYearId);
-                    $targetYearIds = $selectedYear
-                        ? AcademicYear::where('name', $selectedYear->name)->pluck('id')->all()
-                        : [$selectedYearId];
-
+                // 2. Update / Create StudentAcademicRecord di setiap target academic year
+                foreach ($studentYearIds as $yId) {
                     $record = StudentAcademicRecord::where('student_id', $student->id)
-                        ->where('academic_year_id', $selectedYearId)
+                        ->where('academic_year_id', $yId)
                         ->first();
 
                     if (! $record) {
                         $record = StudentAcademicRecord::create([
                             'student_id' => $student->id,
-                            'academic_year_id' => $selectedYearId,
-                            'student_status' => $d['student_status'] ?? 'aktif',
+                            'academic_year_id' => $yId,
+                            'student_status' => $statusVal,
+                            'ket_tidak_aktif' => $ketVal,
                         ]);
                     }
 
@@ -939,12 +1020,12 @@ class StudentController extends Controller
                             [
                                 'name' => $d['kelas'],
                                 'unit' => $d['unit'],
-                                'academic_year_id' => $selectedYearId,
+                                'academic_year_id' => $yId,
                             ],
                             [
                                 'name' => $d['kelas'],
                                 'unit' => $d['unit'],
-                                'academic_year_id' => $selectedYearId,
+                                'academic_year_id' => $yId,
                                 'jenjang' => $d['jenjang'] ?? null,
                                 'grade' => $d['tingkat'] ?? null,
                             ]
@@ -957,7 +1038,8 @@ class StudentController extends Controller
                         'jenjang' => $student->jenjang,
                         'tingkat' => $d['tingkat'] ?? $record->tingkat,
                         'program' => $d['program'] ?? $record->program,
-                        'student_status' => $d['student_status'] ?? $record->student_status,
+                        'student_status' => $statusVal,
+                        'ket_tidak_aktif' => $ketVal,
                         'classroom_id' => $classroomId,
                         'desil' => $d['desil'] ?? $record->desil,
                         'status_pip' => $d['status_pip'] ?? $record->status_pip,
@@ -970,10 +1052,7 @@ class StudentController extends Controller
                         $recordUpdateData['unit_pesantren'] = $d['unit_pesantren'] ?: null;
                     }
 
-                    // Update semua record di tahun ajaran yang sama (Ganjil & Genap)
-                    StudentAcademicRecord::where('student_id', $student->id)
-                        ->whereIn('academic_year_id', $targetYearIds)
-                        ->update($recordUpdateData);
+                    $record->update($recordUpdateData);
                 }
             }
         });

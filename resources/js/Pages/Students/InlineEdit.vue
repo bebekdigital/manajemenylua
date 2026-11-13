@@ -8,6 +8,7 @@ defineOptions({ layout: AppLayout });
 const props = defineProps({
     students: { type: Array, required: true },
     selectedAcademicYear: { type: Object, default: null },
+    allAcademicYears: { type: Array, default: () => [] },
     allUnits: { type: Array, default: () => [] },
     allLevels: { type: Array, default: () => [] },
     allPrograms: { type: Array, default: () => [] },
@@ -257,20 +258,68 @@ const columns = computed(() => ({
 const allColumns = computed(() => Object.values(columns.value).flat());
 
 // ============================================================
-// Search & Selection
+// Academic Year Switcher
+// ============================================================
+const currentAcademicYearId = ref(props.selectedAcademicYear?.id || (props.allAcademicYears?.[0]?.id ?? ''));
+
+function switchAcademicYear() {
+    if (!currentAcademicYearId.value) return;
+    router.get('/students/inline-edit', { academic_year_id: currentAcademicYearId.value }, {
+        preserveState: false,
+        preserveScroll: true,
+    });
+}
+
+// ============================================================
+// Search, Filter Keaktifan, & Selection
 // ============================================================
 const searchQuery = ref('');
+const activeStatusFilter = ref('semua'); // 'semua' | 'aktif' | 'tidak_aktif'
 const selectedRows = ref(new Set());
 
+const statusCounts = computed(() => {
+    let aktif = 0;
+    let tidakAktif = 0;
+    students.forEach(s => {
+        const st = (s.student_status || '').toLowerCase().trim();
+        if (st === 'aktif') {
+            aktif++;
+        } else {
+            tidakAktif++;
+        }
+    });
+    return {
+        semua: students.length,
+        aktif,
+        tidakAktif,
+    };
+});
+
 const filteredStudents = computed(() => {
-    if (!searchQuery.value) return students;
-    const q = searchQuery.value.toLowerCase().trim();
-    return students.filter(s =>
-        s.nama?.toLowerCase().includes(q) ||
-        s.nisn?.includes(q) ||
-        s.nipd?.includes(q) ||
-        String(s.angkatan || '').toLowerCase().includes(q)
-    );
+    let list = students;
+
+    // Filter Status Keaktifan
+    if (activeStatusFilter.value === 'aktif') {
+        list = list.filter(s => (s.student_status || '').toLowerCase().trim() === 'aktif');
+    } else if (activeStatusFilter.value === 'tidak_aktif') {
+        list = list.filter(s => (s.student_status || '').toLowerCase().trim() !== 'aktif');
+    }
+
+    // Filter Search Query
+    if (searchQuery.value) {
+        const q = searchQuery.value.toLowerCase().trim();
+        list = list.filter(s =>
+            s.nama?.toLowerCase().includes(q) ||
+            s.nisn?.includes(q) ||
+            s.nipd?.includes(q) ||
+            String(s.angkatan || '').toLowerCase().includes(q) ||
+            s.kelas?.toLowerCase().includes(q) ||
+            s.unit?.toLowerCase().includes(q) ||
+            s.student_status?.toLowerCase().includes(q)
+        );
+    }
+
+    return list;
 });
 
 function toggleSelectAll() {
@@ -297,7 +346,7 @@ const allSelected = computed(() =>
 const someSelected = computed(() => selectedRows.value.size > 0 && !allSelected.value);
 
 // ============================================================
-// Bulk Edit
+// Bulk Edit & Multi-Semester Management
 // ============================================================
 const showBulkPanel = ref(false);
 const bulkField = ref('');
@@ -305,8 +354,36 @@ const bulkValue = ref('');
 const bulkMode = ref('selected'); // 'selected' or 'all'
 const bulkColumn = computed(() => allColumns.value.find(c => c.key === bulkField.value));
 
+// Multi-Semester Target Options
+const bulkSemesterScope = ref('current'); // 'current' | 'future' | 'manual'
+const bulkSelectedSemesters = ref(props.selectedAcademicYear ? [props.selectedAcademicYear.id] : []);
+const multiSemesterStudentNisns = ref(new Set());
+const activeTargetYearIds = ref(new Set());
+
+// Daftar semester masa kini & masa depan (dimulai dari selectedAcademicYear)
+const futureAcademicYearIds = computed(() => {
+    if (!props.selectedAcademicYear || !props.allAcademicYears || props.allAcademicYears.length === 0) {
+        return props.selectedAcademicYear ? [props.selectedAcademicYear.id] : [];
+    }
+    const sorted = [...props.allAcademicYears].sort((a, b) => (a.start_date || '').localeCompare(b.start_date || ''));
+    const currIdx = sorted.findIndex(ay => ay.id === props.selectedAcademicYear.id);
+    if (currIdx === -1) return [props.selectedAcademicYear.id];
+    return sorted.slice(currIdx).map(ay => ay.id);
+});
+
+function selectAllSemesters() {
+    bulkSelectedSemesters.value = (props.allAcademicYears || []).map(ay => ay.id);
+}
+
+function clearAllSemesters() {
+    bulkSelectedSemesters.value = [];
+}
+
 function onBulkFieldChange() {
     bulkValue.value = '';
+    if (bulkField.value === 'student_status' && props.selectedAcademicYear) {
+        bulkSelectedSemesters.value = [props.selectedAcademicYear.id];
+    }
 }
 
 function applyBulk() {
@@ -331,8 +408,35 @@ function applyBulk() {
         s[bulkField.value] = val;
     });
 
+    // Jika yang di-bulk adalah student_status, simpan target semesternya
+    if (bulkField.value === 'student_status') {
+        let targetYears = [];
+        if (bulkSemesterScope.value === 'current') {
+            targetYears = [props.selectedAcademicYear?.id || currentAcademicYearId.value];
+        } else if (bulkSemesterScope.value === 'future') {
+            targetYears = futureAcademicYearIds.value;
+        } else if (bulkSemesterScope.value === 'manual') {
+            targetYears = bulkSelectedSemesters.value.length > 0
+                ? bulkSelectedSemesters.value
+                : [props.selectedAcademicYear?.id || currentAcademicYearId.value];
+        }
+
+        targets.forEach(s => {
+            multiSemesterStudentNisns.value.add(s.nisn);
+        });
+        targetYears.forEach(yId => {
+            activeTargetYearIds.value.add(yId);
+        });
+    }
+
     const displayVal = val === '' || val === null || val === undefined ? '(dikosongkan)' : val;
-    successMessage.value = `Berhasil menerapkan nilai "${displayVal}" pada ${targets.length} siswa untuk kolom ${bulkColumn.value?.label}. Jangan lupa klik "Simpan Perubahan".`;
+    let scopeMsg = '';
+    if (bulkField.value === 'student_status') {
+        const countSem = activeTargetYearIds.value.size;
+        scopeMsg = ` pada ${countSem} semester`;
+    }
+
+    successMessage.value = `Berhasil menerapkan nilai "${displayVal}" pada ${targets.length} siswa${scopeMsg} untuk kolom ${bulkColumn.value?.label}. Jangan lupa klik "Simpan Perubahan".`;
     setTimeout(() => {
         if (successMessage.value) successMessage.value = null;
     }, 6000);
@@ -350,10 +454,19 @@ function saveChanges() {
     saveError.value = null;
     successMessage.value = null;
 
-    router.post('/students/inline-update', { students: students }, {
+    const payload = {
+        students: students,
+        academic_year_id: currentAcademicYearId.value,
+        target_academic_year_ids: Array.from(activeTargetYearIds.value),
+        multi_semester_students: Array.from(multiSemesterStudentNisns.value),
+    };
+
+    router.post('/students/inline-update', payload, {
         preserveScroll: true,
         onSuccess: () => {
             isSaving.value = false;
+            multiSemesterStudentNisns.value.clear();
+            activeTargetYearIds.value.clear();
             successMessage.value = 'Perubahan data siswa berhasil disimpan ke database.';
             setTimeout(() => {
                 if (successMessage.value) successMessage.value = null;
@@ -408,10 +521,19 @@ function groupSpan(groupKey) {
                     </h1>
                     <p class="text-xs sm:text-[13.5px] text-slate-500 mt-1 font-medium flex items-center gap-2 flex-wrap">
                         <span>Edit langsung nilai pada tabel atau gunakan Bulk Edit untuk mengubah banyak baris sekaligus</span>
-                        <span v-if="selectedAcademicYear" class="inline-flex items-center gap-1 px-2.5 py-0.5 bg-emerald-50 text-emerald-900 border border-emerald-200/90 rounded-full text-xs font-bold">
-                            <span class="material-symbols-outlined text-[14px]">calendar_month</span>
-                            TA {{ selectedAcademicYear.name }}
-                        </span>
+                        <div v-if="allAcademicYears && allAcademicYears.length > 0" class="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 border border-emerald-300 rounded-xl shadow-2xs">
+                            <span class="material-symbols-outlined text-[17px] text-emerald-800">calendar_month</span>
+                            <span class="text-xs font-bold text-emerald-950">Tahun Ajaran:</span>
+                            <select
+                                v-model="currentAcademicYearId"
+                                @change="switchAcademicYear"
+                                class="bg-transparent text-xs font-bold text-emerald-950 focus:outline-none cursor-pointer pr-1"
+                            >
+                                <option v-for="ay in allAcademicYears" :key="ay.id" :value="ay.id">
+                                    {{ ay.label }}{{ ay.is_current ? ' (Aktif)' : '' }}
+                                </option>
+                            </select>
+                        </div>
                     </p>
                 </div>
 
@@ -657,6 +779,67 @@ function groupSpan(groupKey) {
                             </button>
                         </div>
                     </div>
+
+                    <!-- Opsi Target Semester (Muncul saat mengubah Status Siswa) -->
+                    <div v-if="bulkField === 'student_status'" class="mt-4 pt-3.5 border-t border-emerald-100">
+                        <div class="flex items-center justify-between gap-2 mb-2 flex-wrap">
+                            <label class="text-xs font-bold uppercase tracking-wider text-emerald-950 flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-[16px] text-emerald-700">event_repeat</span>
+                                <span>Cakupan Tahun Ajaran & Semester Target</span>
+                            </label>
+                            <span class="text-[11px] text-slate-500 font-medium">Terapkan status siswa ini sekaligus ke banyak semester agar ringkas</span>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-3">
+                            <label
+                                class="flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer transition-all text-xs font-bold"
+                                :class="bulkSemesterScope === 'current' ? 'bg-emerald-50 border-emerald-400 text-emerald-950 shadow-2xs' : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'"
+                            >
+                                <input type="radio" value="current" v-model="bulkSemesterScope" class="accent-emerald-700" />
+                                <span>Semester Ini Saja</span>
+                            </label>
+
+                            <label
+                                class="flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer transition-all text-xs font-bold"
+                                :class="bulkSemesterScope === 'future' ? 'bg-emerald-50 border-emerald-400 text-emerald-950 shadow-2xs' : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'"
+                            >
+                                <input type="radio" value="future" v-model="bulkSemesterScope" class="accent-emerald-700" />
+                                <span>Semester Ini & Setelahnya (Cascade)</span>
+                            </label>
+
+                            <label
+                                class="flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer transition-all text-xs font-bold"
+                                :class="bulkSemesterScope === 'manual' ? 'bg-emerald-50 border-emerald-400 text-emerald-950 shadow-2xs' : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'"
+                            >
+                                <input type="radio" value="manual" v-model="bulkSemesterScope" class="accent-emerald-700" />
+                                <span>Pilih Manual Banyak Semester</span>
+                            </label>
+                        </div>
+
+                        <!-- Multi-Checklist Semester jika pilih Manual -->
+                        <div v-if="bulkSemesterScope === 'manual'" class="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                            <div class="flex items-center justify-between pb-1.5 border-b border-slate-200">
+                                <span class="text-[11px] font-bold text-slate-600 uppercase">Centang Semester Target:</span>
+                                <div class="flex items-center gap-2">
+                                    <button type="button" @click="selectAllSemesters" class="text-[11px] font-bold text-emerald-800 hover:underline">Pilih Semua</button>
+                                    <span class="text-slate-300">|</span>
+                                    <button type="button" @click="clearAllSemesters" class="text-[11px] font-bold text-slate-500 hover:underline">Hapus Pilihan</button>
+                                </div>
+                            </div>
+                            <div class="flex flex-wrap gap-2 pt-1">
+                                <label
+                                    v-for="ay in allAcademicYears"
+                                    :key="ay.id"
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold cursor-pointer transition-all"
+                                    :class="bulkSelectedSemesters.includes(ay.id) ? 'bg-emerald-100 text-emerald-950 border-emerald-400' : 'bg-white text-slate-700 border-slate-300'"
+                                >
+                                    <input type="checkbox" :value="ay.id" v-model="bulkSelectedSemesters" class="accent-emerald-700 rounded" />
+                                    <span>{{ ay.label }}</span>
+                                    <span v-if="ay.is_current" class="text-[10px] font-bold text-emerald-800 bg-emerald-200/80 px-1 rounded">(Aktif)</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </transition>
 
@@ -680,6 +863,48 @@ function groupSpan(groupKey) {
                         class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-full"
                     >
                         <span class="material-symbols-outlined text-[14px]">close</span>
+                    </button>
+                </div>
+
+                <!-- Filter Status Keaktifan (Tabs: Semua, Aktif, Tidak Aktif) -->
+                <div class="inline-flex items-center p-1 bg-slate-100 rounded-xl border border-slate-200/90 shadow-2xs">
+                    <button
+                        type="button"
+                        @click="activeStatusFilter = 'semua'"
+                        :class="[
+                            'px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer',
+                            activeStatusFilter === 'semua'
+                                ? 'bg-white text-slate-900 shadow-2xs border border-slate-200/60'
+                                : 'text-slate-600 hover:text-slate-900 font-semibold'
+                        ]"
+                    >
+                        Semua ({{ statusCounts.semua }})
+                    </button>
+                    <button
+                        type="button"
+                        @click="activeStatusFilter = 'aktif'"
+                        :class="[
+                            'px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5',
+                            activeStatusFilter === 'aktif'
+                                ? 'bg-emerald-900 text-yellow-200 shadow-2xs'
+                                : 'text-slate-600 hover:text-slate-900 font-semibold'
+                        ]"
+                    >
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                        Aktif ({{ statusCounts.aktif }})
+                    </button>
+                    <button
+                        type="button"
+                        @click="activeStatusFilter = 'tidak_aktif'"
+                        :class="[
+                            'px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5',
+                            activeStatusFilter === 'tidak_aktif'
+                                ? 'bg-rose-900 text-rose-100 shadow-2xs'
+                                : 'text-slate-600 hover:text-slate-900 font-semibold'
+                        ]"
+                    >
+                        <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
+                        Tidak Aktif ({{ statusCounts.tidakAktif }})
                     </button>
                 </div>
 
