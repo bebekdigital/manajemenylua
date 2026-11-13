@@ -2,21 +2,35 @@
 
 namespace App\Console\Commands;
 
+use App\Http\Controllers\StatisticsController;
 use App\Models\AcademicYear;
 use App\Models\Student;
 use App\Models\StudentAcademicRecord;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
-#[Signature('students:sync-academic-records {--inspect : Hanya inspect data tanpa mengubah DB}')]
+#[Signature('students:sync-academic-records {--inspect : Hanya inspect data tanpa mengubah DB} {--test-stats : Tes eksekusi StatisticsController}')]
 #[Description('Sinkronisasi dan backfill data riwayat akademik siswa per tahun ajaran')]
 class SyncStudentAcademicRecordsCommand extends Command
 {
     public function handle()
     {
+        if ($this->option('test-stats')) {
+            $this->info('Testing StatisticsController...');
+            $user = User::first();
+            if ($user) {
+                auth()->login($user);
+            }
+            $res = app(StatisticsController::class)->index(request());
+            $this->info('StatisticsController executed successfully! Component: '.$res->toResponse(request())->getStatusCode());
+
+            return 0;
+        }
+
         $inspectOnly = (bool) $this->option('inspect');
 
         $this->info('Memulai sinkronisasi riwayat akademik siswa...');
