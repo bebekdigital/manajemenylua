@@ -32,6 +32,17 @@ class AcademicYear extends Model
      */
     public static function current(): ?self
     {
+        $today = now()->toDateString();
+        $active = static::whereNotNull('start_date')
+            ->whereNotNull('end_date')
+            ->where('start_date', '<=', $today)
+            ->where('end_date', '>=', $today)
+            ->first();
+
+        if ($active) {
+            return $active;
+        }
+
         return static::orderByDesc('start_date')->first();
     }
 

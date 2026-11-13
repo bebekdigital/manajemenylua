@@ -14,6 +14,8 @@ class StudentAcademicRecord extends Model
         'student_id',
         'academic_year_id',
         'classroom_id',
+        'unit',
+        'jenjang',
         'tingkat',
         'program',
         'unit_pesantren',
