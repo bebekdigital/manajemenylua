@@ -297,6 +297,13 @@ function formatStatus(status) {
     if (s === 'aktif') return 'Aktif';
     return status;
 }
+
+function hasActiveUnit(row) {
+    return timelineUnits.value.some(u => {
+        const c = getCellData(row, u);
+        return c && c.status !== '-';
+    });
+}
 </script>
 
 <template>
@@ -472,7 +479,8 @@ function formatStatus(status) {
                         {{ academicYearRows.length }} Semester Tercatat
                     </span>
                 </div>
-                <div class="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-2xs relative">
+                <!-- Desktop / Tablet Table View (Tampil pada layar md ke atas) -->
+                <div class="hidden md:block overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-2xs relative">
                     <table class="w-full text-left text-xs sm:text-sm border-collapse whitespace-nowrap">
                         <thead>
                             <tr class="border-b border-slate-200 bg-slate-50/80">
@@ -550,6 +558,83 @@ function formatStatus(status) {
                             </tr>
                         </tbody>
                     </table>
+                </div>
+
+                <!-- Mobile Card View (Tampil pada layar HP / di bawah md) -->
+                <div class="block md:hidden space-y-3">
+                    <div
+                        v-for="row in academicYearRows"
+                        :key="row.key"
+                        class="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-4 transition-all"
+                    >
+                        <!-- Card Header: TA, Semester, Tingkat & Program -->
+                        <div class="pb-3 border-b border-slate-100 flex flex-col gap-1.5">
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="font-bold text-slate-900 font-mono text-sm tracking-tight">
+                                    {{ row.ta }}
+                                </span>
+                                <span
+                                    class="px-2.5 py-0.5 rounded-md text-[11px] font-bold"
+                                    :class="row.semester === 'Ganjil' ? 'bg-sky-50 text-sky-700 border border-sky-200' : 'bg-indigo-50 text-indigo-700 border border-indigo-200'"
+                                >
+                                    {{ row.semester }}
+                                </span>
+                            </div>
+                            <div v-if="row.tingkat || row.program" class="flex items-center gap-1.5 text-xs text-slate-500">
+                                <span v-if="row.tingkat" class="inline-flex items-center px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-medium text-[11px]">
+                                    Tingkat {{ row.tingkat }}
+                                </span>
+                                <span v-if="row.tingkat && row.program" class="text-slate-300">•</span>
+                                <span v-if="row.program" class="text-slate-600 font-medium text-[11px]">
+                                    {{ row.program }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Card Body: Status per Unit -->
+                        <div class="mt-3 space-y-2.5">
+                            <template v-for="u in timelineUnits" :key="u.name">
+                                <div
+                                    v-if="getCellData(row, u) && getCellData(row, u).status !== '-'"
+                                    class="p-2.5 rounded-xl bg-slate-50/80 border border-slate-100 flex items-center justify-between gap-3"
+                                >
+                                    <div class="min-w-0 flex-1">
+                                        <div class="flex items-center gap-1.5 flex-wrap">
+                                            <span class="text-xs font-bold text-slate-800">
+                                                {{ u.name }}
+                                            </span>
+                                            <span
+                                                class="text-[9px] font-semibold px-1.5 py-0.5 rounded border"
+                                                :class="u.badgeColor"
+                                            >
+                                                {{ u.type === 'pesantren' ? 'Pesantren' : 'Formal' }}
+                                            </span>
+                                        </div>
+                                        <p v-if="getCellData(row, u).subtext" class="text-[11px] font-medium text-slate-500 mt-0.5">
+                                            {{ getCellData(row, u).subtext }}
+                                        </p>
+                                    </div>
+
+                                    <div class="shrink-0">
+                                        <span
+                                            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border shadow-2xs"
+                                            :class="getStatusBadgeClass(getCellData(row, u).status)"
+                                        >
+                                            <span
+                                                class="w-1.5 h-1.5 rounded-full"
+                                                :class="getStatusDotClass(getCellData(row, u).status)"
+                                            ></span>
+                                            {{ formatStatus(getCellData(row, u).status) }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <div v-if="!hasActiveUnit(row)" class="text-xs text-slate-400 italic py-1 text-center">
+                                Tidak ada data keaktifan unit
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
