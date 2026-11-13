@@ -54,11 +54,19 @@ function initForm() {
     form.tanggal_diterima = props.student.tanggal_diterima || '';
     form.info_psb = props.student.info_psb || '';
 
-    const isNonActive = (props.student.status_keaktifan || props.student.student_status || '').toLowerCase().includes('tidak')
+    const rawStatus = (props.student.status_keaktifan || '').trim();
+    if (rawStatus.toLowerCase() === 'lulus') {
+        form.status_keaktifan = 'Lulus';
+    } else if (
+        rawStatus.toLowerCase().includes('tidak')
         || (props.student.student_status || '').toLowerCase() === 'tidak_aktif'
-        || (props.student.student_status || '').toLowerCase() === 'dropout';
+        || (props.student.student_status || '').toLowerCase() === 'dropout'
+    ) {
+        form.status_keaktifan = 'Tidak Aktif';
+    } else {
+        form.status_keaktifan = 'Aktif';
+    }
 
-    form.status_keaktifan = isNonActive ? 'Tidak Aktif' : 'Aktif';
     form.keterangan_tidak_aktif = props.student.keterangan_tidak_aktif || props.student.ket_tidak_aktif || '';
     form.tanggal_tidak_aktif = props.student.tanggal_tidak_aktif || '';
 }
@@ -183,39 +191,49 @@ function getCellData(row, unit) {
     );
     if (!record) return null;
 
-    const isNonActive = record.status && record.status !== 'aktif';
-    let ket = isNonActive ? (record.keterangan || null) : null;
-    
-    // Jangan tampilkan keterangan jika sama persis dengan nama statusnya (agar tidak redundan)
-    if (ket && record.status) {
-        const normKet = ket.toLowerCase().replace(/[\s/_-]+/g, '');
-        const normStatus = record.status.toLowerCase().replace(/[\s/_-]+/g, '');
-        if (normKet === normStatus || normKet.includes(normStatus) || normStatus.includes(normKet)) {
-            ket = null;
+    // Catatan tidak aktif (cth: Mutasi Keluar, Drop Out, Dikeluarkan, Lulus)
+    const hasInactiveNote = Boolean(record.keterangan && record.keterangan.trim());
+
+    // Status tampilan: prioritaskan ket_tidak_aktif jika ada (Mutasi Keluar, Drop Out, dll)
+    // Jika tidak ada, gunakan status semester (Naik Kelas / Tinggal Kelas)
+    let displayStatus = 'Naik Kelas';
+    let sub = null;
+
+    if (hasInactiveNote) {
+        displayStatus = record.keterangan;
+    } else if (record.status) {
+        const sLower = record.status.toLowerCase().trim();
+        if (sLower === 'tinggal kelas' || sLower === 'mengulang') {
+            displayStatus = 'Tinggal Kelas';
+        } else if (sLower === 'lulus') {
+            displayStatus = 'Lulus';
+        } else {
+            displayStatus = 'Naik Kelas';
         }
     }
 
     if (unit.type === 'formal') {
         if (record.unit && record.unit !== unit.name) return null;
-        return {
-            status: record.status || 'aktif',
-            subtext: record.kelas ? `Kelas ${record.kelas}` : (record.tingkat ? `Tingkat ${record.tingkat}` : null),
-            keterangan: ket,
-        };
+        sub = record.kelas ? `Kelas ${record.kelas}` : (record.tingkat ? `Tingkat ${record.tingkat}` : null);
     } else {
         if (!record.unit_pesantren || record.unit_pesantren !== unit.name) return null;
-        return {
-            status: record.status || 'aktif',
-            subtext: record.program || 'Santri',
-            keterangan: ket,
-        };
+        sub = record.program || 'Santri';
     }
+
+    return {
+        status: displayStatus,
+        subtext: sub,
+        isInactive: hasInactiveNote,
+    };
 }
 
 function getStatusBadgeClass(status) {
     const s = (status || '').toLowerCase().trim();
-    if (s === 'aktif') {
+    if (s === 'naik kelas' || s === 'aktif') {
         return 'bg-emerald-50 text-emerald-800 border-emerald-200';
+    }
+    if (s === 'tinggal kelas' || s === 'mengulang') {
+        return 'bg-amber-50 text-amber-800 border-amber-200';
     }
     if (s === 'lulus') {
         return 'bg-blue-50 text-blue-800 border-blue-200';
@@ -223,16 +241,28 @@ function getStatusBadgeClass(status) {
     if (s.includes('mutasi')) {
         return 'bg-amber-50 text-amber-800 border-amber-200';
     }
-    if (s.includes('drop') || s.includes('tidak') || s.includes('undur')) {
+    if (s.includes('drop') || s.includes('tidak') || s.includes('keluar') || s.includes('undur') || s.includes('meninggal')) {
         return 'bg-rose-50 text-rose-800 border-rose-200';
     }
     return 'bg-slate-50 text-slate-700 border-slate-200';
 }
 
+function getStatusDotClass(status) {
+    const s = (status || '').toLowerCase().trim();
+    if (s === 'naik kelas' || s === 'aktif') return 'bg-emerald-600';
+    if (s === 'tinggal kelas' || s === 'mengulang') return 'bg-amber-500';
+    if (s === 'lulus') return 'bg-blue-600';
+    if (s.includes('mutasi')) return 'bg-amber-500';
+    return 'bg-rose-600';
+}
+
 function formatStatus(status) {
-    if (!status) return 'Aktif';
+    if (!status) return 'Naik Kelas';
     const map = {
-        'aktif': 'Aktif',
+        'naik kelas': 'Naik Kelas',
+        'tinggal kelas': 'Tinggal Kelas',
+        'aktif': 'Naik Kelas',
+        'mengulang': 'Tinggal Kelas',
         'mutasi_keluar': 'Mutasi Keluar',
         'mutasi_masuk': 'Mutasi Masuk',
         'dropout': 'Drop Out',
@@ -353,7 +383,7 @@ function formatStatus(status) {
                 <div class="flex items-center gap-2 mb-4 pb-2 border-b border-slate-100">
                     <span
                         class="w-2.5 h-2.5 rounded-full inline-block"
-                        :class="(student.status_keaktifan === 'Tidak Aktif' || student.student_status === 'tidak_aktif') ? 'bg-rose-500' : 'bg-emerald-600'"
+                        :class="student.status_keaktifan === 'Tidak Aktif' ? 'bg-rose-500' : (student.status_keaktifan === 'Lulus' ? 'bg-blue-600' : 'bg-emerald-600')"
                     ></span>
                     <h4 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Status Keaktifan Siswa</h4>
                 </div>
@@ -369,6 +399,13 @@ function formatStatus(status) {
                                 Tidak Aktif
                             </span>
                             <span
+                                v-else-if="student.status_keaktifan === 'Lulus'"
+                                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-800 border border-blue-200"
+                            >
+                                <span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
+                                Lulus
+                            </span>
+                            <span
                                 v-else
                                 class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200"
                             >
@@ -381,7 +418,7 @@ function formatStatus(status) {
                         <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Keterangan Tidak Aktif</label>
                         <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">
                             <span
-                                v-if="student.keterangan_tidak_aktif || student.ket_tidak_aktif"
+                                v-if="(student.status_keaktifan === 'Tidak Aktif' || student.student_status === 'tidak_aktif') && (student.keterangan_tidak_aktif || student.ket_tidak_aktif)"
                                 class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200"
                             >
                                 <span class="material-symbols-outlined text-[14px] text-amber-600">info</span>
@@ -393,7 +430,7 @@ function formatStatus(status) {
                     <div>
                         <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Tanggal Tidak Aktif</label>
                         <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">
-                            <span v-if="student.tanggal_tidak_aktif" class="inline-flex items-center gap-1.5">
+                            <span v-if="student.status_keaktifan === 'Tidak Aktif' && student.tanggal_tidak_aktif" class="inline-flex items-center gap-1.5">
                                 <span class="font-mono text-slate-800">{{ student.tanggal_tidak_aktif }}</span>
                                 <span v-if="student.formatted_tanggal_tidak_aktif" class="text-xs font-normal text-slate-500">({{ student.formatted_tanggal_tidak_aktif }})</span>
                             </span>
@@ -464,7 +501,7 @@ function formatStatus(status) {
                                             >
                                                 <span
                                                     class="w-1.5 h-1.5 rounded-full"
-                                                    :class="getCellData(row, u).status === 'aktif' ? 'bg-emerald-600' : (getCellData(row, u).status === 'lulus' ? 'bg-blue-600' : (getCellData(row, u).status && getCellData(row, u).status.includes('mutasi') ? 'bg-amber-600' : 'bg-rose-600'))"
+                                                    :class="getStatusDotClass(getCellData(row, u).status)"
                                                 ></span>
                                                 {{ formatStatus(getCellData(row, u).status) }}
                                             </span>
@@ -473,13 +510,6 @@ function formatStatus(status) {
                                                 class="text-[11px] font-semibold text-slate-600"
                                             >
                                                 {{ getCellData(row, u).subtext }}
-                                            </span>
-                                            <span
-                                                v-if="getCellData(row, u).keterangan"
-                                                class="text-[10px] text-slate-500 italic max-w-[190px] truncate"
-                                                :title="getCellData(row, u).keterangan"
-                                            >
-                                                ({{ getCellData(row, u).keterangan }})
                                             </span>
                                         </div>
                                     </template>
@@ -584,7 +614,7 @@ function formatStatus(status) {
                 </h5>
 
                 <div class="space-y-4">
-                    <!-- Toggle Status Keaktifan (Aktif vs Tidak Aktif) -->
+                    <!-- Toggle Status Keaktifan (Aktif vs Tidak Aktif vs Lulus) -->
                     <div>
                         <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-2">
                             Pilih Status Keaktifan
@@ -615,6 +645,19 @@ function formatStatus(status) {
                             >
                                 <span class="w-2 h-2 rounded-full bg-rose-300"></span>
                                 <span>Tidak Aktif</span>
+                            </button>
+                            <button
+                                type="button"
+                                @click="form.status_keaktifan = 'Lulus'"
+                                :class="[
+                                    'inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer',
+                                    form.status_keaktifan === 'Lulus'
+                                        ? 'bg-blue-700 text-white shadow-xs'
+                                        : 'text-slate-600 hover:text-slate-900'
+                                ]"
+                            >
+                                <span class="w-2 h-2 rounded-full bg-blue-300"></span>
+                                <span>Lulus</span>
                             </button>
                         </div>
                     </div>

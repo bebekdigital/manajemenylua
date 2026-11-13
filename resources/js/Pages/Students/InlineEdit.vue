@@ -106,14 +106,29 @@ const jkOptions = [
     { value: 'P', label: 'P (Perempuan)' },
 ];
 
-// 8. Pilihan Status Siswa
-const statusOptions = [
-    { value: 'aktif', label: 'Aktif' },
-    { value: 'mutasi_masuk', label: 'Mutasi Masuk' },
-    { value: 'mutasi_keluar', label: 'Mutasi Keluar' },
-    { value: 'lulus', label: 'Lulus' },
-    { value: 'mengulang', label: 'Mengulang' },
-    { value: 'dropout', label: 'Drop Out' },
+// 8. Pilihan Status per Semester (Data Dinamis di student_academic_records)
+const statusPerSemesterOptions = [
+    { value: 'Naik Kelas', label: 'Naik Kelas' },
+    { value: 'Tinggal Kelas', label: 'Tinggal Kelas' },
+];
+
+// 9. Pilihan Status Keaktifan Master (Data Statis di students)
+const statusKeaktifanOptions = [
+    { value: 'Aktif', label: 'Aktif' },
+    { value: 'Tidak Aktif', label: 'Tidak Aktif' },
+    { value: 'Lulus', label: 'Lulus' },
+];
+
+// 10. Pilihan Keterangan Tidak Aktif
+const ketTidakAktifOptions = [
+    { value: '', label: '-- Kosong (Aktif) --' },
+    { value: 'Mutasi Keluar', label: 'Mutasi Keluar' },
+    { value: 'Drop Out', label: 'Drop Out' },
+    { value: 'Dikeluarkan', label: 'Dikeluarkan' },
+    { value: 'Mengundurkan Diri', label: 'Mengundurkan Diri' },
+    { value: 'Meninggal Dunia', label: 'Meninggal Dunia' },
+    { value: 'Lulus', label: 'Lulus' },
+    { value: 'Lainnya', label: 'Lainnya' },
 ];
 
 const agamaOptions = ['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha', 'Konghucu'];
@@ -203,9 +218,13 @@ const columns = computed(() => ({
         { key: 'jenjang', label: 'Jenjang', type: 'select', options: levelOptions.value, width: 'w-28' },
         { key: 'tingkat', label: 'Tingkat', type: 'number', width: 'w-20' },
         { key: 'kelas', label: 'Kelas', type: 'select', options: classroomOptions.value, width: 'w-28' },
-        { key: 'student_status', label: 'Status Siswa', type: 'select', options: statusOptions, width: 'w-36' },
+        { key: 'student_status', label: 'Status per Semester', type: 'select', options: statusPerSemesterOptions, width: 'w-44' },
+        { key: 'ket_tidak_aktif', label: 'Ket. Tidak Aktif', type: 'select', options: ketTidakAktifOptions, width: 'w-44' },
     ],
     registrasi: [
+        { key: 'status_keaktifan', label: 'Status Keaktifan (Master)', type: 'select', options: statusKeaktifanOptions, width: 'w-44' },
+        { key: 'keterangan_tidak_aktif', label: 'Ket. Tidak Aktif (Master)', type: 'select', options: ketTidakAktifOptions, width: 'w-44' },
+        { key: 'tanggal_tidak_aktif', label: 'Tgl Tidak Aktif (Master)', type: 'date', width: 'w-36' },
         { key: 'sekolah_asal', label: 'Sekolah Asal', type: 'text', width: 'w-40' },
         { key: 'status_keluarga', label: 'Status Keluarga', type: 'select', options: statusKeluargaOptions, width: 'w-36' },
         { key: 'anak_ke', label: 'Anak Ke', type: 'number', width: 'w-24' },
@@ -274,24 +293,29 @@ function switchAcademicYear() {
 // Search, Filter Keaktifan, & Selection
 // ============================================================
 const searchQuery = ref('');
-const activeStatusFilter = ref('semua'); // 'semua' | 'aktif' | 'tidak_aktif'
+const activeStatusFilter = ref('semua'); // 'semua' | 'aktif' | 'tidak_aktif' | 'lulus'
 const selectedRows = ref(new Set());
 
 const statusCounts = computed(() => {
     let aktif = 0;
     let tidakAktif = 0;
+    let lulus = 0;
     students.forEach(s => {
-        const st = (s.student_status || '').toLowerCase().trim();
-        if (st === 'aktif') {
-            aktif++;
-        } else {
+        const masterStatus = (s.status_keaktifan || '').toLowerCase().trim();
+        const semKet = (s.ket_tidak_aktif || '').toLowerCase().trim();
+        if (masterStatus === 'lulus' || semKet === 'lulus') {
+            lulus++;
+        } else if (masterStatus === 'tidak aktif' || masterStatus.includes('tidak') || (semKet && semKet !== 'lulus')) {
             tidakAktif++;
+        } else {
+            aktif++;
         }
     });
     return {
         semua: students.length,
         aktif,
         tidakAktif,
+        lulus,
     };
 });
 
@@ -300,9 +324,25 @@ const filteredStudents = computed(() => {
 
     // Filter Status Keaktifan
     if (activeStatusFilter.value === 'aktif') {
-        list = list.filter(s => (s.student_status || '').toLowerCase().trim() === 'aktif');
+        list = list.filter(s => {
+            const masterStatus = (s.status_keaktifan || '').toLowerCase().trim();
+            const semKet = (s.ket_tidak_aktif || '').toLowerCase().trim();
+            if (masterStatus === 'lulus' || semKet === 'lulus') return false;
+            if (masterStatus === 'tidak aktif' || masterStatus.includes('tidak') || (semKet && semKet !== 'lulus')) return false;
+            return true;
+        });
     } else if (activeStatusFilter.value === 'tidak_aktif') {
-        list = list.filter(s => (s.student_status || '').toLowerCase().trim() !== 'aktif');
+        list = list.filter(s => {
+            const masterStatus = (s.status_keaktifan || '').toLowerCase().trim();
+            const semKet = (s.ket_tidak_aktif || '').toLowerCase().trim();
+            return masterStatus === 'tidak aktif' || masterStatus.includes('tidak') || (semKet && semKet !== 'lulus');
+        });
+    } else if (activeStatusFilter.value === 'lulus') {
+        list = list.filter(s => {
+            const masterStatus = (s.status_keaktifan || '').toLowerCase().trim();
+            const semKet = (s.ket_tidak_aktif || '').toLowerCase().trim();
+            return masterStatus === 'lulus' || semKet === 'lulus';
+        });
     }
 
     // Filter Search Query
@@ -315,7 +355,10 @@ const filteredStudents = computed(() => {
             String(s.angkatan || '').toLowerCase().includes(q) ||
             s.kelas?.toLowerCase().includes(q) ||
             s.unit?.toLowerCase().includes(q) ||
-            s.student_status?.toLowerCase().includes(q)
+            s.status_keaktifan?.toLowerCase().includes(q) ||
+            s.student_status?.toLowerCase().includes(q) ||
+            s.ket_tidak_aktif?.toLowerCase().includes(q) ||
+            s.keterangan_tidak_aktif?.toLowerCase().includes(q)
         );
     }
 
@@ -381,7 +424,7 @@ function clearAllSemesters() {
 
 function onBulkFieldChange() {
     bulkValue.value = '';
-    if (bulkField.value === 'student_status' && props.selectedAcademicYear) {
+    if ((bulkField.value === 'student_status' || bulkField.value === 'ket_tidak_aktif') && props.selectedAcademicYear) {
         bulkSelectedSemesters.value = [props.selectedAcademicYear.id];
     }
 }
@@ -408,8 +451,8 @@ function applyBulk() {
         s[bulkField.value] = val;
     });
 
-    // Jika yang di-bulk adalah student_status, simpan target semesternya
-    if (bulkField.value === 'student_status') {
+    // Jika yang di-bulk adalah student_status atau ket_tidak_aktif, simpan target semesternya
+    if (bulkField.value === 'student_status' || bulkField.value === 'ket_tidak_aktif') {
         let targetYears = [];
         if (bulkSemesterScope.value === 'current') {
             targetYears = [props.selectedAcademicYear?.id || currentAcademicYearId.value];
@@ -431,7 +474,7 @@ function applyBulk() {
 
     const displayVal = val === '' || val === null || val === undefined ? '(dikosongkan)' : val;
     let scopeMsg = '';
-    if (bulkField.value === 'student_status') {
+    if (bulkField.value === 'student_status' || bulkField.value === 'ket_tidak_aktif') {
         const countSem = activeTargetYearIds.value.size;
         scopeMsg = ` pada ${countSem} semester`;
     }
@@ -780,8 +823,8 @@ function groupSpan(groupKey) {
                         </div>
                     </div>
 
-                    <!-- Opsi Target Semester (Muncul saat mengubah Status Siswa) -->
-                    <div v-if="bulkField === 'student_status'" class="mt-4 pt-3.5 border-t border-emerald-100">
+                    <!-- Opsi Target Semester (Muncul saat mengubah Status per Semester atau Ket. Tidak Aktif) -->
+                    <div v-if="bulkField === 'student_status' || bulkField === 'ket_tidak_aktif'" class="mt-4 pt-3.5 border-t border-emerald-100">
                         <div class="flex items-center justify-between gap-2 mb-2 flex-wrap">
                             <label class="text-xs font-bold uppercase tracking-wider text-emerald-950 flex items-center gap-1.5">
                                 <span class="material-symbols-outlined text-[16px] text-emerald-700">event_repeat</span>
@@ -905,6 +948,19 @@ function groupSpan(groupKey) {
                     >
                         <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
                         Tidak Aktif ({{ statusCounts.tidakAktif }})
+                    </button>
+                    <button
+                        type="button"
+                        @click="activeStatusFilter = 'lulus'"
+                        :class="[
+                            'px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5',
+                            activeStatusFilter === 'lulus'
+                                ? 'bg-blue-900 text-blue-100 shadow-2xs'
+                                : 'text-slate-600 hover:text-slate-900 font-semibold'
+                        ]"
+                    >
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+                        Lulus ({{ statusCounts.lulus }})
                     </button>
                 </div>
 

@@ -114,8 +114,8 @@ class StudentController extends Controller
                     'angkatan' => $student->angkatan,
                     'photo_url' => $student->photo_url,
                     'jenjang' => $student->jenjang ?? $record?->classroom?->jenjang,
-                    'student_status' => $student->status_keaktifan ? (strtolower($student->status_keaktifan) === 'tidak aktif' ? 'tidak_aktif' : 'aktif') : ($record?->student_status ?? 'aktif'),
-                    'status_keaktifan' => $student->status_keaktifan ?? ($record?->student_status === 'tidak_aktif' || $record?->student_status === 'mutasi_keluar' || $record?->student_status === 'dropout' ? 'Tidak Aktif' : 'Aktif'),
+                    'student_status' => in_array($record?->student_status, ['Tinggal Kelas', 'mengulang']) ? 'Tinggal Kelas' : 'Naik Kelas',
+                    'status_keaktifan' => $student->status_keaktifan ?: 'Aktif',
                     'keterangan_tidak_aktif' => $student->keterangan_tidak_aktif ?? $record?->ket_tidak_aktif,
                     'tanggal_tidak_aktif' => $student->tanggal_tidak_aktif ? $student->tanggal_tidak_aktif->format('Y-m-d') : ($record?->tanggal_tidak_aktif?->format('Y-m-d')),
                     'no_wa' => $student->no_wa,
@@ -431,8 +431,8 @@ class StudentController extends Controller
             'jenjang' => $currentRecord?->classroom?->jenjang ?? $studentModel->jenjang ?? $studentModel->diterima_di_jenjang,
             'tingkat' => $currentRecord?->tingkat,
             'kelas' => $currentRecord?->classroom?->name,
-            'student_status' => $studentModel->status_keaktifan ? (strtolower($studentModel->status_keaktifan) === 'tidak aktif' ? 'tidak_aktif' : 'aktif') : ($currentRecord?->student_status ?? 'aktif'),
-            'status_keaktifan' => $studentModel->status_keaktifan ?? ($currentRecord?->student_status === 'tidak_aktif' ? 'Tidak Aktif' : 'Aktif'),
+            'student_status' => in_array($currentRecord?->student_status, ['Tinggal Kelas', 'mengulang']) ? 'Tinggal Kelas' : 'Naik Kelas',
+            'status_keaktifan' => $studentModel->status_keaktifan ?: 'Aktif',
             'ket_tidak_aktif' => $studentModel->keterangan_tidak_aktif ?? $currentRecord?->ket_tidak_aktif,
             'keterangan_tidak_aktif' => $studentModel->keterangan_tidak_aktif ?? $currentRecord?->ket_tidak_aktif,
             'tanggal_tidak_aktif' => $studentModel->tanggal_tidak_aktif ? $studentModel->tanggal_tidak_aktif->format('Y-m-d') : ($currentRecord?->tanggal_tidak_aktif?->format('Y-m-d')),
@@ -547,16 +547,30 @@ class StudentController extends Controller
                 'diterima_di_jenjang' => ['nullable', 'string', 'max:50'],
                 'tanggal_diterima' => ['nullable', 'date'],
                 'info_psb' => ['nullable', 'string', 'max:100'],
-                'status_keaktifan' => ['required', 'string', 'max:50'],
+                'status_keaktifan' => ['required', 'string', 'in:Aktif,Tidak Aktif,Lulus'],
                 'keterangan_tidak_aktif' => ['nullable', 'string', 'max:255'],
                 'tanggal_tidak_aktif' => ['nullable', 'date'],
             ], [
                 'status_keaktifan.required' => 'Status keaktifan wajib dipilih.',
+                'status_keaktifan.in' => 'Status keaktifan harus salah satu dari: Aktif, Tidak Aktif, atau Lulus.',
                 'tanggal_diterima.date' => 'Format tanggal diterima tidak valid.',
                 'tanggal_tidak_aktif.date' => 'Format tanggal tidak aktif tidak valid.',
             ]);
 
-            $isTidakAktif = in_array(strtolower(trim($validated['status_keaktifan'])), ['tidak aktif', 'tidak_aktif', 'non-aktif', 'non_aktif']);
+            $rawKeaktifan = trim($validated['status_keaktifan']);
+            if (strcasecmp($rawKeaktifan, 'lulus') === 0) {
+                $statusKeaktifan = 'Lulus';
+                $ketKeaktifan = 'Lulus';
+                $tglKeaktifan = $validated['tanggal_tidak_aktif'] ?? $student->tanggal_tidak_aktif ?? now()->toDateString();
+            } elseif (in_array(strtolower($rawKeaktifan), ['tidak aktif', 'tidak_aktif', 'non-aktif', 'non_aktif'])) {
+                $statusKeaktifan = 'Tidak Aktif';
+                $ketKeaktifan = $validated['keterangan_tidak_aktif'] ?? 'Tidak Aktif';
+                $tglKeaktifan = $validated['tanggal_tidak_aktif'] ?? $student->tanggal_tidak_aktif ?? now()->toDateString();
+            } else {
+                $statusKeaktifan = 'Aktif';
+                $ketKeaktifan = null;
+                $tglKeaktifan = null;
+            }
 
             $student->update([
                 'status_registrasi' => $validated['status_registrasi'] ?? null,
@@ -564,9 +578,9 @@ class StudentController extends Controller
                 'diterima_di_jenjang' => $validated['diterima_di_jenjang'] ?? null,
                 'tanggal_diterima' => $validated['tanggal_diterima'] ?? null,
                 'info_psb' => $validated['info_psb'] ?? null,
-                'status_keaktifan' => $isTidakAktif ? 'Tidak Aktif' : 'Aktif',
-                'keterangan_tidak_aktif' => $isTidakAktif ? ($validated['keterangan_tidak_aktif'] ?? null) : null,
-                'tanggal_tidak_aktif' => $isTidakAktif ? ($validated['tanggal_tidak_aktif'] ?? null) : null,
+                'status_keaktifan' => $statusKeaktifan,
+                'keterangan_tidak_aktif' => $ketKeaktifan,
+                'tanggal_tidak_aktif' => $tglKeaktifan,
             ]);
 
             $activeYear = AcademicYear::current();
@@ -574,9 +588,9 @@ class StudentController extends Controller
                 $record = $student->academicRecords()->where('academic_year_id', $activeYear->id)->first();
                 if ($record) {
                     $record->update([
-                        'student_status' => $isTidakAktif ? 'dropout' : 'aktif',
-                        'ket_tidak_aktif' => $isTidakAktif ? ($validated['keterangan_tidak_aktif'] ?? null) : null,
-                        'tanggal_tidak_aktif' => $isTidakAktif ? ($validated['tanggal_tidak_aktif'] ?? null) : null,
+                        'student_status' => $record->student_status ?: 'Naik Kelas',
+                        'ket_tidak_aktif' => $statusKeaktifan === 'Aktif' ? null : $ketKeaktifan,
+                        'tanggal_tidak_aktif' => $tglKeaktifan,
                     ]);
                 }
             }
@@ -745,8 +759,12 @@ class StudentController extends Controller
                     'jenjang' => $record?->classroom?->jenjang ?? $student->diterima_di_jenjang,
                     'tingkat' => $record?->tingkat,
                     'kelas' => $record?->classroom?->name,
-                    'student_status' => $record?->student_status ?? 'aktif',
+                    'student_status' => in_array($record?->student_status, ['Tinggal Kelas', 'mengulang']) ? 'Tinggal Kelas' : 'Naik Kelas',
+                    'ket_tidak_aktif' => $record?->ket_tidak_aktif,
                     // Registrasi
+                    'status_keaktifan' => $student->status_keaktifan ?: 'Aktif',
+                    'keterangan_tidak_aktif' => $student->keterangan_tidak_aktif,
+                    'tanggal_tidak_aktif' => $student->tanggal_tidak_aktif ? $student->tanggal_tidak_aktif->format('Y-m-d') : null,
                     'status_keluarga' => $student->status_keluarga,
                     'anak_ke' => $student->anak_ke,
                     'diterima_di_jenjang' => $student->diterima_di_jenjang,
@@ -836,6 +854,10 @@ class StudentController extends Controller
             'students.*.tingkat' => ['nullable', 'numeric'],
             'students.*.kelas' => ['nullable', 'string'],
             'students.*.student_status' => ['nullable', 'string'],
+            'students.*.ket_tidak_aktif' => ['nullable', 'string'],
+            'students.*.status_keaktifan' => ['nullable', 'string'],
+            'students.*.keterangan_tidak_aktif' => ['nullable', 'string'],
+            'students.*.tanggal_tidak_aktif' => ['nullable', 'date'],
             'students.*.status_keluarga' => ['nullable', 'string'],
             'students.*.anak_ke' => ['nullable', 'integer'],
             'students.*.diterima_di_jenjang' => ['nullable', 'string'],
@@ -943,6 +965,24 @@ class StudentController extends Controller
                     $studentUpdateData['angkatan'] = $d['angkatan'] ?: null;
                 }
 
+                // Handle status_keaktifan (Master Data di students)
+                if (array_key_exists('status_keaktifan', $d) && ! empty($d['status_keaktifan'])) {
+                    $rawMaster = trim((string) $d['status_keaktifan']);
+                    if (strcasecmp($rawMaster, 'lulus') === 0) {
+                        $studentUpdateData['status_keaktifan'] = 'Lulus';
+                        $studentUpdateData['keterangan_tidak_aktif'] = 'Lulus';
+                        $studentUpdateData['tanggal_tidak_aktif'] = $d['tanggal_tidak_aktif'] ?? $student->tanggal_tidak_aktif ?? now()->toDateString();
+                    } elseif (strcasecmp($rawMaster, 'tidak aktif') === 0 || str_contains(strtolower($rawMaster), 'tidak')) {
+                        $studentUpdateData['status_keaktifan'] = 'Tidak Aktif';
+                        $studentUpdateData['keterangan_tidak_aktif'] = $d['keterangan_tidak_aktif'] ?? $student->keterangan_tidak_aktif ?? 'Tidak Aktif';
+                        $studentUpdateData['tanggal_tidak_aktif'] = $d['tanggal_tidak_aktif'] ?? $student->tanggal_tidak_aktif ?? now()->toDateString();
+                    } else {
+                        $studentUpdateData['status_keaktifan'] = 'Aktif';
+                        $studentUpdateData['keterangan_tidak_aktif'] = null;
+                        $studentUpdateData['tanggal_tidak_aktif'] = null;
+                    }
+                }
+
                 // Tentukan target Tahun Ajaran untuk siswa ini
                 $isMulti = in_array($student->nisn, $multiSemesterStudents);
                 if ($isMulti && ! empty($targetAcademicYearIds)) {
@@ -954,46 +994,37 @@ class StudentController extends Controller
                         : ($selectedYearId ? [$selectedYearId] : []);
                 }
 
-                // Normalisasi status siswa & ket_tidak_aktif
+                // Status per semester (strictly Naik Kelas / Tinggal Kelas)
                 $rawStatus = isset($d['student_status']) ? strtolower(trim((string) $d['student_status'])) : null;
-                $statusVal = 'aktif';
-                $ketVal = null;
+                $statusVal = (in_array($rawStatus, ['tinggal kelas', 'mengulang'])) ? 'Tinggal Kelas' : 'Naik Kelas';
 
-                if ($rawStatus) {
-                    if (str_contains($rawStatus, 'mutasi_keluar') || $rawStatus === 'mutasi keluar') {
-                        $statusVal = 'mutasi_keluar';
-                        $ketVal = 'Mutasi Keluar';
-                    } elseif (str_contains($rawStatus, 'mutasi_masuk') || $rawStatus === 'mutasi masuk') {
-                        $statusVal = 'mutasi_masuk';
-                    } elseif (str_contains($rawStatus, 'lulus')) {
-                        $statusVal = 'lulus';
+                // Catatan tidak aktif per semester (Mutasi Keluar, Drop Out, Dikeluarkan, dll.)
+                $hasExplicitKet = array_key_exists('ket_tidak_aktif', $d);
+                $ketVal = $hasExplicitKet ? ($d['ket_tidak_aktif'] ?: null) : null;
+
+                // Sinkronisasi cerdas antara Master dan Semester jika mencakup semester berjalan
+                if (isset($studentUpdateData['status_keaktifan'])) {
+                    if ($studentUpdateData['status_keaktifan'] === 'Tidak Aktif' && ! $hasExplicitKet) {
+                        $ketVal = $studentUpdateData['keterangan_tidak_aktif'] ?? 'Tidak Aktif';
+                    } elseif ($studentUpdateData['status_keaktifan'] === 'Lulus' && ! $hasExplicitKet) {
                         $ketVal = 'Lulus';
-                    } elseif (str_contains($rawStatus, 'drop') || str_contains($rawStatus, 'keluar')) {
-                        $statusVal = 'dropout';
-                        $ketVal = 'Drop Out';
-                    } elseif (str_contains($rawStatus, 'ulang')) {
-                        $statusVal = 'mengulang';
-                    } elseif (str_contains($rawStatus, 'tidak')) {
-                        $statusVal = 'dropout';
-                        $ketVal = 'Tidak Aktif';
-                    } else {
-                        $statusVal = 'aktif';
+                    } elseif ($studentUpdateData['status_keaktifan'] === 'Aktif' && ! $hasExplicitKet) {
                         $ketVal = null;
                     }
-                }
-
-                // Sinkronkan status_keaktifan pada data master Student jika mencakup semester aktif berjalan
-                if ($currentYear && in_array($currentYear->id, $studentYearIds)) {
-                    if ($statusVal === 'aktif') {
+                } elseif ($hasExplicitKet && $currentYear && in_array($currentYear->id, $studentYearIds)) {
+                    if (! empty($ketVal)) {
+                        if (strcasecmp($ketVal, 'lulus') === 0) {
+                            $studentUpdateData['status_keaktifan'] = 'Lulus';
+                            $studentUpdateData['keterangan_tidak_aktif'] = 'Lulus';
+                        } else {
+                            $studentUpdateData['status_keaktifan'] = 'Tidak Aktif';
+                            $studentUpdateData['keterangan_tidak_aktif'] = $ketVal;
+                            $studentUpdateData['tanggal_tidak_aktif'] = $student->tanggal_tidak_aktif ?? now()->toDateString();
+                        }
+                    } else {
                         $studentUpdateData['status_keaktifan'] = 'Aktif';
                         $studentUpdateData['keterangan_tidak_aktif'] = null;
                         $studentUpdateData['tanggal_tidak_aktif'] = null;
-                    } else {
-                        $studentUpdateData['status_keaktifan'] = 'Tidak Aktif';
-                        $studentUpdateData['keterangan_tidak_aktif'] = $ketVal;
-                        if (! $student->tanggal_tidak_aktif) {
-                            $studentUpdateData['tanggal_tidak_aktif'] = now()->toDateString();
-                        }
                     }
                 }
 
@@ -1005,12 +1036,14 @@ class StudentController extends Controller
                         ->where('academic_year_id', $yId)
                         ->first();
 
+                    $recordKet = $hasExplicitKet ? $ketVal : ($record?->ket_tidak_aktif ?? $ketVal);
+
                     if (! $record) {
                         $record = StudentAcademicRecord::create([
                             'student_id' => $student->id,
                             'academic_year_id' => $yId,
                             'student_status' => $statusVal,
-                            'ket_tidak_aktif' => $ketVal,
+                            'ket_tidak_aktif' => $recordKet,
                         ]);
                     }
 
@@ -1039,7 +1072,7 @@ class StudentController extends Controller
                         'tingkat' => $d['tingkat'] ?? $record->tingkat,
                         'program' => $d['program'] ?? $record->program,
                         'student_status' => $statusVal,
-                        'ket_tidak_aktif' => $ketVal,
+                        'ket_tidak_aktif' => $recordKet,
                         'classroom_id' => $classroomId,
                         'desil' => $d['desil'] ?? $record->desil,
                         'status_pip' => $d['status_pip'] ?? $record->status_pip,

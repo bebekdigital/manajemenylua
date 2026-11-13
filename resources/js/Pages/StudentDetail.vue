@@ -377,25 +377,27 @@ onUnmounted(() => {
 
                         <!-- Badges Identitas -->
                         <div class="flex items-center gap-2 flex-wrap pt-0.5">
-                            <!-- Badge Status Keaktifan (Hijau Terang) -->
+                            <!-- Badge Status Keaktifan -->
                             <span
                                 :class="[
                                     'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border shadow-2xs',
-                                    (student.student_status || 'aktif').toLowerCase() === 'aktif'
-                                        ? 'bg-emerald-100 text-emerald-950 border-emerald-300'
-                                        : 'bg-rose-50 text-rose-800 border-rose-200'
+                                    student.status_keaktifan === 'Tidak Aktif'
+                                        ? 'bg-rose-50 text-rose-800 border-rose-200'
+                                        : (student.status_keaktifan === 'Lulus'
+                                            ? 'bg-blue-50 text-blue-900 border-blue-200'
+                                            : 'bg-emerald-100 text-emerald-950 border-emerald-300')
                                 ]"
                             >
                                 <span
                                     class="w-2 h-2 rounded-full"
-                                    :class="(student.student_status || 'aktif').toLowerCase() === 'aktif' ? 'bg-emerald-600' : 'bg-rose-500'"
+                                    :class="student.status_keaktifan === 'Tidak Aktif' ? 'bg-rose-500' : (student.status_keaktifan === 'Lulus' ? 'bg-blue-600' : 'bg-emerald-600')"
                                 ></span>
-                                <span>{{ (student.student_status || 'aktif').toLowerCase() === 'aktif' ? 'Aktif' : 'Tidak Aktif' }}</span>
+                                <span>{{ student.status_keaktifan === 'Tidak Aktif' ? 'Tidak Aktif' : (student.status_keaktifan === 'Lulus' ? 'Lulus' : 'Aktif') }}</span>
                             </span>
 
                             <!-- Keterangan & Tanggal Tidak Aktif jika Tidak Aktif -->
                             <span
-                                v-if="(student.student_status || 'aktif').toLowerCase() !== 'aktif' && (student.keterangan_tidak_aktif || student.ket_tidak_aktif)"
+                                v-if="student.status_keaktifan === 'Tidak Aktif' && (student.keterangan_tidak_aktif || student.ket_tidak_aktif)"
                                 class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-100/70 text-rose-900 border border-rose-300"
                             >
                                 <span class="material-symbols-outlined text-[14px]">info</span>
