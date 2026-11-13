@@ -20,13 +20,13 @@ class SyncStudentAcademicRecordsCommand extends Command
     public function handle()
     {
         if ($this->option('test-stats')) {
-            $this->info('Testing StatisticsController...');
-            $user = User::first();
-            if ($user) {
-                auth()->login($user);
-            }
-            $res = app(StatisticsController::class)->index(request());
-            $this->info('StatisticsController executed successfully! Component: '.$res->toResponse(request())->getStatusCode());
+            $this->info('Checking Student Programs and Unit Pesantren...');
+            $boarding = Student::whereNotNull('unit_pesantren')->where('unit_pesantren', '!=', '')->count();
+            $nonBoarding = Student::where(function ($q) {
+                $q->whereNull('unit_pesantren')->orWhere('unit_pesantren', '');
+            })->count();
+            $this->line("Students with unit_pesantren (Boarding): {$boarding}");
+            $this->line("Students without unit_pesantren (Fullday): {$nonBoarding}");
 
             return 0;
         }
