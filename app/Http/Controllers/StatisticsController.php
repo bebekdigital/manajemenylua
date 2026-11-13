@@ -209,8 +209,21 @@ class StatisticsController extends Controller
             ->toArray();
 
         $allStudentsForChart = Student::query()
-            ->select(['id', 'nama', 'unit', 'unit_pesantren', 'program', 'jenjang', 'angkatan', 'tanggal_diterima'])
+            ->with('currentRecord:id,student_id,program')
+            ->select(['id', 'nama', 'unit', 'unit_pesantren', 'jenjang', 'angkatan', 'tanggal_diterima'])
             ->get()
+            ->map(function ($s) {
+                return [
+                    'id' => $s->id,
+                    'nama' => $s->nama,
+                    'unit' => $s->unit,
+                    'unit_pesantren' => $s->unit_pesantren,
+                    'program' => $s->currentRecord?->program,
+                    'jenjang' => $s->jenjang,
+                    'angkatan' => $s->angkatan,
+                    'tanggal_diterima' => $s->tanggal_diterima ? $s->tanggal_diterima->format('Y-m-d') : null,
+                ];
+            })
             ->toArray();
 
         return Inertia::render('Statistics/StudentStatistics', [
