@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
@@ -31,6 +31,7 @@ const mapContainer = ref(null);
 let map = null;
 let geojsonLayer = null;
 let kabupatenLayer = null;
+let desaLayerGroup = null;
 let schoolMarker = null;
 let activeHoverLayer = null;
 let singleTooltip = null;
@@ -42,22 +43,143 @@ const SCHOOL_COORDS = [-7.4989289, 110.822498];
 const SCHOOL_NAME = 'PPTQ & SMPIT TQ Ulil Albab Karanganyar';
 const SCHOOL_ADDRESS = 'Sidorejo, Selokaton, Kec. Gondangrejo, Kab. Karanganyar';
 
+// Level Agregasi: 'kecamatan' atau 'desa'
+const aggregationLevel = ref('kecamatan');
+
+// Switcher mode tampilan: 'peta' atau 'bar'
+const activeView = ref('peta');
+const barSearchQuery = ref('');
+const barFilterLimit = ref('15'); // '10' | '15' | '25' | 'all'
+
 const geojsonData = ref(null);
 const isLoading = ref(true);
 const loadError = ref(null);
 
 const hoveredFeature = ref(null);
+const hoveredDesa = ref(null);
 const showOutsideModal = ref(false);
 
-// Helper normalisasi string kecamatan
+// State Modal Pop-up Rincian Siswa
+const selectedKecamatanModal = ref(null);
+const modalSearch = ref('');
+
+// Kamus koordinat akurat untuk desa-desa utama di Solo Raya & sekitarnya
+const KNOWN_DESA_COORDS = {
+    // Gondangrejo (Karanganyar)
+    selokaton_gondangrejo_karanganyar: [-7.4989, 110.8225],
+    tuban_gondangrejo_karanganyar: [-7.4920, 110.8060],
+    bulurejo_gondangrejo_karanganyar: [-7.4780, 110.8250],
+    plesungan_gondangrejo_karanganyar: [-7.5300, 110.8450],
+    karangturi_gondangrejo_karanganyar: [-7.4950, 110.8400],
+    wonorejo_gondangrejo_karanganyar: [-7.5250, 110.8220],
+    jeruksawit_gondangrejo_karanganyar: [-7.5100, 110.8480],
+    jatikuwung_gondangrejo_karanganyar: [-7.4850, 110.8450],
+    wonosari_gondangrejo_karanganyar: [-7.4700, 110.8400],
+    dayu_gondangrejo_karanganyar: [-7.4650, 110.8250],
+    rejosari_gondangrejo_karanganyar: [-7.4600, 110.8350],
+    krendowahidin_gondangrejo_karanganyar: [-7.4500, 110.8200],
+
+    // Jaten (Karanganyar)
+    jaten_jaten_karanganyar: [-7.5680, 110.8850],
+    dagen_jaten_karanganyar: [-7.5620, 110.8920],
+    ngringo_jaten_karanganyar: [-7.5550, 110.8650],
+    sroyo_jaten_karanganyar: [-7.5450, 110.8750],
+    jati_jaten_karanganyar: [-7.5850, 110.8950],
+    brujul_jaten_karanganyar: [-7.5920, 110.9100],
+
+    // Kebakkramat (Karanganyar)
+    malanggaten_kebakkramat_karanganyar: [-7.5180, 110.9050],
+    kemiri_kebakkramat_karanganyar: [-7.5250, 110.8980],
+    macanan_kebakkramat_karanganyar: [-7.5280, 110.9150],
+    nangsri_kebakkramat_karanganyar: [-7.5100, 110.8900],
+    kebak_kebakkramat_karanganyar: [-7.5020, 110.8850],
+    pulosari_kebakkramat_karanganyar: [-7.4950, 110.8950],
+    waru_kebakkramat_karanganyar: [-7.4850, 110.8900],
+    banjarharjo_kebakkramat_karanganyar: [-7.4800, 110.9050],
+    alastuwo_kebakkramat_karanganyar: [-7.5350, 110.9250],
+    kaliwuluh_kebakkramat_karanganyar: [-7.4750, 110.9150],
+
+    // Colomadu (Karanganyar)
+    baturan_colomadu_karanganyar: [-7.5380, 110.7950],
+    klodran_colomadu_karanganyar: [-7.5320, 110.7850],
+    paulan_colomadu_karanganyar: [-7.5350, 110.7650],
+    gedongan_colomadu_karanganyar: [-7.5280, 110.7600],
+    tohudan_colomadu_karanganyar: [-7.5250, 110.7750],
+    gawanan_colomadu_karanganyar: [-7.5320, 110.7550],
+    blulukan_colomadu_karanganyar: [-7.5450, 110.7750],
+    malangjiwan_colomadu_karanganyar: [-7.5380, 110.7580],
+
+    // Karanganyar Kota
+    bejen_karanganyar_karanganyar: [-7.5980, 110.9650],
+    tegalgede_karanganyar_karanganyar: [-7.6050, 110.9550],
+    jungke_karanganyar_karanganyar: [-7.5950, 110.9480],
+    cangakan_karanganyar_karanganyar: [-7.5880, 110.9520],
+    popongan_karanganyar_karanganyar: [-7.5920, 110.9700],
+    jantiharjo_karanganyar_karanganyar: [-7.6200, 110.9600],
+
+    // Tasikmadu (Karanganyar)
+    ngijo_tasikmadu_karanganyar: [-7.5650, 110.9350],
+    papahan_tasikmadu_karanganyar: [-7.5700, 110.9150],
+    buran_tasikmadu_karanganyar: [-7.5580, 110.9280],
+    suruh_tasikmadu_karanganyar: [-7.5450, 110.9450],
+    gaum_tasikmadu_karanganyar: [-7.5750, 110.9400],
+
+    // Banjarsari (Surakarta)
+    kadipiro_banjarsari_surakarta: [-7.5350, 110.8200],
+    nusukan_banjarsari_surakarta: [-7.5480, 110.8250],
+    banyuanyar_banjarsari_surakarta: [-7.5420, 110.8050],
+    gilingan_banjarsari_surakarta: [-7.5550, 110.8250],
+    manahan_banjarsari_surakarta: [-7.5520, 110.8080],
+    sumber_banjarsari_surakarta: [-7.5450, 110.8120],
+
+    // Jebres (Surakarta)
+    mojosongo_jebres_surakarta: [-7.5380, 110.8400],
+    jebres_jebres_surakarta: [-7.5600, 110.8500],
+    pucangsawit_jebres_surakarta: [-7.5680, 110.8600],
+
+    // Laweyan (Surakarta)
+    pajang_laweyan_surakarta: [-7.5720, 110.7850],
+    jajar_laweyan_surakarta: [-7.5550, 110.7880],
+    karangasem_laweyan_surakarta: [-7.5500, 110.7820],
+
+    // Nogosari (Boyolali)
+    potronayan_nogosari_boyolali: [-7.4750, 110.7850],
+    glonggong_nogosari_boyolali: [-7.4600, 110.7750],
+    ketitang_nogosari_boyolali: [-7.4650, 110.7950],
+    bendo_nogosari_boyolali: [-7.4850, 110.7650],
+    rembun_nogosari_boyolali: [-7.4950, 110.7750],
+
+    // Ngemplak (Boyolali)
+    donohudan_ngemplak_boyolali: [-7.5150, 110.7850],
+    gagaksipat_ngemplak_boyolali: [-7.5180, 110.7700],
+    dibal_ngemplak_boyolali: [-7.5020, 110.7750],
+    sawahan_ngemplak_boyolali: [-7.5250, 110.7920],
+
+    // Kalijambe (Sragen)
+    banaran_kalijambe_sragen: [-7.4350, 110.8350],
+    kalimacan_kalijambe_sragen: [-7.4420, 110.8250],
+    jetiskarangpung_kalijambe_sragen: [-7.4250, 110.8400],
+    krikilan_kalijambe_sragen: [-7.4480, 110.8450],
+    samberembe_kalijambe_sragen: [-7.4300, 110.8150],
+    saren_kalijambe_sragen: [-7.4200, 110.8250],
+};
+
+// Helper normalisasi string umum
 function normalizeKey(str) {
     if (!str) return '';
     let s = String(str).trim();
-    // Hilangkan awalan 'Kec.', 'Kecamatan', 'Distrik'
-    s = s.replace(/^kec(amatan)?\.?\s+/i, '');
-    // Hilangkan semua karakter non-alfanumerik
+    s = s.replace(/^(kec(amatan)?|desa|kel(urahan)?|ds\.?)\s+/i, '');
     s = s.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
     return s;
+}
+
+// Helper perapian nama desa (menghilangkan awalan "Desa", "Ds.", "Kelurahan", dsb)
+function cleanDesaName(raw) {
+    if (!raw) return '';
+    let s = String(raw).trim();
+    s = s.replace(/^(desa|kelurahan|ds\.?|kel\.?)\s+/i, '');
+    if (!s) return '';
+    return s.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ').trim();
 }
 
 // Map normalized kecamatan to feature properties for disambiguation
@@ -116,7 +238,6 @@ const distribution = computed(() => {
         if (candidates && candidates.length > 0) {
             let matched = candidates[0];
             if (candidates.length > 1) {
-                // Disambiguate by kabupaten
                 const found = candidates.find(c => normalizeKey(c.kabupaten) === normKab || normKab.includes(normalizeKey(c.kabupaten)));
                 if (found) matched = found;
             }
@@ -149,85 +270,117 @@ const distribution = computed(() => {
         outsideList,
         outsideTotal,
         coverageTotal,
-        soloRayaTotal: coverageTotal, // for backwards compat
+        soloRayaTotal: coverageTotal,
         activeTotal,
     };
 });
 
-// Switcher mode: 'peta' atau 'bar'
-const activeView = ref('peta');
-const barSearchQuery = ref('');
-const barFilterLimit = ref('15'); // '10' | '15' | '25' | 'all'
+// Agregasi sebaran siswa aktif per desa/kelurahan
+const desaDistribution = computed(() => {
+    const list = props.students || [];
+    const desasByKey = {};
+    let totalCovered = 0;
 
-// State Modal Pop-up Rincian Siswa per Kecamatan
-const selectedKecamatanModal = ref(null);
-const modalSearch = ref('');
+    list.forEach(s => {
+        const rawStatus = (s.status_keaktifan || s.student_status || 'aktif').toLowerCase().trim();
+        const isActive = !rawStatus.includes('tidak') && rawStatus !== 'dropout' && rawStatus !== 'mutasi_keluar';
+        if (!isActive) return;
 
-function openKecamatanModal(item) {
-    selectedKecamatanModal.value = item;
-    modalSearch.value = '';
-}
+        const rawKec = s.kecamatan || '';
+        const rawKab = s.kabupaten || '';
+        const normKec = normalizeKey(rawKec);
+        const normKab = normalizeKey(rawKab);
 
-function closeKecamatanModal() {
-    selectedKecamatanModal.value = null;
-    modalSearch.value = '';
-}
+        const candidates = soloRayaKecMap.value[normKec];
+        if (!candidates || candidates.length === 0) return; // Luar wilayah tercatat di outsideList
 
-function openFeatureModal(feature) {
-    if (!feature) return;
-    const key = `${normalizeKey(feature.kecamatan)}_${normalizeKey(feature.kabupaten)}`;
-    const students = distribution.value.studentsByKey[key] || [];
-    openKecamatanModal({
-        kecamatan: feature.kecamatan,
-        kabupaten: feature.kabupaten,
-        count: feature.count,
-        percentage: feature.percentage,
-        students,
-    });
-}
-
-function handleKeyDown(e) {
-    if (e.key === 'Escape') {
-        if (selectedKecamatanModal.value) {
-            closeKecamatanModal();
+        let matched = candidates[0];
+        if (candidates.length > 1) {
+            const found = candidates.find(c => normalizeKey(c.kabupaten) === normKab || normKab.includes(normalizeKey(c.kabupaten)));
+            if (found) matched = found;
         }
-        if (showOutsideModal.value) {
-            showOutsideModal.value = false;
+
+        const rawDesa = cleanDesaName(s.desa) || '(Belum Terdata)';
+        const desaKey = `${normalizeKey(rawDesa)}_${normalizeKey(matched.kecamatan)}_${normalizeKey(matched.kabupaten)}`;
+
+        if (!desasByKey[desaKey]) {
+            desasByKey[desaKey] = {
+                key: desaKey,
+                desa: rawDesa,
+                kecamatan: matched.kecamatan,
+                kabupaten: matched.kabupaten,
+                count: 0,
+                students: [],
+            };
         }
-    }
-}
 
-function isStudentActive(student) {
-    if (!student) return false;
-    const status = (student.status_keaktifan || student.student_status || '').toLowerCase();
-    return !status.includes('tidak') && status !== 'dropout' && status !== 'mutasi_keluar' && status !== 'lulus';
-}
-
-function getStudentStatusLabel(student) {
-    if (!student) return 'Tidak Aktif';
-    if (student.status_keaktifan) {
-        return student.status_keaktifan;
-    }
-    return isStudentActive(student) ? 'Aktif' : 'Tidak Aktif';
-}
-
-// Siswa yang difilter di dalam modal pencarian pop-up
-const modalFilteredStudents = computed(() => {
-    if (!selectedKecamatanModal.value) return [];
-    const q = modalSearch.value.trim().toLowerCase();
-    const students = selectedKecamatanModal.value.students || [];
-    if (!q) return students;
-
-    return students.filter(s => {
-        const nama = (s.nama || '').toLowerCase();
-        const nisn = (s.nisn || '').toLowerCase();
-        const desa = (s.desa || '').toLowerCase();
-        const kelas = (s.kelas || '').toLowerCase();
-        return nama.includes(q) || nisn.includes(q) || desa.includes(q) || kelas.includes(q);
+        desasByKey[desaKey].count++;
+        desasByKey[desaKey].students.push(s);
+        totalCovered++;
     });
+
+    const activeTotal = distribution.value.activeTotal || 1;
+    const desaList = Object.values(desasByKey).map(d => ({
+        ...d,
+        percentage: Math.round((d.count / activeTotal) * 100),
+    })).sort((a, b) => b.count - a.count);
+
+    return {
+        desasByKey,
+        desaList,
+        totalCovered,
+        totalDesaCount: desaList.length,
+    };
 });
 
-// Daftar seluruh kecamatan dengan jumlah siswa untuk tampilan Horizontal Bar
+// Penentuan posisi koordinat untuk setiap desa (kamus presisi + penyebaran radial rapi tanpa tumpang tindih)
+const desaPositions = computed(() => {
+    const list = desaDistribution.value.desaList;
+    if (!geojsonData.value?.features) return {};
+
+    const kecGroups = {};
+    list.forEach(d => {
+        const kecKey = `${normalizeKey(d.kecamatan)}_${normalizeKey(d.kabupaten)}`;
+        if (!kecGroups[kecKey]) kecGroups[kecKey] = [];
+        kecGroups[kecKey].push(d);
+    });
+
+    const positions = {};
+    Object.entries(kecGroups).forEach(([kecKey, desas]) => {
+        const feature = geojsonData.value.features.find(f =>
+            `${normalizeKey(f.properties.kecamatan)}_${normalizeKey(f.properties.kabupaten)}` === kecKey
+        );
+        const centroid = feature ? { lat: feature.properties.lat, lng: feature.properties.lng } : null;
+
+        desas.forEach((d, idx) => {
+            // 1. Cek kamus koordinat presisi
+            if (KNOWN_DESA_COORDS[d.key]) {
+                positions[d.key] = KNOWN_DESA_COORDS[d.key];
+                return;
+            }
+            if (!centroid) return;
+
+            // 2. Jika hanya 1 desa di kecamatan tsb, taruh pas di centroid
+            if (desas.length === 1) {
+                positions[d.key] = [centroid.lat, centroid.lng];
+                return;
+            }
+
+            // 3. Distribusi radial teratur mengitari centroid kecamatan (radius 1.2 - 2.5 km)
+            const goldenAngle = 2.399963;
+            const angle = idx * goldenAngle;
+            const radius = 0.012 + (idx % 3) * 0.005;
+            const latOffset = Math.sin(angle) * radius;
+            const lngOffset = Math.cos(angle) * (radius / Math.cos(centroid.lat * Math.PI / 180));
+
+            positions[d.key] = [centroid.lat + latOffset, centroid.lng + lngOffset];
+        });
+    });
+
+    return positions;
+});
+
+// Daftar kecamatan untuk Bar Chart
 const barKecamatans = computed(() => {
     if (!geojsonData.value?.features) return [];
     const list = [];
@@ -272,17 +425,103 @@ const maxBarCount = computed(() => {
     return displayedKecamatans.value[0]?.count || 1;
 });
 
-watch(activeView, (newView) => {
-    if (newView === 'peta') {
-        nextTick(() => {
-            if (map) {
-                map.invalidateSize();
-            }
-        });
+// Daftar Desa untuk Bar Chart
+const displayedDesas = computed(() => {
+    let list = desaDistribution.value.desaList;
+    const q = barSearchQuery.value.trim().toLowerCase();
+    if (q) {
+        list = list.filter(item =>
+            item.desa.toLowerCase().includes(q) ||
+            item.kecamatan.toLowerCase().includes(q) ||
+            item.kabupaten.toLowerCase().includes(q)
+        );
+    } else if (barFilterLimit.value !== 'all') {
+        list = list.slice(0, Number(barFilterLimit.value));
     }
+    return list;
 });
 
-// Skala warna Choropleth Emerald
+const maxDesaBarCount = computed(() => {
+    return displayedDesas.value[0]?.count || 1;
+});
+
+function openKecamatanModal(item) {
+    selectedKecamatanModal.value = item;
+    modalSearch.value = '';
+}
+
+function closeKecamatanModal() {
+    selectedKecamatanModal.value = null;
+    modalSearch.value = '';
+}
+
+function openFeatureModal(feature) {
+    if (!feature) return;
+    const key = `${normalizeKey(feature.kecamatan)}_${normalizeKey(feature.kabupaten)}`;
+    const students = distribution.value.studentsByKey[key] || [];
+    openKecamatanModal({
+        kecamatan: feature.kecamatan,
+        kabupaten: feature.kabupaten,
+        count: feature.count,
+        percentage: feature.percentage,
+        students,
+    });
+}
+
+function openDesaModal(item) {
+    if (!item) return;
+    openKecamatanModal({
+        desa: item.desa,
+        kecamatan: item.kecamatan,
+        kabupaten: item.kabupaten,
+        count: item.count,
+        percentage: item.percentage,
+        students: item.students || [],
+    });
+}
+
+function handleKeyDown(e) {
+    if (e.key === 'Escape') {
+        if (selectedKecamatanModal.value) {
+            closeKecamatanModal();
+        }
+        if (showOutsideModal.value) {
+            showOutsideModal.value = false;
+        }
+    }
+}
+
+function isStudentActive(student) {
+    if (!student) return false;
+    const status = (student.status_keaktifan || student.student_status || '').toLowerCase();
+    return !status.includes('tidak') && status !== 'dropout' && status !== 'mutasi_keluar' && status !== 'lulus';
+}
+
+function getStudentStatusLabel(student) {
+    if (!student) return 'Tidak Aktif';
+    if (student.status_keaktifan) {
+        return student.status_keaktifan;
+    }
+    return isStudentActive(student) ? 'Aktif' : 'Tidak Aktif';
+}
+
+// Siswa yang difilter di dalam modal pencarian pop-up
+const modalFilteredStudents = computed(() => {
+    if (!selectedKecamatanModal.value) return [];
+    const q = modalSearch.value.trim().toLowerCase();
+    const students = selectedKecamatanModal.value.students || [];
+    if (!q) return students;
+
+    return students.filter(s => {
+        const nama = (s.nama || '').toLowerCase();
+        const nisn = (s.nisn || '').toLowerCase();
+        const desa = (s.desa || '').toLowerCase();
+        const kelas = (s.kelas || '').toLowerCase();
+        return nama.includes(q) || nisn.includes(q) || desa.includes(q) || kelas.includes(q);
+    });
+});
+
+// Skala warna Choropleth Emerald untuk Kecamatan
 function getColor(count) {
     if (count >= 20) return '#064e3b'; // Sangat padat (>20)
     if (count >= 10) return '#047857'; // Padat (10-19)
@@ -298,7 +537,6 @@ function getFeatureCount(feature) {
 
 function featureStyle(feature) {
     const count = getFeatureCount(feature);
-
     return {
         fillColor: getColor(count),
         weight: 0.8,
@@ -309,33 +547,8 @@ function featureStyle(feature) {
     };
 }
 
-function updateMapLayers() {
-    if (!geojsonLayer) return;
-    geojsonLayer.eachLayer(layer => {
-        layer.setStyle(featureStyle(layer.feature));
-    });
-}
-
-function resetZoom() {
-    clearHover();
-    if (map && geojsonLayer) {
-        map.fitBounds(geojsonLayer.getBounds(), { padding: [24, 24] });
-    }
-}
-
-function clearHover() {
-    isLockedByClick = false;
-    if (activeHoverLayer) {
-        activeHoverLayer.setStyle(featureStyle(activeHoverLayer.feature));
-        activeHoverLayer = null;
-    }
-    if (singleTooltip && map && map.hasLayer(singleTooltip)) {
-        map.removeLayer(singleTooltip);
-    }
-    hoveredFeature.value = null;
-}
-
 function selectFeature(feature, layer, latlng = null) {
+    hoveredDesa.value = null;
     if (activeHoverLayer && activeHoverLayer !== layer) {
         activeHoverLayer.setStyle(featureStyle(activeHoverLayer.feature));
     }
@@ -386,10 +599,172 @@ function selectFeature(feature, layer, latlng = null) {
     }
 }
 
+function selectDesa(item, marker, latlng = null) {
+    hoveredFeature.value = null;
+    hoveredDesa.value = item;
+
+    if (singleTooltip && map) {
+        const pos = latlng || marker.getLatLng();
+        singleTooltip
+            .setLatLng(pos)
+            .setContent(`
+                <div class="px-2.5 py-1.5 text-xs text-slate-800 leading-tight">
+                    <div class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider mb-0.5">Desa / Kelurahan</div>
+                    <div class="font-extrabold text-slate-900 text-[13px]">${item.desa}</div>
+                    <div class="text-[11px] text-slate-500 font-medium">Kec. ${item.kecamatan}, Kab/Kota ${item.kabupaten}</div>
+                    <div class="mt-1.5 pt-1.5 border-t border-slate-200/80 flex items-center justify-between gap-3">
+                        <span class="font-bold text-emerald-800">${item.count} Siswa</span>
+                        <span class="text-[11px] font-semibold text-slate-500">(${item.percentage}%)</span>
+                    </div>
+                </div>
+            `);
+        if (!map.hasLayer(singleTooltip)) {
+            singleTooltip.addTo(map);
+        }
+    }
+}
+
 function handleSelect(feature, layer, latlng = null) {
     lastInteractionTime = Date.now();
     isLockedByClick = true;
     selectFeature(feature, layer, latlng);
+}
+
+function clearHover() {
+    isLockedByClick = false;
+    if (activeHoverLayer) {
+        activeHoverLayer.setStyle(
+            aggregationLevel.value === 'kecamatan'
+                ? featureStyle(activeHoverLayer.feature)
+                : {
+                    fillColor: '#f8fafc',
+                    weight: 0.9,
+                    opacity: 0.9,
+                    color: '#cbd5e1',
+                    fillOpacity: 0.65,
+                }
+        );
+        activeHoverLayer = null;
+    }
+    if (singleTooltip && map && map.hasLayer(singleTooltip)) {
+        map.removeLayer(singleTooltip);
+    }
+    hoveredFeature.value = null;
+    hoveredDesa.value = null;
+}
+
+// Render marker bubble desa
+function renderDesaMarkers() {
+    if (!map) return;
+    if (!desaLayerGroup) {
+        desaLayerGroup = L.layerGroup().addTo(map);
+    } else {
+        desaLayerGroup.clearLayers();
+        if (!map.hasLayer(desaLayerGroup)) {
+            desaLayerGroup.addTo(map);
+        }
+    }
+
+    const list = desaDistribution.value.desaList;
+    const positions = desaPositions.value;
+
+    list.forEach(item => {
+        const pos = positions[item.key];
+        if (!pos) return;
+
+        let size = 26;
+        let tierClass = 'tier-1';
+        if (item.count >= 20) {
+            size = 38;
+            tierClass = 'tier-4';
+        } else if (item.count >= 10) {
+            size = 34;
+            tierClass = 'tier-3';
+        } else if (item.count >= 5) {
+            size = 30;
+            tierClass = 'tier-2';
+        }
+
+        const iconHtml = `
+            <div class="desa-bubble-marker ${tierClass}" style="width: ${size}px; height: ${size}px;" title="Desa ${item.desa}: ${item.count} Siswa">
+                <span>${item.count}</span>
+            </div>
+        `;
+
+        const icon = L.divIcon({
+            className: 'custom-desa-icon',
+            html: iconHtml,
+            iconSize: [size, size],
+            iconAnchor: [size / 2, size / 2],
+        });
+
+        const marker = L.marker(pos, { icon, zIndexOffset: 800 + item.count });
+
+        marker.on('mouseover', (e) => {
+            if (Date.now() - lastInteractionTime < 600) return;
+            if (!isLockedByClick) {
+                selectDesa(item, marker, e.latlng);
+            }
+        });
+
+        marker.on('mouseout', () => {
+            if (Date.now() - lastInteractionTime < 600) return;
+            if (!isLockedByClick) {
+                clearHover();
+            }
+        });
+
+        marker.on('click', (e) => {
+            if (e.originalEvent) {
+                L.DomEvent.stopPropagation(e.originalEvent);
+            }
+            lastInteractionTime = Date.now();
+            isLockedByClick = true;
+            selectDesa(item, marker, e.latlng);
+        });
+
+        desaLayerGroup.addLayer(marker);
+    });
+}
+
+function updateMapLayers() {
+    if (!geojsonLayer || !map) return;
+
+    if (aggregationLevel.value === 'kecamatan') {
+        // Hapus marker desa bila sedang di mode kecamatan
+        if (desaLayerGroup && map.hasLayer(desaLayerGroup)) {
+            map.removeLayer(desaLayerGroup);
+        }
+        geojsonLayer.eachLayer(layer => {
+            layer.setStyle(featureStyle(layer.feature));
+        });
+    } else {
+        // Mode Per Desa: Poligon kecamatan menjadi latar belakang halus
+        geojsonLayer.eachLayer(layer => {
+            layer.setStyle({
+                fillColor: '#f8fafc',
+                weight: 0.9,
+                opacity: 0.9,
+                color: '#cbd5e1',
+                fillOpacity: 0.65,
+            });
+        });
+        renderDesaMarkers();
+    }
+}
+
+function setAggregation(level) {
+    if (aggregationLevel.value === level) return;
+    aggregationLevel.value = level;
+    clearHover();
+    updateMapLayers();
+}
+
+function resetZoom() {
+    clearHover();
+    if (map && geojsonLayer) {
+        map.fitBounds(geojsonLayer.getBounds(), { padding: [24, 24] });
+    }
 }
 
 function attachDirectTouchListeners(feature, layer) {
@@ -417,7 +792,6 @@ function attachDirectTouchListeners(feature, layer) {
             const dt = Date.now() - startTime;
             startTime = 0;
 
-            // Jika pergeseran jari < 25px dan durasi < 600ms, ini adalah ketukan (TAP) valid!
             if (dx < 25 && dy < 25 && dt < 600) {
                 let tapLatLng = null;
                 if (map && mapContainer.value) {
@@ -427,13 +801,14 @@ function attachDirectTouchListeners(feature, layer) {
                         tapLatLng = map.containerPointToLatLng(pt);
                     } catch (_) {}
                 }
-                handleSelect(feature, layer, tapLatLng);
+                if (aggregationLevel.value === 'kecamatan') {
+                    handleSelect(feature, layer, tapLatLng);
+                }
             }
         }
     }, { passive: true });
 }
 
-// Algoritma Ray-Casting untuk Point-in-Polygon (deteksi sentuhan/klik koordinat akurat di mobile)
 function isPointInRing(lng, lat, ring) {
     let inside = false;
     for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
@@ -489,14 +864,12 @@ async function loadGeoJsonAndInitMap() {
         isLoading.value = true;
         loadError.value = null;
 
-        // 1. Muat batas kecamatan (146 features)
         const response = await fetch('/data/solo-raya-kecamatan.geojson');
         if (!response.ok) {
             throw new Error(`Gagal memuat data batas kecamatan (status ${response.status})`);
         }
         const data = await response.json();
 
-        // Hitung bounding box untuk setiap feature agar pencarian titik sentuhan instan (<0.1ms)
         data.features.forEach(f => {
             let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
             function scan(coords) {
@@ -516,7 +889,6 @@ async function loadGeoJsonAndInitMap() {
 
         geojsonData.value = data;
 
-        // 2. Muat batas kabupaten untuk batas putus-putus (8 features)
         let kabData = null;
         try {
             const kabResponse = await fetch('/data/solo-raya-kabupaten.geojson');
@@ -530,7 +902,6 @@ async function loadGeoJsonAndInitMap() {
         await nextTick();
         if (!mapContainer.value) return;
 
-        // Inisialisasi Map Leaflet TANPA layer gambar jalan (pure clean background)
         map = L.map(mapContainer.value, {
             zoomControl: false,
             attributionControl: false,
@@ -540,10 +911,8 @@ async function loadGeoJsonAndInitMap() {
             tapTolerance: 25,
         });
 
-        // Kontrol zoom di kanan atas
         L.control.zoom({ position: 'topright' }).addTo(map);
 
-        // Inisialisasi SATU-SATUNYA tooltip mengambang untuk seluruh peta (mencegah tooltip menumpuk)
         singleTooltip = L.tooltip({
             direction: 'auto',
             className: 'leaflet-custom-tooltip',
@@ -551,24 +920,27 @@ async function loadGeoJsonAndInitMap() {
             opacity: 0.98,
         });
 
-        // Layer 1: Batas Kecamatan (Interaktif: hover desktop & sentuh/klik mobile)
+        // Layer 1: Poligon Kecamatan
         geojsonLayer = L.geoJSON(data, {
             style: featureStyle,
             onEachFeature: (feature, layer) => {
                 layer.on({
                     mouseover: (e) => {
+                        if (aggregationLevel.value !== 'kecamatan') return;
                         if (Date.now() - lastInteractionTime < 800) return;
                         if (!isLockedByClick) {
                             selectFeature(feature, layer, e.latlng);
                         }
                     },
                     mousemove: (e) => {
+                        if (aggregationLevel.value !== 'kecamatan') return;
                         if (Date.now() - lastInteractionTime < 800) return;
                         if (!isLockedByClick && singleTooltip && map && map.hasLayer(singleTooltip)) {
                             singleTooltip.setLatLng(e.latlng);
                         }
                     },
                     mouseout: (e) => {
+                        if (aggregationLevel.value !== 'kecamatan') return;
                         if (Date.now() - lastInteractionTime < 800) return;
                         if (!isLockedByClick) {
                             clearHover();
@@ -577,6 +949,7 @@ async function loadGeoJsonAndInitMap() {
                         }
                     },
                     click: (e) => {
+                        if (aggregationLevel.value !== 'kecamatan') return;
                         if (e.originalEvent) {
                             L.DomEvent.stopPropagation(e.originalEvent);
                         }
@@ -586,12 +959,11 @@ async function loadGeoJsonAndInitMap() {
             },
         }).addTo(map);
 
-        // Pasang direct touch listener ke setiap elemen SVG path poligon kecamatan
         geojsonLayer.eachLayer((layer) => {
             attachDirectTouchListeners(layer.feature, layer);
         });
 
-        // Listener sentuhan container langsung menggunakan konversi titik point-in-polygon
+        // Sentuhan pada container map
         let containerTouchStartX = 0;
         let containerTouchStartY = 0;
         let containerTouchStartTime = 0;
@@ -613,9 +985,8 @@ async function loadGeoJsonAndInitMap() {
                 const dt = Date.now() - containerTouchStartTime;
                 containerTouchStartTime = 0;
 
-                // Jika pergeseran jari < 30px dan durasi < 600ms, ini adalah ketukan (TAP) valid!
                 if (dx < 30 && dy < 30 && dt < 600) {
-                    if (map && mapContainer.value) {
+                    if (map && mapContainer.value && aggregationLevel.value === 'kecamatan') {
                         try {
                             const rect = mapContainer.value.getBoundingClientRect();
                             const pt = L.point(touch.clientX - rect.left, touch.clientY - rect.top);
@@ -630,29 +1001,33 @@ async function loadGeoJsonAndInitMap() {
             }
         }, { passive: true });
 
-        // Klik pada area peta (mendeteksi polygon via point-in-polygon, jika di area kosong mereset pilihan)
         map.on('click', (e) => {
             if (Date.now() - lastInteractionTime < 400) return;
-            const result = findFeatureAndLayerAtLatLng(e.latlng);
-            if (result && result.layer) {
-                handleSelect(result.feature, result.layer, e.latlng);
+            if (aggregationLevel.value === 'kecamatan') {
+                const result = findFeatureAndLayerAtLatLng(e.latlng);
+                if (result && result.layer) {
+                    handleSelect(result.feature, result.layer, e.latlng);
+                } else {
+                    isLockedByClick = false;
+                    clearHover();
+                }
             } else {
                 isLockedByClick = false;
                 clearHover();
             }
         });
 
-        // Layer 2: Batas Kabupaten Putus-putus (Dashed Line)
+        // Layer 2: Batas Kabupaten Putus-putus
         if (kabData) {
             kabupatenLayer = L.geoJSON(kabData, {
                 style: {
                     fill: false,
-                    weight: 1.8,             // Tidak ketebalan, proporsional
-                    color: '#1e293b',          // Dark slate jelas
-                    dashArray: '6, 5',        // Garis putus-putus rapi
+                    weight: 1.8,
+                    color: '#1e293b',
+                    dashArray: '6, 5',
                     opacity: 0.9,
                 },
-                interactive: false,          // Klik/hover tembus langsung ke kecamatan di bawahnya
+                interactive: false,
             }).addTo(map);
 
             kabupatenLayer.eachLayer(l => {
@@ -747,6 +1122,11 @@ onMounted(() => {
 onBeforeUnmount(() => {
     window.removeEventListener('keydown', handleKeyDown);
     clearHover();
+    if (desaLayerGroup) {
+        desaLayerGroup.clearLayers();
+        desaLayerGroup.remove();
+        desaLayerGroup = null;
+    }
     if (schoolMarker) {
         schoolMarker.remove();
         schoolMarker = null;
@@ -772,7 +1152,7 @@ onBeforeUnmount(() => {
 
 <template>
     <div class="bg-white rounded-3xl border border-slate-200/90 p-4 sm:p-6 shadow-xs mb-5">
-        <!-- Header: Judul, Tab Switcher [Peta / Bar], & Ringkasan Siswa -->
+        <!-- Header: Judul, Tab Switcher [Per Kecamatan | Per Desa] & [Peta | Bar] & Ringkasan Siswa -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-100">
             <div class="flex items-center gap-2">
                 <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span>
@@ -781,14 +1161,40 @@ onBeforeUnmount(() => {
                         Sebaran Domisili Siswa (Solo Raya & Grobogan)
                     </h3>
                     <p class="text-[11px] text-slate-400 font-medium mt-0.5">
-                        Berdasarkan kecamatan domisili siswa aktif — {{ unit }} (TA {{ academicYear }})
+                        Berdasarkan <span class="font-bold text-slate-600">{{ aggregationLevel === 'desa' ? 'Desa / Kelurahan' : 'Kecamatan' }}</span> domisili siswa aktif — {{ unit }} (TA {{ academicYear }})
                     </p>
                 </div>
             </div>
 
-            <!-- Bagian Kanan: Toggle View [Peta | Bar] & Ringkasan -->
+            <!-- Bagian Kanan: Toggle Agregasi [Per Kecamatan | Per Desa], Toggle View [Peta | Bar] & Ringkasan -->
             <div class="flex items-center gap-2 self-start sm:self-auto shrink-0 flex-wrap">
-                <!-- Toggle Pilihan Peta / Bar -->
+                <!-- Toggle Pilihan: Per Kecamatan vs Per Desa (Diatas container peta) -->
+                <div class="inline-flex items-center p-0.5 bg-slate-100/90 rounded-xl border border-slate-200/90 shadow-2xs">
+                    <button
+                        type="button"
+                        @click="setAggregation('kecamatan')"
+                        class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs transition-all cursor-pointer"
+                        :class="aggregationLevel === 'kecamatan'
+                            ? 'bg-white text-emerald-900 font-bold shadow-xs'
+                            : 'text-slate-500 hover:text-slate-800 font-semibold'"
+                    >
+                        <span class="material-symbols-outlined text-[15px]">location_city</span>
+                        <span>Per Kecamatan</span>
+                    </button>
+                    <button
+                        type="button"
+                        @click="setAggregation('desa')"
+                        class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs transition-all cursor-pointer"
+                        :class="aggregationLevel === 'desa'
+                            ? 'bg-white text-emerald-900 font-bold shadow-xs'
+                            : 'text-slate-500 hover:text-slate-800 font-semibold'"
+                    >
+                        <span class="material-symbols-outlined text-[15px]">holiday_village</span>
+                        <span>Per Desa</span>
+                    </button>
+                </div>
+
+                <!-- Toggle Pilihan Tampilan: Peta / Bar -->
                 <div class="inline-flex items-center p-0.5 bg-slate-100/90 rounded-xl border border-slate-200/90 shadow-2xs">
                     <button
                         type="button"
@@ -814,12 +1220,12 @@ onBeforeUnmount(() => {
                     </button>
                 </div>
 
-                <!-- Badge Total Wilayah Tercakup -->
+                <!-- Badge Total Tercakup -->
                 <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-bold text-emerald-800 shadow-2xs">
                     <span class="w-2 h-2 rounded-full bg-emerald-600"></span>
                     <span>{{ distribution.coverageTotal }} Siswa</span>
                     <span class="text-[11px] text-emerald-600 font-medium">
-                        ({{ distribution.activeTotal > 0 ? Math.round((distribution.coverageTotal / distribution.activeTotal) * 100) : 0 }}%)
+                        ({{ aggregationLevel === 'desa' ? `${desaDistribution.totalDesaCount} Desa` : `${barKecamatans.length} Kec.` }})
                     </span>
                 </div>
 
@@ -845,7 +1251,7 @@ onBeforeUnmount(() => {
             <!-- Loading State -->
             <div v-if="isLoading" class="absolute inset-0 bg-slate-50/90 z-20 flex flex-col items-center justify-center gap-2">
                 <span class="material-symbols-outlined text-3xl text-emerald-600 animate-spin">progress_activity</span>
-                <span class="text-xs font-semibold text-slate-500">Memuat batas wilayah kecamatan Solo Raya & Grobogan...</span>
+                <span class="text-xs font-semibold text-slate-500">Memuat batas wilayah Solo Raya & Grobogan...</span>
             </div>
 
             <!-- Error State -->
@@ -865,7 +1271,7 @@ onBeforeUnmount(() => {
             <!-- Leaflet Container -->
             <div ref="mapContainer" class="w-full h-full z-10"></div>
 
-            <!-- Floating Tool / Reset Button di Kiri Atas -->
+            <!-- Floating Controls di Kiri Atas Peta: Reset Zoom & Toggle Cepat [Kecamatan | Desa] -->
             <div class="absolute top-3 left-3 z-[400] flex items-center gap-2">
                 <button
                     type="button"
@@ -876,11 +1282,76 @@ onBeforeUnmount(() => {
                     <span class="material-symbols-outlined text-[15px]">crop_free</span>
                     <span class="hidden sm:inline">Reset Zoom</span>
                 </button>
+
+                <!-- Pilihan per kecamatan / per desa di dalam peta -->
+                <div class="inline-flex items-center p-0.5 bg-white/95 backdrop-blur-xs rounded-xl border border-slate-200/90 shadow-md">
+                    <button
+                        type="button"
+                        @click="setAggregation('kecamatan')"
+                        class="px-2 py-1 rounded-lg text-xs transition-all cursor-pointer flex items-center gap-1"
+                        :class="aggregationLevel === 'kecamatan'
+                            ? 'bg-emerald-700 text-white font-bold shadow-2xs'
+                            : 'text-slate-600 hover:text-slate-900 font-semibold'"
+                        title="Tampilkan agregasi per kecamatan"
+                    >
+                        <span class="material-symbols-outlined text-[14px]">location_city</span>
+                        <span class="text-[11px]">Kecamatan</span>
+                    </button>
+                    <button
+                        type="button"
+                        @click="setAggregation('desa')"
+                        class="px-2 py-1 rounded-lg text-xs transition-all cursor-pointer flex items-center gap-1"
+                        :class="aggregationLevel === 'desa'
+                            ? 'bg-emerald-700 text-white font-bold shadow-2xs'
+                            : 'text-slate-600 hover:text-slate-900 font-semibold'"
+                        title="Tampilkan titik sebaran per desa"
+                    >
+                        <span class="material-symbols-outlined text-[14px]">holiday_village</span>
+                        <span class="text-[11px]">Desa</span>
+                    </button>
+                </div>
             </div>
 
-            <!-- Live Status Hover & Touch Bar (Responsive: Bottom Sheet di Mobile, Pojok Kanan Bawah di Desktop) -->
+            <!-- Live Status Hover/Touch Bar: Mode Desa -->
             <div
-                v-if="hoveredFeature"
+                v-if="hoveredDesa"
+                class="absolute bottom-3 left-3 right-3 sm:left-auto sm:right-3 sm:bottom-3 sm:max-w-xs z-[500] bg-white/95 backdrop-blur-xs rounded-xl border border-slate-200/90 p-2.5 sm:p-3 shadow-lg text-xs pointer-events-auto touch-manipulation transition-all animate-in fade-in duration-150"
+            >
+                <div class="flex flex-col relative">
+                    <button
+                        type="button"
+                        @click.stop="clearHover"
+                        class="absolute -top-1 -right-1 text-slate-400 hover:text-slate-700 p-1 rounded-full cursor-pointer touch-manipulation"
+                        title="Tutup info"
+                    >
+                        <span class="material-symbols-outlined text-[16px]">close</span>
+                    </button>
+                    <span class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Desa / Kelurahan</span>
+                    <span class="text-[13px] font-extrabold text-slate-900 pr-6 leading-tight mt-0.5">Desa {{ hoveredDesa.desa }}</span>
+                    <span class="text-[11px] text-slate-500 font-medium mt-0.5">Kec. {{ hoveredDesa.kecamatan }} • Kab/Kota {{ hoveredDesa.kabupaten }}</span>
+                    <div class="mt-1.5 pt-1.5 border-t border-slate-100 flex items-center justify-between gap-2">
+                        <span class="text-xs font-bold text-slate-900">
+                            {{ hoveredDesa.count }} Siswa
+                        </span>
+                        <span class="text-[10.5px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60">
+                            {{ hoveredDesa.percentage }}% dari total
+                        </span>
+                    </div>
+                    <button
+                        v-if="hoveredDesa.count > 0"
+                        type="button"
+                        @click="openDesaModal(hoveredDesa)"
+                        class="mt-2 w-full py-1.5 px-2.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-bold flex items-center justify-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
+                    >
+                        <span>Lihat {{ hoveredDesa.count }} Siswa</span>
+                        <span class="material-symbols-outlined text-[14px]">open_in_new</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Live Status Hover/Touch Bar: Mode Kecamatan -->
+            <div
+                v-else-if="hoveredFeature"
                 class="absolute bottom-3 left-3 right-3 sm:left-auto sm:right-3 sm:bottom-3 sm:max-w-xs z-[500] bg-white/95 backdrop-blur-xs rounded-xl border border-slate-200/90 p-2.5 sm:p-3 shadow-lg text-xs pointer-events-auto touch-manipulation transition-all animate-in fade-in duration-150"
             >
                 <div class="flex flex-col relative">
@@ -913,21 +1384,48 @@ onBeforeUnmount(() => {
                     </button>
                 </div>
             </div>
+
+            <!-- Petunjuk Saat Belum Ada Hover -->
             <div
                 v-else
                 class="hidden sm:block absolute bottom-3 right-3 z-[400] max-w-xs bg-white/90 backdrop-blur-xs rounded-xl border border-slate-200/80 px-3 py-2 shadow-xs text-xs pointer-events-none"
             >
                 <span class="text-[11px] text-slate-400 font-medium">
-                    Arahkan kursor atau sentuh kecamatan untuk detail
+                    {{ aggregationLevel === 'desa' ? 'Sentuh atau klik lingkaran desa untuk detail siswa' : 'Arahkan kursor atau sentuh kecamatan untuk detail' }}
                 </span>
             </div>
 
-            <!-- Floating Legend (Skala Gradasi Warna & Garis Batas) di Kiri Bawah -->
+            <!-- Floating Legend di Kiri Bawah -->
             <div
                 class="absolute bottom-3 left-3 z-[400] bg-white/95 backdrop-blur-xs rounded-xl border border-slate-200/90 p-2 sm:p-2.5 shadow-md flex flex-col gap-1.5"
-                :class="{ 'hidden sm:flex': hoveredFeature }"
+                :class="{ 'hidden sm:flex': hoveredFeature || hoveredDesa }"
             >
-                <div>
+                <!-- Legenda Skala: Mode Desa -->
+                <div v-if="aggregationLevel === 'desa'">
+                    <div class="text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+                        Siswa per Desa
+                    </div>
+                    <div class="flex items-center gap-1.5 text-[10px] text-slate-600 font-medium">
+                        <div class="flex items-center gap-1">
+                            <span class="w-3.5 h-3.5 rounded-full inline-flex items-center justify-center text-[8.5px] font-bold text-white bg-[#059669]">1</span>
+                            <span>1-4</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <span class="w-4 h-4 rounded-full inline-flex items-center justify-center text-[9px] font-bold text-white bg-[#047857]">5</span>
+                            <span>5-9</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <span class="w-4.5 h-4.5 rounded-full inline-flex items-center justify-center text-[9.5px] font-bold text-white bg-[#065f46]">10</span>
+                            <span>10-19</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <span class="w-5 h-5 rounded-full inline-flex items-center justify-center text-[10px] font-bold text-white bg-[#064e3b]">20+</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Legenda Skala: Mode Kecamatan -->
+                <div v-else>
                     <div class="text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1">
                         Jumlah Siswa
                     </div>
@@ -955,7 +1453,7 @@ onBeforeUnmount(() => {
                     </div>
                 </div>
 
-                <!-- Legenda Garis Batas Wilayah & Titik Sekolah -->
+                <!-- Legenda Batas Wilayah & Titik Sekolah -->
                 <div class="pt-1.5 border-t border-slate-200/70 flex items-center gap-2.5 sm:gap-3 text-[10px] text-slate-600 font-medium flex-wrap">
                     <div class="flex items-center gap-1.5" title="Lokasi Kampus Sekolah">
                         <span class="w-3.5 h-3.5 rounded-full bg-rose-600 border border-white shadow-2xs flex items-center justify-center text-white shrink-0">
@@ -969,14 +1467,14 @@ onBeforeUnmount(() => {
                     </div>
                     <div class="flex items-center gap-1.5" title="Garis halus batas kecamatan">
                         <span class="w-4 h-[1px] bg-[#94a3b8] inline-block"></span>
-                        <span>Kecamatan</span>
+                        <span>Batas Kecamatan</span>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- ============================================================ -->
-        <!-- VIEW 2: TAMPILAN GRAFIK HORIZONTAL BAR SEBARAN KECAMATAN     -->
+        <!-- VIEW 2: TAMPILAN GRAFIK HORIZONTAL BAR                       -->
         <!-- ============================================================ -->
         <div v-show="activeView === 'bar'" class="w-full h-[380px] sm:h-[460px] rounded-2xl border border-slate-200/90 bg-white p-3 sm:p-4 flex flex-col">
             <!-- Toolbar: Pencarian Cepat & Filter Jumlah Top -->
@@ -986,7 +1484,7 @@ onBeforeUnmount(() => {
                     <input
                         v-model="barSearchQuery"
                         type="text"
-                        placeholder="Cari kecamatan atau kabupaten..."
+                        :placeholder="aggregationLevel === 'desa' ? 'Cari desa, kecamatan, atau kab...' : 'Cari kecamatan atau kabupaten...'"
                         class="w-full pl-8 pr-7 py-1.5 rounded-xl border border-slate-200 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
                     />
                     <button
@@ -1022,29 +1520,27 @@ onBeforeUnmount(() => {
                         </button>
                     </div>
                     <span class="text-[11px] text-slate-400 font-medium hidden md:inline">
-                        ({{ displayedKecamatans.length }} kecamatan)
+                        ({{ aggregationLevel === 'desa' ? `${displayedDesas.length} desa` : `${displayedKecamatans.length} kecamatan` }})
                     </span>
                 </div>
             </div>
 
-            <!-- Kontainer Daftar Horizontal Bar (Scrollable jika data banyak) -->
+            <!-- Kontainer Daftar Horizontal Bar (Scrollable) -->
             <div class="flex-1 overflow-y-auto pr-2 custom-bar-scrollbar">
-                <!-- Daftar Bar Horizontal Ranking Kecamatan (Sama seperti pada stat asal sekolah) -->
+                <!-- Bar Mode Desa: Tampilkan Ranking Desa/Kelurahan -->
                 <div
-                    v-if="displayedKecamatans.length > 0"
+                    v-if="aggregationLevel === 'desa' && displayedDesas.length > 0"
                     class="space-y-3 py-1"
                 >
                     <div
-                        v-for="(item, idx) in displayedKecamatans"
-                        :key="`${item.kecamatan}-${item.kabupaten}`"
-                        @click="openKecamatanModal(item)"
+                        v-for="(item, idx) in displayedDesas"
+                        :key="item.key"
+                        @click="openDesaModal(item)"
                         class="group p-3 sm:p-3.5 rounded-2xl bg-slate-50/70 hover:bg-emerald-50/40 border border-slate-200/80 hover:border-emerald-200 transition-all cursor-pointer space-y-2"
-                        :title="`Klik untuk melihat daftar ${item.count} siswa dari Kec. ${item.kecamatan} (${item.kabupaten})`"
+                        :title="`Klik untuk melihat daftar ${item.count} siswa dari Desa ${item.desa} (Kec. ${item.kecamatan})`"
                     >
-                        <!-- Baris Atas: Ranking, Nama Kecamatan & Kabupaten, Jumlah, Persen, & icon open_in_new -->
                         <div class="flex items-start justify-between gap-3">
                             <div class="min-w-0 flex items-start gap-2.5 flex-1">
-                                <!-- Ranking Badge -->
                                 <span
                                     class="w-6 h-6 rounded-lg text-[10.5px] font-bold flex items-center justify-center shrink-0 border shadow-2xs mt-0.5 group-hover:scale-105 transition-transform"
                                     :class="{
@@ -1058,18 +1554,16 @@ onBeforeUnmount(() => {
                                     {{ idx + 1 }}
                                 </span>
 
-                                <!-- Nama Kecamatan & Kabupaten -->
                                 <div class="min-w-0 flex-1">
                                     <h4 class="text-xs sm:text-[13px] font-bold text-slate-900 group-hover:text-emerald-950 break-words leading-snug">
-                                        Kec. {{ item.kecamatan }}
+                                        Desa {{ item.desa }}
                                     </h4>
                                     <p class="text-[11px] text-slate-500 font-medium">
-                                        Kab/Kota {{ item.kabupaten }}
+                                        Kec. {{ item.kecamatan }}, Kab/Kota {{ item.kabupaten }}
                                     </p>
                                 </div>
                             </div>
 
-                            <!-- Jumlah Siswa, Persen, & Icon open_in_new -->
                             <div class="flex items-center gap-1.5 shrink-0 text-xs mt-0.5">
                                 <span class="font-extrabold text-emerald-800">
                                     {{ item.count }} Siswa
@@ -1083,7 +1577,72 @@ onBeforeUnmount(() => {
                             </div>
                         </div>
 
-                        <!-- Bar Horizontal Proporsional dengan Animasi Progress dari Kiri ke Kanan -->
+                        <!-- Bar Horizontal Progress -->
+                        <div class="w-full bg-slate-200/70 rounded-full h-2.5 overflow-hidden">
+                            <div
+                                class="h-full rounded-full bar-progress-animate"
+                                :class="{
+                                    'bg-emerald-700': idx === 0 && !barSearchQuery,
+                                    'bg-emerald-600': idx > 0 && idx < 3 && !barSearchQuery,
+                                    'bg-emerald-500': idx >= 3 || barSearchQuery,
+                                }"
+                                :style="{ width: `${Math.max((item.count / maxDesaBarCount) * 100, 3)}%` }"
+                            ></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bar Mode Kecamatan: Tampilkan Ranking Kecamatan -->
+                <div
+                    v-else-if="aggregationLevel === 'kecamatan' && displayedKecamatans.length > 0"
+                    class="space-y-3 py-1"
+                >
+                    <div
+                        v-for="(item, idx) in displayedKecamatans"
+                        :key="item.key"
+                        @click="openKecamatanModal(item)"
+                        class="group p-3 sm:p-3.5 rounded-2xl bg-slate-50/70 hover:bg-emerald-50/40 border border-slate-200/80 hover:border-emerald-200 transition-all cursor-pointer space-y-2"
+                        :title="`Klik untuk melihat daftar ${item.count} siswa dari Kec. ${item.kecamatan} (${item.kabupaten})`"
+                    >
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="min-w-0 flex items-start gap-2.5 flex-1">
+                                <span
+                                    class="w-6 h-6 rounded-lg text-[10.5px] font-bold flex items-center justify-center shrink-0 border shadow-2xs mt-0.5 group-hover:scale-105 transition-transform"
+                                    :class="{
+                                        'bg-amber-100 text-amber-900 border-amber-300 font-extrabold': idx === 0 && !barSearchQuery,
+                                        'bg-slate-200 text-slate-800 border-slate-300 font-extrabold': idx === 1 && !barSearchQuery,
+                                        'bg-amber-50 text-amber-800 border-amber-200 font-bold': idx === 2 && !barSearchQuery,
+                                        'bg-white text-emerald-800 border-emerald-200/80': idx > 2 || barSearchQuery,
+                                    }"
+                                    :title="`Peringkat #${idx + 1}`"
+                                >
+                                    {{ idx + 1 }}
+                                </span>
+
+                                <div class="min-w-0 flex-1">
+                                    <h4 class="text-xs sm:text-[13px] font-bold text-slate-900 group-hover:text-emerald-950 break-words leading-snug">
+                                        Kec. {{ item.kecamatan }}
+                                    </h4>
+                                    <p class="text-[11px] text-slate-500 font-medium">
+                                        Kab/Kota {{ item.kabupaten }}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-1.5 shrink-0 text-xs mt-0.5">
+                                <span class="font-extrabold text-emerald-800">
+                                    {{ item.count }} Siswa
+                                </span>
+                                <span class="text-[10.5px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-200/80">
+                                    {{ item.percentage }}%
+                                </span>
+                                <span class="material-symbols-outlined text-[16px] text-slate-400 group-hover:text-emerald-700 transition-colors ml-0.5">
+                                    open_in_new
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Bar Horizontal Progress -->
                         <div class="w-full bg-slate-200/70 rounded-full h-2.5 overflow-hidden">
                             <div
                                 class="h-full rounded-full bar-progress-animate"
@@ -1101,7 +1660,7 @@ onBeforeUnmount(() => {
                 <!-- Empty State jika tidak ada data -->
                 <div v-else class="h-full flex flex-col items-center justify-center py-12 text-center">
                     <span class="material-symbols-outlined text-3xl text-slate-300 mb-1">location_off</span>
-                    <p class="text-xs font-bold text-slate-700">Tidak ada data kecamatan ditemukan</p>
+                    <p class="text-xs font-bold text-slate-700">Tidak ada data ditemukan</p>
                     <p class="text-[11px] text-slate-400 mt-0.5">
                         {{ barSearchQuery ? 'Coba gunakan kata kunci pencarian lain.' : 'Belum ada data domisili siswa terdata.' }}
                     </p>
@@ -1184,20 +1743,28 @@ onBeforeUnmount(() => {
                             class="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border shadow-2xs mt-0.5 bg-emerald-100 border-emerald-300 text-emerald-800"
                         >
                             <span class="material-symbols-outlined text-[22px]">
-                                location_on
+                                {{ selectedKecamatanModal.desa ? 'holiday_village' : 'location_on' }}
                             </span>
                         </div>
                         <div class="min-w-0">
                             <span
                                 class="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider inline-block mb-1 bg-emerald-100 text-emerald-900"
                             >
-                                Domisili Siswa
+                                {{ selectedKecamatanModal.desa ? 'Domisili Desa / Kelurahan' : 'Domisili Kecamatan' }}
                             </span>
                             <h3 class="text-sm sm:text-base font-extrabold text-slate-900 break-words leading-snug">
-                                Kec. {{ selectedKecamatanModal.kecamatan }}
-                                <span v-if="selectedKecamatanModal.kabupaten && selectedKecamatanModal.kabupaten !== 'Luar Cakupan'" class="text-slate-500 font-semibold text-xs sm:text-sm">
-                                    ({{ selectedKecamatanModal.kabupaten }})
-                                </span>
+                                <template v-if="selectedKecamatanModal.desa">
+                                    Desa {{ selectedKecamatanModal.desa }}
+                                    <span class="text-slate-500 font-semibold text-xs sm:text-sm">
+                                        (Kec. {{ selectedKecamatanModal.kecamatan }}, {{ selectedKecamatanModal.kabupaten }})
+                                    </span>
+                                </template>
+                                <template v-else>
+                                    Kec. {{ selectedKecamatanModal.kecamatan }}
+                                    <span v-if="selectedKecamatanModal.kabupaten && selectedKecamatanModal.kabupaten !== 'Luar Cakupan'" class="text-slate-500 font-semibold text-xs sm:text-sm">
+                                        ({{ selectedKecamatanModal.kabupaten }})
+                                    </span>
+                                </template>
                             </h3>
                             <p class="text-[11px] text-slate-500 font-medium mt-0.5">
                                 Total <span class="font-bold text-slate-800">{{ selectedKecamatanModal.count }} Siswa</span>
@@ -1224,7 +1791,7 @@ onBeforeUnmount(() => {
                         <input
                             v-model="modalSearch"
                             type="text"
-                            placeholder="Cari nama, NISN, atau desa..."
+                            placeholder="Cari nama, NISN, atau kelas..."
                             class="w-full pl-8 pr-7 py-1.5 rounded-xl border border-slate-200 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
                         />
                         <button
@@ -1276,7 +1843,6 @@ onBeforeUnmount(() => {
 
                             <!-- JK & Status Keaktifan -->
                             <div class="flex items-center gap-2 shrink-0">
-                                <!-- Gender (JK) -->
                                 <span
                                     class="text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-lg border text-center min-w-[24px]"
                                     :class="student.jk === 'L'
@@ -1288,7 +1854,6 @@ onBeforeUnmount(() => {
                                     <span class="sm:hidden">{{ student.jk || '-' }}</span>
                                 </span>
 
-                                <!-- Status Keaktifan -->
                                 <span
                                     class="text-[10px] sm:text-[11px] font-bold px-2.5 py-0.5 rounded-lg border flex items-center gap-1.5"
                                     :class="isStudentActive(student)
@@ -1351,7 +1916,54 @@ onBeforeUnmount(() => {
     animation: barGrow 0.75s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Styling tooltip peta agar senada dengan UI modern */
+/* Custom Marker Bubble Desa */
+.custom-desa-icon {
+    background: transparent !important;
+    border: none !important;
+}
+
+.desa-bubble-marker {
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-weight: 800;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25), 0 1px 3px rgba(0, 0, 0, 0.15);
+    border: 2px solid #ffffff;
+    cursor: pointer;
+    transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s ease;
+    user-select: none;
+}
+
+.desa-bubble-marker:hover {
+    transform: scale(1.22);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+    z-index: 9999 !important;
+}
+
+.desa-bubble-marker.tier-1 {
+    background: linear-gradient(135deg, #10b981, #059669);
+    font-size: 11px;
+}
+
+.desa-bubble-marker.tier-2 {
+    background: linear-gradient(135deg, #059669, #047857);
+    font-size: 11.5px;
+}
+
+.desa-bubble-marker.tier-3 {
+    background: linear-gradient(135deg, #047857, #065f46);
+    font-size: 12px;
+}
+
+.desa-bubble-marker.tier-4 {
+    background: linear-gradient(135deg, #065f46, #064e3b);
+    font-size: 13px;
+    border-width: 2.5px;
+}
+
+/* Styling tooltip peta */
 .leaflet-custom-tooltip {
     background-color: rgba(255, 255, 255, 0.96) !important;
     border: 1px solid rgba(226, 232, 240, 0.9) !important;
@@ -1379,4 +1991,3 @@ onBeforeUnmount(() => {
     background: #94a3b8;
 }
 </style>
-
