@@ -47,6 +47,10 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    allStudents: {
+        type: Array,
+        default: () => [],
+    },
 });
 
 // ============================================================
@@ -423,10 +427,14 @@ watch([activeUnit, selectedYearName, selectedSemester, selectedChartYear, () => 
     newStudentsChartKey.value++;
 });
 
+const chartStudentsSource = computed(() => {
+    return (props.allStudents && props.allStudents.length > 0) ? props.allStudents : (props.students || []);
+});
+
 const chartAcademicYears = computed(() => {
     const set = new Set(props.availableAcademicYears || []);
 
-    (props.students || []).forEach(s => {
+    chartStudentsSource.value.forEach(s => {
         if (s.tanggal_diterima) {
             const yr = parseInt(String(s.tanggal_diterima).slice(0, 4), 10);
             const m = parseInt(String(s.tanggal_diterima).slice(5, 7), 10);
@@ -457,8 +465,9 @@ const chartAcademicYears = computed(() => {
 });
 
 const newStudentsPerYear = computed(() => {
+    const list = chartStudentsSource.value.filter(s => matchesUnit(s, activeUnit.value));
     return chartAcademicYears.value.map(year => {
-        const count = filteredStudents.value.filter(s =>
+        const count = list.filter(s =>
             isNewStudentForYear(s, year, selectedSemester.value, props.allAcademicYears)
         ).length;
         return {

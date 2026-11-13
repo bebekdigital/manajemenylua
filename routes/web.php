@@ -130,6 +130,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/students/inline-update', [StudentController::class, 'inlineUpdate'])->name('students.inline-update');
     Route::get('/students/template', [StudentController::class, 'downloadTemplate'])->name('students.template');
     Route::post('/students/import', [StudentController::class, 'import'])->name('students.import');
+    Route::post('/students/sync-academic-records', [StudentController::class, 'syncAcademicRecords'])->name('students.syncAcademicRecords');
 
     Route::get('/students/mapping', [StudentMappingController::class, 'index'])->name('students.mapping.index');
     Route::post('/students/mapping', [StudentMappingController::class, 'store'])->name('students.mapping.store');

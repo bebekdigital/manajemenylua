@@ -86,7 +86,8 @@ class StatisticsController extends Controller
         $studentsPerClass = [];
 
         if (! empty($matchingYearIds)) {
-            $studentsPerClass = StudentAcademicRecord::query()
+            // A. Ambil kelas yang sudah diplot (ber-classroom_id)
+            $classedRecords = StudentAcademicRecord::query()
                 ->leftJoin('students', 'students.id', '=', 'student_academic_records.student_id')
                 ->whereIn('student_academic_records.academic_year_id', $matchingYearIds)
                 ->where('student_academic_records.student_status', 'aktif')
@@ -110,7 +111,40 @@ class StatisticsController extends Controller
                         'male' => (int) ($record->male ?? 0),
                         'female' => (int) ($record->female ?? 0),
                     ];
-                })
+                });
+
+            // B. Ambil rekap per tingkat untuk siswa yang belum diplot ke rombel (classroom_id is NULL)
+            $unclassedRecords = StudentAcademicRecord::query()
+                ->leftJoin('students', 'students.id', '=', 'student_academic_records.student_id')
+                ->whereIn('student_academic_records.academic_year_id', $matchingYearIds)
+                ->where('student_academic_records.student_status', 'aktif')
+                ->whereNull('student_academic_records.classroom_id')
+                ->select(
+                    'student_academic_records.tingkat',
+                    'student_academic_records.unit',
+                    'student_academic_records.jenjang',
+                    DB::raw('COUNT(DISTINCT student_academic_records.student_id) as total'),
+                    DB::raw("COUNT(DISTINCT CASE WHEN UPPER(COALESCE(students.jk, '')) = 'L' THEN student_academic_records.student_id END) as male"),
+                    DB::raw("COUNT(DISTINCT CASE WHEN UPPER(COALESCE(students.jk, '')) = 'P' THEN student_academic_records.student_id END) as female")
+                )
+                ->groupBy('student_academic_records.tingkat', 'student_academic_records.unit', 'student_academic_records.jenjang')
+                ->get()
+                ->map(function ($record) {
+                    $grade = (int) ($record->tingkat ?? 0);
+                    $name = $grade > 0 ? "Kelas {$grade}" : 'Belum Diplot';
+
+                    return [
+                        'classroom_name' => $name,
+                        'unit' => $record->unit ?? '-',
+                        'jenjang' => $record->jenjang ?? '-',
+                        'grade' => $grade,
+                        'total' => (int) $record->total,
+                        'male' => (int) ($record->male ?? 0),
+                        'female' => (int) ($record->female ?? 0),
+                    ];
+                });
+
+            $studentsPerClass = $classedRecords->concat($unclassedRecords)
                 ->sortBy([
                     ['unit', 'asc'],
                     ['grade', 'asc'],
@@ -120,7 +154,15 @@ class StatisticsController extends Controller
                 ->toArray();
         }
 
-        $students = Student::query()
+        $studentsQuery = Student::query();
+
+        if (! empty($matchingYearIds)) {
+            $studentsQuery->whereHas('academicRecords', function ($query) use ($matchingYearIds) {
+                $query->whereIn('academic_year_id', $matchingYearIds);
+            });
+        }
+
+        $students = $studentsQuery
             ->with([
                 'academicRecords' => function ($query) use ($matchingYearIds) {
                     if (! empty($matchingYearIds)) {
@@ -135,9 +177,7 @@ class StatisticsController extends Controller
             ->get()
             ->map(function (Student $student) {
                 $record = $student->academicRecords->first();
-                $rawStatus = $student->status_keaktifan
-                    ? (strtolower(trim($student->status_keaktifan)) === 'tidak aktif' ? 'tidak_aktif' : 'aktif')
-                    : ($record?->student_status ?? 'aktif');
+                $rawStatus = $record?->student_status ?? ($student->status_keaktifan ?: 'aktif');
 
                 $normalizedStatus = strtolower(trim((string) $rawStatus)) === 'aktif' ? 'aktif' : 'tidak_aktif';
 
@@ -146,16 +186,17 @@ class StatisticsController extends Controller
                     'nama' => $student->nama,
                     'nisn' => $student->nisn,
                     'nipd' => $student->nipd,
-                    'unit' => $student->unit ?? $record?->classroom?->unit ?? '-',
-                    'unit_pesantren' => $student->unit_pesantren ?? $record?->unit_pesantren,
-                    'jenjang' => $student->jenjang ?? $record?->classroom?->jenjang ?? '-',
+                    'unit' => $record?->unit ?? $student->unit ?? $record?->classroom?->unit ?? '-',
+                    'unit_pesantren' => $record?->unit_pesantren ?? $student->unit_pesantren,
+                    'jenjang' => $record?->jenjang ?? $student->jenjang ?? $record?->classroom?->jenjang ?? '-',
                     'angkatan' => $student->angkatan,
+                    'tingkat' => $record?->tingkat,
                     'jk' => strtoupper(trim((string) ($student->jk ?? ''))),
                     'student_status' => $normalizedStatus,
                     'status_keaktifan' => $student->status_keaktifan ?: ($normalizedStatus === 'aktif' ? 'Aktif' : 'Tidak Aktif'),
-                    'keterangan_tidak_aktif' => $student->keterangan_tidak_aktif ?? $record?->ket_tidak_aktif,
+                    'keterangan_tidak_aktif' => $record?->ket_tidak_aktif ?? $student->keterangan_tidak_aktif,
                     'program' => $record?->program ?: ($student->getAttribute('program') ?: 'Umum'),
-                    'kelas' => $record?->classroom?->name,
+                    'kelas' => $record?->classroom?->name ?? ($record?->tingkat ? "Kelas {$record->tingkat}" : '-'),
                     'tanggal_diterima' => $student->tanggal_diterima ? $student->tanggal_diterima->format('Y-m-d') : null,
                     'sekolah_asal' => $student->sekolah_asal,
                     'kecamatan' => $student->kecamatan,
@@ -167,8 +208,14 @@ class StatisticsController extends Controller
             ->values()
             ->toArray();
 
+        $allStudentsForChart = Student::query()
+            ->select(['id', 'nama', 'unit', 'unit_pesantren', 'program', 'jenjang', 'angkatan', 'tanggal_diterima'])
+            ->get()
+            ->toArray();
+
         return Inertia::render('Statistics/StudentStatistics', [
             'students' => $students,
+            'allStudents' => $allStudentsForChart,
             'studentsPerClass' => $studentsPerClass,
             'selectedAcademicYear' => $selectedYearData,
             'currentAcademicYear' => $currentYear ? [

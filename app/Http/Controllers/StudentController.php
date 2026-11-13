@@ -17,6 +17,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -358,6 +359,8 @@ class StudentController extends Controller
                     'student_id' => $student->id,
                     'academic_year_id' => $activeYear->id,
                     'classroom_id' => $classroomId,
+                    'unit' => $student->unit,
+                    'jenjang' => $student->jenjang,
                     'tingkat' => $validated['tingkat'] ?? null,
                     'program' => $validated['program'] ?? 'Umum',
                     'unit_pesantren' => $validated['unit_pesantren'] ?? null,
@@ -634,7 +637,10 @@ class StudentController extends Controller
         // Sinkronisasi program & jenjang ke Academic Record aktif siswa bila ada
         $activeYear = AcademicYear::current();
         if ($activeYear) {
-            $recordUpdates = [];
+            $recordUpdates = [
+                'unit' => $student->unit,
+                'jenjang' => $student->jenjang,
+            ];
             if (isset($validated['program'])) {
                 $recordUpdates['program'] = $validated['program'];
             }
@@ -644,12 +650,16 @@ class StudentController extends Controller
             if (isset($validated['tingkat'])) {
                 $recordUpdates['tingkat'] = $validated['tingkat'];
             }
-            if (! empty($recordUpdates)) {
-                $student->academicRecords()->updateOrCreate(
-                    ['academic_year_id' => $activeYear->id],
-                    $recordUpdates
-                );
+            if ($student->status_keaktifan) {
+                $isInactive = strtolower(trim((string) $student->status_keaktifan)) === 'tidak aktif';
+                $recordUpdates['student_status'] = $isInactive ? 'dropout' : 'aktif';
+                $recordUpdates['ket_tidak_aktif'] = $student->keterangan_tidak_aktif;
+                $recordUpdates['tanggal_tidak_aktif'] = $student->tanggal_tidak_aktif;
             }
+            $student->academicRecords()->updateOrCreate(
+                ['academic_year_id' => $activeYear->id],
+                $recordUpdates
+            );
         }
 
         $successMsg = "Data identitas siswa '{$student->nama}' berhasil diperbarui.";
@@ -931,6 +941,8 @@ class StudentController extends Controller
                     }
 
                     $recordUpdateData = [
+                        'unit' => $student->unit,
+                        'jenjang' => $student->jenjang,
                         'tingkat' => $d['tingkat'] ?? $record->tingkat,
                         'program' => $d['program'] ?? $record->program,
                         'student_status' => $d['student_status'] ?? $record->student_status,
@@ -1584,5 +1596,20 @@ class StudentController extends Controller
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'E8F5E9']],
             'font' => ['italic' => true, 'color' => ['rgb' => '2E7D32'], 'size' => 9],
         ]);
+    }
+
+    /**
+     * Sinkronisasi ulang riwayat akademik seluruh siswa per tahun ajaran.
+     */
+    public function syncAcademicRecords(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+        if (! RolePermission::canAccess($user, 'student_data', 'update') && $user?->role !== 'superadmin') {
+            abort(403, 'Akses ditolak: Anda tidak memiliki izin untuk sinkronisasi riwayat.');
+        }
+
+        Artisan::call('students:sync-academic-records');
+
+        return redirect()->back()->with('success', 'Riwayat akademik seluruh siswa berhasil disinkronkan.');
     }
 }
