@@ -496,18 +496,85 @@ class StudentController extends Controller
                 'nama' => $s->nama,
                 'tanggal_lahir' => $s->tanggal_lahir?->format('Y-m-d'),
             ])->toArray(),
-            'riwayat_keaktifan' => $studentModel->academicRecords->map(fn ($r) => [
-                'id' => $r->id,
-                'academic_year' => $r->academicYear?->name,
-                'semester' => $r->academicYear?->semester,
-                'unit' => $r->unit ?? $r->classroom?->unit ?? $studentModel->unit,
-                'unit_pesantren' => $r->unit_pesantren ?? $studentModel->unit_pesantren,
-                'program' => $r->program,
-                'tingkat' => $r->tingkat,
-                'kelas' => $r->classroom?->name,
-                'status' => $r->student_status,
-                'keterangan' => $r->ket_tidak_aktif,
-            ])->sortBy(fn ($r) => $r['academic_year'].'-'.$r['semester'])->values()->toArray(),
+            'riwayat_keaktifan' => $studentModel->academicRecords->map(function ($r) use ($studentModel) {
+                $academicYear = $r->academicYear;
+                $startDate = $academicYear?->start_date?->format('Y-m-d');
+                $endDate = $academicYear?->end_date?->format('Y-m-d');
+
+                // Fallback jika start_date atau end_date di tabel academic_years belum diset
+                if (! $startDate || ! $endDate) {
+                    $yearName = $academicYear?->name ?? '';
+                    if (preg_match('/(\d{4})\s*[\/-]\s*(\d{4})/', $yearName, $m)) {
+                        $y1 = $m[1];
+                        $y2 = $m[2];
+                        $sem = strtolower((string) ($academicYear?->semester ?? ''));
+                        if ($sem === 'ganjil') {
+                            $startDate = $startDate ?: "{$y1}-07-01";
+                            $endDate = $endDate ?: "{$y1}-12-31";
+                        } elseif ($sem === 'genap') {
+                            $startDate = $startDate ?: "{$y2}-01-01";
+                            $endDate = $endDate ?: "{$y2}-06-30";
+                        } else {
+                            $startDate = $startDate ?: "{$y1}-07-01";
+                            $endDate = $endDate ?: "{$y2}-06-30";
+                        }
+                    }
+                }
+
+                $masterKeaktifan = trim((string) ($studentModel->status_keaktifan ?: 'Aktif'));
+                $masterKet = trim((string) ($studentModel->keterangan_tidak_aktif ?? ''));
+                $tglTidakAktif = $studentModel->tanggal_tidak_aktif?->format('Y-m-d');
+
+                // Aturan Riwayat Keaktifan Siswa:
+                // 1. Selama tidak ada keterangan tidak aktif, maka riwayat setiap TA ditulis 'Aktif'.
+                // 2. Jika ada keterangan tidak aktif:
+                //    - Sebelum tanggal tidak aktif -> statusnya 'Aktif'.
+                //    - Tanggal sama dengan atau setelah tanggal tidak aktif -> statusnya 'Tidak Aktif'.
+                //    - Jika tanggal tidak aktif di tengah-tengah semester -> ditulis 'Aktif Sebagian'.
+                $statusKeaktifanSemester = 'Aktif';
+                $ketSemester = null;
+
+                $hasInactiveState = ! empty($masterKet) || strcasecmp($masterKeaktifan, 'Aktif') !== 0;
+
+                if ($hasInactiveState) {
+                    $ketSemester = $masterKet ?: (strcasecmp($masterKeaktifan, 'Lulus') === 0 ? 'Lulus' : 'Tidak Aktif');
+
+                    if ($tglTidakAktif && $startDate && $endDate) {
+                        if ($tglTidakAktif <= $startDate) {
+                            $statusKeaktifanSemester = 'Tidak Aktif';
+                        } elseif ($tglTidakAktif > $endDate) {
+                            $statusKeaktifanSemester = 'Aktif';
+                            $ketSemester = null; // Masih aktif penuh pada semester ini
+                        } else {
+                            $statusKeaktifanSemester = 'Aktif Sebagian';
+                        }
+                    } else {
+                        // Jika tanggal tidak aktif tidak diisi
+                        if (strcasecmp($masterKeaktifan, 'Lulus') === 0 || strcasecmp($masterKet, 'Lulus') === 0) {
+                            $statusKeaktifanSemester = 'Lulus';
+                        } else {
+                            $statusKeaktifanSemester = 'Tidak Aktif';
+                        }
+                    }
+                }
+
+                return [
+                    'id' => $r->id,
+                    'academic_year' => $academicYear?->name,
+                    'semester' => $academicYear?->semester,
+                    'start_date' => $startDate,
+                    'end_date' => $endDate,
+                    'unit' => $r->unit ?? $r->classroom?->unit ?? $studentModel->unit,
+                    'unit_pesantren' => $r->unit_pesantren ?? $studentModel->unit_pesantren,
+                    'program' => $r->program,
+                    'tingkat' => $r->tingkat,
+                    'kelas' => $r->classroom?->name,
+                    'status' => $statusKeaktifanSemester,
+                    'keterangan' => $ketSemester,
+                    'tanggal_tidak_aktif' => $tglTidakAktif,
+                    'student_status' => $r->student_status,
+                ];
+            })->sortBy(fn ($r) => $r['academic_year'].'-'.$r['semester'])->values()->toArray(),
             'angkatan' => $studentModel->angkatan,
             'diterima_di_jenjang' => $studentModel->diterima_di_jenjang,
             'tanggal_diterima' => $studentModel->tanggal_diterima?->format('Y-m-d'),

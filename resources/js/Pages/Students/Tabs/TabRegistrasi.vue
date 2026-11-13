@@ -191,57 +191,54 @@ function getCellData(row, unit) {
     );
     if (!record) return null;
 
-    // Catatan tidak aktif (cth: Mutasi Keluar, Drop Out, Dikeluarkan, Lulus)
-    const hasInactiveNote = Boolean(record.keterangan && record.keterangan.trim());
+    if (unit.type === 'formal') {
+        if (record.unit && record.unit !== unit.name) return null;
+    } else {
+        if (!record.unit_pesantren || record.unit_pesantren !== unit.name) return null;
+    }
 
-    // Status tampilan: prioritaskan ket_tidak_aktif jika ada (Mutasi Keluar, Drop Out, dll)
-    // Jika tidak ada, gunakan status semester (Naik Kelas / Tinggal Kelas)
-    let displayStatus = 'Naik Kelas';
-    let sub = null;
+    // Status keaktifan siswa pada semester ini: 'Aktif', 'Aktif Sebagian', 'Tidak Aktif', atau 'Lulus'
+    const status = record.status || 'Aktif';
+    const subtextParts = [];
 
-    if (hasInactiveNote) {
-        displayStatus = record.keterangan;
-    } else if (record.status) {
-        const sLower = record.status.toLowerCase().trim();
-        if (sLower === 'tinggal kelas' || sLower === 'mengulang') {
-            displayStatus = 'Tinggal Kelas';
-        } else if (sLower === 'lulus') {
-            displayStatus = 'Lulus';
-        } else {
-            displayStatus = 'Naik Kelas';
+    if (unit.type === 'formal') {
+        if (record.kelas) subtextParts.push(`Kelas ${record.kelas}`);
+        else if (record.tingkat) subtextParts.push(`Tingkat ${record.tingkat}`);
+    } else {
+        if (record.program) subtextParts.push(record.program);
+    }
+
+    if (status === 'Aktif Sebagian') {
+        if (record.keterangan) {
+            subtextParts.push(record.keterangan);
+        }
+    } else if (status === 'Tidak Aktif') {
+        if (record.keterangan) {
+            subtextParts.push(record.keterangan);
         }
     }
 
-    if (unit.type === 'formal') {
-        if (record.unit && record.unit !== unit.name) return null;
-        sub = record.kelas ? `Kelas ${record.kelas}` : (record.tingkat ? `Tingkat ${record.tingkat}` : null);
-    } else {
-        if (!record.unit_pesantren || record.unit_pesantren !== unit.name) return null;
-        sub = record.program || 'Santri';
-    }
-
     return {
-        status: displayStatus,
-        subtext: sub,
-        isInactive: hasInactiveNote,
+        status,
+        subtext: subtextParts.join(' • ') || null,
+        keterangan: record.keterangan,
+        isInactive: status === 'Tidak Aktif',
+        isPartial: status === 'Aktif Sebagian',
     };
 }
 
 function getStatusBadgeClass(status) {
     const s = (status || '').toLowerCase().trim();
-    if (s === 'naik kelas' || s === 'aktif') {
+    if (s === 'aktif') {
         return 'bg-emerald-50 text-emerald-800 border-emerald-200';
     }
-    if (s === 'tinggal kelas' || s === 'mengulang') {
-        return 'bg-amber-50 text-amber-800 border-amber-200';
+    if (s === 'aktif sebagian') {
+        return 'bg-amber-50 text-amber-900 border-amber-300';
     }
     if (s === 'lulus') {
         return 'bg-blue-50 text-blue-800 border-blue-200';
     }
-    if (s.includes('mutasi')) {
-        return 'bg-amber-50 text-amber-800 border-amber-200';
-    }
-    if (s.includes('drop') || s.includes('tidak') || s.includes('keluar') || s.includes('undur') || s.includes('meninggal')) {
+    if (s === 'tidak aktif' || s.includes('tidak') || s.includes('mutasi') || s.includes('drop') || s.includes('keluar')) {
         return 'bg-rose-50 text-rose-800 border-rose-200';
     }
     return 'bg-slate-50 text-slate-700 border-slate-200';
@@ -249,31 +246,20 @@ function getStatusBadgeClass(status) {
 
 function getStatusDotClass(status) {
     const s = (status || '').toLowerCase().trim();
-    if (s === 'naik kelas' || s === 'aktif') return 'bg-emerald-600';
-    if (s === 'tinggal kelas' || s === 'mengulang') return 'bg-amber-500';
+    if (s === 'aktif') return 'bg-emerald-600';
+    if (s === 'aktif sebagian') return 'bg-amber-500';
     if (s === 'lulus') return 'bg-blue-600';
-    if (s.includes('mutasi')) return 'bg-amber-500';
     return 'bg-rose-600';
 }
 
 function formatStatus(status) {
-    if (!status) return 'Naik Kelas';
-    const map = {
-        'naik kelas': 'Naik Kelas',
-        'tinggal kelas': 'Tinggal Kelas',
-        'aktif': 'Naik Kelas',
-        'mengulang': 'Tinggal Kelas',
-        'mutasi_keluar': 'Mutasi Keluar',
-        'mutasi_masuk': 'Mutasi Masuk',
-        'dropout': 'Drop Out',
-        'tidak_aktif': 'Tidak Aktif',
-        'lulus': 'Lulus',
-        'mengundurkan_diri': 'Mengundurkan Diri',
-    };
+    if (!status) return 'Aktif';
     const s = status.toLowerCase().trim();
-    if (map[s]) return map[s];
-    const formatted = s.replace(/_/g, ' ');
-    return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+    if (s === 'aktif sebagian') return 'Aktif Sebagian';
+    if (s === 'tidak aktif') return 'Tidak Aktif';
+    if (s === 'lulus') return 'Lulus';
+    if (s === 'aktif') return 'Aktif';
+    return status;
 }
 </script>
 
