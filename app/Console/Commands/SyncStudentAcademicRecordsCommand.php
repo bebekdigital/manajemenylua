@@ -127,7 +127,32 @@ class SyncStudentAcademicRecordsCommand extends Command
 
         $this->info("Sinkronisasi Selesai! Record Baru Dibuat: {$created}, Record Diperbarui: {$updated}, Siswa Dilewati: {$skipped}");
 
+        $this->printSummary();
+
         return 0;
+    }
+
+    private function printSummary(): void
+    {
+        $this->info("\n--- Ringkasan Data Riwayat Akademik per Tahun Ajaran ---");
+        $summary = DB::table('student_academic_records')
+            ->join('academic_years', 'academic_years.id', '=', 'student_academic_records.academic_year_id')
+            ->select(
+                'academic_years.name as ta_name',
+                'academic_years.semester',
+                'student_academic_records.tingkat',
+                'student_academic_records.student_status',
+                DB::raw('count(*) as count')
+            )
+            ->groupBy('academic_years.name', 'academic_years.semester', 'student_academic_records.tingkat', 'student_academic_records.student_status')
+            ->orderBy('academic_years.name')
+            ->orderBy('academic_years.semester')
+            ->orderBy('student_academic_records.tingkat')
+            ->get();
+
+        foreach ($summary as $s) {
+            $this->line("TA: {$s->ta_name} ({$s->semester}) | Tingkat: {$s->tingkat} | Status: {$s->student_status} | Siswa: {$s->count}");
+        }
     }
 
     private function determineEntryYear(Student $student): ?int
