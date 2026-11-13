@@ -183,6 +183,24 @@ const timelineUnits = computed(() => {
     return list;
 });
 
+function formatTanggalIndoText(dateStr) {
+    if (!dateStr) return '-';
+    try {
+        const parts = String(dateStr).slice(0, 10).split('-');
+        if (parts.length !== 3) return dateStr;
+        const [y, m, d] = parts;
+        const months = [
+            'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+            'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+        ];
+        const monthIndex = parseInt(m, 10) - 1;
+        const monthName = months[monthIndex] || m;
+        return `${parseInt(d, 10)} ${monthName} ${y}`;
+    } catch {
+        return dateStr;
+    }
+}
+
 function getCellData(row, unit) {
     if (!props.student.riwayat_keaktifan) return null;
 
@@ -197,8 +215,18 @@ function getCellData(row, unit) {
         if (!record.unit_pesantren || record.unit_pesantren !== unit.name) return null;
     }
 
-    // Status keaktifan siswa pada semester ini: 'Aktif', 'Aktif Sebagian', 'Tidak Aktif', atau 'Lulus'
+    // Status keaktifan siswa pada semester ini: 'Aktif', 'Tidak Aktif-Sebagian', 'Tidak Aktif', 'Lulus', atau '-'
     const status = record.status || 'Aktif';
+
+    // Jika semester setelah siswa tidak aktif, tampilkan strip '-'
+    if (status === '-') {
+        return {
+            status: '-',
+            isDash: true,
+            subtext: null,
+        };
+    }
+
     const subtextParts = [];
 
     if (unit.type === 'formal') {
@@ -208,11 +236,7 @@ function getCellData(row, unit) {
         if (record.program) subtextParts.push(record.program);
     }
 
-    if (status === 'Aktif Sebagian') {
-        if (record.keterangan) {
-            subtextParts.push(record.keterangan);
-        }
-    } else if (status === 'Tidak Aktif') {
+    if (status === 'Tidak Aktif-Sebagian' || status === 'Tidak Aktif') {
         if (record.keterangan) {
             subtextParts.push(record.keterangan);
         }
@@ -223,7 +247,8 @@ function getCellData(row, unit) {
         subtext: subtextParts.join(' • ') || null,
         keterangan: record.keterangan,
         isInactive: status === 'Tidak Aktif',
-        isPartial: status === 'Aktif Sebagian',
+        isPartial: status === 'Tidak Aktif-Sebagian',
+        isDash: false,
     };
 }
 
@@ -232,7 +257,7 @@ function getStatusBadgeClass(status) {
     if (s === 'aktif') {
         return 'bg-emerald-50 text-emerald-800 border-emerald-200';
     }
-    if (s === 'aktif sebagian') {
+    if (s === 'tidak aktif-sebagian' || s === 'aktif sebagian') {
         return 'bg-amber-50 text-amber-900 border-amber-300';
     }
     if (s === 'lulus') {
@@ -247,15 +272,15 @@ function getStatusBadgeClass(status) {
 function getStatusDotClass(status) {
     const s = (status || '').toLowerCase().trim();
     if (s === 'aktif') return 'bg-emerald-600';
-    if (s === 'aktif sebagian') return 'bg-amber-500';
+    if (s === 'tidak aktif-sebagian' || s === 'aktif sebagian') return 'bg-amber-500';
     if (s === 'lulus') return 'bg-blue-600';
     return 'bg-rose-600';
 }
 
 function formatStatus(status) {
-    if (!status) return 'Aktif';
+    if (!status || status === '-') return '-';
     const s = status.toLowerCase().trim();
-    if (s === 'aktif sebagian') return 'Aktif Sebagian';
+    if (s === 'tidak aktif-sebagian' || s === 'aktif sebagian') return 'Tidak Aktif-Sebagian';
     if (s === 'tidak aktif') return 'Tidak Aktif';
     if (s === 'lulus') return 'Lulus';
     if (s === 'aktif') return 'Aktif';
@@ -416,9 +441,8 @@ function formatStatus(status) {
                     <div>
                         <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Tanggal Tidak Aktif</label>
                         <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">
-                            <span v-if="student.status_keaktifan === 'Tidak Aktif' && student.tanggal_tidak_aktif" class="inline-flex items-center gap-1.5">
-                                <span class="font-mono text-slate-800">{{ student.tanggal_tidak_aktif }}</span>
-                                <span v-if="student.formatted_tanggal_tidak_aktif" class="text-xs font-normal text-slate-500">({{ student.formatted_tanggal_tidak_aktif }})</span>
+                            <span v-if="(student.status_keaktifan === 'Tidak Aktif' || student.student_status === 'tidak_aktif') && student.tanggal_tidak_aktif" class="text-slate-900">
+                                {{ formatTanggalIndoText(student.tanggal_tidak_aktif) }}
                             </span>
                             <span v-else class="text-slate-400 font-normal">-</span>
                         </p>
@@ -479,7 +503,7 @@ function formatStatus(status) {
                                     :key="u.name"
                                     class="p-3.5 text-center min-w-[220px]"
                                 >
-                                    <template v-if="getCellData(row, u)">
+                                    <template v-if="getCellData(row, u) && getCellData(row, u).status !== '-'">
                                         <div class="inline-flex flex-col items-center gap-1">
                                             <span
                                                 class="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border shadow-2xs"

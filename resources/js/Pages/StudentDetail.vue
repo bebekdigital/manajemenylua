@@ -395,13 +395,13 @@ onUnmounted(() => {
                                 <span>{{ student.status_keaktifan === 'Tidak Aktif' ? 'Tidak Aktif' : (student.status_keaktifan === 'Lulus' ? 'Lulus' : 'Aktif') }}</span>
                             </span>
 
-                            <!-- Keterangan & Tanggal Tidak Aktif jika Tidak Aktif -->
+                            <!-- Keterangan Tidak Aktif jika Tidak Aktif (tanpa tanggal keluar) -->
                             <span
                                 v-if="student.status_keaktifan === 'Tidak Aktif' && (student.keterangan_tidak_aktif || student.ket_tidak_aktif)"
                                 class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-100/70 text-rose-900 border border-rose-300"
                             >
                                 <span class="material-symbols-outlined text-[14px]">info</span>
-                                <span>{{ student.keterangan_tidak_aktif || student.ket_tidak_aktif }} <template v-if="student.tanggal_tidak_aktif">({{ student.tanggal_tidak_aktif }})</template></span>
+                                <span>{{ student.keterangan_tidak_aktif || student.ket_tidak_aktif }}</span>
                             </span>
 
                             <!-- Badge Jenis Kelamin -->
@@ -415,9 +415,9 @@ onUnmounted(() => {
                                 {{ student.jk === 'L' ? 'Laki-laki' : 'Perempuan' }}
                             </span>
 
-                            <!-- Badge Program -->
+                            <!-- Badge Program (hanya muncul jika siswa aktif) -->
                             <span
-                                v-if="student.program"
+                                v-if="student.program && student.status_keaktifan !== 'Tidak Aktif'"
                                 class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200"
                             >
                                 {{ student.program }}
