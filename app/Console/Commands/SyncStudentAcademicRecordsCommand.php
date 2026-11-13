@@ -9,6 +9,7 @@ use Carbon\Carbon;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 
 #[Signature('students:sync-academic-records {--inspect : Hanya inspect data tanpa mengubah DB}')]
 #[Description('Sinkronisasi dan backfill data riwayat akademik siswa per tahun ajaran')]
