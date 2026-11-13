@@ -31,9 +31,12 @@ const mapContainer = ref(null);
 let map = null;
 let geojsonLayer = null;
 let desaGeojsonLayer = null;
+let desaCanvasRenderer = null;
+let desaLoadingPromise = null;
 let kabupatenLayer = null;
 let schoolMarker = null;
 let activeHoverLayer = null;
+let currentHoveredDesaKey = null;
 let singleTooltip = null;
 let isLockedByClick = false;
 let lastInteractionTime = 0;
@@ -459,6 +462,7 @@ function getFeatureCount(feature) {
 function featureStyle(feature) {
     const count = getFeatureCount(feature);
     return {
+        fill: true,
         fillColor: getColor(count),
         weight: 0.8,
         opacity: 0.8,
@@ -479,10 +483,12 @@ function getDesaFeatureCount(feature) {
 function desaFeatureStyle(feature) {
     const count = getDesaFeatureCount(feature);
     return {
+        fill: true,
         fillColor: getColor(count),
         weight: 0.5,
         opacity: 0.85,
         color: count > 0 ? '#059669' : '#cbd5e1',
+        dashArray: null,
         fillOpacity: count > 0 ? 0.92 : 0.45,
     };
 }
@@ -490,11 +496,14 @@ function desaFeatureStyle(feature) {
 function selectFeature(feature, layer, latlng = null) {
     hoveredDesa.value = null;
     if (activeHoverLayer && activeHoverLayer !== layer) {
-        activeHoverLayer.setStyle(featureStyle(activeHoverLayer.feature));
+        if (activeHoverLayer.feature) {
+            activeHoverLayer.setStyle(featureStyle(activeHoverLayer.feature));
+        }
     }
     activeHoverLayer = layer;
 
     layer.setStyle({
+        fill: true,
         weight: 2.5,
         color: '#047857',
         fillOpacity: 1,
@@ -540,6 +549,17 @@ function selectFeature(feature, layer, latlng = null) {
 }
 
 function selectDesaFeature(feature, layer, latlng = null) {
+    const dKey = normalizeKey(feature.properties.desa);
+    const kecKey = normalizeKey(feature.properties.kecamatan);
+    const kabKey = normalizeKey(feature.properties.kabupaten);
+    const key = `${dKey}_${kecKey}_${kabKey}`;
+
+    if (currentHoveredDesaKey === key && singleTooltip && map && map.hasLayer(singleTooltip)) {
+        if (latlng) singleTooltip.setLatLng(latlng);
+        return;
+    }
+    currentHoveredDesaKey = key;
+
     hoveredFeature.value = null;
     if (activeHoverLayer && activeHoverLayer !== layer) {
         if (activeHoverLayer.feature) {
@@ -549,16 +569,14 @@ function selectDesaFeature(feature, layer, latlng = null) {
     activeHoverLayer = layer;
 
     layer.setStyle({
-        weight: 2.5,
+        fill: true,
+        weight: 2,
         color: '#047857',
         fillOpacity: 1,
     });
 
     if (layer.bringToFront) {
         layer.bringToFront();
-    }
-    if (geojsonLayer && geojsonLayer.bringToFront) {
-        geojsonLayer.bringToFront();
     }
     if (kabupatenLayer && kabupatenLayer.bringToFront) {
         kabupatenLayer.bringToFront();
@@ -569,10 +587,6 @@ function selectDesaFeature(feature, layer, latlng = null) {
         ? Math.round((count / distribution.value.activeTotal) * 100)
         : 0;
 
-    const dKey = normalizeKey(feature.properties.desa);
-    const kecKey = normalizeKey(feature.properties.kecamatan);
-    const kabKey = normalizeKey(feature.properties.kabupaten);
-    const key = `${dKey}_${kecKey}_${kabKey}`;
     const students = desaDistribution.value.studentsByKey[key] || [];
 
     hoveredDesa.value = {
@@ -617,6 +631,7 @@ function handleSelect(feature, layer, latlng = null) {
 
 function clearHover() {
     isLockedByClick = false;
+    currentHoveredDesaKey = null;
     if (activeHoverLayer) {
         if (aggregationLevel.value === 'kecamatan') {
             activeHoverLayer.setStyle(featureStyle(activeHoverLayer.feature));
@@ -636,9 +651,15 @@ function initDesaLayer() {
     if (!map || !desaGeojsonData.value) return;
     if (desaGeojsonLayer) {
         desaGeojsonLayer.remove();
+        desaGeojsonLayer = null;
+    }
+
+    if (!desaCanvasRenderer) {
+        desaCanvasRenderer = L.canvas({ padding: 0.25 });
     }
 
     desaGeojsonLayer = L.geoJSON(desaGeojsonData.value, {
+        renderer: desaCanvasRenderer,
         style: desaFeatureStyle,
         onEachFeature: (feature, layer) => {
             layer.on({
@@ -679,35 +700,35 @@ function initDesaLayer() {
     });
 
     if (aggregationLevel.value === 'desa') {
-        desaGeojsonLayer.addTo(map);
-        if (geojsonLayer) {
-            geojsonLayer.setStyle({
-                fill: false,
-                weight: 1.2,
-                color: '#64748b',
-                opacity: 0.85,
-            });
-            geojsonLayer.bringToFront();
+        if (geojsonLayer && map.hasLayer(geojsonLayer)) {
+            map.removeLayer(geojsonLayer);
         }
-        if (kabupatenLayer) {
+        desaGeojsonLayer.addTo(map);
+        if (kabupatenLayer && kabupatenLayer.bringToFront) {
             kabupatenLayer.bringToFront();
         }
     }
 }
 
 async function loadDesaGeoJson() {
-    if (desaGeojsonData.value || isDesaLoading.value) return;
-    try {
-        isDesaLoading.value = true;
-        const res = await fetch('/data/solo-raya-desa.geojson');
-        if (!res.ok) throw new Error('Gagal memuat batas desa');
-        desaGeojsonData.value = await res.json();
-        initDesaLayer();
-    } catch (err) {
-        console.error('Error loading desa geojson:', err);
-    } finally {
-        isDesaLoading.value = false;
-    }
+    if (desaGeojsonData.value) return;
+    if (desaLoadingPromise) return desaLoadingPromise;
+
+    isDesaLoading.value = true;
+    desaLoadingPromise = (async () => {
+        try {
+            const res = await fetch('/data/solo-raya-desa.geojson');
+            if (!res.ok) throw new Error('Gagal memuat batas desa');
+            desaGeojsonData.value = await res.json();
+            initDesaLayer();
+        } catch (err) {
+            console.error('Error loading desa geojson:', err);
+        } finally {
+            isDesaLoading.value = false;
+            desaLoadingPromise = null;
+        }
+    })();
+    return desaLoadingPromise;
 }
 
 function updateMapLayers() {
@@ -729,6 +750,10 @@ function updateMapLayers() {
         }
     } else {
         // Mode Per Desa:
+        // Sembunyikan layer kecamatan agar tidak tumpang tindih dan tidak membebani browser
+        if (geojsonLayer && map.hasLayer(geojsonLayer)) {
+            map.removeLayer(geojsonLayer);
+        }
         if (desaGeojsonLayer) {
             if (!map.hasLayer(desaGeojsonLayer)) {
                 desaGeojsonLayer.addTo(map);
@@ -736,22 +761,13 @@ function updateMapLayers() {
             desaGeojsonLayer.eachLayer(layer => {
                 layer.setStyle(desaFeatureStyle(layer.feature));
             });
-            // Poligon kecamatan di atasnya jadi garis batas transparan
-            if (geojsonLayer) {
-                geojsonLayer.setStyle({
-                    fill: false,
-                    weight: 1.2,
-                    color: '#64748b',
-                    opacity: 0.85,
-                });
-                geojsonLayer.bringToFront();
-            }
-            if (kabupatenLayer) {
-                kabupatenLayer.bringToFront();
-            }
         } else if (!isDesaLoading.value) {
             loadDesaGeoJson();
         }
+    }
+
+    if (kabupatenLayer && kabupatenLayer.bringToFront) {
+        kabupatenLayer.bringToFront();
     }
 }
 
@@ -1450,12 +1466,12 @@ onBeforeUnmount(() => {
                         <span class="w-4 border-t-2 border-dashed border-[#1e293b] inline-block"></span>
                         <span class="font-bold text-slate-800">Batas Kabupaten</span>
                     </div>
-                    <div class="flex items-center gap-1.5" title="Garis batas kecamatan">
-                        <span class="w-4 h-[1.5px] bg-[#64748b] inline-block"></span>
+                    <div v-if="aggregationLevel === 'kecamatan'" class="flex items-center gap-1.5" title="Garis batas kecamatan">
+                        <span class="w-4 h-[1.5px] bg-[#94a3b8] inline-block"></span>
                         <span>Batas Kecamatan</span>
                     </div>
-                    <div v-if="aggregationLevel === 'desa'" class="flex items-center gap-1.5" title="Garis halus batas desa">
-                        <span class="w-4 h-[1px] bg-[#cbd5e1] inline-block"></span>
+                    <div v-if="aggregationLevel === 'desa'" class="flex items-center gap-1.5" title="Garis batas desa">
+                        <span class="w-4 h-[1.5px] bg-[#cbd5e1] inline-block"></span>
                         <span>Batas Desa</span>
                     </div>
                 </div>
