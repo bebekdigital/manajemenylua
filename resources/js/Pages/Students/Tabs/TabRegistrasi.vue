@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, watch, inject } from 'vue';
+import { ref, reactive, computed, watch, inject } from 'vue';
 import { useForm, usePage } from '@inertiajs/vue3';
 
 const props = defineProps({
@@ -109,6 +109,118 @@ function saveChanges() {
             }
         },
     });
+}
+
+// ============================================================
+// Riwayat Keaktifan Siswa Matrix (TA di Kolom 1, Unit di Baris Atas)
+// ============================================================
+
+// 1. Daftar baris Tahun Ajaran & Semester (Kolom Pertama)
+const academicYearRows = computed(() => {
+    if (!props.student.riwayat_keaktifan || props.student.riwayat_keaktifan.length === 0) return [];
+
+    const map = new Map();
+    props.student.riwayat_keaktifan.forEach(r => {
+        if (!r.academic_year) return;
+        const key = `${r.academic_year}__${r.semester || ''}`;
+        if (!map.has(key)) {
+            map.set(key, {
+                key,
+                ta: r.academic_year,
+                semester: r.semester || '',
+            });
+        }
+    });
+    return Array.from(map.values());
+});
+
+// 2. Daftar kolom Unit (Baris Atas)
+const timelineUnits = computed(() => {
+    const list = [];
+    const seen = new Set();
+
+    const addUnit = (name, type) => {
+        if (!name || seen.has(name)) return;
+        seen.add(name);
+        const upper = name.toUpperCase();
+        const isPesantren = type === 'pesantren' || upper.includes('PPTQ') || upper.includes('PESANTREN') || upper.includes('PONDOK');
+        list.push({
+            name,
+            type: isPesantren ? 'pesantren' : 'formal',
+            badgeText: isPesantren ? 'Unit Asrama / Pesantren' : 'Unit Sekolah Formal',
+            badgeColor: isPesantren ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-emerald-50 text-emerald-800 border-emerald-200',
+        });
+    };
+
+    // Formal unit aktif
+    if (props.student.unit) addUnit(props.student.unit, 'formal');
+
+    // Formal units dari riwayat
+    if (props.student.riwayat_keaktifan) {
+        props.student.riwayat_keaktifan.forEach(r => {
+            if (r.unit) addUnit(r.unit, 'formal');
+        });
+    }
+
+    // Pesantren unit aktif
+    if (props.student.unit_pesantren) addUnit(props.student.unit_pesantren, 'pesantren');
+
+    // Pesantren units dari riwayat
+    if (props.student.riwayat_keaktifan) {
+        props.student.riwayat_keaktifan.forEach(r => {
+            if (r.unit_pesantren) addUnit(r.unit_pesantren, 'pesantren');
+        });
+    }
+
+    return list;
+});
+
+function getCellData(row, unit) {
+    if (!props.student.riwayat_keaktifan) return null;
+
+    const record = props.student.riwayat_keaktifan.find(r => 
+        r.academic_year === row.ta && (r.semester || '') === (row.semester || '')
+    );
+    if (!record) return null;
+
+    if (unit.type === 'formal') {
+        if (record.unit && record.unit !== unit.name) return null;
+        return {
+            status: record.status || 'aktif',
+            subtext: record.kelas ? `Kelas ${record.kelas}` : (record.tingkat ? `Tingkat ${record.tingkat}` : null),
+            keterangan: record.keterangan || null,
+        };
+    } else {
+        if (!record.unit_pesantren || record.unit_pesantren !== unit.name) return null;
+        return {
+            status: record.status || 'aktif',
+            subtext: record.program || 'Santri',
+            keterangan: record.keterangan || null,
+        };
+    }
+}
+
+function getStatusBadgeClass(status) {
+    const s = (status || '').toLowerCase().trim();
+    if (s === 'aktif') {
+        return 'bg-emerald-50 text-emerald-800 border-emerald-200';
+    }
+    if (s === 'lulus') {
+        return 'bg-blue-50 text-blue-800 border-blue-200';
+    }
+    if (s.includes('mutasi')) {
+        return 'bg-amber-50 text-amber-800 border-amber-200';
+    }
+    if (s.includes('drop') || s.includes('tidak')) {
+        return 'bg-rose-50 text-rose-800 border-rose-200';
+    }
+    return 'bg-slate-50 text-slate-700 border-slate-200';
+}
+
+function formatStatus(status) {
+    if (!status) return 'Aktif';
+    const s = status.replace(/_/g, ' ');
+    return s.charAt(0).toUpperCase() + s.slice(1);
 }
 </script>
 
@@ -270,42 +382,85 @@ function saveChanges() {
 
             <!-- Riwayat Keaktifan Siswa Timeline -->
             <div class="mt-6 pt-2" v-if="student.riwayat_keaktifan && student.riwayat_keaktifan.length > 0">
-                <div class="flex items-center gap-2 mb-4 pb-2 border-b border-slate-100">
-                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span>
-                    <h4 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Riwayat Keaktifan Siswa</h4>
+                <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span>
+                        <h4 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Riwayat Keaktifan Siswa</h4>
+                    </div>
+                    <span class="text-[11px] font-semibold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full">
+                        {{ academicYearRows.length }} Semester Tercatat
+                    </span>
                 </div>
-                <div class="overflow-x-auto rounded-2xl border border-slate-200 shadow-2xs relative">
+                <div class="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-2xs relative">
                     <table class="w-full text-left text-xs sm:text-sm border-collapse whitespace-nowrap">
                         <thead>
-                            <tr class="border-b border-slate-200 bg-slate-50">
-                                <th class="p-3.5 font-bold text-slate-700 min-w-[160px] sticky left-0 z-10 border-r border-slate-200 bg-slate-50">Unit</th>
-                                <th v-for="header in timelineHeaders" :key="header.key" class="p-3.5 font-bold text-slate-700 text-center">
-                                    {{ header.ta }} <br/>
-                                    <span class="text-xs text-slate-500 font-medium">{{ header.semester }}</span>
+                            <tr class="border-b border-slate-200 bg-slate-50/80">
+                                <th class="p-3.5 font-bold text-slate-700 min-w-[200px] sticky left-0 z-10 border-r border-slate-200 bg-slate-50/90">
+                                    Tahun Ajaran / Semester
+                                </th>
+                                <th
+                                    v-for="u in timelineUnits"
+                                    :key="u.name"
+                                    class="p-3.5 font-bold text-slate-800 text-center min-w-[220px]"
+                                >
+                                    <div class="flex flex-col items-center gap-1">
+                                        <span class="text-xs font-bold text-slate-900 leading-tight">{{ u.name }}</span>
+                                        <span
+                                            class="inline-block text-[10px] font-semibold px-2 py-0.5 rounded-md border"
+                                            :class="u.badgeColor"
+                                        >
+                                            {{ u.badgeText }}
+                                        </span>
+                                    </div>
                                 </th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
-                            <tr v-for="row in timelineRows" :key="row.unit" class="hover:bg-slate-50/60">
-                                <td class="p-3.5 text-slate-800 font-bold bg-white sticky left-0 z-10 border-r border-slate-100">
-                                    {{ row.unit }}
-                                </td>
-                                <td v-for="header in timelineHeaders" :key="header.key" class="p-3.5 text-center min-w-[160px]">
-                                    <template v-if="row.data[header.key]">
-                                        <span v-if="row.data[header.key].status === 'aktif'" class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-950 border border-emerald-300 shadow-2xs">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
-                                            Kelas {{ row.data[header.key].kelas || 'Aktif' }}
+                            <tr v-for="row in academicYearRows" :key="row.key" class="hover:bg-slate-50/60 transition-colors">
+                                <td class="p-3.5 bg-white sticky left-0 z-10 border-r border-slate-100">
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-bold text-slate-900 font-mono text-xs sm:text-sm">{{ row.ta }}</span>
+                                        <span
+                                            class="px-2 py-0.5 rounded-md text-[11px] font-bold"
+                                            :class="row.semester === 'Ganjil' ? 'bg-sky-50 text-sky-700 border border-sky-200' : 'bg-indigo-50 text-indigo-700 border border-indigo-200'"
+                                        >
+                                            {{ row.semester }}
                                         </span>
-                                        <div v-else class="flex flex-col items-center justify-center">
-                                            <span class="text-rose-700 font-bold capitalize text-xs bg-rose-50 border border-rose-200 px-2.5 py-0.5 rounded-full">
-                                                {{ row.data[header.key].status.replace('_', ' ') }}
+                                    </div>
+                                </td>
+                                <td
+                                    v-for="u in timelineUnits"
+                                    :key="u.name"
+                                    class="p-3.5 text-center min-w-[220px]"
+                                >
+                                    <template v-if="getCellData(row, u)">
+                                        <div class="inline-flex flex-col items-center gap-1">
+                                            <span
+                                                class="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border shadow-2xs"
+                                                :class="getStatusBadgeClass(getCellData(row, u).status)"
+                                            >
+                                                <span
+                                                    class="w-1.5 h-1.5 rounded-full"
+                                                    :class="getCellData(row, u).status === 'aktif' ? 'bg-emerald-600' : (getCellData(row, u).status === 'lulus' ? 'bg-blue-600' : (getCellData(row, u).status && getCellData(row, u).status.includes('mutasi') ? 'bg-amber-600' : 'bg-rose-600'))"
+                                                ></span>
+                                                {{ formatStatus(getCellData(row, u).status) }}
                                             </span>
-                                            <span v-if="row.data[header.key].keterangan" class="text-[10px] text-rose-600 mt-1 max-w-[140px] truncate" :title="row.data[header.key].keterangan">
-                                                ({{ row.data[header.key].keterangan }})
+                                            <span
+                                                v-if="getCellData(row, u).subtext"
+                                                class="text-[11px] font-semibold text-slate-600"
+                                            >
+                                                {{ getCellData(row, u).subtext }}
+                                            </span>
+                                            <span
+                                                v-if="getCellData(row, u).keterangan"
+                                                class="text-[10px] text-slate-500 italic max-w-[190px] truncate"
+                                                :title="getCellData(row, u).keterangan"
+                                            >
+                                                ({{ getCellData(row, u).keterangan }})
                                             </span>
                                         </div>
                                     </template>
-                                    <span v-else class="text-slate-300 text-xs">-</span>
+                                    <span v-else class="text-slate-300 text-xs font-normal">-</span>
                                 </td>
                             </tr>
                         </tbody>
