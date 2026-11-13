@@ -18,14 +18,14 @@ class SyncStudentAcademicRecordsCommand extends Command
     public function handle()
     {
         if ($this->option('test-stats')) {
-            $this->info('Checking Distinct unit_pesantren in students:');
-            $distinct = Student::select('unit_pesantren', DB::raw('count(*) as c'))->groupBy('unit_pesantren')->get();
+            $this->info('Checking Programs in StudentAcademicRecord:');
+            $distinct = StudentAcademicRecord::select('program', DB::raw('count(*) as c'))->groupBy('program')->get();
             foreach ($distinct as $d) {
-                $this->line("unit_pesantren: '{$d->unit_pesantren}' | Count: {$d->c}");
+                $this->line("program: '{$d->program}' | Count: {$d->c}");
             }
-            $sample = Student::select('id', 'nama', 'unit', 'unit_pesantren')->take(5)->get();
+            $sample = StudentAcademicRecord::select('id', 'student_id', 'program', 'unit_pesantren')->take(5)->get();
             foreach ($sample as $s) {
-                $this->line("ID: {$s->id} | {$s->nama} | Unit: {$s->unit} | Pesantren: {$s->unit_pesantren}");
+                $this->line("Record ID: {$s->id} | Student: {$s->student_id} | Program: {$s->program} | Pesantren: {$s->unit_pesantren}");
             }
 
             return 0;
