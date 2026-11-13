@@ -1,20 +1,7 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, onUnmounted, ref, watch } from 'vue';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { Bar } from 'vue-chartjs';
-import {
-    Chart as ChartJS,
-    CategoryScale,
-    LinearScale,
-    BarElement,
-    Title,
-    Tooltip,
-    Legend,
-} from 'chart.js';
-import ChartDataLabels from 'chartjs-plugin-datalabels';
-
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ChartDataLabels);
 
 // Perbesar toleransi geser Leaflet untuk layar sentuh/mobile (mencegah tap dianggap drag)
 if (L.Draggable?.prototype?.options) {
@@ -97,7 +84,8 @@ const soloRayaKecMap = computed(() => {
 const distribution = computed(() => {
     const list = props.students || [];
     const countsByKey = {}; // featureKey -> count
-    const outsideMap = {};  // regency / text -> count
+    const studentsByKey = {}; // featureKey -> [student, ...]
+    const outsideMap = {};  // regency / text -> { count, students }
     let outsideTotal = 0;
     let coverageTotal = 0;
     let activeTotal = 0;
@@ -116,7 +104,11 @@ const distribution = computed(() => {
         if (!normKec) {
             outsideTotal++;
             const groupName = rawKab || 'Alamat Belum Terdata';
-            outsideMap[groupName] = (outsideMap[groupName] || 0) + 1;
+            if (!outsideMap[groupName]) {
+                outsideMap[groupName] = { count: 0, students: [] };
+            }
+            outsideMap[groupName].count++;
+            outsideMap[groupName].students.push(s);
             return;
         }
 
@@ -131,20 +123,29 @@ const distribution = computed(() => {
 
             const featureKey = `${normalizeKey(matched.kecamatan)}_${normalizeKey(matched.kabupaten)}`;
             countsByKey[featureKey] = (countsByKey[featureKey] || 0) + 1;
+            if (!studentsByKey[featureKey]) {
+                studentsByKey[featureKey] = [];
+            }
+            studentsByKey[featureKey].push(s);
             coverageTotal++;
         } else {
             outsideTotal++;
             const groupName = rawKab ? `${rawKab} (Kec. ${rawKec || '-'})` : (rawKec || 'Luar Wilayah');
-            outsideMap[groupName] = (outsideMap[groupName] || 0) + 1;
+            if (!outsideMap[groupName]) {
+                outsideMap[groupName] = { count: 0, students: [] };
+            }
+            outsideMap[groupName].count++;
+            outsideMap[groupName].students.push(s);
         }
     });
 
     const outsideList = Object.entries(outsideMap)
-        .map(([region, count]) => ({ region, count }))
+        .map(([region, val]) => ({ region, count: val.count, students: val.students }))
         .sort((a, b) => b.count - a.count);
 
     return {
         countsByKey,
+        studentsByKey,
         outsideList,
         outsideTotal,
         coverageTotal,
@@ -158,21 +159,95 @@ const activeView = ref('peta');
 const barSearchQuery = ref('');
 const barFilterLimit = ref('15'); // '10' | '15' | '25' | 'all'
 
+// State Modal Pop-up Rincian Siswa per Kecamatan
+const selectedKecamatanModal = ref(null);
+const modalSearch = ref('');
+
+function openKecamatanModal(item) {
+    selectedKecamatanModal.value = item;
+    modalSearch.value = '';
+}
+
+function closeKecamatanModal() {
+    selectedKecamatanModal.value = null;
+    modalSearch.value = '';
+}
+
+function openFeatureModal(feature) {
+    if (!feature) return;
+    const key = `${normalizeKey(feature.kecamatan)}_${normalizeKey(feature.kabupaten)}`;
+    const students = distribution.value.studentsByKey[key] || [];
+    openKecamatanModal({
+        kecamatan: feature.kecamatan,
+        kabupaten: feature.kabupaten,
+        count: feature.count,
+        percentage: feature.percentage,
+        students,
+    });
+}
+
+function handleKeyDown(e) {
+    if (e.key === 'Escape') {
+        if (selectedKecamatanModal.value) {
+            closeKecamatanModal();
+        }
+        if (showOutsideModal.value) {
+            showOutsideModal.value = false;
+        }
+    }
+}
+
+function isStudentActive(student) {
+    if (!student) return false;
+    const status = (student.status_keaktifan || student.student_status || '').toLowerCase();
+    return !status.includes('tidak') && status !== 'dropout' && status !== 'mutasi_keluar' && status !== 'lulus';
+}
+
+function getStudentStatusLabel(student) {
+    if (!student) return 'Tidak Aktif';
+    if (student.status_keaktifan) {
+        return student.status_keaktifan;
+    }
+    return isStudentActive(student) ? 'Aktif' : 'Tidak Aktif';
+}
+
+// Siswa yang difilter di dalam modal pencarian pop-up
+const modalFilteredStudents = computed(() => {
+    if (!selectedKecamatanModal.value) return [];
+    const q = modalSearch.value.trim().toLowerCase();
+    const students = selectedKecamatanModal.value.students || [];
+    if (!q) return students;
+
+    return students.filter(s => {
+        const nama = (s.nama || '').toLowerCase();
+        const nisn = (s.nisn || '').toLowerCase();
+        const desa = (s.desa || '').toLowerCase();
+        const kelas = (s.kelas || '').toLowerCase();
+        return nama.includes(q) || nisn.includes(q) || desa.includes(q) || kelas.includes(q);
+    });
+});
+
 // Daftar seluruh kecamatan dengan jumlah siswa untuk tampilan Horizontal Bar
 const barKecamatans = computed(() => {
     if (!geojsonData.value?.features) return [];
     const list = [];
+    const seen = new Set();
     geojsonData.value.features.forEach(f => {
         const key = `${normalizeKey(f.properties.kecamatan)}_${normalizeKey(f.properties.kabupaten)}`;
+        if (seen.has(key)) return;
+        seen.add(key);
+
         const count = distribution.value.countsByKey[key] || 0;
         if (count > 0) {
             list.push({
+                key,
                 kecamatan: f.properties.kecamatan,
                 kabupaten: f.properties.kabupaten,
                 count,
                 percentage: distribution.value.activeTotal > 0
                     ? Math.round((count / distribution.value.activeTotal) * 100)
                     : 0,
+                students: distribution.value.studentsByKey[key] || [],
             });
         }
     });
@@ -195,103 +270,6 @@ const displayedKecamatans = computed(() => {
 
 const maxBarCount = computed(() => {
     return displayedKecamatans.value[0]?.count || 1;
-});
-
-const horizontalBarChartData = computed(() => {
-    const list = displayedKecamatans.value;
-    return {
-        labels: list.map(item => `Kec. ${item.kecamatan} (${item.kabupaten})`),
-        datasets: [
-            {
-                label: 'Jumlah Siswa',
-                data: list.map(item => item.count),
-                backgroundColor: '#047857',
-                hoverBackgroundColor: '#064e3b',
-                borderRadius: 6,
-                borderSkipped: false,
-                barThickness: 18,
-                maxBarThickness: 22,
-            },
-        ],
-    };
-});
-
-const horizontalBarChartOptions = computed(() => ({
-    indexAxis: 'y',
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-        legend: {
-            display: false,
-        },
-        tooltip: {
-            backgroundColor: '#0f172a',
-            padding: 10,
-            cornerRadius: 10,
-            titleFont: { size: 12, weight: 'bold', family: "'Plus Jakarta Sans', 'Inter', sans-serif" },
-            bodyFont: { size: 11, family: "'Plus Jakarta Sans', 'Inter', sans-serif" },
-            callbacks: {
-                label: (ctx) => {
-                    const item = displayedKecamatans.value[ctx.dataIndex];
-                    if (!item) return '';
-                    return ` ${item.count} Siswa (${item.percentage}%)`;
-                },
-            },
-        },
-        datalabels: {
-            anchor: 'end',
-            align: 'right',
-            color: '#064e3b',
-            font: { weight: 'bold', size: 10.5, family: "'Plus Jakarta Sans', 'Inter', sans-serif" },
-            offset: 4,
-            formatter: (value, ctx) => {
-                const item = displayedKecamatans.value[ctx.dataIndex];
-                if (!item) return `${value} siswa`;
-                return `${item.count} siswa (${item.percentage}%)`;
-            },
-        },
-    },
-    scales: {
-        x: {
-            beginAtZero: true,
-            grid: {
-                color: 'rgba(226, 232, 240, 0.8)',
-                drawBorder: false,
-            },
-            ticks: {
-                font: { size: 10.5, family: "'Plus Jakarta Sans', 'Inter', sans-serif" },
-                color: '#94a3b8',
-                precision: 0,
-            },
-            title: {
-                display: true,
-                text: 'Jumlah Siswa Aktif',
-                color: '#64748b',
-                font: { size: 11, weight: '600', family: "'Plus Jakarta Sans', 'Inter', sans-serif" },
-            },
-            border: { display: false },
-        },
-        y: {
-            grid: {
-                display: false,
-            },
-            ticks: {
-                font: { size: 11, weight: '600', family: "'Plus Jakarta Sans', 'Inter', sans-serif" },
-                color: '#1e293b',
-            },
-            border: { display: false },
-        },
-    },
-    animation: {
-        duration: 500,
-        easing: 'easeOutQuart',
-    },
-}));
-
-const chartHeight = computed(() => {
-    const count = displayedKecamatans.value.length;
-    if (count === 0) return 360;
-    return Math.max(count * 38, 360);
 });
 
 watch(activeView, (newView) => {
@@ -763,9 +741,11 @@ watch(activeView, (newVal) => {
 
 onMounted(() => {
     loadGeoJsonAndInitMap();
+    window.addEventListener('keydown', handleKeyDown);
 });
 
 onBeforeUnmount(() => {
+    window.removeEventListener('keydown', handleKeyDown);
     clearHover();
     if (schoolMarker) {
         schoolMarker.remove();
@@ -922,6 +902,15 @@ onBeforeUnmount(() => {
                             {{ hoveredFeature.percentage }}% dari total
                         </span>
                     </div>
+                    <button
+                        v-if="hoveredFeature.count > 0"
+                        type="button"
+                        @click="openFeatureModal(hoveredFeature)"
+                        class="mt-2 w-full py-1.5 px-2.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-bold flex items-center justify-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
+                    >
+                        <span>Lihat {{ hoveredFeature.count }} Siswa</span>
+                        <span class="material-symbols-outlined text-[14px]">open_in_new</span>
+                    </button>
                 </div>
             </div>
             <div
@@ -1038,61 +1027,71 @@ onBeforeUnmount(() => {
                 </div>
             </div>
 
-            <!-- Kontainer Grafik Horizontal Bar (Scrollable jika data banyak) -->
+            <!-- Kontainer Daftar Horizontal Bar (Scrollable jika data banyak) -->
             <div class="flex-1 overflow-y-auto pr-2 custom-bar-scrollbar">
-                <!-- TAMPILAN DESKTOP: Chart.js Canvas (tetap seperti sekarang) -->
+                <!-- Daftar Bar Horizontal Ranking Kecamatan (Sama seperti pada stat asal sekolah) -->
                 <div
                     v-if="displayedKecamatans.length > 0"
-                    class="hidden sm:block w-full relative"
-                    :style="{ height: `${chartHeight}px`, minHeight: '340px' }"
-                >
-                    <Bar
-                        :data="horizontalBarChartData"
-                        :options="horizontalBarChartOptions"
-                    />
-                </div>
-
-                <!-- TAMPILAN MOBILE: Keterangan Kecamatan di ATAS Bar, Persen di samping jumlah dengan warna beda -->
-                <div
-                    v-if="displayedKecamatans.length > 0"
-                    class="block sm:hidden space-y-2.5 py-1"
+                    class="space-y-3 py-1"
                 >
                     <div
                         v-for="(item, idx) in displayedKecamatans"
-                        :key="`${item.kecamatan}-${item.kabupaten}-${idx}`"
-                        class="space-y-1.5 p-2 rounded-xl bg-slate-50/70 border border-slate-100"
+                        :key="`${item.kecamatan}-${item.kabupaten}`"
+                        @click="openKecamatanModal(item)"
+                        class="group p-3 sm:p-3.5 rounded-2xl bg-slate-50/70 hover:bg-emerald-50/40 border border-slate-200/80 hover:border-emerald-200 transition-all cursor-pointer space-y-2"
+                        :title="`Klik untuk melihat daftar ${item.count} siswa dari Kec. ${item.kecamatan} (${item.kabupaten})`"
                     >
-                        <!-- Keterangan Kecamatan di Atas Bar & Jumlah/Persen di Kanan -->
-                        <div class="flex items-center justify-between gap-2">
-                            <div class="min-w-0 flex items-center gap-1.5">
-                                <span class="w-5 h-5 rounded-md bg-emerald-50 border border-emerald-200/80 text-[10px] font-bold text-emerald-800 flex items-center justify-center shrink-0">
+                        <!-- Baris Atas: Ranking, Nama Kecamatan & Kabupaten, Jumlah, Persen, & icon open_in_new -->
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="min-w-0 flex items-start gap-2.5 flex-1">
+                                <!-- Ranking Badge -->
+                                <span
+                                    class="w-6 h-6 rounded-lg text-[10.5px] font-bold flex items-center justify-center shrink-0 border shadow-2xs mt-0.5 group-hover:scale-105 transition-transform"
+                                    :class="{
+                                        'bg-amber-100 text-amber-900 border-amber-300 font-extrabold': idx === 0 && !barSearchQuery,
+                                        'bg-slate-200 text-slate-800 border-slate-300 font-extrabold': idx === 1 && !barSearchQuery,
+                                        'bg-amber-50 text-amber-800 border-amber-200 font-bold': idx === 2 && !barSearchQuery,
+                                        'bg-white text-emerald-800 border-emerald-200/80': idx > 2 || barSearchQuery,
+                                    }"
+                                    :title="`Peringkat #${idx + 1}`"
+                                >
                                     {{ idx + 1 }}
                                 </span>
-                                <div class="min-w-0 truncate">
-                                    <span class="text-xs font-bold text-slate-900 truncate">
+
+                                <!-- Nama Kecamatan & Kabupaten -->
+                                <div class="min-w-0 flex-1">
+                                    <h4 class="text-xs sm:text-[13px] font-bold text-slate-900 group-hover:text-emerald-950 break-words leading-snug">
                                         Kec. {{ item.kecamatan }}
-                                    </span>
-                                    <span class="text-[10.5px] text-slate-400 font-medium ml-1">
-                                        ({{ item.kabupaten }})
-                                    </span>
+                                    </h4>
+                                    <p class="text-[11px] text-slate-500 font-medium">
+                                        Kab/Kota {{ item.kabupaten }}
+                                    </p>
                                 </div>
                             </div>
 
-                            <!-- Jumlah Siswa & Persen dengan Warna Font Berbeda -->
-                            <div class="flex items-center gap-1.5 shrink-0 text-xs">
+                            <!-- Jumlah Siswa, Persen, & Icon open_in_new -->
+                            <div class="flex items-center gap-1.5 shrink-0 text-xs mt-0.5">
                                 <span class="font-extrabold text-emerald-800">
                                     {{ item.count }} Siswa
                                 </span>
                                 <span class="text-[10.5px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-200/80">
                                     {{ item.percentage }}%
                                 </span>
+                                <span class="material-symbols-outlined text-[16px] text-slate-400 group-hover:text-emerald-700 transition-colors ml-0.5">
+                                    open_in_new
+                                </span>
                             </div>
                         </div>
 
-                        <!-- Bar Horizontal Mobile -->
+                        <!-- Bar Horizontal Proporsional dengan Animasi Progress dari Kiri ke Kanan -->
                         <div class="w-full bg-slate-200/70 rounded-full h-2.5 overflow-hidden">
                             <div
-                                class="bg-emerald-600 h-full rounded-full transition-all duration-500"
+                                class="h-full rounded-full bar-progress-animate"
+                                :class="{
+                                    'bg-emerald-700': idx === 0 && !barSearchQuery,
+                                    'bg-emerald-600': idx > 0 && idx < 3 && !barSearchQuery,
+                                    'bg-emerald-500': idx >= 3 || barSearchQuery,
+                                }"
                                 :style="{ width: `${Math.max((item.count / maxBarCount) * 100, 3)}%` }"
                             ></div>
                         </div>
@@ -1101,7 +1100,7 @@ onBeforeUnmount(() => {
 
                 <!-- Empty State jika tidak ada data -->
                 <div v-else class="h-full flex flex-col items-center justify-center py-12 text-center">
-                    <span class="material-symbols-outlined text-3xl text-slate-300 mb-1">bar_chart</span>
+                    <span class="material-symbols-outlined text-3xl text-slate-300 mb-1">location_off</span>
                     <p class="text-xs font-bold text-slate-700">Tidak ada data kecamatan ditemukan</p>
                     <p class="text-[11px] text-slate-400 mt-0.5">
                         {{ barSearchQuery ? 'Coba gunakan kata kunci pencarian lain.' : 'Belum ada data domisili siswa terdata.' }}
@@ -1139,10 +1138,15 @@ onBeforeUnmount(() => {
                     <div
                         v-for="(item, idx) in distribution.outsideList"
                         :key="idx"
-                        class="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 text-xs"
+                        @click="openKecamatanModal({ kecamatan: item.region, kabupaten: 'Luar Cakupan', count: item.count, percentage: distribution.activeTotal > 0 ? Math.round((item.count / distribution.activeTotal) * 100) : 0, students: item.students || [] })"
+                        class="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 hover:bg-emerald-50/50 border border-slate-200/80 hover:border-emerald-300 text-xs cursor-pointer group transition-colors"
+                        title="Klik untuk melihat rincian siswa"
                     >
-                        <span class="font-semibold text-slate-800">{{ item.region }}</span>
-                        <span class="font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                        <div class="min-w-0 flex items-center gap-1.5">
+                            <span class="font-semibold text-slate-800 group-hover:text-emerald-950 truncate">{{ item.region }}</span>
+                            <span class="material-symbols-outlined text-[14px] text-slate-400 group-hover:text-emerald-700">open_in_new</span>
+                        </div>
+                        <span class="font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 shrink-0">
                             {{ item.count }} Siswa
                         </span>
                     </div>
@@ -1160,9 +1164,193 @@ onBeforeUnmount(() => {
             </div>
         </div>
     </div>
+
+    <!-- ============================================================ -->
+    <!-- MODAL POP-UP: DAFTAR NAMA SISWA BERDASARKAN DOMISILI         -->
+    <!-- ============================================================ -->
+    <Teleport to="body">
+        <div
+            v-if="selectedKecamatanModal"
+            class="fixed inset-0 z-[999] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 overflow-y-auto"
+            @click.self="closeKecamatanModal"
+        >
+            <div
+                class="bg-white rounded-3xl border border-slate-200/90 shadow-2xl max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+            >
+                <!-- Modal Header -->
+                <div class="px-4 sm:px-6 py-4 border-b border-slate-100 flex items-start justify-between gap-3 bg-slate-50/70 shrink-0">
+                    <div class="flex items-start gap-3 min-w-0">
+                        <div
+                            class="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border shadow-2xs mt-0.5 bg-emerald-100 border-emerald-300 text-emerald-800"
+                        >
+                            <span class="material-symbols-outlined text-[22px]">
+                                location_on
+                            </span>
+                        </div>
+                        <div class="min-w-0">
+                            <span
+                                class="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider inline-block mb-1 bg-emerald-100 text-emerald-900"
+                            >
+                                Domisili Siswa
+                            </span>
+                            <h3 class="text-sm sm:text-base font-extrabold text-slate-900 break-words leading-snug">
+                                Kec. {{ selectedKecamatanModal.kecamatan }}
+                                <span v-if="selectedKecamatanModal.kabupaten && selectedKecamatanModal.kabupaten !== 'Luar Cakupan'" class="text-slate-500 font-semibold text-xs sm:text-sm">
+                                    ({{ selectedKecamatanModal.kabupaten }})
+                                </span>
+                            </h3>
+                            <p class="text-[11px] text-slate-500 font-medium mt-0.5">
+                                Total <span class="font-bold text-slate-800">{{ selectedKecamatanModal.count }} Siswa</span>
+                                ({{ selectedKecamatanModal.percentage }}% dari seluruh siswa aktif) • {{ unit }} (TA {{ academicYear }})
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Tombol Tutup X -->
+                    <button
+                        type="button"
+                        @click="closeKecamatanModal"
+                        class="text-slate-400 hover:text-slate-700 p-1.5 rounded-xl hover:bg-slate-200/60 transition-colors cursor-pointer shrink-0"
+                        title="Tutup (ESC)"
+                    >
+                        <span class="material-symbols-outlined text-[20px]">close</span>
+                    </button>
+                </div>
+
+                <!-- Modal Toolbar: Cari Nama Siswa & Counter -->
+                <div class="px-4 sm:px-6 py-2.5 bg-white border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shrink-0">
+                    <div class="relative w-full sm:w-80">
+                        <span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-[16px]">search</span>
+                        <input
+                            v-model="modalSearch"
+                            type="text"
+                            placeholder="Cari nama, NISN, atau desa..."
+                            class="w-full pl-8 pr-7 py-1.5 rounded-xl border border-slate-200 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
+                        />
+                        <button
+                            v-if="modalSearch"
+                            type="button"
+                            @click="modalSearch = ''"
+                            class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-[15px] cursor-pointer"
+                        >
+                            close
+                        </button>
+                    </div>
+
+                    <span class="text-[11px] font-semibold text-slate-500">
+                        Menampilkan {{ modalFilteredStudents.length }} dari {{ selectedKecamatanModal.count }} siswa
+                    </span>
+                </div>
+
+                <!-- Modal Body: Daftar Siswa (Scrollable) -->
+                <div class="flex-1 overflow-y-auto px-4 sm:px-6 py-3 space-y-2 custom-bar-scrollbar">
+                    <div
+                        v-if="modalFilteredStudents.length > 0"
+                        class="space-y-2"
+                    >
+                        <a
+                            v-for="(student, sIdx) in modalFilteredStudents"
+                            :key="student.id || sIdx"
+                            :href="student.id ? `/students/${student.id}` : '#'"
+                            target="_blank"
+                            class="p-2.5 sm:p-3 rounded-2xl bg-slate-50/80 hover:bg-emerald-50/40 hover:border-emerald-200 border border-slate-200/80 flex items-center justify-between gap-3 transition-colors group/row"
+                            title="Buka profil siswa di tab baru"
+                        >
+                            <!-- Nomor & Nama Siswa -->
+                            <div class="min-w-0 flex items-center gap-2.5 flex-1">
+                                <span class="w-6 h-6 rounded-lg bg-white border border-slate-200 text-[10.5px] font-bold text-slate-600 flex items-center justify-center shrink-0">
+                                    {{ sIdx + 1 }}
+                                </span>
+
+                                <div class="min-w-0">
+                                    <div class="text-xs sm:text-[13px] font-bold text-slate-900 group-hover/row:text-emerald-950 break-words leading-tight">
+                                        {{ student.nama }}
+                                    </div>
+                                    <div v-if="student.desa || student.kelas" class="text-[11px] text-slate-500 font-medium mt-0.5">
+                                        <span v-if="student.desa">Desa {{ student.desa }}</span>
+                                        <span v-if="student.desa && student.kelas"> • </span>
+                                        <span v-if="student.kelas">Kelas {{ student.kelas }}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- JK & Status Keaktifan -->
+                            <div class="flex items-center gap-2 shrink-0">
+                                <!-- Gender (JK) -->
+                                <span
+                                    class="text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-lg border text-center min-w-[24px]"
+                                    :class="student.jk === 'L'
+                                        ? 'bg-sky-50 text-sky-800 border-sky-200'
+                                        : (student.jk === 'P' ? 'bg-rose-50 text-rose-800 border-rose-200' : 'bg-slate-50 text-slate-700 border-slate-200')"
+                                    :title="student.jk === 'L' ? 'Laki-laki' : (student.jk === 'P' ? 'Perempuan' : student.jk)"
+                                >
+                                    <span class="hidden sm:inline">{{ student.jk === 'L' ? 'Laki-laki' : (student.jk === 'P' ? 'Perempuan' : student.jk) }}</span>
+                                    <span class="sm:hidden">{{ student.jk || '-' }}</span>
+                                </span>
+
+                                <!-- Status Keaktifan -->
+                                <span
+                                    class="text-[10px] sm:text-[11px] font-bold px-2.5 py-0.5 rounded-lg border flex items-center gap-1.5"
+                                    :class="isStudentActive(student)
+                                        ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                        : 'bg-rose-50 text-rose-800 border-rose-200'"
+                                >
+                                    <span
+                                        class="w-1.5 h-1.5 rounded-full"
+                                        :class="isStudentActive(student) ? 'bg-emerald-600' : 'bg-rose-600'"
+                                    ></span>
+                                    <span>{{ getStudentStatusLabel(student) }}</span>
+                                </span>
+                            </div>
+                        </a>
+                    </div>
+
+                    <!-- Empty Search Inside Modal -->
+                    <div v-else class="py-12 text-center">
+                        <div class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center mx-auto mb-2 text-slate-400">
+                            <span class="material-symbols-outlined text-xl">person_search</span>
+                        </div>
+                        <p class="text-xs font-bold text-slate-700">Tidak ada siswa yang cocok</p>
+                        <p class="text-[11px] text-slate-400 mt-0.5">
+                            Coba kata kunci pencarian nama lain.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Modal Footer -->
+                <div class="px-4 sm:px-6 py-3 border-t border-slate-100 bg-slate-50/70 flex items-center justify-between gap-3 shrink-0">
+                    <span class="text-[11px] text-slate-400 font-medium">
+                        Tekan <kbd class="px-1.5 py-0.5 rounded bg-white border border-slate-300 text-[10px] font-mono text-slate-600 shadow-2xs">ESC</kbd> untuk menutup
+                    </span>
+                    <button
+                        type="button"
+                        @click="closeKecamatanModal"
+                        class="px-4 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold transition-all cursor-pointer shadow-xs"
+                    >
+                        Tutup
+                    </button>
+                </div>
+            </div>
+        </div>
+    </Teleport>
 </template>
 
 <style>
+/* Animasi Bar Progress Khusus dari Kiri ke Kanan */
+@keyframes barGrow {
+    0% {
+        transform: scaleX(0);
+    }
+    100% {
+        transform: scaleX(1);
+    }
+}
+
+.bar-progress-animate {
+    transform-origin: left;
+    animation: barGrow 0.75s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 /* Styling tooltip peta agar senada dengan UI modern */
 .leaflet-custom-tooltip {
     background-color: rgba(255, 255, 255, 0.96) !important;
