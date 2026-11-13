@@ -274,6 +274,36 @@ const columns = computed(() => ({
 const allColumns = computed(() => Object.values(columns.value).flat());
 
 // ============================================================
+// Data Mode: 'statis' (Master Data) vs 'dinamis' (Riwayat Semester)
+// ============================================================
+const dataMode = ref(
+    (typeof window !== 'undefined' && sessionStorage.getItem('inline_edit_data_mode')) ||
+    (typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('academic_year_id') ? 'dinamis' : 'statis')
+);
+
+function setMode(mode) {
+    dataMode.value = mode;
+    bulkField.value = '';
+    bulkValue.value = '';
+    if (typeof window !== 'undefined') {
+        sessionStorage.setItem('inline_edit_data_mode', mode);
+    }
+    if (mode === 'dinamis') {
+        const ak = columnGroups.find(g => g.key === 'akademik');
+        if (ak) ak.expanded = true;
+    } else {
+        const id = columnGroups.find(g => g.key === 'identitas');
+        if (id) id.expanded = true;
+    }
+}
+
+// Inisialisasi awal grup yang terbuka
+if (dataMode.value === 'dinamis') {
+    const ak = columnGroups.find(g => g.key === 'akademik');
+    if (ak) ak.expanded = true;
+}
+
+// ============================================================
 // Academic Year Switcher
 // ============================================================
 const currentAcademicYearId = ref(props.selectedAcademicYear?.id || (props.allAcademicYears?.[0]?.id ?? ''));
@@ -543,7 +573,16 @@ function toggleGroup(key) {
     if (g) g.expanded = !g.expanded;
 }
 
-const visibleGroups = computed(() => columnGroups.filter(g => columns.value[g.key]));
+const visibleGroups = computed(() => {
+    return columnGroups.filter(g => {
+        if (!columns.value[g.key]) return false;
+        if (dataMode.value === 'statis') {
+            return g.key !== 'akademik';
+        } else {
+            return g.key === 'akademik';
+        }
+    });
+});
 
 function groupSpan(groupKey) {
     const g = columnGroups.find(g => g.key === groupKey);
@@ -572,22 +611,68 @@ function groupSpan(groupKey) {
                     <h1 class="text-xl sm:text-2xl md:text-[26px] font-bold text-slate-900 tracking-tight leading-tight">
                         Edit Data Massal Siswa
                     </h1>
-                    <p class="text-xs sm:text-[13.5px] text-slate-500 mt-1 font-medium flex items-center gap-2 flex-wrap">
-                        <span>Edit langsung nilai pada tabel atau gunakan Bulk Edit untuk mengubah banyak baris sekaligus</span>
-                        <div v-if="allAcademicYears && allAcademicYears.length > 0" class="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 border border-emerald-300 rounded-xl shadow-2xs">
-                            <span class="material-symbols-outlined text-[17px] text-emerald-800">calendar_month</span>
-                            <span class="text-xs font-bold text-emerald-950">Tahun Ajaran:</span>
-                            <select
-                                v-model="currentAcademicYearId"
-                                @change="switchAcademicYear"
-                                class="bg-transparent text-xs font-bold text-emerald-950 focus:outline-none cursor-pointer pr-1"
-                            >
-                                <option v-for="ay in allAcademicYears" :key="ay.id" :value="ay.id">
-                                    {{ ay.label }}{{ ay.is_current ? ' (Aktif)' : '' }}
-                                </option>
-                            </select>
-                        </div>
+                    <p class="text-xs sm:text-[13.5px] text-slate-500 mt-1 font-medium">
+                        Edit langsung nilai pada tabel atau gunakan Bulk Edit untuk mengubah banyak baris sekaligus
                     </p>
+
+                    <!-- Pilihan Mode: Data Statis vs Data Dinamis (Riwayat) -->
+                    <div class="mt-3.5 flex items-center gap-2.5 flex-wrap">
+                        <div class="inline-flex items-center p-1 bg-slate-100 rounded-xl border border-slate-200/90 shadow-2xs">
+                            <button
+                                type="button"
+                                @click="setMode('statis')"
+                                :class="[
+                                    'px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5',
+                                    dataMode === 'statis'
+                                        ? 'bg-emerald-900 text-yellow-200 shadow-2xs'
+                                        : 'text-slate-600 hover:text-slate-900 font-semibold'
+                                ]"
+                            >
+                                <span class="material-symbols-outlined text-[16px]">badge</span>
+                                <span>Data Statis</span>
+                            </button>
+                            <button
+                                type="button"
+                                @click="setMode('dinamis')"
+                                :class="[
+                                    'px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5',
+                                    dataMode === 'dinamis'
+                                        ? 'bg-emerald-900 text-yellow-200 shadow-2xs'
+                                        : 'text-slate-600 hover:text-slate-900 font-semibold'
+                                ]"
+                            >
+                                <span class="material-symbols-outlined text-[16px]">history_edu</span>
+                                <span>Data Dinamis (Riwayat)</span>
+                            </button>
+                        </div>
+
+                        <!-- Dropdown Tahun Ajaran: HANYA MUNCUL DI DATA DINAMIS -->
+                        <transition
+                            enter-active-class="transition-all duration-200 ease-out"
+                            enter-from-class="opacity-0 scale-95"
+                            enter-to-class="opacity-100 scale-100"
+                            leave-active-class="transition-all duration-150 ease-in"
+                            leave-from-class="opacity-100 scale-100"
+                            leave-to-class="opacity-0 scale-95"
+                        >
+                            <div
+                                v-if="dataMode === 'dinamis' && allAcademicYears && allAcademicYears.length > 0"
+                                class="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-300 rounded-xl shadow-2xs"
+                            >
+                                <span class="material-symbols-outlined text-[18px] text-emerald-800">calendar_month</span>
+                                <span class="text-xs font-bold text-emerald-950">Tahun Ajaran:</span>
+                                <select
+                                    v-model="currentAcademicYearId"
+                                    @change="switchAcademicYear"
+                                    class="bg-transparent text-xs font-bold text-emerald-950 focus:outline-none cursor-pointer pr-1"
+                                >
+                                    <option v-for="ay in allAcademicYears" :key="ay.id" :value="ay.id">
+                                        {{ ay.label }}{{ ay.is_current ? ' (Aktif)' : '' }}
+                                    </option>
+                                </select>
+                            </div>
+                        </transition>
+                    </div>
                 </div>
 
                 <!-- Tombol Aksi Header -->
