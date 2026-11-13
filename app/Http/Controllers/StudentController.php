@@ -597,7 +597,8 @@ class StudentController extends Controller
                     ];
                 }
 
-                return $results;
+                // Urutkan dari Tahun Ajaran terbaru dulu ke terlama
+                return array_reverse($results);
             })(),
             'angkatan' => $studentModel->angkatan,
             'diterima_di_jenjang' => $studentModel->diterima_di_jenjang,

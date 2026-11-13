@@ -123,7 +123,7 @@ function saveChanges() {
 // Riwayat Keaktifan Siswa Matrix (TA di Kolom 1, Unit di Baris Atas)
 // ============================================================
 
-// 1. Daftar baris Tahun Ajaran & Semester (Kolom Pertama)
+// 1. Daftar baris Tahun Ajaran & Semester (Kolom Pertama) - Urutan Terbaru Dulu
 const academicYearRows = computed(() => {
     if (!props.student.riwayat_keaktifan || props.student.riwayat_keaktifan.length === 0) return [];
 
@@ -136,10 +136,24 @@ const academicYearRows = computed(() => {
                 key,
                 ta: r.academic_year,
                 semester: r.semester || '',
+                start_date: r.start_date || '',
+                tingkat: r.tingkat || null,
+                program: r.program || null,
             });
+        } else {
+            const existing = map.get(key);
+            if (!existing.tingkat && r.tingkat) existing.tingkat = r.tingkat;
+            if (!existing.program && r.program) existing.program = r.program;
         }
     });
-    return Array.from(map.values());
+
+    // Urutkan dari TA terbaru dulu ke TA terlama (Descending)
+    return Array.from(map.values()).sort((a, b) => {
+        if (a.start_date && b.start_date) {
+            return b.start_date.localeCompare(a.start_date);
+        }
+        return b.key.localeCompare(a.key);
+    });
 });
 
 // 2. Daftar kolom Unit (Baris Atas)
@@ -231,9 +245,6 @@ function getCellData(row, unit) {
 
     if (unit.type === 'formal') {
         if (record.kelas) subtextParts.push(`Kelas ${record.kelas}`);
-        else if (record.tingkat) subtextParts.push(`Tingkat ${record.tingkat}`);
-    } else {
-        if (record.program) subtextParts.push(record.program);
     }
 
     if (status === 'Tidak Aktif-Sebagian' || status === 'Tidak Aktif') {
@@ -488,14 +499,25 @@ function formatStatus(status) {
                         <tbody class="divide-y divide-slate-100">
                             <tr v-for="row in academicYearRows" :key="row.key" class="hover:bg-slate-50/60 transition-colors">
                                 <td class="p-3.5 bg-white sticky left-0 z-10 border-r border-slate-100">
-                                    <div class="flex items-center gap-2">
-                                        <span class="font-bold text-slate-900 font-mono text-xs sm:text-sm">{{ row.ta }}</span>
-                                        <span
-                                            class="px-2 py-0.5 rounded-md text-[11px] font-bold"
-                                            :class="row.semester === 'Ganjil' ? 'bg-sky-50 text-sky-700 border border-sky-200' : 'bg-indigo-50 text-indigo-700 border border-indigo-200'"
-                                        >
-                                            {{ row.semester }}
-                                        </span>
+                                    <div class="flex flex-col gap-1.5">
+                                        <div class="flex items-center gap-2">
+                                            <span class="font-bold text-slate-900 font-mono text-xs sm:text-sm">{{ row.ta }}</span>
+                                            <span
+                                                class="px-2 py-0.5 rounded-md text-[11px] font-bold"
+                                                :class="row.semester === 'Ganjil' ? 'bg-sky-50 text-sky-700 border border-sky-200' : 'bg-indigo-50 text-indigo-700 border border-indigo-200'"
+                                            >
+                                                {{ row.semester }}
+                                            </span>
+                                        </div>
+                                        <div v-if="row.tingkat || row.program" class="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500">
+                                            <span v-if="row.tingkat" class="inline-flex items-center px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-medium">
+                                                Tingkat {{ row.tingkat }}
+                                            </span>
+                                            <span v-if="row.tingkat && row.program" class="text-slate-300">•</span>
+                                            <span v-if="row.program" class="text-slate-600 font-medium">
+                                                {{ row.program }}
+                                            </span>
+                                        </div>
                                     </div>
                                 </td>
                                 <td
