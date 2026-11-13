@@ -67,11 +67,11 @@ const statusCounts = computed(() => {
     let tidakAktif = 0;
 
     props.students.forEach(s => {
-        const status = (s.student_status || 'aktif').toLowerCase();
-        if (status === 'aktif') {
-            aktif++;
-        } else {
+        const raw = (s.status_keaktifan || s.student_status || 'aktif').toLowerCase().trim();
+        if (raw === 'tidak aktif' || raw === 'tidak_aktif' || raw.includes('tidak')) {
             tidakAktif++;
+        } else {
+            aktif++;
         }
     });
 

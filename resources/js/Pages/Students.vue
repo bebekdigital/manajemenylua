@@ -271,11 +271,11 @@ const statusCounts = computed(() => {
     let tidakAktif = 0;
 
     list.forEach(s => {
-        const status = (s.student_status || 'aktif').toLowerCase();
-        if (status === 'aktif') {
-            aktif++;
-        } else {
+        const raw = (s.status_keaktifan || s.student_status || 'aktif').toLowerCase().trim();
+        if (raw === 'tidak aktif' || raw === 'tidak_aktif' || raw.includes('tidak')) {
             tidakAktif++;
+        } else {
+            aktif++;
         }
     });
 
@@ -445,13 +445,22 @@ const filteredStudents = computed(() => {
 
     // Status filter
     if (statusFilter.value && statusFilter.value !== 'semua') {
-        const val = statusFilter.value.toLowerCase();
+        const val = statusFilter.value.toLowerCase().trim();
         if (val === 'aktif') {
-            result = result.filter(s => !s.student_status || s.student_status.toLowerCase() === 'aktif');
+            result = result.filter(s => {
+                const raw = (s.status_keaktifan || s.student_status || 'aktif').toLowerCase().trim();
+                return raw !== 'tidak aktif' && raw !== 'tidak_aktif' && !raw.includes('tidak');
+            });
         } else if (val === 'tidak_aktif' || val === 'non-aktif') {
-            result = result.filter(s => s.student_status && s.student_status.toLowerCase() !== 'aktif');
+            result = result.filter(s => {
+                const raw = (s.status_keaktifan || s.student_status || '').toLowerCase().trim();
+                return raw === 'tidak aktif' || raw === 'tidak_aktif' || raw.includes('tidak');
+            });
         } else {
-            result = result.filter(s => (s.student_status || '').toLowerCase() === val);
+            result = result.filter(s => {
+                const raw = (s.status_keaktifan || s.student_status || '').toLowerCase().trim();
+                return raw === val;
+            });
         }
     }
 

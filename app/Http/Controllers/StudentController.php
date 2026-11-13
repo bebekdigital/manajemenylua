@@ -98,6 +98,10 @@ class StudentController extends Controller
             ->get()
             ->map(function (Student $student) {
                 $record = $student->currentRecord;
+                $masterKeaktifan = $student->status_keaktifan ?: 'Aktif';
+                $normKeaktifan = strtolower(trim((string) $masterKeaktifan));
+                $isInactive = str_contains($normKeaktifan, 'tidak');
+                $isLulus = $normKeaktifan === 'lulus';
 
                 return [
                     'nisn' => $student->nisn,
@@ -114,8 +118,9 @@ class StudentController extends Controller
                     'angkatan' => $student->angkatan,
                     'photo_url' => $student->photo_url,
                     'jenjang' => $student->jenjang ?? $record?->classroom?->jenjang,
-                    'student_status' => in_array($record?->student_status, ['Tinggal Kelas', 'mengulang']) ? 'Tinggal Kelas' : 'Naik Kelas',
-                    'status_keaktifan' => $student->status_keaktifan ?: 'Aktif',
+                    'student_status' => $isInactive ? 'tidak_aktif' : ($isLulus ? 'lulus' : 'aktif'),
+                    'status_keaktifan' => $masterKeaktifan,
+                    'status_per_semester' => in_array($record?->student_status, ['Tinggal Kelas', 'mengulang']) ? 'Tinggal Kelas' : 'Naik Kelas',
                     'keterangan_tidak_aktif' => $student->keterangan_tidak_aktif ?? $record?->ket_tidak_aktif,
                     'tanggal_tidak_aktif' => $student->tanggal_tidak_aktif ? $student->tanggal_tidak_aktif->format('Y-m-d') : ($record?->tanggal_tidak_aktif?->format('Y-m-d')),
                     'no_wa' => $student->no_wa,
@@ -431,8 +436,9 @@ class StudentController extends Controller
             'jenjang' => $currentRecord?->classroom?->jenjang ?? $studentModel->jenjang ?? $studentModel->diterima_di_jenjang,
             'tingkat' => $currentRecord?->tingkat,
             'kelas' => $currentRecord?->classroom?->name,
-            'student_status' => in_array($currentRecord?->student_status, ['Tinggal Kelas', 'mengulang']) ? 'Tinggal Kelas' : 'Naik Kelas',
+            'student_status' => (str_contains(strtolower(trim((string) ($studentModel->status_keaktifan ?: 'Aktif'))), 'tidak')) ? 'tidak_aktif' : ((strtolower(trim((string) $studentModel->status_keaktifan)) === 'lulus') ? 'lulus' : 'aktif'),
             'status_keaktifan' => $studentModel->status_keaktifan ?: 'Aktif',
+            'status_per_semester' => in_array($currentRecord?->student_status, ['Tinggal Kelas', 'mengulang']) ? 'Tinggal Kelas' : 'Naik Kelas',
             'ket_tidak_aktif' => $studentModel->keterangan_tidak_aktif ?? $currentRecord?->ket_tidak_aktif,
             'keterangan_tidak_aktif' => $studentModel->keterangan_tidak_aktif ?? $currentRecord?->ket_tidak_aktif,
             'tanggal_tidak_aktif' => $studentModel->tanggal_tidak_aktif ? $studentModel->tanggal_tidak_aktif->format('Y-m-d') : ($currentRecord?->tanggal_tidak_aktif?->format('Y-m-d')),

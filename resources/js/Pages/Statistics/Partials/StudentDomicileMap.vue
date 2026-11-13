@@ -103,7 +103,8 @@ const distribution = computed(() => {
     let activeTotal = 0;
 
     list.forEach(s => {
-        const isActive = (s.student_status || 'aktif').toLowerCase() === 'aktif';
+        const rawStatus = (s.status_keaktifan || s.student_status || 'aktif').toLowerCase().trim();
+        const isActive = !rawStatus.includes('tidak') && rawStatus !== 'dropout' && rawStatus !== 'mutasi_keluar';
         if (!isActive) return;
         activeTotal++;
 

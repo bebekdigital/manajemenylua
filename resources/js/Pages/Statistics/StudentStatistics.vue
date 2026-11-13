@@ -309,7 +309,8 @@ const metrics = computed(() => {
         let female = 0;
 
         list.forEach(s => {
-            const isActive = (s.student_status || 'aktif').toLowerCase() === 'aktif';
+            const rawStatus = (s.status_keaktifan || s.student_status || 'aktif').toLowerCase().trim();
+            const isActive = !rawStatus.includes('tidak') && rawStatus !== 'dropout' && rawStatus !== 'mutasi_keluar';
             const jk = String(s.jk || '').toUpperCase().trim();
             if (isActive) {
                 active++;
@@ -366,7 +367,8 @@ const programMetrics = computed(() => {
     let fullday = 0;
 
     list.forEach(s => {
-        const isActive = (s.student_status || 'aktif').toLowerCase() === 'aktif';
+        const rawStatus = (s.status_keaktifan || s.student_status || 'aktif').toLowerCase().trim();
+        const isActive = !rawStatus.includes('tidak') && rawStatus !== 'dropout' && rawStatus !== 'mutasi_keluar';
         if (isActive) {
             const p = String(s.program || '').trim().toLowerCase();
             if (p === 'boarding' || p.includes('boarding') || p.includes('pondok') || p.includes('pesantren') || p.includes('asrama')) {
