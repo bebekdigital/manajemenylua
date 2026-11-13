@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\AcademicYear;
 use App\Models\Student;
 use App\Models\StudentAcademicRecord;
+use Carbon\Carbon;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
@@ -15,50 +16,162 @@ class SyncStudentAcademicRecordsCommand extends Command
 {
     public function handle()
     {
-        $this->info('Checking Academic Years...');
-        $years = AcademicYear::orderBy('start_date')->get();
-        foreach ($years as $y) {
-            $this->line("ID: {$y->id} | Name: {$y->name} | Semester: {$y->semester} | Dates: {$y->start_date?->format('Y-m-d')} s/d {$y->end_date?->format('Y-m-d')}");
+        $inspectOnly = (bool) $this->option('inspect');
+
+        $this->info('Memulai sinkronisasi riwayat akademik siswa...');
+
+        $academicYears = AcademicYear::orderBy('start_date')->get();
+        if ($academicYears->isEmpty()) {
+            $this->error('Tidak ada data Tahun Ajaran di database.');
+
+            return 1;
         }
 
-        $this->info("\nChecking Students Angkatan & Jenjang Distribution...");
-        $studentsDist = Student::query()
-            ->selectRaw('jenjang, angkatan, status_keaktifan, count(*) as count')
-            ->groupBy('jenjang', 'angkatan', 'status_keaktifan')
-            ->orderBy('jenjang')
-            ->orderBy('angkatan')
-            ->get();
-        foreach ($studentsDist as $d) {
-            $this->line("Jenjang: {$d->jenjang} | Angkatan: {$d->angkatan} | Status: {$d->status_keaktifan} | Count: {$d->count}");
+        $students = Student::all();
+        $this->info("Total data siswa: {$students->count()}");
+
+        $created = 0;
+        $updated = 0;
+        $skipped = 0;
+
+        foreach ($students as $student) {
+            $entryYear = $this->determineEntryYear($student);
+            if (! $entryYear) {
+                $this->warn("Siswa {$student->nama} (ID: {$student->id}) tidak dapat ditentukan tahun masuknya. Dilewati.");
+                $skipped++;
+
+                continue;
+            }
+
+            $baseGrade = $this->determineBaseGrade($student);
+            $maxGrade = $baseGrade + ($student->jenjang === 'SD' ? 5 : 2); // SMP: 7-9, SMA: 10-12, SD: 1-6
+
+            foreach ($academicYears as $year) {
+                $yearStart = $year->start_date ? $year->start_date->year : (int) substr($year->name, 0, 4);
+
+                // Jika tahun ajaran sebelum siswa masuk sekolah, lewati (belum bersekolah)
+                if ($yearStart < $entryYear) {
+                    continue;
+                }
+
+                $yearOffset = $yearStart - $entryYear;
+                $tingkat = $baseGrade + $yearOffset;
+
+                // Jika sudah melebihi jenjang, siswa sudah lulus di TA tersebut
+                $isAlumni = $tingkat > $maxGrade;
+                $actualTingkat = min($tingkat, $maxGrade);
+
+                // Tentukan status keaktifan di TA ini
+                $studentStatus = 'aktif';
+                $isInactiveGlobally = strtolower(trim((string) $student->status_keaktifan)) === 'tidak aktif';
+
+                if ($isAlumni) {
+                    $studentStatus = 'lulus';
+                } elseif ($isInactiveGlobally) {
+                    if ($student->tanggal_tidak_aktif) {
+                        $tglTidakAktif = Carbon::parse($student->tanggal_tidak_aktif);
+                        if ($year->end_date && $year->end_date->lt($tglTidakAktif)) {
+                            $studentStatus = 'aktif';
+                        } else {
+                            $studentStatus = 'dropout';
+                        }
+                    } else {
+                        // Jika tidak ada tanggal_tidak_aktif, aktif di tahun awal, tidak aktif di TA terbaru (2026/2027)
+                        $studentStatus = ($yearStart >= 2026) ? 'dropout' : 'aktif';
+                    }
+                }
+
+                if ($inspectOnly) {
+                    continue;
+                }
+
+                $existingRecord = StudentAcademicRecord::where('student_id', $student->id)
+                    ->where('academic_year_id', $year->id)
+                    ->first();
+
+                $recordData = [
+                    'student_id' => $student->id,
+                    'academic_year_id' => $year->id,
+                    'unit' => $student->unit,
+                    'jenjang' => $student->jenjang,
+                    'tingkat' => $actualTingkat,
+                    'program' => $student->program,
+                    'unit_pesantren' => $student->unit_pesantren,
+                    'student_status' => $studentStatus,
+                    'ket_tidak_aktif' => $student->keterangan_tidak_aktif,
+                    'tanggal_tidak_aktif' => $student->tanggal_tidak_aktif,
+                    'desil' => $student->desil,
+                    'status_pip' => (bool) ($student->status_pip ?? false),
+                    'pip_keterangan' => $student->pip_keterangan,
+                    'status_kip' => (bool) ($student->status_kip ?? false),
+                    'no_kip' => $student->no_kip,
+                ];
+
+                if ($existingRecord) {
+                    $recordData['classroom_id'] = $existingRecord->classroom_id;
+                    $existingRecord->update($recordData);
+                    $updated++;
+                } else {
+                    $recordData['classroom_id'] = null;
+                    StudentAcademicRecord::create($recordData);
+                    $created++;
+                }
+            }
         }
 
-        $this->info("\nChecking Existing StudentAcademicRecords...");
-        $recordDist = StudentAcademicRecord::query()
-            ->selectRaw('academic_year_id, tingkat, student_status, count(*) as count')
-            ->groupBy('academic_year_id', 'tingkat', 'student_status')
-            ->orderBy('academic_year_id')
-            ->get();
-        foreach ($recordDist as $r) {
-            $this->line("TA ID: {$r->academic_year_id} | Tingkat: {$r->tingkat} | Status: {$r->student_status} | Count: {$r->count}");
+        if ($inspectOnly) {
+            $this->info("Mode inspect selesai. Ditemukan {$students->count()} siswa.");
+
+            return 0;
         }
 
-        $this->info("\nChecking Sample Students from each Angkatan...");
-        $samples = Student::query()
-            ->select('id', 'nama', 'nipd', 'angkatan', 'tanggal_diterima', 'tanggal_lahir')
-            ->whereIn('id', function ($q) {
-                $q->selectRaw('min(id)')->from('students')->groupBy('angkatan');
-            })
-            ->get();
-        foreach ($samples as $s) {
-            $this->line("Angkatan: {$s->angkatan} | NIPD: {$s->nipd} | Nama: {$s->nama} | Tgl Masuk: {$s->tanggal_diterima?->format('Y-m-d')} | Lahir: {$s->tanggal_lahir?->format('Y-m-d')}");
-        }
-
-        $this->info("\nChecking Existing Classrooms...");
-        $classes = \App\Models\Classroom::with('academicYear')->get();
-        foreach ($classes as $c) {
-            $this->line("Class ID: {$c->id} | Name: {$c->name} | Grade: {$c->grade} | Jenjang: {$c->jenjang} | TA: {$c->academicYear?->name} ({$c->academicYear?->semester})");
-        }
+        $this->info("Sinkronisasi Selesai! Record Baru Dibuat: {$created}, Record Diperbarui: {$updated}, Siswa Dilewati: {$skipped}");
 
         return 0;
+    }
+
+    private function determineEntryYear(Student $student): ?int
+    {
+        // 1. Dari tanggal_diterima
+        if ($student->tanggal_diterima) {
+            $year = (int) Carbon::parse($student->tanggal_diterima)->year;
+            if ($year >= 2010 && $year <= 2030) {
+                return $year;
+            }
+        }
+
+        // 2. Dari angkatan
+        if ($student->angkatan) {
+            $val = (int) $student->angkatan;
+            if ($val >= 2010 && $val <= 2030) {
+                return $val;
+            }
+            // Khusus SMP Ulil Albab: Angkatan 8 = 2024, Angkatan 9 = 2025, dst (2016 + Angkatan)
+            if ($student->jenjang === 'SMP' && $val >= 1 && $val <= 30) {
+                return 2016 + $val;
+            }
+            if ($student->jenjang === 'SMA' && $val >= 1 && $val <= 30) {
+                return 2023 + $val;
+            }
+        }
+
+        // 3. Dari awalan NIPD (misal 08.340 -> 2024, 09.379 -> 2025)
+        if ($student->nipd && preg_match('/^(\d{2})\./', $student->nipd, $m)) {
+            $prefix = (int) $m[1];
+            if ($student->jenjang === 'SMP') {
+                return 2016 + $prefix;
+            }
+        }
+
+        return null;
+    }
+
+    private function determineBaseGrade(Student $student): int
+    {
+        return match (strtoupper((string) $student->jenjang)) {
+            'SD' => 1,
+            'SMA', 'SMK', 'MA' => 10,
+            default => 7, // SMP / MTs
+        };
     }
 }
