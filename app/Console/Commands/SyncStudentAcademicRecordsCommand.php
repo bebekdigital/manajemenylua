@@ -11,12 +11,35 @@ use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
-#[Signature('students:sync-academic-records {--inspect : Hanya inspect data tanpa mengubah DB} {--test-stats : Tes eksekusi StatisticsController}')]
+#[Signature('students:sync-academic-records {--inspect : Hanya inspect data tanpa mengubah DB} {--test-stats : Tes eksekusi StatisticsController} {--nisn= : Periksa data siswa tertentu berdasarkan NISN}')]
 #[Description('Sinkronisasi dan backfill data riwayat akademik siswa per tahun ajaran')]
 class SyncStudentAcademicRecordsCommand extends Command
 {
     public function handle()
     {
+        if ($nisn = $this->option('nisn')) {
+            $student = Student::where('nisn', $nisn)->first();
+            if (! $student) {
+                $this->error("Siswa dengan NISN {$nisn} tidak ditemukan.");
+                return 1;
+            }
+            $this->info("=== Data Siswa: {$student->nama} (NISN: {$student->nisn}) ===");
+            $this->line("Status Keaktifan: {$student->status_keaktifan}");
+            $this->line("Keterangan Tidak Aktif: {$student->keterangan_tidak_aktif}");
+            $this->line("Tanggal Tidak Aktif: {$student->tanggal_tidak_aktif}");
+            $this->line("Angkatan: {$student->angkatan}");
+            $this->line("Tanggal Diterima: {$student->tanggal_diterima}");
+            $this->line("Unit: {$student->unit} | Pesantren: {$student->unit_pesantren}");
+
+            $this->info("--- Riwayat di StudentAcademicRecord: ---");
+            $records = StudentAcademicRecord::where('student_id', $student->id)
+                ->with('academicYear')
+                ->get();
+            foreach ($records as $r) {
+                $this->line("TA: {$r->academicYear?->name} {$r->academicYear?->semester} (ID: {$r->academic_year_id}) | Tingkat: {$r->tingkat} | Status: '{$r->student_status}' | Ket: '{$r->ket_tidak_aktif}' | Program: '{$r->program}'");
+            }
+            return 0;
+        }
         if ($this->option('test-stats')) {
             $this->info('Checking Programs in StudentAcademicRecord:');
             $distinct = StudentAcademicRecord::select('program', DB::raw('count(*) as c'))->groupBy('program')->get();
