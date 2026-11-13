@@ -118,15 +118,15 @@ class SyncStudentAcademicRecordsCommand extends Command
                     $studentStatus = 'lulus';
                 } elseif ($isInactiveGlobally) {
                     $ketLower = strtolower(trim((string) $student->keterangan_tidak_aktif));
-                    $targetInactiveStatus = 'tidak_aktif';
+                    $targetInactiveStatus = 'dropout'; // ENUM database: 'aktif','mutasi_masuk','mutasi_keluar','lulus','mengulang','dropout'
                     if (str_contains($ketLower, 'mutasi')) {
                         $targetInactiveStatus = 'mutasi_keluar';
                     } elseif (str_contains($ketLower, 'lulus')) {
                         $targetInactiveStatus = 'lulus';
                     } elseif (str_contains($ketLower, 'keluar') || str_contains($ketLower, 'drop')) {
                         $targetInactiveStatus = 'dropout';
-                    } elseif (str_contains($ketLower, 'undur')) {
-                        $targetInactiveStatus = 'mengundurkan_diri';
+                    } elseif (str_contains($ketLower, 'ulang')) {
+                        $targetInactiveStatus = 'mengulang';
                     }
 
                     if ($student->tanggal_tidak_aktif) {
