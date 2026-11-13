@@ -164,12 +164,19 @@ const KNOWN_DESA_COORDS = {
     saren_kalijambe_sragen: [-7.4200, 110.8250],
 };
 
-// Helper normalisasi string umum
+// Helper normalisasi string umum (robust terhadap awalan Kec., Kab., Kota, Ds., Kel., spasi, tanda baca)
 function normalizeKey(str) {
     if (!str) return '';
     let s = String(str).trim();
-    s = s.replace(/^(kec(amatan)?|desa|kel(urahan)?|ds\.?)\s+/i, '');
+    let prev = '';
+    while (s !== prev) {
+        prev = s;
+        s = s.replace(/^(kec(amatan)?|kab(upaten)?|kota(madya)?|desa|kel(urahan)?|ds)\.?\s*/i, '');
+    }
     s = s.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+    if (s === 'solo' || s === 'kotasolo') {
+        s = 'surakarta';
+    }
     return s;
 }
 
@@ -177,7 +184,12 @@ function normalizeKey(str) {
 function cleanDesaName(raw) {
     if (!raw) return '';
     let s = String(raw).trim();
-    s = s.replace(/^(desa|kelurahan|ds\.?|kel\.?)\s+/i, '');
+    let prev = '';
+    while (s !== prev) {
+        prev = s;
+        s = s.replace(/^(desa|kel(urahan)?|ds)\.?\s*/i, '');
+    }
+    s = s.replace(/[^a-zA-Z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
     if (!s) return '';
     return s.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ').trim();
 }
@@ -202,6 +214,42 @@ const soloRayaKecMap = computed(() => {
     return mapObj;
 });
 
+// Helper pencocokan kecamatan yang fleksibel dan toleran terhadap variasi penulisan
+function findMatchedKecamatan(rawKec, rawKab) {
+    if (!rawKec || !geojsonData.value?.features) return null;
+    const normKec = normalizeKey(rawKec);
+    const normKab = normalizeKey(rawKab);
+
+    if (!normKec) return null;
+
+    // 1. Pencocokan langsung dengan key normalisasi
+    let candidates = soloRayaKecMap.value[normKec];
+
+    // 2. Fallback pencocokan parsial jika key langsung tidak ditemukan
+    if (!candidates || candidates.length === 0) {
+        const allKecKeys = Object.keys(soloRayaKecMap.value);
+        const matches = allKecKeys.filter(k => k.length >= 4 && (normKec.includes(k) || (normKec.length >= 4 && k.includes(normKec))));
+        if (matches.length > 0) {
+            matches.sort((a, b) => b.length - a.length);
+            candidates = soloRayaKecMap.value[matches[0]];
+        }
+    }
+
+    if (!candidates || candidates.length === 0) return null;
+
+    // 3. Disambiguasi kabupaten jika ada lebih dari 1 kandidat (misal Karanganyar)
+    let matched = candidates[0];
+    if (candidates.length > 1 && normKab) {
+        const found = candidates.find(c => {
+            const cKab = normalizeKey(c.kabupaten);
+            return cKab === normKab || normKab.includes(cKab) || cKab.includes(normKab);
+        });
+        if (found) matched = found;
+    }
+
+    return matched;
+}
+
 // Agregasi sebaran siswa aktif per kecamatan di Solo Raya & Grobogan serta Luar Wilayah
 const distribution = computed(() => {
     const list = props.students || [];
@@ -220,10 +268,8 @@ const distribution = computed(() => {
 
         const rawKec = s.kecamatan || '';
         const rawKab = s.kabupaten || '';
-        const normKec = normalizeKey(rawKec);
-        const normKab = normalizeKey(rawKab);
 
-        if (!normKec) {
+        if (!rawKec) {
             outsideTotal++;
             const groupName = rawKab || 'Alamat Belum Terdata';
             if (!outsideMap[groupName]) {
@@ -234,14 +280,8 @@ const distribution = computed(() => {
             return;
         }
 
-        const candidates = soloRayaKecMap.value[normKec];
-        if (candidates && candidates.length > 0) {
-            let matched = candidates[0];
-            if (candidates.length > 1) {
-                const found = candidates.find(c => normalizeKey(c.kabupaten) === normKab || normKab.includes(normalizeKey(c.kabupaten)));
-                if (found) matched = found;
-            }
-
+        const matched = findMatchedKecamatan(rawKec, rawKab);
+        if (matched) {
             const featureKey = `${normalizeKey(matched.kecamatan)}_${normalizeKey(matched.kabupaten)}`;
             countsByKey[featureKey] = (countsByKey[featureKey] || 0) + 1;
             if (!studentsByKey[featureKey]) {
@@ -288,17 +328,9 @@ const desaDistribution = computed(() => {
 
         const rawKec = s.kecamatan || '';
         const rawKab = s.kabupaten || '';
-        const normKec = normalizeKey(rawKec);
-        const normKab = normalizeKey(rawKab);
 
-        const candidates = soloRayaKecMap.value[normKec];
-        if (!candidates || candidates.length === 0) return; // Luar wilayah tercatat di outsideList
-
-        let matched = candidates[0];
-        if (candidates.length > 1) {
-            const found = candidates.find(c => normalizeKey(c.kabupaten) === normKab || normKab.includes(normalizeKey(c.kabupaten)));
-            if (found) matched = found;
-        }
+        const matched = findMatchedKecamatan(rawKec, rawKab);
+        if (!matched) return; // Luar wilayah tercatat di outsideList
 
         const rawDesa = cleanDesaName(s.desa) || '(Belum Terdata)';
         const desaKey = `${normalizeKey(rawDesa)}_${normalizeKey(matched.kecamatan)}_${normalizeKey(matched.kabupaten)}`;
