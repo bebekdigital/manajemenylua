@@ -33,6 +33,7 @@ class SyncStudentAcademicRecordsCommand extends Command
 
         $created = 0;
         $updated = 0;
+        $deleted = 0;
         $skipped = 0;
 
         foreach ($students as $student) {
@@ -48,14 +49,22 @@ class SyncStudentAcademicRecordsCommand extends Command
             $maxGrade = $baseGrade + ($student->jenjang === 'SD' ? 5 : 2); // SMP: 7-9, SMA: 10-12, SD: 1-6
 
             foreach ($academicYears as $year) {
-                $yearStart = $year->start_date ? $year->start_date->year : (int) substr($year->name, 0, 4);
+                // Parse tahun ajaran utama (contoh: '2024/2025' -> 2024)
+                $schoolYear = (int) explode('/', (string) $year->name)[0];
 
-                // Jika tahun ajaran sebelum siswa masuk sekolah, lewati (belum bersekolah)
-                if ($yearStart < $entryYear) {
+                // Jika tahun ajaran sebelum siswa masuk sekolah, siswa belum bersekolah
+                if ($schoolYear < $entryYear) {
+                    if (! $inspectOnly) {
+                        $del = StudentAcademicRecord::where('student_id', $student->id)
+                            ->where('academic_year_id', $year->id)
+                            ->delete();
+                        $deleted += $del;
+                    }
+
                     continue;
                 }
 
-                $yearOffset = $yearStart - $entryYear;
+                $yearOffset = $schoolYear - $entryYear;
                 $tingkat = $baseGrade + $yearOffset;
 
                 // Jika sudah melebihi jenjang, siswa sudah lulus di TA tersebut
@@ -77,8 +86,8 @@ class SyncStudentAcademicRecordsCommand extends Command
                             $studentStatus = 'dropout';
                         }
                     } else {
-                        // Jika tidak ada tanggal_tidak_aktif, aktif di tahun awal, tidak aktif di TA terbaru (2026/2027)
-                        $studentStatus = ($yearStart >= 2026) ? 'dropout' : 'aktif';
+                        // Jika tidak ada tanggal_tidak_aktif: aktif di tahun lampau, dropout di TA aktif sekarang (2026/2027)
+                        $studentStatus = ($schoolYear >= 2026) ? 'dropout' : 'aktif';
                     }
                 }
 
@@ -126,7 +135,7 @@ class SyncStudentAcademicRecordsCommand extends Command
             return 0;
         }
 
-        $this->info("Sinkronisasi Selesai! Record Baru Dibuat: {$created}, Record Diperbarui: {$updated}, Siswa Dilewati: {$skipped}");
+        $this->info("Sinkronisasi Selesai! Record Baru: {$created}, Diperbarui: {$updated}, Dihapus (sebelum masuk): {$deleted}, Dilewati: {$skipped}");
 
         $this->printSummary();
 
