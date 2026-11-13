@@ -63,6 +63,11 @@ const loadError = ref(null);
 const hoveredFeature = ref(null);
 const hoveredDesa = ref(null);
 const showOutsideModal = ref(false);
+const isLegendOpenMobile = ref(false);
+
+function isMobileScreen() {
+    return typeof window !== 'undefined' && window.innerWidth < 640;
+}
 
 // State Modal Pop-up Rincian Siswa
 const selectedKecamatanModal = ref(null);
@@ -528,7 +533,8 @@ function selectFeature(feature, layer, latlng = null) {
         percentage: pct,
     };
 
-    if (singleTooltip && map) {
+    // Pada mobile, jangan tampilkan tooltip pop-up di atas poligon wilayah karena sudah ada kartu rincian di bawah peta (agar tidak dobel)
+    if (!isMobileScreen() && singleTooltip && map) {
         const pos = latlng || layer.getBounds().getCenter();
         singleTooltip
             .setLatLng(pos)
@@ -545,6 +551,8 @@ function selectFeature(feature, layer, latlng = null) {
         if (!map.hasLayer(singleTooltip)) {
             singleTooltip.addTo(map);
         }
+    } else if (singleTooltip && map && map.hasLayer(singleTooltip)) {
+        map.removeLayer(singleTooltip);
     }
 }
 
@@ -554,8 +562,10 @@ function selectDesaFeature(feature, layer, latlng = null) {
     const kabKey = normalizeKey(feature.properties.kabupaten);
     const key = `${dKey}_${kecKey}_${kabKey}`;
 
-    if (currentHoveredDesaKey === key && singleTooltip && map && map.hasLayer(singleTooltip)) {
-        if (latlng) singleTooltip.setLatLng(latlng);
+    if (currentHoveredDesaKey === key) {
+        if (!isMobileScreen() && latlng && singleTooltip && map && map.hasLayer(singleTooltip)) {
+            singleTooltip.setLatLng(latlng);
+        }
         return;
     }
     currentHoveredDesaKey = key;
@@ -598,7 +608,8 @@ function selectDesaFeature(feature, layer, latlng = null) {
         students,
     };
 
-    if (singleTooltip && map) {
+    // Pada mobile, jangan tampilkan tooltip pop-up di atas poligon wilayah karena sudah ada kartu rincian di bawah peta (agar tidak dobel)
+    if (!isMobileScreen() && singleTooltip && map) {
         const pos = latlng || layer.getBounds().getCenter();
         singleTooltip
             .setLatLng(pos)
@@ -616,6 +627,8 @@ function selectDesaFeature(feature, layer, latlng = null) {
         if (!map.hasLayer(singleTooltip)) {
             singleTooltip.addTo(map);
         }
+    } else if (singleTooltip && map && map.hasLayer(singleTooltip)) {
+        map.removeLayer(singleTooltip);
     }
 }
 
@@ -1176,10 +1189,10 @@ onBeforeUnmount(() => {
 
 <template>
     <div class="bg-white rounded-3xl border border-slate-200/90 p-4 sm:p-6 shadow-xs mb-5">
-        <!-- Header: Judul, Tab Switcher [Per Kecamatan | Per Desa] & [Peta | Bar] & Ringkasan Siswa -->
+        <!-- Header: Judul, Tab Switcher [Peta | Bar] + [Kec | Desa] (Satu Baris), & Ringkasan Siswa -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-100">
             <div class="flex items-center gap-2">
-                <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block shrink-0"></span>
                 <div>
                     <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">
                         Sebaran Domisili Siswa (Solo Raya & Grobogan)
@@ -1190,58 +1203,67 @@ onBeforeUnmount(() => {
                 </div>
             </div>
 
-            <!-- Bagian Kanan: Toggle Agregasi [Per Kecamatan | Per Desa], Toggle View [Peta | Bar] & Ringkasan -->
+            <!-- Bagian Kanan: Baris Tab Switcher [Peta|Bar] + [Kec|Desa] & Badge Ringkasan -->
             <div class="flex items-center gap-2 self-start sm:self-auto shrink-0 flex-wrap">
-                <!-- Toggle Pilihan: Per Kecamatan vs Per Desa (Diatas container peta) -->
-                <div class="inline-flex items-center p-0.5 bg-slate-100/90 rounded-xl border border-slate-200/90 shadow-2xs">
-                    <button
-                        type="button"
-                        @click="setAggregation('kecamatan')"
-                        class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs transition-all cursor-pointer"
-                        :class="aggregationLevel === 'kecamatan'
-                            ? 'bg-white text-emerald-900 font-bold shadow-xs'
-                            : 'text-slate-500 hover:text-slate-800 font-semibold'"
-                    >
-                        <span class="material-symbols-outlined text-[15px]">location_city</span>
-                        <span>Per Kecamatan</span>
-                    </button>
-                    <button
-                        type="button"
-                        @click="setAggregation('desa')"
-                        class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs transition-all cursor-pointer"
-                        :class="aggregationLevel === 'desa'
-                            ? 'bg-white text-emerald-900 font-bold shadow-xs'
-                            : 'text-slate-500 hover:text-slate-800 font-semibold'"
-                    >
-                        <span class="material-symbols-outlined text-[15px]">holiday_village</span>
-                        <span>Per Desa</span>
-                    </button>
-                </div>
+                <!-- Grup Tab: Peta/Bar dan Kec/Desa selalu 1 baris (flex-nowrap) -->
+                <div class="inline-flex items-center gap-1.5 sm:gap-2 flex-nowrap shrink-0">
+                    <!-- 1. Toggle Pilihan Tampilan: Peta / Bar -->
+                    <div class="inline-flex items-center p-0.5 bg-slate-100/90 rounded-xl border border-slate-200/90 shadow-2xs">
+                        <button
+                            type="button"
+                            @click="activeView = 'peta'"
+                            class="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 rounded-lg text-xs transition-all cursor-pointer"
+                            :class="activeView === 'peta'
+                                ? 'bg-white text-emerald-900 font-bold shadow-xs'
+                                : 'text-slate-500 hover:text-slate-800 font-semibold'"
+                            title="Tampilan Peta"
+                        >
+                            <span class="material-symbols-outlined text-[15px]">map</span>
+                            <span>Peta</span>
+                        </button>
+                        <button
+                            type="button"
+                            @click="activeView = 'bar'"
+                            class="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 rounded-lg text-xs transition-all cursor-pointer"
+                            :class="activeView === 'bar'
+                                ? 'bg-white text-emerald-900 font-bold shadow-xs'
+                                : 'text-slate-500 hover:text-slate-800 font-semibold'"
+                            title="Tampilan Grafik Bar"
+                        >
+                            <span class="material-symbols-outlined text-[15px]">bar_chart</span>
+                            <span>Bar</span>
+                        </button>
+                    </div>
 
-                <!-- Toggle Pilihan Tampilan: Peta / Bar -->
-                <div class="inline-flex items-center p-0.5 bg-slate-100/90 rounded-xl border border-slate-200/90 shadow-2xs">
-                    <button
-                        type="button"
-                        @click="activeView = 'peta'"
-                        class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs transition-all cursor-pointer"
-                        :class="activeView === 'peta'
-                            ? 'bg-white text-emerald-900 font-bold shadow-xs'
-                            : 'text-slate-500 hover:text-slate-800 font-semibold'"
-                    >
-                        <span class="material-symbols-outlined text-[15px]">map</span>
-                        <span>Peta</span>
-                    </button>
-                    <button
-                        type="button"
-                        @click="activeView = 'bar'"
-                        class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs transition-all cursor-pointer"
-                        :class="activeView === 'bar'
-                            ? 'bg-white text-emerald-900 font-bold shadow-xs'
-                            : 'text-slate-500 hover:text-slate-800 font-semibold'"
-                    >
-                        <span class="material-symbols-outlined text-[15px]">bar_chart</span>
-                        <span>Bar</span>
-                    </button>
+                    <!-- 2. Toggle Pilihan Wilayah: Kecamatan / Desa (Di samping kanan Peta / Bar, Warna Indigo) -->
+                    <div class="inline-flex items-center p-0.5 bg-indigo-50/80 rounded-xl border border-indigo-200/80 shadow-2xs">
+                        <button
+                            type="button"
+                            @click="setAggregation('kecamatan')"
+                            class="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 rounded-lg text-xs transition-all cursor-pointer"
+                            :class="aggregationLevel === 'kecamatan'
+                                ? 'bg-indigo-600 text-white font-bold shadow-xs'
+                                : 'text-indigo-700/70 hover:text-indigo-950 font-semibold'"
+                            title="Berdasarkan Kecamatan"
+                        >
+                            <span class="material-symbols-outlined text-[15px]">location_city</span>
+                            <span class="sm:hidden">Kec</span>
+                            <span class="hidden sm:inline">Kecamatan</span>
+                        </button>
+                        <button
+                            type="button"
+                            @click="setAggregation('desa')"
+                            class="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 rounded-lg text-xs transition-all cursor-pointer"
+                            :class="aggregationLevel === 'desa'
+                                ? 'bg-indigo-600 text-white font-bold shadow-xs'
+                                : 'text-indigo-700/70 hover:text-indigo-950 font-semibold'"
+                            title="Berdasarkan Desa / Kelurahan"
+                        >
+                            <span class="material-symbols-outlined text-[15px]">holiday_village</span>
+                            <span class="sm:hidden">Desa</span>
+                            <span class="hidden sm:inline">Desa</span>
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Badge Total Tercakup -->
@@ -1297,8 +1319,8 @@ onBeforeUnmount(() => {
             <!-- Leaflet Container -->
             <div ref="mapContainer" class="w-full h-full z-10"></div>
 
-            <!-- Floating Controls di Kiri Atas Peta: Reset Zoom & Toggle Cepat [Kecamatan | Desa] -->
-            <div class="absolute top-3 left-3 z-[400] flex items-center gap-2">
+            <!-- Floating Controls di Kiri Atas Peta: Reset Zoom -->
+            <div class="absolute top-3 left-3 z-[400]">
                 <button
                     type="button"
                     @click="resetZoom"
@@ -1308,34 +1330,6 @@ onBeforeUnmount(() => {
                     <span class="material-symbols-outlined text-[15px]">crop_free</span>
                     <span class="hidden sm:inline">Reset Zoom</span>
                 </button>
-
-                <!-- Pilihan per kecamatan / per desa di dalam peta -->
-                <div class="inline-flex items-center p-0.5 bg-white/95 backdrop-blur-xs rounded-xl border border-slate-200/90 shadow-md">
-                    <button
-                        type="button"
-                        @click="setAggregation('kecamatan')"
-                        class="px-2 py-1 rounded-lg text-xs transition-all cursor-pointer flex items-center gap-1"
-                        :class="aggregationLevel === 'kecamatan'
-                            ? 'bg-emerald-700 text-white font-bold shadow-2xs'
-                            : 'text-slate-600 hover:text-slate-900 font-semibold'"
-                        title="Tampilkan peta per kecamatan"
-                    >
-                        <span class="material-symbols-outlined text-[14px]">location_city</span>
-                        <span class="text-[11px]">Kecamatan</span>
-                    </button>
-                    <button
-                        type="button"
-                        @click="setAggregation('desa')"
-                        class="px-2 py-1 rounded-lg text-xs transition-all cursor-pointer flex items-center gap-1"
-                        :class="aggregationLevel === 'desa'
-                            ? 'bg-emerald-700 text-white font-bold shadow-2xs'
-                            : 'text-slate-600 hover:text-slate-900 font-semibold'"
-                        title="Tampilkan peta per desa"
-                    >
-                        <span class="material-symbols-outlined text-[14px]">holiday_village</span>
-                        <span class="text-[11px]">Desa</span>
-                    </button>
-                </div>
             </div>
 
             <!-- Live Status Hover/Touch Bar: Mode Desa -->
@@ -1421,14 +1415,42 @@ onBeforeUnmount(() => {
                 </span>
             </div>
 
+            <!-- Tombol Buka Legenda khusus Mobile (saat legenda disembunyikan) -->
+            <button
+                v-if="!isLegendOpenMobile"
+                type="button"
+                @click="isLegendOpenMobile = true"
+                class="sm:hidden absolute bottom-3 left-3 z-[400] px-2.5 py-1.5 rounded-xl bg-white/95 backdrop-blur-xs text-slate-700 text-[11px] font-bold shadow-md border border-slate-200/80 flex items-center gap-1.5 cursor-pointer touch-manipulation transition-all"
+                :class="{ 'hidden': hoveredFeature || hoveredDesa }"
+                title="Tampilkan legenda peta"
+            >
+                <span class="material-symbols-outlined text-[15px] text-emerald-700">palette</span>
+                <span>Legenda</span>
+                <span class="material-symbols-outlined text-[14px] text-slate-400">expand_less</span>
+            </button>
+
             <!-- Floating Legend di Kiri Bawah -->
             <div
-                class="absolute bottom-3 left-3 z-[400] bg-white/95 backdrop-blur-xs rounded-xl border border-slate-200/90 p-2 sm:p-2.5 shadow-md flex flex-col gap-1.5"
-                :class="{ 'hidden sm:flex': hoveredFeature || hoveredDesa }"
+                class="absolute bottom-3 left-3 z-[400] bg-white/95 backdrop-blur-xs rounded-xl border border-slate-200/90 p-2 sm:p-2.5 shadow-md flex-col gap-1.5 transition-all"
+                :class="[
+                    isLegendOpenMobile ? 'flex' : 'hidden sm:flex',
+                    { 'hidden sm:flex': hoveredFeature || hoveredDesa }
+                ]"
             >
                 <div>
-                    <div class="text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1">
-                        {{ aggregationLevel === 'desa' ? 'Siswa per Desa' : 'Siswa per Kecamatan' }}
+                    <div class="flex items-center justify-between gap-3 mb-1">
+                        <span class="text-[10px] font-bold text-slate-700 uppercase tracking-wider">
+                            {{ aggregationLevel === 'desa' ? 'Siswa per Desa' : 'Siswa per Kecamatan' }}
+                        </span>
+                        <!-- Tombol Sembunyikan khusus Mobile -->
+                        <button
+                            type="button"
+                            @click="isLegendOpenMobile = false"
+                            class="sm:hidden p-0.5 -mr-1 text-slate-400 hover:text-slate-700 rounded-md cursor-pointer touch-manipulation flex items-center"
+                            title="Sembunyikan legenda"
+                        >
+                            <span class="material-symbols-outlined text-[15px]">expand_more</span>
+                        </button>
                     </div>
                     <div class="flex items-center gap-1 text-[10px] text-slate-600 font-medium">
                         <div class="flex items-center gap-0.5">
