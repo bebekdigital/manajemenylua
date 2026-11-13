@@ -1195,7 +1195,7 @@ onBeforeUnmount(() => {
                 <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block shrink-0"></span>
                 <div>
                     <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                        Sebaran Domisili Siswa (Solo Raya & Grobogan)
+                        Sebaran Domisili Siswa
                     </h3>
                     <p class="text-[11px] text-slate-400 font-medium mt-0.5">
                         Berdasarkan <span class="font-bold text-slate-600">{{ aggregationLevel === 'desa' ? 'Desa / Kelurahan' : 'Kecamatan' }}</span> domisili siswa aktif — {{ unit }} (TA {{ academicYear }})
@@ -1235,15 +1235,15 @@ onBeforeUnmount(() => {
                         </button>
                     </div>
 
-                    <!-- 2. Toggle Pilihan Wilayah: Kecamatan / Desa (Di samping kanan Peta / Bar, Warna Indigo) -->
-                    <div class="inline-flex items-center p-0.5 bg-indigo-50/80 rounded-xl border border-indigo-200/80 shadow-2xs">
+                    <!-- 2. Toggle Pilihan Wilayah: Kecamatan / Desa (Di samping kanan Peta / Bar, Warna Kuning) -->
+                    <div class="inline-flex items-center p-0.5 bg-amber-50 rounded-xl border border-amber-200/90 shadow-2xs">
                         <button
                             type="button"
                             @click="setAggregation('kecamatan')"
                             class="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 rounded-lg text-xs transition-all cursor-pointer"
                             :class="aggregationLevel === 'kecamatan'
-                                ? 'bg-indigo-600 text-white font-bold shadow-xs'
-                                : 'text-indigo-700/70 hover:text-indigo-950 font-semibold'"
+                                ? 'bg-amber-400 text-amber-950 font-bold shadow-xs'
+                                : 'text-amber-800/80 hover:text-amber-950 font-semibold'"
                             title="Berdasarkan Kecamatan"
                         >
                             <span class="material-symbols-outlined text-[15px]">location_city</span>
@@ -1255,8 +1255,8 @@ onBeforeUnmount(() => {
                             @click="setAggregation('desa')"
                             class="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 rounded-lg text-xs transition-all cursor-pointer"
                             :class="aggregationLevel === 'desa'
-                                ? 'bg-indigo-600 text-white font-bold shadow-xs'
-                                : 'text-indigo-700/70 hover:text-indigo-950 font-semibold'"
+                                ? 'bg-amber-400 text-amber-950 font-bold shadow-xs'
+                                : 'text-amber-800/80 hover:text-amber-950 font-semibold'"
                             title="Berdasarkan Desa / Kelurahan"
                         >
                             <span class="material-symbols-outlined text-[15px]">holiday_village</span>
