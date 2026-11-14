@@ -31,12 +31,14 @@ const mapContainer = ref(null);
 let map = null;
 let geojsonLayer = null;
 let desaGeojsonLayer = null;
+let kecCanvasRenderer = null;
 let desaCanvasRenderer = null;
 let desaLoadingPromise = null;
 let kabupatenLayer = null;
 let schoolMarker = null;
 let activeHoverLayer = null;
 let currentHoveredDesaKey = null;
+let currentHoveredKecamatanKey = null;
 let singleTooltip = null;
 let isLockedByClick = false;
 let lastInteractionTime = 0;
@@ -365,7 +367,7 @@ function closeKecamatanModal() {
 function openFeatureModal(feature) {
     if (!feature) return;
     const key = `${normalizeKey(feature.kecamatan)}_${normalizeKey(feature.kabupaten)}`;
-    const students = distribution.value.studentsByKey[key] || [];
+    const students = feature.students || distribution.value.studentsByKey[key] || [];
     openKecamatanModal({
         kecamatan: feature.kecamatan,
         kabupaten: feature.kabupaten,
@@ -499,6 +501,16 @@ function desaFeatureStyle(feature) {
 }
 
 function selectFeature(feature, layer, latlng = null) {
+    const kecKey = normalizeKey(feature.properties.kecamatan);
+    const kabKey = normalizeKey(feature.properties.kabupaten);
+    const key = `${kecKey}_${kabKey}`;
+
+    if (currentHoveredKecamatanKey === key && singleTooltip && map && map.hasLayer(singleTooltip)) {
+        if (latlng) singleTooltip.setLatLng(latlng);
+        return;
+    }
+    currentHoveredKecamatanKey = key;
+
     hoveredDesa.value = null;
     if (activeHoverLayer && activeHoverLayer !== layer) {
         if (activeHoverLayer.feature) {
@@ -526,11 +538,14 @@ function selectFeature(feature, layer, latlng = null) {
         ? Math.round((count / distribution.value.activeTotal) * 100)
         : 0;
 
+    const students = distribution.value.studentsByKey[key] || [];
+
     hoveredFeature.value = {
         kecamatan: feature.properties.kecamatan,
         kabupaten: feature.properties.kabupaten,
         count,
         percentage: pct,
+        students,
     };
 
     // Pada mobile, jangan tampilkan tooltip pop-up di atas poligon wilayah karena sudah ada kartu rincian di bawah peta (agar tidak dobel)
@@ -539,8 +554,9 @@ function selectFeature(feature, layer, latlng = null) {
         singleTooltip
             .setLatLng(pos)
             .setContent(`
-                <div class="px-2 py-1.5 text-xs text-slate-800 leading-tight">
-                    <div class="font-bold text-slate-900 text-[12.5px]">Kec. ${feature.properties.kecamatan}</div>
+                <div class="px-2.5 py-1.5 text-xs text-slate-800 leading-tight">
+                    <div class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider mb-0.5">Kecamatan</div>
+                    <div class="font-extrabold text-slate-900 text-[13px]">Kec. ${feature.properties.kecamatan}</div>
                     <div class="text-[11px] text-slate-500 font-medium">Kab/Kota ${feature.properties.kabupaten}</div>
                     <div class="mt-1 pt-1 border-t border-slate-200/80 flex items-center justify-between gap-3">
                         <span class="font-semibold text-emerald-800">${count} Siswa</span>
@@ -645,6 +661,7 @@ function handleSelect(feature, layer, latlng = null) {
 function clearHover() {
     isLockedByClick = false;
     currentHoveredDesaKey = null;
+    currentHoveredKecamatanKey = null;
     if (activeHoverLayer) {
         if (aggregationLevel.value === 'kecamatan') {
             activeHoverLayer.setStyle(featureStyle(activeHoverLayer.feature));
@@ -955,28 +972,33 @@ async function loadGeoJsonAndInitMap() {
             opacity: 0.98,
         });
 
+        if (!kecCanvasRenderer) {
+            kecCanvasRenderer = L.canvas({ padding: 0.25 });
+        }
+
         // Layer 1: Poligon Kecamatan
         geojsonLayer = L.geoJSON(data, {
+            renderer: kecCanvasRenderer,
             style: featureStyle,
             onEachFeature: (feature, layer) => {
                 layer.on({
                     mouseover: (e) => {
                         if (aggregationLevel.value !== 'kecamatan') return;
-                        if (Date.now() - lastInteractionTime < 800) return;
+                        if (Date.now() - lastInteractionTime < 600) return;
                         if (!isLockedByClick) {
                             selectFeature(feature, layer, e.latlng);
                         }
                     },
                     mousemove: (e) => {
                         if (aggregationLevel.value !== 'kecamatan') return;
-                        if (Date.now() - lastInteractionTime < 800) return;
+                        if (Date.now() - lastInteractionTime < 600) return;
                         if (!isLockedByClick && singleTooltip && map && map.hasLayer(singleTooltip)) {
                             singleTooltip.setLatLng(e.latlng);
                         }
                     },
                     mouseout: (e) => {
                         if (aggregationLevel.value !== 'kecamatan') return;
-                        if (Date.now() - lastInteractionTime < 800) return;
+                        if (Date.now() - lastInteractionTime < 600) return;
                         if (!isLockedByClick) {
                             clearHover();
                         } else if (activeHoverLayer !== layer) {
@@ -988,73 +1010,33 @@ async function loadGeoJsonAndInitMap() {
                         if (e.originalEvent) {
                             L.DomEvent.stopPropagation(e.originalEvent);
                         }
-                        handleSelect(feature, layer, e.latlng);
+                        lastInteractionTime = Date.now();
+                        isLockedByClick = true;
+                        selectFeature(feature, layer, e.latlng);
                     },
                 });
             },
         }).addTo(map);
-
-        geojsonLayer.eachLayer((layer) => {
-            attachDirectTouchListeners(layer.feature, layer);
-        });
-
-        // Sentuhan pada container map
-        let containerTouchStartX = 0;
-        let containerTouchStartY = 0;
-        let containerTouchStartTime = 0;
-
-        mapContainer.value.addEventListener('touchstart', (e) => {
-            if (e.touches && e.touches.length === 1) {
-                containerTouchStartX = e.touches[0].clientX;
-                containerTouchStartY = e.touches[0].clientY;
-                containerTouchStartTime = Date.now();
-            }
-        }, { passive: true });
-
-        mapContainer.value.addEventListener('touchend', (e) => {
-            if (!containerTouchStartTime) return;
-            const touch = e.changedTouches ? e.changedTouches[0] : null;
-            if (touch) {
-                const dx = Math.abs(touch.clientX - containerTouchStartX);
-                const dy = Math.abs(touch.clientY - containerTouchStartY);
-                const dt = Date.now() - containerTouchStartTime;
-                containerTouchStartTime = 0;
-
-                if (dx < 30 && dy < 30 && dt < 600) {
-                    if (map && mapContainer.value && aggregationLevel.value === 'kecamatan') {
-                        try {
-                            const rect = mapContainer.value.getBoundingClientRect();
-                            const pt = L.point(touch.clientX - rect.left, touch.clientY - rect.top);
-                            const latlng = map.containerPointToLatLng(pt);
-                            const result = findFeatureAndLayerAtLatLng(latlng);
-                            if (result && result.layer) {
-                                handleSelect(result.feature, result.layer, latlng);
-                            }
-                        } catch (_) {}
-                    }
-                }
-            }
-        }, { passive: true });
 
         map.on('click', (e) => {
             if (Date.now() - lastInteractionTime < 400) return;
             if (aggregationLevel.value === 'kecamatan') {
                 const result = findFeatureAndLayerAtLatLng(e.latlng);
                 if (result && result.layer) {
-                    handleSelect(result.feature, result.layer, e.latlng);
-                } else {
-                    isLockedByClick = false;
-                    clearHover();
+                    lastInteractionTime = Date.now();
+                    isLockedByClick = true;
+                    selectFeature(result.feature, result.layer, e.latlng);
+                    return;
                 }
-            } else {
-                isLockedByClick = false;
-                clearHover();
             }
+            isLockedByClick = false;
+            clearHover();
         });
 
         // Layer 2: Batas Kabupaten Putus-putus
         if (kabData) {
             kabupatenLayer = L.geoJSON(kabData, {
+                renderer: kecCanvasRenderer,
                 style: {
                     fill: false,
                     weight: 1.8,
@@ -1064,13 +1046,6 @@ async function loadGeoJsonAndInitMap() {
                 },
                 interactive: false,
             }).addTo(map);
-
-            kabupatenLayer.eachLayer(l => {
-                const el = l.getElement ? l.getElement() : l._path;
-                if (el) {
-                    el.style.pointerEvents = 'none';
-                }
-            });
         }
 
         // Layer 3: Marker Titik Lokasi Kampus Sekolah
@@ -1383,8 +1358,9 @@ onBeforeUnmount(() => {
                     >
                         <span class="material-symbols-outlined text-[16px]">close</span>
                     </button>
-                    <span class="text-[12px] font-bold text-emerald-800 pr-6">Kec. {{ hoveredFeature.kecamatan }}</span>
-                    <span class="text-[10.5px] text-slate-500 font-medium">Kab/Kota {{ hoveredFeature.kabupaten }}</span>
+                    <span class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Kecamatan</span>
+                    <span class="text-[13px] font-extrabold text-slate-900 pr-6 leading-tight mt-0.5">Kec. {{ hoveredFeature.kecamatan }}</span>
+                    <span class="text-[11px] text-slate-500 font-medium mt-0.5">Kab/Kota {{ hoveredFeature.kabupaten }}</span>
                     <div class="mt-1.5 pt-1.5 border-t border-slate-100 flex items-center justify-between gap-2">
                         <span class="text-xs font-bold text-slate-900">
                             {{ hoveredFeature.count }} Siswa
