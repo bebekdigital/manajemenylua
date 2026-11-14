@@ -31,7 +31,6 @@ const mapContainer = ref(null);
 let map = null;
 let geojsonLayer = null;
 let desaGeojsonLayer = null;
-let kecCanvasRenderer = null;
 let desaCanvasRenderer = null;
 let desaLoadingPromise = null;
 let kabupatenLayer = null;
@@ -500,13 +499,19 @@ function desaFeatureStyle(feature) {
     };
 }
 
-function selectFeature(feature, layer, latlng = null) {
+function selectFeature(feature, layer, latlng = null, isClick = false) {
     const kecKey = normalizeKey(feature.properties.kecamatan);
     const kabKey = normalizeKey(feature.properties.kabupaten);
     const key = `${kecKey}_${kabKey}`;
 
-    if (currentHoveredKecamatanKey === key && singleTooltip && map && map.hasLayer(singleTooltip)) {
-        if (latlng) singleTooltip.setLatLng(latlng);
+    if (currentHoveredKecamatanKey === key) {
+        if (isClick) {
+            if (singleTooltip && map && map.hasLayer(singleTooltip)) {
+                map.removeLayer(singleTooltip);
+            }
+        } else if (!isMobileScreen() && latlng && singleTooltip && map && map.hasLayer(singleTooltip)) {
+            singleTooltip.setLatLng(latlng);
+        }
         return;
     }
     currentHoveredKecamatanKey = key;
@@ -529,9 +534,6 @@ function selectFeature(feature, layer, latlng = null) {
     if (layer.bringToFront) {
         layer.bringToFront();
     }
-    if (kabupatenLayer && kabupatenLayer.bringToFront) {
-        kabupatenLayer.bringToFront();
-    }
 
     const count = getFeatureCount(feature);
     const pct = distribution.value.activeTotal > 0
@@ -547,6 +549,13 @@ function selectFeature(feature, layer, latlng = null) {
         percentage: pct,
         students,
     };
+
+    if (isClick) {
+        if (singleTooltip && map && map.hasLayer(singleTooltip)) {
+            map.removeLayer(singleTooltip);
+        }
+        return;
+    }
 
     // Pada mobile, jangan tampilkan tooltip pop-up di atas poligon wilayah karena sudah ada kartu rincian di bawah peta (agar tidak dobel)
     if (!isMobileScreen() && singleTooltip && map) {
@@ -572,14 +581,18 @@ function selectFeature(feature, layer, latlng = null) {
     }
 }
 
-function selectDesaFeature(feature, layer, latlng = null) {
+function selectDesaFeature(feature, layer, latlng = null, isClick = false) {
     const dKey = normalizeKey(feature.properties.desa);
     const kecKey = normalizeKey(feature.properties.kecamatan);
     const kabKey = normalizeKey(feature.properties.kabupaten);
     const key = `${dKey}_${kecKey}_${kabKey}`;
 
     if (currentHoveredDesaKey === key) {
-        if (!isMobileScreen() && latlng && singleTooltip && map && map.hasLayer(singleTooltip)) {
+        if (isClick) {
+            if (singleTooltip && map && map.hasLayer(singleTooltip)) {
+                map.removeLayer(singleTooltip);
+            }
+        } else if (!isMobileScreen() && latlng && singleTooltip && map && map.hasLayer(singleTooltip)) {
             singleTooltip.setLatLng(latlng);
         }
         return;
@@ -624,6 +637,13 @@ function selectDesaFeature(feature, layer, latlng = null) {
         students,
     };
 
+    if (isClick) {
+        if (singleTooltip && map && map.hasLayer(singleTooltip)) {
+            map.removeLayer(singleTooltip);
+        }
+        return;
+    }
+
     // Pada mobile, jangan tampilkan tooltip pop-up di atas poligon wilayah karena sudah ada kartu rincian di bawah peta (agar tidak dobel)
     if (!isMobileScreen() && singleTooltip && map) {
         const pos = latlng || layer.getBounds().getCenter();
@@ -652,9 +672,9 @@ function handleSelect(feature, layer, latlng = null) {
     lastInteractionTime = Date.now();
     isLockedByClick = true;
     if (aggregationLevel.value === 'kecamatan') {
-        selectFeature(feature, layer, latlng);
+        selectFeature(feature, layer, latlng, true);
     } else {
-        selectDesaFeature(feature, layer, latlng);
+        selectDesaFeature(feature, layer, latlng, true);
     }
 }
 
@@ -695,26 +715,20 @@ function initDesaLayer() {
             layer.on({
                 mouseover: (e) => {
                     if (aggregationLevel.value !== 'desa') return;
-                    if (Date.now() - lastInteractionTime < 600) return;
-                    if (!isLockedByClick) {
-                        selectDesaFeature(feature, layer, e.latlng);
-                    }
+                    if (isLockedByClick) return;
+                    selectDesaFeature(feature, layer, e.latlng, false);
                 },
                 mousemove: (e) => {
                     if (aggregationLevel.value !== 'desa') return;
-                    if (Date.now() - lastInteractionTime < 600) return;
-                    if (!isLockedByClick && singleTooltip && map && map.hasLayer(singleTooltip)) {
+                    if (isLockedByClick) return;
+                    if (singleTooltip && map && map.hasLayer(singleTooltip)) {
                         singleTooltip.setLatLng(e.latlng);
                     }
                 },
                 mouseout: (e) => {
                     if (aggregationLevel.value !== 'desa') return;
-                    if (Date.now() - lastInteractionTime < 600) return;
-                    if (!isLockedByClick) {
-                        clearHover();
-                    } else if (activeHoverLayer !== layer) {
-                        layer.setStyle(desaFeatureStyle(feature));
-                    }
+                    if (isLockedByClick) return;
+                    clearHover();
                 },
                 click: (e) => {
                     if (aggregationLevel.value !== 'desa') return;
@@ -723,7 +737,7 @@ function initDesaLayer() {
                     }
                     lastInteractionTime = Date.now();
                     isLockedByClick = true;
-                    selectDesaFeature(feature, layer, e.latlng);
+                    selectDesaFeature(feature, layer, e.latlng, true);
                 },
             });
         },
@@ -972,38 +986,27 @@ async function loadGeoJsonAndInitMap() {
             opacity: 0.98,
         });
 
-        if (!kecCanvasRenderer) {
-            kecCanvasRenderer = L.canvas({ padding: 0.25 });
-        }
-
         // Layer 1: Poligon Kecamatan
         geojsonLayer = L.geoJSON(data, {
-            renderer: kecCanvasRenderer,
             style: featureStyle,
             onEachFeature: (feature, layer) => {
                 layer.on({
                     mouseover: (e) => {
                         if (aggregationLevel.value !== 'kecamatan') return;
-                        if (Date.now() - lastInteractionTime < 600) return;
-                        if (!isLockedByClick) {
-                            selectFeature(feature, layer, e.latlng);
-                        }
+                        if (isLockedByClick) return;
+                        selectFeature(feature, layer, e.latlng, false);
                     },
                     mousemove: (e) => {
                         if (aggregationLevel.value !== 'kecamatan') return;
-                        if (Date.now() - lastInteractionTime < 600) return;
-                        if (!isLockedByClick && singleTooltip && map && map.hasLayer(singleTooltip)) {
+                        if (isLockedByClick) return;
+                        if (singleTooltip && map && map.hasLayer(singleTooltip)) {
                             singleTooltip.setLatLng(e.latlng);
                         }
                     },
                     mouseout: (e) => {
                         if (aggregationLevel.value !== 'kecamatan') return;
-                        if (Date.now() - lastInteractionTime < 600) return;
-                        if (!isLockedByClick) {
-                            clearHover();
-                        } else if (activeHoverLayer !== layer) {
-                            layer.setStyle(featureStyle(feature));
-                        }
+                        if (isLockedByClick) return;
+                        clearHover();
                     },
                     click: (e) => {
                         if (aggregationLevel.value !== 'kecamatan') return;
@@ -1012,7 +1015,7 @@ async function loadGeoJsonAndInitMap() {
                         }
                         lastInteractionTime = Date.now();
                         isLockedByClick = true;
-                        selectFeature(feature, layer, e.latlng);
+                        selectFeature(feature, layer, e.latlng, true);
                     },
                 });
             },
@@ -1025,7 +1028,7 @@ async function loadGeoJsonAndInitMap() {
                 if (result && result.layer) {
                     lastInteractionTime = Date.now();
                     isLockedByClick = true;
-                    selectFeature(result.feature, result.layer, e.latlng);
+                    selectFeature(result.feature, result.layer, e.latlng, true);
                     return;
                 }
             }
@@ -1036,7 +1039,6 @@ async function loadGeoJsonAndInitMap() {
         // Layer 2: Batas Kabupaten Putus-putus
         if (kabData) {
             kabupatenLayer = L.geoJSON(kabData, {
-                renderer: kecCanvasRenderer,
                 style: {
                     fill: false,
                     weight: 1.8,
