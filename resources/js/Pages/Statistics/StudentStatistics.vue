@@ -790,10 +790,10 @@ function getClassMalePercent(item) {
 </script>
 
 <template>
-    <div ref="pageContainerRef" class="flex-1 overflow-y-auto p-4 md:p-margin-desktop bg-white min-h-screen">
+    <div ref="pageContainerRef" class="flex-1 overflow-y-auto overflow-x-hidden w-full max-w-full p-4 md:p-margin-desktop bg-white min-h-screen">
         <Head title="Statistik Siswa - Foundation Data Center" />
 
-        <div class="max-w-[1440px] mx-auto pb-16 md:pb-8">
+        <div class="max-w-[1440px] w-full mx-auto pb-16 md:pb-8 min-w-0">
             <!-- Sticky Title Header Mobile (Muncul otomatis saat judul utama ter-scroll keluar layar, sama seperti Data Siswa & Pegawai) -->
             <Transition
                 enter-active-class="transition-all duration-200 ease-out"
@@ -838,24 +838,26 @@ function getClassMalePercent(item) {
             <!-- ============================================================ -->
             <!-- TOOLBAR FILTER                                               -->
             <!-- ============================================================ -->
-            <div class="mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <!-- Segmented Capsule Tabs Unit Sekolah (Semua, SDIT, SMPIT) - Tetap Normal -->
-                <div class="bg-slate-100 p-1 rounded-full inline-flex items-center gap-0.5 border border-slate-200/90 self-start sm:self-auto shrink-0">
-                    <button
-                        v-for="tab in unitTabs"
-                        :key="tab.id"
-                        type="button"
-                        @click="activeUnit = tab.id"
-                        :class="[
-                            'inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-1.5 rounded-full text-xs sm:text-[13px] transition-all duration-150 cursor-pointer shrink-0',
-                            activeUnit === tab.id
-                                ? 'bg-emerald-100 text-emerald-950 font-bold border border-emerald-300 shadow-2xs'
-                                : 'text-slate-600 hover:text-slate-900 font-medium border border-transparent'
-                        ]"
-                    >
-                        <span class="material-symbols-outlined text-[16px]" :class="{ 'filled-icon': activeUnit === tab.id }">{{ tab.icon }}</span>
-                        <span>{{ tab.label }}</span>
-                    </button>
+            <div class="mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 max-w-full min-w-0">
+                <!-- Segmented Capsule Tabs Unit Sekolah (Semua, SDIT, SMPIT, SMAIT, PPTQ) - Scrollable Horizontal di Mobile -->
+                <div class="overflow-x-auto no-scrollbar max-w-full -mx-4 px-4 sm:mx-0 sm:px-0">
+                    <div class="bg-slate-100 p-1 rounded-full inline-flex items-center gap-0.5 border border-slate-200/90 shrink-0">
+                        <button
+                            v-for="tab in unitTabs"
+                            :key="tab.id"
+                            type="button"
+                            @click="activeUnit = tab.id"
+                            :class="[
+                                'inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-1.5 rounded-full text-xs sm:text-[13px] transition-all duration-150 cursor-pointer shrink-0 whitespace-nowrap',
+                                activeUnit === tab.id
+                                    ? 'bg-emerald-100 text-emerald-950 font-bold border border-emerald-300 shadow-2xs'
+                                    : 'text-slate-600 hover:text-slate-900 font-medium border border-transparent'
+                            ]"
+                        >
+                            <span class="material-symbols-outlined text-[16px]" :class="{ 'filled-icon': activeUnit === tab.id }">{{ tab.icon }}</span>
+                            <span>{{ tab.label }}</span>
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Filter TA, Semester & Reset (Scrollable horizontal jika melebihi layar di Mobile) -->

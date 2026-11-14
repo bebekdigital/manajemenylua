@@ -1188,7 +1188,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <div class="bg-white rounded-3xl border border-slate-200/90 p-4 sm:p-6 shadow-xs mb-5">
+    <div class="bg-white rounded-3xl border border-slate-200/90 p-4 sm:p-6 shadow-xs mb-5 overflow-hidden w-full max-w-full min-w-0">
         <!-- Header: Judul, Tab Switcher [Peta | Bar] + [Kec | Desa] (Satu Baris), & Ringkasan Siswa -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-100">
             <div class="flex items-center gap-2">
