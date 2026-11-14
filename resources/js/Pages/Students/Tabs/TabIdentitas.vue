@@ -92,14 +92,10 @@ function onPesantrenUnitChange() {
 function onProgramChange() {
     clearFieldError('program');
     const prog = (props.form.program || '').toLowerCase();
-    if (prog.includes('boarding')) {
-        if (!props.form.unit_pesantren) {
-            props.form.unit_pesantren = pesantrenUnitOptions.value[0] || 'PPTQ Ulil Albab';
-        }
+    if (prog.includes('boarding') || prog.includes('pptq') || prog.includes('pesantren')) {
+        props.form.unit_pesantren = pesantrenUnitOptions.value[0] || 'PPTQ Ulil Albab';
     } else {
-        if (props.form.unit_pesantren) {
-            props.form.unit_pesantren = '';
-        }
+        props.form.unit_pesantren = '';
     }
 }
 
@@ -724,25 +720,7 @@ watch(
                     </div>
                 </div>
 
-                <!-- Field 2: Unit Kepesantrenan / Asrama -->
-                <div>
-                    <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
-                        Unit Kepesantrenan / Asrama
-                    </label>
-                    <select
-                        id="field-unit-pesantren"
-                        v-model="form.unit_pesantren"
-                        @change="onPesantrenUnitChange"
-                        class="w-full px-3.5 py-2 sm:py-2.5 bg-white rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none transition-all border border-outline-variant/60 focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
-                    >
-                        <option value="">-- Tidak Berasrama (Non-Boarding) --</option>
-                        <option v-for="p in pesantrenUnitOptions" :key="p" :value="p">{{ p }}</option>
-                        <option v-if="form.unit_pesantren && !pesantrenUnitOptions.includes(form.unit_pesantren)" :value="form.unit_pesantren">{{ form.unit_pesantren }}</option>
-                    </select>
-                    <p class="text-[11px] text-slate-500 mt-1">Pilih pondok pesantren jika siswa tinggal di asrama.</p>
-                </div>
-
-                <!-- Field 3: Program -->
+                <!-- Field 2: Program -->
                 <div>
                     <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
                         Program Pendidikan
@@ -763,6 +741,24 @@ watch(
                         <span class="material-symbols-outlined text-[14px]">error</span>
                         <span>{{ getError('program') }}</span>
                     </div>
+                </div>
+
+                <!-- Field 3: Unit Kepesantrenan / Asrama -->
+                <div>
+                    <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
+                        Unit Kepesantrenan / Asrama
+                    </label>
+                    <select
+                        id="field-unit-pesantren"
+                        v-model="form.unit_pesantren"
+                        @change="onPesantrenUnitChange"
+                        class="w-full px-3.5 py-2 sm:py-2.5 bg-white rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none transition-all border border-outline-variant/60 focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                    >
+                        <option value="">-- Tidak Berasrama (Non-Boarding) --</option>
+                        <option v-for="p in pesantrenUnitOptions" :key="p" :value="p">{{ p }}</option>
+                        <option v-if="form.unit_pesantren && !pesantrenUnitOptions.includes(form.unit_pesantren)" :value="form.unit_pesantren">{{ form.unit_pesantren }}</option>
+                    </select>
+                    <p class="text-[11px] text-slate-500 mt-1">Otomatis terisi jika memilih program kepesantrenan (Boarding) atau dapat dipilih manual.</p>
                 </div>
 
                 <!-- Field 4: Jenjang -->

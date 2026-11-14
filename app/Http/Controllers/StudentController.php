@@ -24,7 +24,9 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Cell\DataValidation;
+use PhpOffice\PhpSpreadsheet\NamedRange;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
@@ -1410,24 +1412,29 @@ class StudentController extends Controller
         // Ambil data jenjang, unit sekolah, program, dan kelas dari Pengaturan > Akademik
         $levels = SchoolLevel::orderBy('order')->pluck('name')->filter()->values();
         if ($levels->isEmpty()) {
-            $levels = collect(['SD', 'SMP']);
+            $levels = collect(['SD', 'SMP', 'SMA']);
         }
 
-        $units = SchoolUnit::with('levels')
+        $allUnits = SchoolUnit::with(['levels', 'programs'])
             ->get()
             ->sortBy([
                 fn ($a, $b) => ($a->levels->min('order') ?? 0) <=> ($b->levels->min('order') ?? 0),
                 fn ($a, $b) => strcmp($a->name, $b->name),
             ])
-            ->pluck('name')
-            ->filter()
             ->values();
 
-        if ($units->isEmpty()) {
-            $units = collect(['SDIT Ulil Albab', 'SMPIT Ulil Albab']);
+        // Unit Formal (kecuali unit yang mengandung PPTQ atau Pesantren)
+        $formalUnits = $allUnits->reject(fn ($u) => str_contains(strtoupper($u->name), 'PPTQ') || str_contains(strtoupper($u->name), 'PESANTREN'))->values();
+        if ($formalUnits->isEmpty()) {
+            $formalUnits = $allUnits;
         }
 
-        $programs = SchoolProgram::orderBy('name')->pluck('name')->filter()->unique()->values();
+        // Unit Pesantren (PPTQ)
+        $pptqUnit = $allUnits->first(fn ($u) => str_contains(strtoupper($u->name), 'PPTQ') || str_contains(strtoupper($u->name), 'PESANTREN'));
+        $pptqUnitName = $pptqUnit?->name ?? 'PPTQ Ulil Albab';
+        // Program yang beririsan dengan PPTQ di Tab Akademik
+        $pptqPrograms = $pptqUnit ? $pptqUnit->programs->pluck('name')->filter()->unique()->values() : collect(['Boarding SMP', 'Boarding SMA']);
+
         $classes = SchoolClass::orderBy('name')->pluck('name')->filter()->unique()->values();
 
         $spreadsheet = new Spreadsheet;
@@ -1436,8 +1443,8 @@ class StudentController extends Controller
             ->setTitle('Template Import Data Siswa')
             ->setSubject('Template Import Siswa Semua Jenjang');
 
-        $this->buildDropdownsSheet($spreadsheet, $levels, $units, $programs, $classes);
-        $this->buildSheet1($spreadsheet, $levels, $units);
+        $this->buildDropdownsSheet($spreadsheet, $levels, $formalUnits, $pptqUnitName, $pptqPrograms, $classes);
+        $this->buildSheet1($spreadsheet, $levels, $formalUnits, $pptqUnitName, $pptqPrograms);
         $this->buildSheet2($spreadsheet);
 
         // Remove default sheet 0 if it was created by new Spreadsheet but we shifted things.
@@ -1460,33 +1467,71 @@ class StudentController extends Controller
         ]);
     }
 
-    private function buildDropdownsSheet(Spreadsheet $spreadsheet, $levels, $units, $programs, $classes): void
+    private function buildDropdownsSheet(Spreadsheet $spreadsheet, $levels, $formalUnits, string $pptqUnitName, $pptqPrograms, $classes): void
     {
         // Insert as the very first sheet
         $sheet = $spreadsheet->createSheet(0);
         $sheet->setTitle('Dropdowns');
 
+        // Col A: Jenjang
         $sheet->setCellValue('A1', 'Jenjang');
         foreach ($levels as $index => $val) {
             $sheet->setCellValue('A'.($index + 2), $val);
         }
 
-        $sheet->setCellValue('B1', 'Units');
-        foreach ($units as $index => $val) {
-            $sheet->setCellValue('B'.($index + 2), $val);
+        // Col B: Unit Pendidikan Formal
+        $sheet->setCellValue('B1', 'Unit Formal');
+        foreach ($formalUnits as $index => $u) {
+            $sheet->setCellValue('B'.($index + 2), $u->name);
         }
 
-        $sheet->setCellValue('C1', 'Programs');
-        foreach ($programs as $index => $val) {
+        // Col C: Program Beririsan PPTQ
+        $sheet->setCellValue('C1', 'Program PPTQ');
+        foreach ($pptqPrograms as $index => $val) {
             $sheet->setCellValue('C'.($index + 2), $val);
         }
 
-        $sheet->setCellValue('D1', 'Classes');
-        foreach ($classes as $index => $val) {
-            $sheet->setCellValue('D'.($index + 2), $val);
+        // Col D & E: Mapping Lookup Unit Formal -> Named Range Program
+        $sheet->setCellValue('D1', 'Unit Lookup');
+        $sheet->setCellValue('E1', 'Range Name');
+
+        $currentColIndex = 6; // Mulai dari Kolom F (kolom ke-6)
+        foreach ($formalUnits as $uIndex => $unit) {
+            $rowNum = $uIndex + 2;
+            $rangeName = 'PROG_UNIT_'.($uIndex + 1);
+            $sheet->setCellValue('D'.$rowNum, $unit->name);
+            $sheet->setCellValue('E'.$rowNum, $rangeName);
+
+            $colLetter = Coordinate::stringFromColumnIndex($currentColIndex);
+            $sheet->setCellValue($colLetter.'1', $unit->name);
+
+            $progs = $unit->programs->pluck('name')->filter()->unique()->values();
+            if ($progs->isEmpty()) {
+                $progs = collect([str_contains(strtoupper($unit->name), 'SD') ? 'Umum SDIT' : 'Reguler']);
+            }
+
+            foreach ($progs as $pIndex => $pName) {
+                $sheet->setCellValue($colLetter.($pIndex + 2), $pName);
+            }
+
+            $lastProgRow = max(2, count($progs) + 1);
+            $spreadsheet->addNamedRange(new NamedRange(
+                $rangeName,
+                $sheet,
+                "\${$colLetter}\$2:\${$colLetter}\${$lastProgRow}"
+            ));
+
+            $currentColIndex++;
         }
 
-        // Hide the sheet
+        // Classes di kolom terakhir
+        $classColLetter = Coordinate::stringFromColumnIndex($currentColIndex);
+        $sheet->setCellValue($classColLetter.'1', 'Classes');
+        foreach ($classes as $index => $val) {
+            $sheet->setCellValue($classColLetter.($index + 2), $val);
+        }
+
+        // Sembunyikan sheet Dropdowns
         $sheet->setSheetState(Worksheet::SHEETSTATE_HIDDEN);
     }
 
@@ -1494,7 +1539,7 @@ class StudentController extends Controller
     // XLSX Template Sheet Builders
     // ----------------------------------------------------------------
 
-    private function buildSheet1(Spreadsheet $spreadsheet, $levels, $units): void
+    private function buildSheet1(Spreadsheet $spreadsheet, $levels, $formalUnits, string $pptqUnitName, $pptqPrograms): void
     {
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('1. Data Siswa');
@@ -1505,128 +1550,155 @@ class StudentController extends Controller
             'C' => ['NIPD', 12],
             'D' => ['Angkatan', 15],
             'E' => ['Jenjang', 12],
-            'F' => ['Unit', 35],
-            'G' => ['JK (L/P)', 10],
-            'H' => ['Tempat Lahir', 20],
-            'I' => ['Tanggal Lahir (YYYY-MM-DD)', 24],
-            'J' => ['NIK', 18],
-            'K' => ['Agama', 12],
-            'L' => ['Jalan', 20],
-            'M' => ['RT', 6],
-            'N' => ['RW', 6],
-            'O' => ['Dusun', 18],
-            'P' => ['Desa/Kelurahan', 20],
-            'Q' => ['Kecamatan', 20],
-            'R' => ['Kabupaten', 20],
-            'S' => ['Provinsi', 20],
-            'T' => ['Jenis Tinggal', 20],
-            'U' => ['Alat Transportasi', 20],
-            'V' => ['No. WA 1', 16],
-            'W' => ['No. WA 2', 16],
-            'X' => ['Email', 25],
-            'Y' => ['Nama Ayah', 25],
-            'Z' => ['Tahun Lahir Ayah', 16],
-            'AA' => ['Pendidikan Ayah', 18],
-            'AB' => ['Pekerjaan Ayah', 20],
-            'AC' => ['Penghasilan Ayah', 28],
-            'AD' => ['NIK Ayah', 18],
-            'AE' => ['Status Ayah (Hidup/Meninggal)', 28],
-            'AF' => ['Nama Ibu', 25],
-            'AG' => ['Tahun Lahir Ibu', 16],
-            'AH' => ['Pendidikan Ibu', 18],
-            'AI' => ['Pekerjaan Ibu', 20],
-            'AJ' => ['Penghasilan Ibu', 28],
-            'AK' => ['NIK Ibu', 18],
-            'AL' => ['Status Ibu (Hidup/Meninggal)', 28],
-            'AM' => ['Nama Wali', 25],
-            'AN' => ['Tahun Lahir Wali', 16],
-            'AO' => ['Pendidikan Wali', 18],
-            'AP' => ['Pekerjaan Wali', 20],
-            'AQ' => ['Penghasilan Wali', 28],
-            'AR' => ['NIK Wali', 18],
-            'AS' => ['Hubungan Wali', 18],
-            'AT' => ['Penerima KIP (Ya/Tidak)', 25],
-            'AU' => ['Nomor KIP', 20],
-            'AV' => ['Nama di KIP', 25],
-            'AW' => ['Kelayakan PIP (Ya/Tidak)', 25],
-            'AX' => ['Alasan Layak PIP', 30],
-            'AY' => ['Kebutuhan Khusus', 20],
-            'AZ' => ['Sekolah Asal', 30],
-            'BA' => ['Anak ke -', 10],
-            'BB' => ['No KK', 18],
-            'BC' => ['Jarak Rumah ke Sekolah', 25],
-            'BD' => ['Apakah Memiliki Usaha (Ya/Tidak)', 30],
-            'BE' => ['Jenis Usaha', 30],
-            'BF' => ['Desil', 15],
-            'BG' => ['Diterima di Jenjang / Kelas', 30],
-            'BH' => ['Tanggal Diterima (YYYY-MM-DD)', 25],
-            'BI' => ['Sumber Informasi PSB', 30],
-            'BJ' => ['Status Registrasi', 20],
-            'BK' => ['Status Keaktifan (Aktif/Tidak Aktif)', 30],
-            'BL' => ['Keterangan Tidak Aktif', 32],
-            'BM' => ['Tanggal Tidak Aktif (YYYY-MM-DD)', 28],
+            'F' => ['Unit Pendidikan Formal', 38],
+            'G' => ['Program', 22],
+            'H' => ['Unit Kepesantrenan', 25],
+            'I' => ['JK (L/P)', 10],
+            'J' => ['Tempat Lahir', 20],
+            'K' => ['Tanggal Lahir (YYYY-MM-DD)', 24],
+            'L' => ['NIK', 18],
+            'M' => ['Agama', 12],
+            'N' => ['Jalan', 20],
+            'O' => ['RT', 6],
+            'P' => ['RW', 6],
+            'Q' => ['Dusun', 18],
+            'R' => ['Desa/Kelurahan', 20],
+            'S' => ['Kecamatan', 20],
+            'T' => ['Kabupaten', 20],
+            'U' => ['Provinsi', 20],
+            'V' => ['Jenis Tinggal', 20],
+            'W' => ['Alat Transportasi', 20],
+            'X' => ['No. WA 1', 16],
+            'Y' => ['No. WA 2', 16],
+            'Z' => ['Email', 25],
+            'AA' => ['Nama Ayah', 25],
+            'AB' => ['Tahun Lahir Ayah', 16],
+            'AC' => ['Pendidikan Ayah', 18],
+            'AD' => ['Pekerjaan Ayah', 20],
+            'AE' => ['Penghasilan Ayah', 28],
+            'AF' => ['NIK Ayah', 18],
+            'AG' => ['Status Ayah (Hidup/Meninggal)', 28],
+            'AH' => ['Nama Ibu', 25],
+            'AI' => ['Tahun Lahir Ibu', 16],
+            'AJ' => ['Pendidikan Ibu', 18],
+            'AK' => ['Pekerjaan Ibu', 20],
+            'AL' => ['Penghasilan Ibu', 28],
+            'AM' => ['NIK Ibu', 18],
+            'AN' => ['Status Ibu (Hidup/Meninggal)', 28],
+            'AO' => ['Nama Wali', 25],
+            'AP' => ['Tahun Lahir Wali', 16],
+            'AQ' => ['Pendidikan Wali', 18],
+            'AR' => ['Pekerjaan Wali', 20],
+            'AS' => ['Penghasilan Wali', 28],
+            'AT' => ['NIK Wali', 18],
+            'AU' => ['Hubungan Wali', 18],
+            'AV' => ['Penerima KIP (Ya/Tidak)', 25],
+            'AW' => ['Nomor KIP', 20],
+            'AX' => ['Nama di KIP', 25],
+            'AY' => ['Kelayakan PIP (Ya/Tidak)', 25],
+            'AZ' => ['Alasan Layak PIP', 30],
+            'BA' => ['Kebutuhan Khusus', 20],
+            'BB' => ['Sekolah Asal', 30],
+            'BC' => ['Anak ke -', 10],
+            'BD' => ['No KK', 18],
+            'BE' => ['Jarak Rumah ke Sekolah', 25],
+            'BF' => ['Apakah Memiliki Usaha (Ya/Tidak)', 30],
+            'BG' => ['Jenis Usaha', 30],
+            'BH' => ['Desil', 15],
+            'BI' => ['Diterima di Jenjang / Kelas', 30],
+            'BJ' => ['Tanggal Diterima (YYYY-MM-DD)', 25],
+            'BK' => ['Sumber Informasi PSB', 30],
+            'BL' => ['Status Registrasi', 20],
+            'BM' => ['Status Keaktifan (Aktif/Tidak Aktif)', 30],
+            'BN' => ['Keterangan Tidak Aktif', 32],
+            'BO' => ['Tanggal Tidak Aktif (YYYY-MM-DD)', 28],
         ];
 
         $this->applySheetHeaders($sheet, $headers, '004B23');
 
         // Format kolom Tanggal Lahir, Tanggal Diterima, & Tanggal Tidak Aktif
-        $sheet->getStyle('I2:I1000')->getNumberFormat()->setFormatCode('yyyy-mm-dd');
-        $sheet->getStyle('BH2:BH1000')->getNumberFormat()->setFormatCode('yyyy-mm-dd');
-        $sheet->getStyle('BM2:BM1000')->getNumberFormat()->setFormatCode('yyyy-mm-dd');
+        $sheet->getStyle('K2:K1000')->getNumberFormat()->setFormatCode('yyyy-mm-dd');
+        $sheet->getStyle('BJ2:BJ1000')->getNumberFormat()->setFormatCode('yyyy-mm-dd');
+        $sheet->getStyle('BO2:BO1000')->getNumberFormat()->setFormatCode('yyyy-mm-dd');
 
         // Format kolom ID/Nomor sebagai Teks (mencegah angka dengan awalan 0 atau simbol / berubah)
-        $textCols = ['A', 'C', 'D', 'J', 'V', 'W', 'AD', 'AK', 'AR', 'AU', 'BB', 'BK', 'BL'];
+        $textCols = ['A', 'C', 'D', 'L', 'X', 'Y', 'AF', 'AM', 'AT', 'AW', 'BD', 'BM', 'BN'];
         foreach ($textCols as $col) {
             $sheet->getStyle($col.'2:'.$col.'1000')->getNumberFormat()->setFormatCode('@');
         }
 
-        $sdUnit = $units->first(fn ($u) => str_contains(strtoupper($u), 'SD')) ?? ($units->first() ?? 'SDIT Ulil Albab');
-        $smpUnit = $units->first(fn ($u) => str_contains(strtoupper($u), 'SMP')) ?? ($units->skip(1)->first() ?? 'SMPIT Ulil Albab');
+        $sdUnit = $formalUnits->first(fn ($u) => str_contains(strtoupper($u->name), 'SD'))?->name ?? 'SDIT Ulil Albab';
+        $smpUnit = $formalUnits->first(fn ($u) => str_contains(strtoupper($u->name), 'SMP'))?->name ?? 'SMP IT Tahfidzul Quran Ulil Albab Karanganyar';
+        $smaUnit = $formalUnits->first(fn ($u) => str_contains(strtoupper($u->name), 'SMA'))?->name ?? 'SMA IT Ulil Albab Global School';
+
+        $pptqCount = max(count($pptqPrograms), 1);
+        $pptqFormulaFmt = '=IF(G%d="","",IF(ISNUMBER(MATCH(G%d,Dropdowns!$C$2:$C$'.($pptqCount + 1).',0)),"'.$pptqUnitName.'",""))';
 
         $exampleRows = [
             [
                 '0051234001', 'Ahmad Fauzi Rahman', '10231001', // A, B, C
-                '1', 'SD', $sdUnit, // D (Contoh Angkatan: 1, 2, 5, 7, 9, dll.), E, F
-                'L', 'Karanganyar', '2014-03-15', // G, H, I
-                '3313150101080001', 'Islam', 'Jl. Lawu No. 12', // J, K, L
-                '03', '05', 'Ngemplak', 'Desa Makmur', 'Colomadu', 'Karanganyar', 'Jawa Tengah', // M, N, O, P, Q, R, S
-                'Bersama Orang Tua', 'Jalan Kaki', '081234567001', '081234567002', 'ahmad.fauzi@example.com', // T, U, V, W, X
-                'Fauzi Hidayat', '1980', 'SMA/SMK', 'Wiraswasta', 'Rp 3.000.000 - Rp 5.000.000', '3313150101800001', 'Hidup', // Y, Z, AA, AB, AC, AD, AE
-                'Siti Rahmawati', '1984', 'SMA/SMK', 'Ibu Rumah Tangga', 'Kurang dari Rp 1.000.000', '3313150101840002', 'Hidup', // AF, AG, AH, AI, AJ, AK, AL
-                '', '', '', '', '', '', '', // AM, AN, AO, AP, AQ, AR, AS
-                'Ya', '6071012345670001', 'Ahmad Fauzi Rahman', // AT, AU, AV
-                'Ya', 'Penerima PIP tahap 1', 'Tidak ada', // AW, AX, AY
-                'TK Aisyiyah Colomadu', '1', '3313151503140001', 'Kurang dari 1 km', // AZ, BA, BB, BC
-                'Tidak', '-', '1', // BD, BE, BF
-                'SDIT', '2025-07-01', 'Brosur', 'Siswa Baru', // BG, BH, BI, BJ
-                'Aktif', '', '', // BK, BL, BM
+                '1', 'SD', $sdUnit, 'Umum SDIT', sprintf($pptqFormulaFmt, 2, 2), // D, E, F, G, H
+                'L', 'Karanganyar', '2014-03-15', // I, J, K
+                '3313150101080001', 'Islam', 'Jl. Lawu No. 12', // L, M, N
+                '03', '05', 'Ngemplak', 'Desa Makmur', 'Colomadu', 'Karanganyar', 'Jawa Tengah', // O, P, Q, R, S, T, U
+                'Bersama Orang Tua', 'Jalan Kaki', '081234567001', '081234567002', 'ahmad.fauzi@example.com', // V, W, X, Y, Z
+                'Fauzi Hidayat', '1980', 'SMA/SMK', 'Wiraswasta', 'Rp 3.000.000 - Rp 5.000.000', '3313150101800001', 'Hidup', // AA, AB, AC, AD, AE, AF, AG
+                'Siti Rahmawati', '1984', 'SMA/SMK', 'Ibu Rumah Tangga', 'Kurang dari Rp 1.000.000', '3313150101840002', 'Hidup', // AH, AI, AJ, AK, AL, AM, AN
+                '', '', '', '', '', '', '', // AO, AP, AQ, AR, AS, AT, AU
+                'Ya', '6071012345670001', 'Ahmad Fauzi Rahman', // AV, AW, AX
+                'Ya', 'Penerima PIP tahap 1', 'Tidak ada', // AY, AZ, BA
+                'TK Aisyiyah Colomadu', '1', '3313151503140001', 'Kurang dari 1 km', // BB, BC, BD, BE
+                'Tidak', '-', '1', // BF, BG, BH
+                'SDIT', '2025-07-01', 'Brosur', 'Siswa Baru', // BI, BJ, BK, BL
+                'Aktif', '', '', // BM, BN, BO
             ],
             [
                 '0051234002', 'Aisyah Azzahra', '10232001', // A, B, C
-                '5', 'SMP', $smpUnit, // D (Contoh Angkatan: 1, 2, 5, 7, 9, dll.), E, F
-                'P', 'Surakarta', '2011-08-20', // G, H, I
-                '3313154208110002', 'Islam', 'Jl. Slamet Riyadi No. 45', // J, K, L
-                '01', '02', 'Kerten', 'Kerten', 'Laweyan', 'Surakarta', 'Jawa Tengah', // M, N, O, P, Q, R, S
-                'Bersama Orang Tua', 'Sepeda Motor', '081234567003', '081234567004', 'aisyah.azzahra@example.com', // T, U, V, W, X
-                'Rahmat Hidayat', '1978', 'S1', 'PNS / ASN', 'Rp 5.000.000 - Rp 10.000.000', '3313150101780002', 'Hidup', // Y, Z, AA, AB, AC, AD, AE
-                'Nurul Khotimah', '1982', 'D3', 'Wiraswasta', 'Rp 2.000.000 - Rp 3.000.000', '3313150101820003', 'Hidup', // AF, AG, AH, AI, AJ, AK, AL
-                '', '', '', '', '', '', '', // AM, AN, AO, AP, AQ, AR, AS
-                'Tidak', '', '', // AT, AU, AV
-                'Tidak', '', 'Tidak ada', // AW, AX, AY
-                'SDIT Ulil Albab', '2', '3313154208110001', '2 km', // AZ, BA, BB, BC
-                'Ya', 'Toko Kelontong', '2', // BD, BE, BF
-                'SMPIT', '2025-07-01', 'Media Sosial', 'Siswa Baru', // BG, BH, BI, BJ
-                'Tidak Aktif', 'Mutasi Keluar', '2025-08-10', // BK, BL, BM
+                '5', 'SMP', $smpUnit, 'Fullday SMP', sprintf($pptqFormulaFmt, 3, 3), // D, E, F, G, H
+                'P', 'Surakarta', '2011-08-20', // I, J, K
+                '3313154208110002', 'Islam', 'Jl. Slamet Riyadi No. 45', // L, M, N
+                '01', '02', 'Kerten', 'Kerten', 'Laweyan', 'Surakarta', 'Jawa Tengah', // O, P, Q, R, S, T, U
+                'Bersama Orang Tua', 'Sepeda Motor', '081234567003', '081234567004', 'aisyah.azzahra@example.com', // V, W, X, Y, Z
+                'Rahmat Hidayat', '1978', 'S1', 'PNS / ASN', 'Rp 5.000.000 - Rp 10.000.000', '3313150101780002', 'Hidup', // AA, AB, AC, AD, AE, AF, AG
+                'Nurul Khotimah', '1982', 'D3', 'Wiraswasta', 'Rp 2.000.000 - Rp 3.000.000', '3313150101820003', 'Hidup', // AH, AI, AJ, AK, AL, AM, AN
+                '', '', '', '', '', '', '', // AO, AP, AQ, AR, AS, AT, AU
+                'Tidak', '', '', // AV, AW, AX
+                'Tidak', '', 'Tidak ada', // AY, AZ, BA
+                'SDIT Ulil Albab', '2', '3313154208110001', '2 km', // BB, BC, BD, BE
+                'Ya', 'Toko Kelontong', '2', // BF, BG, BH
+                'SMPIT', '2025-07-01', 'Media Sosial', 'Siswa Baru', // BI, BJ, BK, BL
+                'Tidak Aktif', 'Mutasi Keluar', '2025-08-10', // BM, BN, BO
+            ],
+            [
+                '0051234003', 'Choirul Anam', '10232002', // A, B, C
+                '5', 'SMP', $smpUnit, 'Boarding SMP', sprintf($pptqFormulaFmt, 4, 4), // D, E, F, G, H
+                'L', 'Sragen', '2011-04-12', // I, J, K
+                '3314051204110003', 'Islam', 'Jl. Sukowati No. 18', // L, M, N
+                '02', '03', 'Sine', 'Sine', 'Sragen', 'Sragen', 'Jawa Tengah', // O, P, Q, R, S, T, U
+                'Pondok Pesantren', 'Jalan Kaki', '081234567005', '081234567006', 'choirul.anam@example.com', // V, W, X, Y, Z
+                'Sugeng Riyadi', '1976', 'S1', 'Karyawan Swasta', 'Rp 3.000.000 - Rp 5.000.000', '3314050101760003', 'Hidup', // AA, AB, AC, AD, AE, AF, AG
+                'Endang Lestari', '1980', 'SMA/SMK', 'Ibu Rumah Tangga', 'Kurang dari Rp 1.000.000', '3314050101800004', 'Hidup', // AH, AI, AJ, AK, AL, AM, AN
+                '', '', '', '', '', '', '', // AO, AP, AQ, AR, AS, AT, AU
+                'Tidak', '', '', // AV, AW, AX
+                'Tidak', '', 'Tidak ada', // AY, AZ, BA
+                'SDIT Ulil Albab', '1', '3314051204110002', '15 km', // BB, BC, BD, BE
+                'Tidak', '-', '1', // BF, BG, BH
+                'SMPIT', '2025-07-01', 'Teman / Kerabat', 'Siswa Baru', // BI, BJ, BK, BL
+                'Aktif', '', '', // BM, BN, BO
             ],
         ];
 
         $sheet->fromArray($exampleRows, null, 'A2');
 
         $jenjangLastRow = max(count($levels) + 1, 2);
-        $unitLastRow = max(count($units) + 1, 2);
+        $formalUnitsLastRow = max(count($formalUnits) + 1, 2);
+        $pptqProgLastRow = max(count($pptqPrograms) + 1, 2);
 
         for ($row = 2; $row <= 1000; $row++) {
-            // Dropdown Jenjang (dari Dropdowns sheet kolom A)
+            // Formula Unit Kepesantrenan (Kolom H)
+            $sheet->setCellValue('H'.$row, "=IF(G{$row}=\"\",\"\",IF(ISNUMBER(MATCH(G{$row},Dropdowns!\$C\$2:\$C\${$pptqProgLastRow},0)),\"{$pptqUnitName}\",\"\"))");
+
+            // Dropdown Jenjang (Kolom E)
             $valJenjang = $sheet->getCell('E'.$row)->getDataValidation();
             $valJenjang->setType(DataValidation::TYPE_LIST);
             $valJenjang->setAllowBlank(true);
@@ -1637,7 +1709,7 @@ class StudentController extends Controller
             $valJenjang->setError('Pilih Jenjang yang valid dari daftar.');
             $valJenjang->setFormula1("Dropdowns!\$A\$2:\$A\${$jenjangLastRow}");
 
-            // Dropdown Unit (dari Dropdowns sheet kolom B)
+            // Dropdown Unit Pendidikan Formal (Kolom F)
             $valUnit = $sheet->getCell('F'.$row)->getDataValidation();
             $valUnit->setType(DataValidation::TYPE_LIST);
             $valUnit->setAllowBlank(true);
@@ -1645,48 +1717,61 @@ class StudentController extends Controller
             $valUnit->setShowErrorMessage(true);
             $valUnit->setErrorStyle(DataValidation::STYLE_STOP);
             $valUnit->setErrorTitle('Invalid Input');
-            $valUnit->setError('Pilih Unit yang valid dari daftar.');
-            $valUnit->setFormula1("Dropdowns!\$B\$2:\$B\${$unitLastRow}");
+            $valUnit->setError('Pilih Unit Formal yang valid dari daftar.');
+            $valUnit->setFormula1("Dropdowns!\$B\$2:\$B\${$formalUnitsLastRow}");
 
-            $valJk = $sheet->getCell('G'.$row)->getDataValidation();
+            // Dropdown Program (Kolom G) - Dependent pada Unit Formal
+            $valProgram = $sheet->getCell('G'.$row)->getDataValidation();
+            $valProgram->setType(DataValidation::TYPE_LIST);
+            $valProgram->setAllowBlank(true);
+            $valProgram->setShowDropDown(true);
+            $valProgram->setShowErrorMessage(false);
+            $valProgram->setFormula1("=INDIRECT(VLOOKUP(F{$row},Dropdowns!\$D\$2:\$E\${$formalUnitsLastRow},2,FALSE))");
+
+            // Dropdown JK (Kolom I)
+            $valJk = $sheet->getCell('I'.$row)->getDataValidation();
             $valJk->setType(DataValidation::TYPE_LIST);
             $valJk->setAllowBlank(true);
             $valJk->setShowDropDown(true);
             $valJk->setFormula1('"L,P"');
 
-            $valStatusAyah = $sheet->getCell('AE'.$row)->getDataValidation();
+            // Dropdown Status Ayah (Kolom AG)
+            $valStatusAyah = $sheet->getCell('AG'.$row)->getDataValidation();
             $valStatusAyah->setType(DataValidation::TYPE_LIST);
             $valStatusAyah->setAllowBlank(true);
             $valStatusAyah->setShowDropDown(true);
             $valStatusAyah->setFormula1('"Hidup,Meninggal"');
 
-            $valStatusIbu = $sheet->getCell('AL'.$row)->getDataValidation();
+            // Dropdown Status Ibu (Kolom AN)
+            $valStatusIbu = $sheet->getCell('AN'.$row)->getDataValidation();
             $valStatusIbu->setType(DataValidation::TYPE_LIST);
             $valStatusIbu->setAllowBlank(true);
             $valStatusIbu->setShowDropDown(true);
             $valStatusIbu->setFormula1('"Hidup,Meninggal"');
 
-            $valBisnis = $sheet->getCell('BD'.$row)->getDataValidation();
+            // Dropdown Bisnis (Kolom BF)
+            $valBisnis = $sheet->getCell('BF'.$row)->getDataValidation();
             $valBisnis->setType(DataValidation::TYPE_LIST);
             $valBisnis->setAllowBlank(true);
             $valBisnis->setShowDropDown(true);
             $valBisnis->setFormula1('"Ya,Tidak"');
 
-            $valStatusRegistrasi = $sheet->getCell('BJ'.$row)->getDataValidation();
+            // Dropdown Status Registrasi (Kolom BL)
+            $valStatusRegistrasi = $sheet->getCell('BL'.$row)->getDataValidation();
             $valStatusRegistrasi->setType(DataValidation::TYPE_LIST);
             $valStatusRegistrasi->setAllowBlank(true);
             $valStatusRegistrasi->setShowDropDown(true);
             $valStatusRegistrasi->setFormula1('"Siswa Baru,Mutasi Masuk"');
 
-            // Dropdown Status Keaktifan (BK)
-            $valStatusKeaktifan = $sheet->getCell('BK'.$row)->getDataValidation();
+            // Dropdown Status Keaktifan (Kolom BM)
+            $valStatusKeaktifan = $sheet->getCell('BM'.$row)->getDataValidation();
             $valStatusKeaktifan->setType(DataValidation::TYPE_LIST);
             $valStatusKeaktifan->setAllowBlank(true);
             $valStatusKeaktifan->setShowDropDown(true);
             $valStatusKeaktifan->setFormula1('"Aktif,Tidak Aktif"');
 
-            // Dropdown Keterangan Tidak Aktif (BL)
-            $valKetTidakAktif = $sheet->getCell('BL'.$row)->getDataValidation();
+            // Dropdown Keterangan Tidak Aktif (Kolom BN)
+            $valKetTidakAktif = $sheet->getCell('BN'.$row)->getDataValidation();
             $valKetTidakAktif->setType(DataValidation::TYPE_LIST);
             $valKetTidakAktif->setAllowBlank(true);
             $valKetTidakAktif->setShowDropDown(true);
@@ -1696,8 +1781,9 @@ class StudentController extends Controller
             $valKetTidakAktif->setFormula1('"Mutasi Keluar,Dikeluarkan,Putus Sekolah,Meninggal,Lainnya"');
         }
 
-        $this->styleExampleRow($sheet, 2, 'A', 'BM');
-        $this->styleExampleRow($sheet, 3, 'A', 'BM');
+        $this->styleExampleRow($sheet, 2, 'A', 'BO');
+        $this->styleExampleRow($sheet, 3, 'A', 'BO');
+        $this->styleExampleRow($sheet, 4, 'A', 'BO');
         $sheet->freezePane('A2');
     }
 

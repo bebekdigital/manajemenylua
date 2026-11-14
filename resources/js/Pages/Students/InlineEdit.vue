@@ -196,6 +196,7 @@ const columns = computed(() => ({
     ],
     akademik: [
         { key: 'unit', label: 'Unit Formal', type: 'select', options: formalUnitOptions.value, width: 'w-48' },
+        { key: 'program', label: 'Program Pendidikan', type: 'select', options: programOptions.value, width: 'w-36' },
         {
             key: 'unit_pesantren',
             label: 'Unit Asrama / Pesantren',
@@ -206,7 +207,6 @@ const columns = computed(() => ({
             ],
             width: 'w-52'
         },
-        { key: 'program', label: 'Program Pendidikan', type: 'select', options: programOptions.value, width: 'w-36' },
         { key: 'jenjang', label: 'Jenjang', type: 'select', options: levelOptions.value, width: 'w-28' },
         { key: 'tingkat', label: 'Tingkat', type: 'number', width: 'w-20' },
         { key: 'kelas', label: 'Kelas', type: 'select', options: classroomOptions.value, width: 'w-28' },
@@ -470,6 +470,15 @@ function applyBulk() {
 
     targets.forEach(s => {
         s[bulkField.value] = val;
+        // Auto-sync unit_pesantren jika kolom program diubah
+        if (bulkField.value === 'program') {
+            const prog = (val || '').toLowerCase();
+            if (prog.includes('boarding') || prog.includes('pptq') || prog.includes('pesantren')) {
+                s.unit_pesantren = pesantrenUnitOptions.value[0] || 'PPTQ Ulil Albab';
+            } else {
+                s.unit_pesantren = '';
+            }
+        }
         // Sinkronisasi otomatis keaktifan & keterangan di tabel client
         if (bulkField.value === 'keterangan_tidak_aktif') {
             if (val) {
@@ -557,6 +566,17 @@ function saveChanges() {
             isSaving.value = false;
         }
     });
+}
+
+function onCellSelectChange(student, key) {
+    if (key === 'program') {
+        const prog = (student.program || '').toLowerCase();
+        if (prog.includes('boarding') || prog.includes('pptq') || prog.includes('pesantren')) {
+            student.unit_pesantren = pesantrenUnitOptions.value[0] || 'PPTQ Ulil Albab';
+        } else {
+            student.unit_pesantren = '';
+        }
+    }
 }
 
 // ============================================================
@@ -1224,6 +1244,7 @@ function groupSpan(groupKey) {
                                             <select
                                                 v-else-if="col.type === 'select'"
                                                 v-model="student[col.key]"
+                                                @change="onCellSelectChange(student, col.key)"
                                                 :class="['w-full px-2 py-1 text-[11.5px] border border-slate-200 rounded-lg focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none bg-white transition-colors cursor-pointer', col.width]"
                                             >
                                                 <option value="">-</option>

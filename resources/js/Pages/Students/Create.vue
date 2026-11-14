@@ -205,14 +205,10 @@ function onPesantrenUnitChange() {
 
 function onProgramChange() {
     const prog = (form.program || '').toLowerCase();
-    if (prog.includes('boarding')) {
-        if (!form.unit_pesantren) {
-            form.unit_pesantren = pesantrenUnitOptions.value[0] || 'PPTQ Ulil Albab';
-        }
+    if (prog.includes('boarding') || prog.includes('pptq') || prog.includes('pesantren')) {
+        form.unit_pesantren = pesantrenUnitOptions.value[0] || 'PPTQ Ulil Albab';
     } else {
-        if (form.unit_pesantren) {
-            form.unit_pesantren = '';
-        }
+        form.unit_pesantren = '';
     }
 }
 
@@ -632,7 +628,25 @@ onUnmounted(() => {
                                 <p class="text-[11px] text-slate-500 mt-1">Satuan pendidikan formal (Kemdikbud/Kemenag).</p>
                             </div>
 
-                            <!-- 2. Unit Kepesantrenan / Asrama -->
+                            <!-- 2. Program Pendidikan -->
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+                                    Program Pendidikan
+                                </label>
+                                <select
+                                    v-model="form.program"
+                                    @change="onProgramChange"
+                                    class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200/90 text-xs sm:text-sm font-semibold text-slate-900 bg-white shadow-2xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all cursor-pointer"
+                                >
+                                    <option v-for="p in programOptions" :key="p" :value="p">{{ p }}</option>
+                                </select>
+                                <p class="text-[11px] text-slate-500 mt-1">
+                                    <span v-if="form.unit_pesantren" class="text-indigo-600 font-medium">Otomatis terhubung: {{ form.unit_pesantren }}</span>
+                                    <span v-else>Program non-pesantren (Fullday / Umum).</span>
+                                </p>
+                            </div>
+
+                            <!-- 3. Unit Kepesantrenan / Asrama -->
                             <div>
                                 <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
                                     Unit Kepesantrenan / Asrama
@@ -646,25 +660,7 @@ onUnmounted(() => {
                                     <option v-for="p in pesantrenUnitOptions" :key="p" :value="p">{{ p }}</option>
                                     <option v-if="form.unit_pesantren && !pesantrenUnitOptions.includes(form.unit_pesantren)" :value="form.unit_pesantren">{{ form.unit_pesantren }}</option>
                                 </select>
-                                <p class="text-[11px] text-slate-500 mt-1">Pilih pondok pesantren jika siswa tinggal di asrama.</p>
-                            </div>
-
-                            <!-- 3. Program Pendidikan -->
-                            <div>
-                                <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
-                                    Program Pendidikan
-                                </label>
-                                <select
-                                    v-model="form.program"
-                                    @change="onProgramChange"
-                                    class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200/90 text-xs sm:text-sm font-semibold text-slate-900 bg-white shadow-2xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all cursor-pointer"
-                                >
-                                    <option v-for="p in programOptions" :key="p" :value="p">{{ p }}</option>
-                                </select>
-                                <p class="text-[11px] text-slate-500 mt-1">
-                                    <span v-if="form.unit_pesantren" class="text-indigo-600 font-medium">Siswa asrama: {{ form.unit_pesantren }}</span>
-                                    <span v-else>Siswa non-asrama (Fullday / Reguler).</span>
-                                </p>
+                                <p class="text-[11px] text-slate-500 mt-1">Otomatis terisi jika program beririsan dengan PPTQ.</p>
                             </div>
 
                             <!-- 4. Jenjang -->

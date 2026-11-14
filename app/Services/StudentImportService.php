@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\AcademicYear;
 use App\Models\Classroom;
+use App\Models\SchoolUnit;
 use App\Models\Student;
 use App\Models\StudentAcademicRecord;
 use Illuminate\Http\UploadedFile;
@@ -60,8 +61,18 @@ class StudentImportService
             $studentMap = [];
 
             $rowsSiswa = $sheetSiswa->toArray(null, true, true, true);
+            $headerRow = $rowsSiswa[1] ?? [];
+            $isNewTemplate = isset($headerRow['G']) && str_contains(strtolower((string) $headerRow['G']), 'program');
+
             // Skip header (row 1)
             array_shift($rowsSiswa);
+
+            // Ambil master PPTQ dan program yang beririsan dengan PPTQ di Tab Akademik
+            $pptqUnit = SchoolUnit::where('name', 'like', '%PPTQ%')->first();
+            $pptqPrograms = $pptqUnit
+                ? $pptqUnit->programs->pluck('name')->map(fn ($p) => strtolower(trim($p)))->toArray()
+                : ['boarding smp', 'boarding sma'];
+            $pptqUnitName = $pptqUnit?->name ?? 'PPTQ Ulil Albab';
 
             foreach ($rowsSiswa as $rowIdx => $row) {
                 $nisn = $this->cleanString($row['A'] ?? null);
@@ -72,47 +83,142 @@ class StudentImportService
                     continue;
                 }
 
+                $rawUnit = $this->cleanString($row['F'] ?? null);
+                $rawProgram = $isNewTemplate ? $this->cleanString($row['G'] ?? null) : null;
+                $rawUnitPesantren = $isNewTemplate ? $this->cleanString($row['H'] ?? null) : null;
+
+                // Jika kolom program kosong, ambil program default dari unit tersebut di Tab Akademik
+                if (empty($rawProgram) && ! empty($rawUnit)) {
+                    $uModel = SchoolUnit::where('name', $rawUnit)->first();
+                    $rawProgram = $uModel?->programs()->value('name')
+                        ?? (str_contains(strtoupper($rawUnit), 'SD') ? 'Umum SDIT' : null);
+                }
+
+                $progLower = strtolower(trim((string) $rawProgram));
+                // Cek apakah program beririsan dengan PPTQ di Tab Akademik
+                $isPptqIntersect = ! empty($progLower) && (
+                    in_array($progLower, $pptqPrograms) ||
+                    str_contains($progLower, 'boarding') ||
+                    str_contains($progLower, 'pptq')
+                );
+
+                // Jika program beririsan dengan PPTQ, unit_pesantren otomatis terisi PPTQ
+                $finalUnitPesantren = $isPptqIntersect
+                    ? $pptqUnitName
+                    : ($rawUnitPesantren && stripos($rawUnitPesantren, 'PPTQ') !== false ? $pptqUnitName : null);
+
+                // Mapping kolom data berdasarkan template baru (berisi Program & Unit Pesantren) atau lama
+                $colJk = $isNewTemplate ? ($row['I'] ?? null) : ($row['G'] ?? null);
+                $colTptLahir = $isNewTemplate ? ($row['J'] ?? null) : ($row['H'] ?? null);
+                $colTglLahir = $isNewTemplate ? ($row['K'] ?? null) : ($row['I'] ?? null);
+                $colNik = $isNewTemplate ? ($row['L'] ?? null) : ($row['J'] ?? null);
+                $colAgama = $isNewTemplate ? ($row['M'] ?? null) : ($row['K'] ?? null);
+                $colJalan = $isNewTemplate ? ($row['N'] ?? null) : ($row['L'] ?? null);
+                $colRt = $isNewTemplate ? ($row['O'] ?? null) : ($row['M'] ?? null);
+                $colRw = $isNewTemplate ? ($row['P'] ?? null) : ($row['N'] ?? null);
+                $colDusun = $isNewTemplate ? ($row['Q'] ?? null) : ($row['O'] ?? null);
+                $colDesa = $isNewTemplate ? ($row['R'] ?? null) : ($row['P'] ?? null);
+                $colKec = $isNewTemplate ? ($row['S'] ?? null) : ($row['Q'] ?? null);
+                $colKab = $isNewTemplate ? ($row['T'] ?? null) : ($row['R'] ?? null);
+                $colProv = $isNewTemplate ? ($row['U'] ?? null) : ($row['S'] ?? null);
+                $colJenisTinggal = $isNewTemplate ? ($row['V'] ?? null) : ($row['T'] ?? null);
+                $colTransport = $isNewTemplate ? ($row['W'] ?? null) : ($row['U'] ?? null);
+                $colWa1 = $isNewTemplate ? ($row['X'] ?? null) : ($row['V'] ?? null);
+                $colWa2 = $isNewTemplate ? ($row['Y'] ?? null) : ($row['W'] ?? null);
+                $colEmail = $isNewTemplate ? ($row['Z'] ?? null) : ($row['X'] ?? null);
+
+                // Data Ayah, Ibu, Wali
+                $colAyahNama = $isNewTemplate ? ($row['AA'] ?? null) : ($row['Y'] ?? null);
+                $colAyahThn = $isNewTemplate ? ($row['AB'] ?? null) : ($row['Z'] ?? null);
+                $colAyahPdd = $isNewTemplate ? ($row['AC'] ?? null) : ($row['AA'] ?? null);
+                $colAyahPkr = $isNewTemplate ? ($row['AD'] ?? null) : ($row['AB'] ?? null);
+                $colAyahGaji = $isNewTemplate ? ($row['AE'] ?? null) : ($row['AC'] ?? null);
+                $colAyahNik = $isNewTemplate ? ($row['AF'] ?? null) : ($row['AD'] ?? null);
+                $colAyahStatus = $isNewTemplate ? ($row['AG'] ?? null) : ($row['AE'] ?? null);
+
+                $colIbuNama = $isNewTemplate ? ($row['AH'] ?? null) : ($row['AF'] ?? null);
+                $colIbuThn = $isNewTemplate ? ($row['AI'] ?? null) : ($row['AG'] ?? null);
+                $colIbuPdd = $isNewTemplate ? ($row['AJ'] ?? null) : ($row['AH'] ?? null);
+                $colIbuPkr = $isNewTemplate ? ($row['AK'] ?? null) : ($row['AI'] ?? null);
+                $colIbuGaji = $isNewTemplate ? ($row['AL'] ?? null) : ($row['AJ'] ?? null);
+                $colIbuNik = $isNewTemplate ? ($row['AM'] ?? null) : ($row['AK'] ?? null);
+                $colIbuStatus = $isNewTemplate ? ($row['AN'] ?? null) : ($row['AL'] ?? null);
+
+                $colWaliNama = $isNewTemplate ? ($row['AO'] ?? null) : ($row['AM'] ?? null);
+                $colWaliThn = $isNewTemplate ? ($row['AP'] ?? null) : ($row['AN'] ?? null);
+                $colWaliPdd = $isNewTemplate ? ($row['AQ'] ?? null) : ($row['AO'] ?? null);
+                $colWaliPkr = $isNewTemplate ? ($row['AR'] ?? null) : ($row['AP'] ?? null);
+                $colWaliGaji = $isNewTemplate ? ($row['AS'] ?? null) : ($row['AQ'] ?? null);
+                $colWaliNik = $isNewTemplate ? ($row['AT'] ?? null) : ($row['AR'] ?? null);
+                $colWaliHub = $isNewTemplate ? ($row['AU'] ?? null) : ($row['AS'] ?? null);
+
+                // KIP & PIP
+                $colKipStatus = $isNewTemplate ? ($row['AV'] ?? null) : ($row['AT'] ?? null);
+                $colKipNo = $isNewTemplate ? ($row['AW'] ?? null) : ($row['AU'] ?? null);
+                $colKipNama = $isNewTemplate ? ($row['AX'] ?? null) : ($row['AV'] ?? null);
+                $colPipStatus = $isNewTemplate ? ($row['AY'] ?? null) : ($row['AW'] ?? null);
+                $colPipKet = $isNewTemplate ? ($row['AZ'] ?? null) : ($row['AX'] ?? null);
+
+                // Identitas Lanjutan
+                $colKebutuhan = $isNewTemplate ? ($row['BA'] ?? null) : ($row['AY'] ?? null);
+                $colSekolahAsal = $isNewTemplate ? ($row['BB'] ?? null) : ($row['AZ'] ?? null);
+                $colAnakKe = $isNewTemplate ? ($row['BC'] ?? null) : ($row['BA'] ?? null);
+                $colNoKk = $isNewTemplate ? ($row['BD'] ?? null) : ($row['BB'] ?? null);
+                $colJarak = $isNewTemplate ? ($row['BE'] ?? null) : ($row['BC'] ?? null);
+                $colHasBisnis = $isNewTemplate ? ($row['BF'] ?? null) : ($row['BD'] ?? null);
+                $colJenisBisnis = $isNewTemplate ? ($row['BG'] ?? null) : ($row['BE'] ?? null);
+                $colDesil = $isNewTemplate ? ($row['BH'] ?? null) : ($row['BF'] ?? null);
+                $colDiterimaJenjang = $isNewTemplate ? ($row['BI'] ?? null) : ($row['BG'] ?? null);
+                $colTglDiterima = $isNewTemplate ? ($row['BJ'] ?? null) : ($row['BH'] ?? null);
+                $colInfoPsb = $isNewTemplate ? ($row['BK'] ?? null) : ($row['BI'] ?? null);
+                $colStatusRegistrasi = $isNewTemplate ? ($row['BL'] ?? null) : ($row['BJ'] ?? null);
+                $colStatusKeaktifan = $isNewTemplate ? ($row['BM'] ?? null) : ($row['BK'] ?? null);
+                $colKetTidakAktif = $isNewTemplate ? ($row['BN'] ?? null) : ($row['BL'] ?? null);
+                $colTglTidakAktif = $isNewTemplate ? ($row['BO'] ?? null) : ($row['BM'] ?? null);
+
                 $studentData = [
                     'nama' => $nama,
                     'nipd' => $this->cleanString($row['C'] ?? null),
                     'angkatan' => $this->cleanString($row['D'] ?? null),
                     'jenjang' => $this->cleanString($row['E'] ?? null),
-                    'unit' => $this->cleanString($row['F'] ?? null) ?? 'SDIT Ulil Albab Gondangrejo',
-                    'jk' => $this->parseGender($row['G'] ?? null),
-                    'tempat_lahir' => $this->cleanString($row['H'] ?? null),
-                    'tanggal_lahir' => $this->parseDate($row['I'] ?? null),
-                    'nik' => $this->cleanString($row['J'] ?? null),
-                    'agama' => $this->cleanString($row['K'] ?? null) ?? 'Islam',
-                    'jalan' => $this->cleanString($row['L'] ?? null),
-                    'rt' => $this->cleanString($row['M'] ?? null),
-                    'rw' => $this->cleanString($row['N'] ?? null),
-                    'dusun' => $this->cleanString($row['O'] ?? null),
-                    'desa' => $this->cleanString($row['P'] ?? null),
-                    'kecamatan' => $this->cleanString($row['Q'] ?? null),
-                    'kabupaten' => $this->cleanString($row['R'] ?? null),
-                    'provinsi' => $this->cleanString($row['S'] ?? null),
-                    'jenis_tinggal' => $this->cleanString($row['T'] ?? null),
-                    'alat_transportasi' => $this->cleanString($row['U'] ?? null),
-                    'no_wa' => $this->cleanString($row['V'] ?? null),
-                    'no_wa_2' => $this->cleanString($row['W'] ?? null),
-                    'email' => $this->cleanString($row['X'] ?? null),
-                    'status_kip' => strtolower($this->cleanString($row['AT'] ?? null) ?? '') === 'ya',
-                    'no_kip' => $this->cleanString($row['AU'] ?? null),
-                    'nama_di_kip' => $this->cleanString($row['AV'] ?? null),
-                    'status_pip' => strtolower($this->cleanString($row['AW'] ?? null) ?? '') === 'ya',
-                    'pip_keterangan' => $this->cleanString($row['AX'] ?? null),
-                    'kebutuhan_khusus' => $this->cleanString($row['AY'] ?? null),
-                    'sekolah_asal' => $this->cleanString($row['AZ'] ?? null),
-                    'anak_ke' => $this->cleanInteger($row['BA'] ?? null),
-                    'no_kk' => $this->cleanString($row['BB'] ?? null),
-                    'jarak_rumah' => $this->cleanString($row['BC'] ?? null),
-                    'desil' => $this->cleanInteger($row['BF'] ?? null),
-                    'diterima_di_jenjang' => $this->cleanString($row['BG'] ?? null),
-                    'tanggal_diterima' => $this->parseDate($row['BH'] ?? null),
-                    'info_psb' => $this->cleanString($row['BI'] ?? null),
-                    'status_registrasi' => $this->cleanString($row['BJ'] ?? null),
-                    'status_keaktifan' => (function () use ($row) {
-                        $raw = strtolower(trim((string) ($row['BK'] ?? '')));
+                    'unit' => $rawUnit ?? 'SDIT Ulil Albab',
+                    'program' => $rawProgram,
+                    'unit_pesantren' => $finalUnitPesantren,
+                    'jk' => $this->parseGender($colJk),
+                    'tempat_lahir' => $this->cleanString($colTptLahir),
+                    'tanggal_lahir' => $this->parseDate($colTglLahir),
+                    'nik' => $this->cleanString($colNik),
+                    'agama' => $this->cleanString($colAgama) ?? 'Islam',
+                    'jalan' => $this->cleanString($colJalan),
+                    'rt' => $this->cleanString($colRt),
+                    'rw' => $this->cleanString($colRw),
+                    'dusun' => $this->cleanString($colDusun),
+                    'desa' => $this->cleanString($colDesa),
+                    'kecamatan' => $this->cleanString($colKec),
+                    'kabupaten' => $this->cleanString($colKab),
+                    'provinsi' => $this->cleanString($colProv),
+                    'jenis_tinggal' => $this->cleanString($colJenisTinggal),
+                    'alat_transportasi' => $this->cleanString($colTransport),
+                    'no_wa' => $this->cleanString($colWa1),
+                    'no_wa_2' => $this->cleanString($colWa2),
+                    'email' => $this->cleanString($colEmail),
+                    'status_kip' => strtolower($this->cleanString($colKipStatus) ?? '') === 'ya',
+                    'no_kip' => $this->cleanString($colKipNo),
+                    'nama_di_kip' => $this->cleanString($colKipNama),
+                    'status_pip' => strtolower($this->cleanString($colPipStatus) ?? '') === 'ya',
+                    'pip_keterangan' => $this->cleanString($colPipKet),
+                    'kebutuhan_khusus' => $this->cleanString($colKebutuhan),
+                    'sekolah_asal' => $this->cleanString($colSekolahAsal),
+                    'anak_ke' => $this->cleanInteger($colAnakKe),
+                    'no_kk' => $this->cleanString($colNoKk),
+                    'jarak_rumah' => $this->cleanString($colJarak),
+                    'desil' => $this->cleanInteger($colDesil),
+                    'diterima_di_jenjang' => $this->cleanString($colDiterimaJenjang),
+                    'tanggal_diterima' => $this->parseDate($colTglDiterima),
+                    'info_psb' => $this->cleanString($colInfoPsb),
+                    'status_registrasi' => $this->cleanString($colStatusRegistrasi),
+                    'status_keaktifan' => (function () use ($colStatusKeaktifan) {
+                        $raw = strtolower(trim((string) $colStatusKeaktifan));
                         if ($raw === 'lulus') {
                             return 'Lulus';
                         }
@@ -122,48 +228,48 @@ class StudentImportService
 
                         return 'Aktif';
                     })(),
-                    'keterangan_tidak_aktif' => (function () use ($row) {
-                        $raw = strtolower(trim((string) ($row['BK'] ?? '')));
+                    'keterangan_tidak_aktif' => (function () use ($colStatusKeaktifan, $colKetTidakAktif) {
+                        $raw = strtolower(trim((string) $colStatusKeaktifan));
                         if ($raw === 'lulus') {
                             return 'Lulus';
                         }
                         if (in_array($raw, ['tidak aktif', 'tidak_aktif', 'non-aktif', 'non_aktif'])) {
-                            return $this->cleanString($row['BL'] ?? null) ?: 'Lainnya';
+                            return $this->cleanString($colKetTidakAktif) ?: 'Lainnya';
                         }
 
                         return null;
                     })(),
-                    'tanggal_tidak_aktif' => (function () use ($row) {
-                        $raw = strtolower(trim((string) ($row['BK'] ?? '')));
+                    'tanggal_tidak_aktif' => (function () use ($colStatusKeaktifan, $colTglTidakAktif) {
+                        $raw = strtolower(trim((string) $colStatusKeaktifan));
                         if ($raw === 'lulus' || in_array($raw, ['tidak aktif', 'tidak_aktif', 'non-aktif', 'non_aktif'])) {
-                            return $this->parseDate($row['BM'] ?? null) ?: now()->toDateString();
+                            return $this->parseDate($colTglTidakAktif) ?: now()->toDateString();
                         }
 
                         return null;
                     })(),
-                    'ayah_nama' => $this->cleanString($row['Y'] ?? null),
-                    'ayah_tahun_lahir' => $this->cleanInteger($row['Z'] ?? null),
-                    'ayah_pendidikan' => $this->cleanString($row['AA'] ?? null),
-                    'ayah_pekerjaan' => $this->cleanString($row['AB'] ?? null),
-                    'ayah_penghasilan' => $this->cleanString($row['AC'] ?? null),
-                    'ayah_nik' => $this->cleanString($row['AD'] ?? null),
-                    'ayah_status' => $this->cleanString($row['AE'] ?? null),
-                    'ibu_nama' => $this->cleanString($row['AF'] ?? null),
-                    'ibu_tahun_lahir' => $this->cleanInteger($row['AG'] ?? null),
-                    'ibu_pendidikan' => $this->cleanString($row['AH'] ?? null),
-                    'ibu_pekerjaan' => $this->cleanString($row['AI'] ?? null),
-                    'ibu_penghasilan' => $this->cleanString($row['AJ'] ?? null),
-                    'ibu_nik' => $this->cleanString($row['AK'] ?? null),
-                    'ibu_status' => $this->cleanString($row['AL'] ?? null),
-                    'wali_nama' => $this->cleanString($row['AM'] ?? null),
-                    'wali_tahun_lahir' => $this->cleanInteger($row['AN'] ?? null),
-                    'wali_pendidikan' => $this->cleanString($row['AO'] ?? null),
-                    'wali_pekerjaan' => $this->cleanString($row['AP'] ?? null),
-                    'wali_penghasilan' => $this->cleanString($row['AQ'] ?? null),
-                    'wali_nik' => $this->cleanString($row['AR'] ?? null),
-                    'wali_hubungan' => $this->cleanString($row['AS'] ?? null),
-                    'has_bisnis' => strtolower($this->cleanString($row['BD'] ?? null) ?? '') === 'ya',
-                    'jenis_bisnis' => $this->cleanString($row['BE'] ?? null),
+                    'ayah_nama' => $this->cleanString($colAyahNama),
+                    'ayah_tahun_lahir' => $this->cleanInteger($colAyahThn),
+                    'ayah_pendidikan' => $this->cleanString($colAyahPdd),
+                    'ayah_pekerjaan' => $this->cleanString($colAyahPkr),
+                    'ayah_penghasilan' => $this->cleanString($colAyahGaji),
+                    'ayah_nik' => $this->cleanString($colAyahNik),
+                    'ayah_status' => $this->cleanString($colAyahStatus),
+                    'ibu_nama' => $this->cleanString($colIbuNama),
+                    'ibu_tahun_lahir' => $this->cleanInteger($colIbuThn),
+                    'ibu_pendidikan' => $this->cleanString($colIbuPdd),
+                    'ibu_pekerjaan' => $this->cleanString($colIbuPkr),
+                    'ibu_penghasilan' => $this->cleanString($colIbuGaji),
+                    'ibu_nik' => $this->cleanString($colIbuNik),
+                    'ibu_status' => $this->cleanString($colIbuStatus),
+                    'wali_nama' => $this->cleanString($colWaliNama),
+                    'wali_tahun_lahir' => $this->cleanInteger($colWaliThn),
+                    'wali_pendidikan' => $this->cleanString($colWaliPdd),
+                    'wali_pekerjaan' => $this->cleanString($colWaliPkr),
+                    'wali_penghasilan' => $this->cleanString($colWaliGaji),
+                    'wali_nik' => $this->cleanString($colWaliNik),
+                    'wali_hubungan' => $this->cleanString($colWaliHub),
+                    'has_bisnis' => strtolower($this->cleanString($colHasBisnis) ?? '') === 'ya',
+                    'jenis_bisnis' => $this->cleanString($colJenisBisnis),
                 ];
 
                 // Filter by unit when specified
@@ -233,6 +339,8 @@ class StudentImportService
                     $recordData = [
                         'unit' => $student->unit,
                         'jenjang' => $student->jenjang,
+                        'program' => $student->program,
+                        'unit_pesantren' => $student->unit_pesantren,
                         'student_status' => $calc['status'],
                         'ket_tidak_aktif' => $calc['ket_tidak_aktif'],
                         'tanggal_tidak_aktif' => $calc['tanggal_tidak_aktif'],
@@ -256,25 +364,27 @@ class StudentImportService
 
                 // Handle Family Data
                 $familyData = array_filter([
-                    'ayah_nama' => $this->cleanString($row['Y'] ?? null),
-                    'ayah_tahun_lahir' => $this->cleanInteger($row['Z'] ?? null),
-                    'ayah_pendidikan' => $this->cleanString($row['AA'] ?? null),
-                    'ayah_pekerjaan' => $this->cleanString($row['AB'] ?? null),
-                    'ayah_penghasilan' => $this->cleanString($row['AC'] ?? null),
-                    'ayah_nik' => $this->cleanString($row['AD'] ?? null),
-                    'ibu_nama' => $this->cleanString($row['AF'] ?? null),
-                    'ibu_tahun_lahir' => $this->cleanInteger($row['AG'] ?? null),
-                    'ibu_pendidikan' => $this->cleanString($row['AH'] ?? null),
-                    'ibu_pekerjaan' => $this->cleanString($row['AI'] ?? null),
-                    'ibu_penghasilan' => $this->cleanString($row['AJ'] ?? null),
-                    'ibu_nik' => $this->cleanString($row['AK'] ?? null),
-                    'wali_nama' => $this->cleanString($row['AM'] ?? null),
-                    'wali_tahun_lahir' => $this->cleanInteger($row['AN'] ?? null),
-                    'wali_pendidikan' => $this->cleanString($row['AO'] ?? null),
-                    'wali_pekerjaan' => $this->cleanString($row['AP'] ?? null),
-                    'wali_penghasilan' => $this->cleanString($row['AQ'] ?? null),
-                    'wali_nik' => $this->cleanString($row['AR'] ?? null),
-                    'wali_hubungan' => $this->cleanString($row['AS'] ?? null),
+                    'ayah_nama' => $studentData['ayah_nama'],
+                    'ayah_tahun_lahir' => $studentData['ayah_tahun_lahir'],
+                    'ayah_pendidikan' => $studentData['ayah_pendidikan'],
+                    'ayah_pekerjaan' => $studentData['ayah_pekerjaan'],
+                    'ayah_penghasilan' => $studentData['ayah_penghasilan'],
+                    'ayah_nik' => $studentData['ayah_nik'],
+                    'ayah_status' => $studentData['ayah_status'],
+                    'ibu_nama' => $studentData['ibu_nama'],
+                    'ibu_tahun_lahir' => $studentData['ibu_tahun_lahir'],
+                    'ibu_pendidikan' => $studentData['ibu_pendidikan'],
+                    'ibu_pekerjaan' => $studentData['ibu_pekerjaan'],
+                    'ibu_penghasilan' => $studentData['ibu_penghasilan'],
+                    'ibu_nik' => $studentData['ibu_nik'],
+                    'ibu_status' => $studentData['ibu_status'],
+                    'wali_nama' => $studentData['wali_nama'],
+                    'wali_tahun_lahir' => $studentData['wali_tahun_lahir'],
+                    'wali_pendidikan' => $studentData['wali_pendidikan'],
+                    'wali_pekerjaan' => $studentData['wali_pekerjaan'],
+                    'wali_penghasilan' => $studentData['wali_penghasilan'],
+                    'wali_nik' => $studentData['wali_nik'],
+                    'wali_hubungan' => $studentData['wali_hubungan'],
                 ], fn ($v) => ! is_null($v));
 
                 if (! empty($familyData)) {
