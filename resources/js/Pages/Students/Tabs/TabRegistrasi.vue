@@ -39,6 +39,7 @@ const form = useForm({
     _tab: 'registrasi',
     status_registrasi: '',
     sekolah_asal: '',
+    npsn: '',
     diterima_di_jenjang: '',
     tanggal_diterima: '',
     info_psb: '',
@@ -50,6 +51,7 @@ const form = useForm({
 function initForm() {
     form.status_registrasi = props.student.status_registrasi || 'Siswa Baru';
     form.sekolah_asal = props.student.sekolah_asal || '';
+    form.npsn = props.student.npsn || '';
     form.diterima_di_jenjang = props.student.diterima_di_jenjang || '';
     form.tanggal_diterima = props.student.tanggal_diterima || '';
     form.info_psb = props.student.info_psb || '';
@@ -385,6 +387,10 @@ function hasActiveUnit(row) {
                     <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.sekolah_asal || '-' }}</p>
                 </div>
                 <div>
+                    <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">NPSN Sekolah Asal</label>
+                    <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.npsn || '-' }}</p>
+                </div>
+                <div>
                     <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Diterima di Jenjang / Kelas</label>
                     <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.diterima_di_jenjang || '-' }}</p>
                 </div>
@@ -679,6 +685,19 @@ function hasActiveUnit(row) {
                             v-model="form.sekolah_asal"
                             type="text"
                             placeholder="cth. TK Islam Terpadu Al-Azhar"
+                            class="w-full px-3.5 py-2 rounded-xl border border-slate-200/90 text-xs sm:text-sm font-semibold text-slate-800 placeholder-slate-400 bg-white shadow-2xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                        />
+                    </div>
+
+                    <!-- NPSN Sekolah Asal -->
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+                            NPSN Sekolah Asal
+                        </label>
+                        <input
+                            v-model="form.npsn"
+                            type="text"
+                            placeholder="cth. 20321234"
                             class="w-full px-3.5 py-2 rounded-xl border border-slate-200/90 text-xs sm:text-sm font-semibold text-slate-800 placeholder-slate-400 bg-white shadow-2xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
                         />
                     </div>

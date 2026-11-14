@@ -217,6 +217,7 @@ const columns = computed(() => ({
         { key: 'keterangan_tidak_aktif', label: 'Ket. Tidak Aktif', type: 'select', options: ketTidakAktifOptions, width: 'w-44' },
         { key: 'tanggal_tidak_aktif', label: 'Tgl Tidak Aktif', type: 'date', width: 'w-36' },
         { key: 'sekolah_asal', label: 'Sekolah Asal', type: 'text', width: 'w-40' },
+        { key: 'npsn', label: 'NPSN', type: 'text', width: 'w-32' },
         { key: 'status_keluarga', label: 'Status Keluarga', type: 'select', options: statusKeluargaOptions, width: 'w-36' },
         { key: 'anak_ke', label: 'Anak Ke', type: 'number', width: 'w-24' },
         { key: 'diterima_di_jenjang', label: 'Diterima di Jenjang', type: 'select', options: levelOptions.value, width: 'w-40' },

@@ -30,6 +30,7 @@ class Student extends Model
         'no_wa_2',
         'email',
         'sekolah_asal',
+        'npsn',
         'status_keluarga',
         'anak_ke',
         'diterima_di_jenjang',

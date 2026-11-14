@@ -134,6 +134,7 @@ const form = useForm({
     // Tab 4: Registrasi
     status_registrasi: 'Siswa Baru',
     sekolah_asal: '',
+    npsn: '',
     diterima_di_jenjang: '',
     tanggal_diterima: new Date().toISOString().slice(0, 10),
     info_psb: '',
@@ -1126,6 +1127,17 @@ onUnmounted(() => {
                                     v-model="form.sekolah_asal"
                                     type="text"
                                     placeholder="cth. TK Islam Terpadu Al-Azhar"
+                                    class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200/90 text-xs sm:text-sm font-semibold text-slate-900 placeholder-slate-400 bg-white shadow-2xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                                />
+                            </div>
+
+                            <!-- NPSN Sekolah Asal -->
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">NPSN Sekolah Asal</label>
+                                <input
+                                    v-model="form.npsn"
+                                    type="text"
+                                    placeholder="cth. 20321234"
                                     class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200/90 text-xs sm:text-sm font-semibold text-slate-900 placeholder-slate-400 bg-white shadow-2xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
                                 />
                             </div>

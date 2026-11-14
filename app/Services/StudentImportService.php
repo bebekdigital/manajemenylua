@@ -63,6 +63,7 @@ class StudentImportService
             $rowsSiswa = $sheetSiswa->toArray(null, true, true, true);
             $headerRow = $rowsSiswa[1] ?? [];
             $isNewTemplate = isset($headerRow['G']) && str_contains(strtolower((string) $headerRow['G']), 'program');
+            $hasNpsnColumn = isset($headerRow['BC']) && str_contains(strtoupper((string) $headerRow['BC']), 'NPSN');
 
             // Skip header (row 1)
             array_shift($rowsSiswa);
@@ -161,20 +162,55 @@ class StudentImportService
 
                 // Identitas Lanjutan
                 $colKebutuhan = $isNewTemplate ? ($row['BA'] ?? null) : ($row['AY'] ?? null);
-                $colSekolahAsal = $isNewTemplate ? ($row['BB'] ?? null) : ($row['AZ'] ?? null);
-                $colAnakKe = $isNewTemplate ? ($row['BC'] ?? null) : ($row['BA'] ?? null);
-                $colNoKk = $isNewTemplate ? ($row['BD'] ?? null) : ($row['BB'] ?? null);
-                $colJarak = $isNewTemplate ? ($row['BE'] ?? null) : ($row['BC'] ?? null);
-                $colHasBisnis = $isNewTemplate ? ($row['BF'] ?? null) : ($row['BD'] ?? null);
-                $colJenisBisnis = $isNewTemplate ? ($row['BG'] ?? null) : ($row['BE'] ?? null);
-                $colDesil = $isNewTemplate ? ($row['BH'] ?? null) : ($row['BF'] ?? null);
-                $colDiterimaJenjang = $isNewTemplate ? ($row['BI'] ?? null) : ($row['BG'] ?? null);
-                $colTglDiterima = $isNewTemplate ? ($row['BJ'] ?? null) : ($row['BH'] ?? null);
-                $colInfoPsb = $isNewTemplate ? ($row['BK'] ?? null) : ($row['BI'] ?? null);
-                $colStatusRegistrasi = $isNewTemplate ? ($row['BL'] ?? null) : ($row['BJ'] ?? null);
-                $colStatusKeaktifan = $isNewTemplate ? ($row['BM'] ?? null) : ($row['BK'] ?? null);
-                $colKetTidakAktif = $isNewTemplate ? ($row['BN'] ?? null) : ($row['BL'] ?? null);
-                $colTglTidakAktif = $isNewTemplate ? ($row['BO'] ?? null) : ($row['BM'] ?? null);
+                if ($hasNpsnColumn) {
+                    $colSekolahAsal = $row['BB'] ?? null;
+                    $colNpsn = $row['BC'] ?? null;
+                    $colAnakKe = $row['BD'] ?? null;
+                    $colNoKk = $row['BE'] ?? null;
+                    $colJarak = $row['BF'] ?? null;
+                    $colHasBisnis = $row['BG'] ?? null;
+                    $colJenisBisnis = $row['BH'] ?? null;
+                    $colDesil = $row['BI'] ?? null;
+                    $colDiterimaJenjang = $row['BJ'] ?? null;
+                    $colTglDiterima = $row['BK'] ?? null;
+                    $colInfoPsb = $row['BL'] ?? null;
+                    $colStatusRegistrasi = $row['BM'] ?? null;
+                    $colStatusKeaktifan = $row['BN'] ?? null;
+                    $colKetTidakAktif = $row['BO'] ?? null;
+                    $colTglTidakAktif = $row['BP'] ?? null;
+                } elseif ($isNewTemplate) {
+                    $colSekolahAsal = $row['BB'] ?? null;
+                    $colNpsn = null;
+                    $colAnakKe = $row['BC'] ?? null;
+                    $colNoKk = $row['BD'] ?? null;
+                    $colJarak = $row['BE'] ?? null;
+                    $colHasBisnis = $row['BF'] ?? null;
+                    $colJenisBisnis = $row['BG'] ?? null;
+                    $colDesil = $row['BH'] ?? null;
+                    $colDiterimaJenjang = $row['BI'] ?? null;
+                    $colTglDiterima = $row['BJ'] ?? null;
+                    $colInfoPsb = $row['BK'] ?? null;
+                    $colStatusRegistrasi = $row['BL'] ?? null;
+                    $colStatusKeaktifan = $row['BM'] ?? null;
+                    $colKetTidakAktif = $row['BN'] ?? null;
+                    $colTglTidakAktif = $row['BO'] ?? null;
+                } else {
+                    $colSekolahAsal = $row['AZ'] ?? null;
+                    $colNpsn = null;
+                    $colAnakKe = $row['BA'] ?? null;
+                    $colNoKk = $row['BB'] ?? null;
+                    $colJarak = $row['BC'] ?? null;
+                    $colHasBisnis = $row['BD'] ?? null;
+                    $colJenisBisnis = $row['BE'] ?? null;
+                    $colDesil = $row['BF'] ?? null;
+                    $colDiterimaJenjang = $row['BG'] ?? null;
+                    $colTglDiterima = $row['BH'] ?? null;
+                    $colInfoPsb = $row['BI'] ?? null;
+                    $colStatusRegistrasi = $row['BJ'] ?? null;
+                    $colStatusKeaktifan = $row['BK'] ?? null;
+                    $colKetTidakAktif = $row['BL'] ?? null;
+                    $colTglTidakAktif = $row['BM'] ?? null;
+                }
 
                 $studentData = [
                     'nama' => $nama,
@@ -209,6 +245,7 @@ class StudentImportService
                     'pip_keterangan' => $this->cleanString($colPipKet),
                     'kebutuhan_khusus' => $this->cleanString($colKebutuhan),
                     'sekolah_asal' => $this->cleanString($colSekolahAsal),
+                    'npsn' => $this->cleanString($colNpsn),
                     'anak_ke' => $this->cleanInteger($colAnakKe),
                     'no_kk' => $this->cleanString($colNoKk),
                     'jarak_rumah' => $this->cleanString($colJarak),
@@ -316,7 +353,7 @@ class StudentImportService
                 if ($activeYear) {
                     $classroomId = null;
                     $tingkat = null;
-                    $kelasInput = $this->cleanString($row['BG'] ?? null);
+                    $kelasInput = $this->cleanString($colDiterimaJenjang ?? ($row['BG'] ?? null));
                     if ($kelasInput) {
                         $matchingClass = Classroom::where('academic_year_id', $activeYear->id)
                             ->where(function ($q) use ($kelasInput) {
