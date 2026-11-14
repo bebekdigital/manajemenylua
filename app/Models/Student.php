@@ -20,6 +20,7 @@ class Student extends Model
         'no_kk',
         'jenjang',
         'unit',
+        'program',
         'unit_pesantren',
         'angkatan',
         'jk',

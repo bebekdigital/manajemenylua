@@ -374,10 +374,10 @@ class StudentImportService
                         ->first();
 
                     $recordData = [
-                        'unit' => $student->unit,
-                        'jenjang' => $student->jenjang,
-                        'program' => $student->program,
-                        'unit_pesantren' => $student->unit_pesantren,
+                        'unit' => $student->unit ?? $studentData['unit'],
+                        'jenjang' => $student->jenjang ?? $studentData['jenjang'],
+                        'program' => $studentData['program'] ?? $rawProgram ?? $student->program,
+                        'unit_pesantren' => $studentData['unit_pesantren'] ?? $finalUnitPesantren ?? $student->unit_pesantren,
                         'student_status' => $calc['status'],
                         'ket_tidak_aktif' => $calc['ket_tidak_aktif'],
                         'tanggal_tidak_aktif' => $calc['tanggal_tidak_aktif'],

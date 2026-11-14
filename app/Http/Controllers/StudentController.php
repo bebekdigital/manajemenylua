@@ -346,7 +346,6 @@ class StudentController extends Controller
             // Remove non-student table fields before create
             unset($studentData['classroom_id']);
             unset($studentData['kelas']);
-            unset($studentData['program']);
             unset($studentData['tingkat']);
 
             $student = Student::create($studentData);
@@ -704,6 +703,7 @@ class StudentController extends Controller
             'no_wa_2' => $validated['no_wa_2'] ?? null,
             'email' => $validated['email'] ?? null,
             'unit' => $validated['unit'] ?? $student->unit,
+            'program' => array_key_exists('program', $validated) ? $validated['program'] : $student->program,
             'unit_pesantren' => array_key_exists('unit_pesantren', $validated) ? $validated['unit_pesantren'] : $student->unit_pesantren,
             'jenjang' => $validated['jenjang'] ?? $student->jenjang,
             'angkatan' => $validated['angkatan'] ?? null,
@@ -1019,6 +1019,9 @@ class StudentController extends Controller
                     'no_kip' => $d['no_kip'] ?? $student->no_kip,
                 ];
 
+                if (array_key_exists('program', $d)) {
+                    $studentUpdateData['program'] = $d['program'] ?: null;
+                }
                 if (array_key_exists('unit_pesantren', $d)) {
                     $studentUpdateData['unit_pesantren'] = $d['unit_pesantren'] ?: null;
                 }
