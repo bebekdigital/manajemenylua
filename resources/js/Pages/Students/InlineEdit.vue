@@ -315,6 +315,7 @@ function switchAcademicYear() {
 // Search, Filter Keaktifan, & Selection
 // ============================================================
 const searchQuery = ref('');
+const activeUnitFilter = ref('all');
 const activeStatusFilter = ref('semua'); // 'semua' | 'aktif' | 'tidak_aktif' | 'lulus'
 const selectedRows = ref(new Set());
 
@@ -365,6 +366,12 @@ const filteredStudents = computed(() => {
             const ket = (s.keterangan_tidak_aktif || s.ket_tidak_aktif || '').toLowerCase().trim();
             return masterStatus === 'lulus' || ket === 'lulus';
         });
+    }
+
+    // Filter Unit
+    if (activeUnitFilter.value && activeUnitFilter.value !== 'all') {
+        const u = activeUnitFilter.value.toLowerCase();
+        list = list.filter(s => (s.unit || '').toLowerCase().includes(u) || (s.unit_pesantren || '').toLowerCase().includes(u));
     }
 
     // Filter Search Query
@@ -1017,6 +1024,17 @@ function groupSpan(groupKey) {
                     >
                         <span class="material-symbols-outlined text-[14px]">close</span>
                     </button>
+                </div>
+
+                <!-- Filter Unit -->
+                <div v-if="allUnits && allUnits.length > 0" class="relative">
+                    <select
+                        v-model="activeUnitFilter"
+                        class="px-3 py-2 text-xs font-bold text-slate-700 border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-700 shadow-2xs transition-all cursor-pointer"
+                    >
+                        <option value="all">Semua Unit</option>
+                        <option v-for="u in allUnits" :key="u" :value="u">{{ u }}</option>
+                    </select>
                 </div>
 
                 <!-- Filter Status Keaktifan (Tabs: Semua, Aktif, Tidak Aktif) -->

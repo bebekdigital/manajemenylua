@@ -272,13 +272,29 @@ function getAlamatLengkap(s) {
 
                         <!-- Jenjang -->
                         <td class="py-3.5 px-3 align-middle whitespace-nowrap">
-                            <span
-                                v-if="student.jenjang"
-                                class="inline-flex items-center px-2 py-0.5 rounded-md text-[11.5px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200"
-                            >
-                                {{ student.jenjang }}
-                            </span>
-                            <span v-else class="text-slate-400 text-[12px]">-</span>
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <span
+                                    v-if="student.jenjang"
+                                    class="inline-flex items-center px-2 py-0.5 rounded-md text-[11.5px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200"
+                                >
+                                    {{ student.jenjang }}
+                                </span>
+                                <span
+                                    v-if="student.tingkat"
+                                    class="inline-flex items-center px-1.5 py-0.5 rounded-md text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200"
+                                    :title="'Tingkat ' + student.tingkat"
+                                >
+                                    Tk. {{ student.tingkat }}
+                                </span>
+                                <span
+                                    v-if="student.kelas"
+                                    class="inline-flex items-center px-1.5 py-0.5 rounded-md text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200"
+                                    :title="'Kelas ' + student.kelas"
+                                >
+                                    {{ student.kelas }}
+                                </span>
+                            </div>
+                            <span v-if="!student.jenjang && !student.tingkat && !student.kelas" class="text-slate-400 text-[12px]">-</span>
                         </td>
 
                         <!-- Unit (Menampung Unit Formal DAN Unit Asrama di bawahnya - Badge beda warna tanpa icon) -->

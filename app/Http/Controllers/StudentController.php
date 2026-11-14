@@ -118,6 +118,8 @@ class StudentController extends Controller
                     'unit' => $student->unit,
                     'unit_pesantren' => $student->unit_pesantren ?? $record?->unit_pesantren,
                     'program' => $student->program ?? $record?->program,
+                    'tingkat' => $record?->tingkat,
+                    'kelas' => $record?->classroom?->name,
                     'angkatan' => $student->angkatan,
                     'photo_url' => $student->photo_url,
                     'jenjang' => $student->jenjang ?? $record?->classroom?->jenjang,
