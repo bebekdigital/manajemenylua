@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\AcademicYear;
 use App\Models\Student;
 use App\Models\StudentAcademicRecord;
+use App\Services\StudentStatusService;
 use Carbon\Carbon;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
@@ -110,37 +111,11 @@ class SyncStudentAcademicRecordsCommand extends Command
                 $isAlumni = $tingkat > $maxGrade;
                 $actualTingkat = min($tingkat, $maxGrade);
 
-                // Tentukan status keaktifan di TA ini
-                $studentStatus = 'aktif';
-                $isInactiveGlobally = strtolower(trim((string) $student->status_keaktifan)) === 'tidak aktif';
-
-                if ($isAlumni) {
-                    $studentStatus = 'lulus';
-                } elseif ($isInactiveGlobally) {
-                    $ketLower = strtolower(trim((string) $student->keterangan_tidak_aktif));
-                    $targetInactiveStatus = 'dropout'; // ENUM database: 'aktif','mutasi_masuk','mutasi_keluar','lulus','mengulang','dropout'
-                    if (str_contains($ketLower, 'mutasi')) {
-                        $targetInactiveStatus = 'mutasi_keluar';
-                    } elseif (str_contains($ketLower, 'lulus')) {
-                        $targetInactiveStatus = 'lulus';
-                    } elseif (str_contains($ketLower, 'keluar') || str_contains($ketLower, 'drop')) {
-                        $targetInactiveStatus = 'dropout';
-                    } elseif (str_contains($ketLower, 'ulang')) {
-                        $targetInactiveStatus = 'mengulang';
-                    }
-
-                    if ($student->tanggal_tidak_aktif) {
-                        $tglTidakAktif = Carbon::parse($student->tanggal_tidak_aktif);
-                        if ($year->end_date && $year->end_date->lt($tglTidakAktif)) {
-                            $studentStatus = 'aktif';
-                        } else {
-                            $studentStatus = $targetInactiveStatus;
-                        }
-                    } else {
-                        // Jika tidak ada tanggal_tidak_aktif: aktif di tahun lampau, tidak aktif di TA aktif sekarang (2026/2027)
-                        $studentStatus = ($schoolYear >= 2026) ? $targetInactiveStatus : 'aktif';
-                    }
-                }
+                // Tentukan status keaktifan di TA ini menggunakan kalkulasi StudentStatusService
+                $calc = StudentStatusService::calculateStatus($student, $year);
+                $studentStatus = $isAlumni ? 'Lulus' : $calc['status'];
+                $ketTidakAktif = $isAlumni ? 'Lulus' : $calc['ket_tidak_aktif'];
+                $tanggalTidakAktif = $isAlumni ? null : $calc['tanggal_tidak_aktif'];
 
                 if ($inspectOnly) {
                     continue;
@@ -172,8 +147,8 @@ class SyncStudentAcademicRecordsCommand extends Command
                     'program' => $program,
                     'unit_pesantren' => $student->unit_pesantren,
                     'student_status' => $studentStatus,
-                    'ket_tidak_aktif' => $studentStatus === 'aktif' ? null : $student->keterangan_tidak_aktif,
-                    'tanggal_tidak_aktif' => $studentStatus === 'aktif' ? null : $student->tanggal_tidak_aktif,
+                    'ket_tidak_aktif' => $ketTidakAktif,
+                    'tanggal_tidak_aktif' => $tanggalTidakAktif,
                     'desil' => $student->desil,
                     'status_pip' => (bool) ($student->status_pip ?? false),
                     'pip_keterangan' => $student->pip_keterangan,

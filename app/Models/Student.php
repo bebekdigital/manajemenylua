@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\StudentStatusService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -148,5 +149,18 @@ class Student extends Model
 
         return $this->hasOne(StudentAcademicRecord::class)
             ->where('academic_year_id', $activeYear?->id);
+    }
+
+    /**
+     * Otomatis sinkronkan status keaktifan semester pada student_academic_records
+     * jika data pokok status keaktifan master siswa berubah.
+     */
+    protected static function booted(): void
+    {
+        static::saved(function (Student $student) {
+            if ($student->wasChanged(['status_keaktifan', 'keterangan_tidak_aktif', 'tanggal_tidak_aktif'])) {
+                StudentStatusService::syncForStudent($student);
+            }
+        });
     }
 }

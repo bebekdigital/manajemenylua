@@ -12,6 +12,7 @@ use App\Models\SchoolUnit;
 use App\Models\Student;
 use App\Models\StudentAcademicRecord;
 use App\Services\StudentImportService;
+use App\Services\StudentStatusService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -120,7 +121,7 @@ class StudentController extends Controller
                     'jenjang' => $student->jenjang ?? $record?->classroom?->jenjang,
                     'student_status' => $isInactive ? 'tidak_aktif' : ($isLulus ? 'lulus' : 'aktif'),
                     'status_keaktifan' => $masterKeaktifan,
-                    'status_per_semester' => in_array($record?->student_status, ['Tinggal Kelas', 'mengulang']) ? 'Tinggal Kelas' : 'Naik Kelas',
+                    'status_per_semester' => $record?->student_status ?: 'Aktif',
                     'keterangan_tidak_aktif' => $student->keterangan_tidak_aktif ?? $record?->ket_tidak_aktif,
                     'tanggal_tidak_aktif' => $student->tanggal_tidak_aktif ? $student->tanggal_tidak_aktif->format('Y-m-d') : ($record?->tanggal_tidak_aktif?->format('Y-m-d')),
                     'no_wa' => $student->no_wa,
@@ -360,6 +361,8 @@ class StudentController extends Controller
                     }
                 }
 
+                $calc = StudentStatusService::calculateStatus($student, $activeYear);
+
                 StudentAcademicRecord::create([
                     'student_id' => $student->id,
                     'academic_year_id' => $activeYear->id,
@@ -369,9 +372,9 @@ class StudentController extends Controller
                     'tingkat' => $validated['tingkat'] ?? null,
                     'program' => $validated['program'] ?? 'Umum',
                     'unit_pesantren' => $validated['unit_pesantren'] ?? null,
-                    'student_status' => 'Naik Kelas',
-                    'ket_tidak_aktif' => $isTidakAktif ? ($validated['keterangan_tidak_aktif'] ?? null) : null,
-                    'tanggal_tidak_aktif' => $isTidakAktif ? ($validated['tanggal_tidak_aktif'] ?? null) : null,
+                    'student_status' => $calc['status'],
+                    'ket_tidak_aktif' => $calc['ket_tidak_aktif'],
+                    'tanggal_tidak_aktif' => $calc['tanggal_tidak_aktif'],
                     'desil' => $validated['desil'] ?? null,
                     'status_pip' => (bool) ($validated['status_pip'] ?? false),
                     'pip_keterangan' => $validated['pip_keterangan'] ?? null,
@@ -438,7 +441,7 @@ class StudentController extends Controller
             'kelas' => $currentRecord?->classroom?->name,
             'student_status' => (str_contains(strtolower(trim((string) ($studentModel->status_keaktifan ?: 'Aktif'))), 'tidak')) ? 'tidak_aktif' : ((strtolower(trim((string) $studentModel->status_keaktifan)) === 'lulus') ? 'lulus' : 'aktif'),
             'status_keaktifan' => $studentModel->status_keaktifan ?: 'Aktif',
-            'status_per_semester' => in_array($currentRecord?->student_status, ['Tinggal Kelas', 'mengulang']) ? 'Tinggal Kelas' : 'Naik Kelas',
+            'status_per_semester' => $currentRecord?->student_status ?: 'Aktif',
             'ket_tidak_aktif' => $studentModel->keterangan_tidak_aktif ?? $currentRecord?->ket_tidak_aktif,
             'keterangan_tidak_aktif' => $studentModel->keterangan_tidak_aktif ?? $currentRecord?->ket_tidak_aktif,
             'tanggal_tidak_aktif' => $studentModel->tanggal_tidak_aktif ? $studentModel->tanggal_tidak_aktif->format('Y-m-d') : ($currentRecord?->tanggal_tidak_aktif?->format('Y-m-d')),
@@ -497,103 +500,43 @@ class StudentController extends Controller
                 'tanggal_lahir' => $s->tanggal_lahir?->format('Y-m-d'),
             ])->toArray(),
             'riwayat_keaktifan' => (function () use ($studentModel) {
-                // 1. Lengkapi data periode start_date & end_date untuk setiap record akademik
-                $mappedRecords = $studentModel->academicRecords->map(function ($r) {
-                    $academicYear = $r->academicYear;
-                    $startDate = $academicYear?->start_date?->format('Y-m-d');
-                    $endDate = $academicYear?->end_date?->format('Y-m-d');
+                // Ambil riwayat keaktifan murni dari database (kolom student_status, ket_tidak_aktif, tanggal_tidak_aktif)
+                $sorted = $studentModel->academicRecords->sortBy(function ($r) {
+                    $ay = $r->academicYear;
 
-                    if (! $startDate || ! $endDate) {
-                        $yearName = $academicYear?->name ?? '';
-                        if (preg_match('/(\d{4})\s*[\/-]\s*(\d{4})/', $yearName, $m)) {
-                            $y1 = $m[1];
-                            $y2 = $m[2];
-                            $sem = strtolower((string) ($academicYear?->semester ?? ''));
-                            if ($sem === 'ganjil') {
-                                $startDate = $startDate ?: "{$y1}-07-01";
-                                $endDate = $endDate ?: "{$y1}-12-31";
-                            } elseif ($sem === 'genap') {
-                                $startDate = $startDate ?: "{$y2}-01-01";
-                                $endDate = $endDate ?: "{$y2}-06-30";
-                            } else {
-                                $startDate = $startDate ?: "{$y1}-07-01";
-                                $endDate = $endDate ?: "{$y2}-06-30";
-                            }
-                        }
+                    return $ay?->start_date?->format('Y-m-d') ?? ($ay?->name ?? '');
+                })->values();
+
+                $results = [];
+                $stopAfterThis = false;
+
+                foreach ($sorted as $r) {
+                    if ($stopAfterThis) {
+                        continue;
                     }
 
-                    return [
-                        'record' => $r,
-                        'academic_year' => $academicYear?->name,
-                        'semester' => $academicYear?->semester,
-                        'start_date' => $startDate ?? '1970-01-01',
-                        'end_date' => $endDate ?? '1970-12-31',
-                    ];
-                })->sortBy('start_date')->values();
+                    $ay = $r->academicYear;
+                    $status = $r->student_status ?: 'Aktif';
 
-                $masterKeaktifan = trim((string) ($studentModel->status_keaktifan ?: 'Aktif'));
-                $masterKet = trim((string) ($studentModel->keterangan_tidak_aktif ?? ''));
-                $tglTidakAktif = $studentModel->tanggal_tidak_aktif?->format('Y-m-d');
-                $hasInactiveState = ! empty($masterKet) || strcasecmp($masterKeaktifan, 'Aktif') !== 0;
-
-                // Threshold tanggal semester saat siswa pertama kali menjadi Tidak Aktif / Tidak Aktif-Sebagian
-                $inactiveStartThreshold = null;
-                $results = [];
-
-                foreach ($mappedRecords as $item) {
-                    $r = $item['record'];
-                    $startDate = $item['start_date'];
-                    $endDate = $item['end_date'];
-
-                    $statusKeaktifanSemester = 'Aktif';
-                    $ketSemester = null;
-
-                    if ($hasInactiveState) {
-                        // Jika di riwayat semester sebelumnya sudah tidak aktif (termasuk tidak aktif sebagian),
-                        // maka semester-semester selanjutnya dihilangkan total (tidak perlu ditampilkan barisnya).
-                        if ($inactiveStartThreshold !== null && $startDate > $inactiveStartThreshold) {
-                            continue;
-                        }
-
-                        $ketSemester = $masterKet ?: (strcasecmp($masterKeaktifan, 'Lulus') === 0 ? 'Lulus' : 'Tidak Aktif');
-
-                        if ($tglTidakAktif && $startDate && $endDate) {
-                            if ($tglTidakAktif <= $startDate) {
-                                $statusKeaktifanSemester = 'Tidak Aktif';
-                                $inactiveStartThreshold = $startDate;
-                            } elseif ($tglTidakAktif > $endDate) {
-                                $statusKeaktifanSemester = 'Aktif';
-                                $ketSemester = null; // Masih aktif penuh pada semester ini
-                            } else {
-                                // Tanggal di tengah-tengah rentang semester -> Tidak Aktif-Sebagian
-                                $statusKeaktifanSemester = 'Tidak Aktif-Sebagian';
-                                $inactiveStartThreshold = $startDate;
-                            }
-                        } else {
-                            if (strcasecmp($masterKeaktifan, 'Lulus') === 0 || strcasecmp($masterKet, 'Lulus') === 0) {
-                                $statusKeaktifanSemester = 'Lulus';
-                            } else {
-                                $statusKeaktifanSemester = 'Tidak Aktif';
-                            }
-                            $inactiveStartThreshold = $startDate;
-                        }
+                    if (in_array($status, ['Tidak Aktif', 'Lulus', 'Tidak Aktif-Sebagian'])) {
+                        $stopAfterThis = true;
                     }
 
                     $results[] = [
                         'id' => $r->id,
-                        'academic_year' => $item['academic_year'],
-                        'semester' => $item['semester'],
-                        'start_date' => $startDate,
-                        'end_date' => $endDate,
+                        'academic_year' => $ay?->name,
+                        'semester' => $ay?->semester,
+                        'start_date' => $ay?->start_date?->format('Y-m-d'),
+                        'end_date' => $ay?->end_date?->format('Y-m-d'),
                         'unit' => $r->unit ?? $r->classroom?->unit ?? $studentModel->unit,
                         'unit_pesantren' => $r->unit_pesantren ?? $studentModel->unit_pesantren,
                         'program' => $r->program,
                         'tingkat' => $r->tingkat,
                         'kelas' => $r->classroom?->name,
-                        'status' => $statusKeaktifanSemester,
-                        'keterangan' => $ketSemester,
-                        'tanggal_tidak_aktif' => $tglTidakAktif,
-                        'student_status' => $r->student_status,
+                        'status' => $status,
+                        'keterangan' => $r->ket_tidak_aktif ?: $studentModel->keterangan_tidak_aktif,
+                        'tanggal_tidak_aktif' => $r->tanggal_tidak_aktif?->format('Y-m-d') ?: $studentModel->tanggal_tidak_aktif?->format('Y-m-d'),
+                        'student_status' => $status,
                     ];
                 }
 
@@ -683,21 +626,22 @@ class StudentController extends Controller
 
             $activeYear = AcademicYear::current();
             if ($activeYear) {
+                $calc = StudentStatusService::calculateStatus($student, $activeYear);
                 $record = $student->academicRecords()->where('academic_year_id', $activeYear->id)->first();
                 if ($record) {
                     $record->update([
-                        'student_status' => $record->student_status ?: 'Naik Kelas',
-                        'ket_tidak_aktif' => $statusKeaktifan === 'Aktif' ? null : $ketKeaktifan,
-                        'tanggal_tidak_aktif' => $statusKeaktifan === 'Aktif' ? null : $tglKeaktifan,
+                        'student_status' => $calc['status'],
+                        'ket_tidak_aktif' => $calc['ket_tidak_aktif'],
+                        'tanggal_tidak_aktif' => $calc['tanggal_tidak_aktif'],
                     ]);
                 } else {
                     $student->academicRecords()->create([
                         'academic_year_id' => $activeYear->id,
                         'unit' => $student->unit,
                         'jenjang' => $student->jenjang,
-                        'student_status' => 'Naik Kelas',
-                        'ket_tidak_aktif' => $statusKeaktifan === 'Aktif' ? null : $ketKeaktifan,
-                        'tanggal_tidak_aktif' => $statusKeaktifan === 'Aktif' ? null : $tglKeaktifan,
+                        'student_status' => $calc['status'],
+                        'ket_tidak_aktif' => $calc['ket_tidak_aktif'],
+                        'tanggal_tidak_aktif' => $calc['tanggal_tidak_aktif'],
                     ]);
                 }
             }
@@ -775,10 +719,10 @@ class StudentController extends Controller
                 $recordUpdates['tingkat'] = $validated['tingkat'];
             }
             if ($student->status_keaktifan) {
-                $isInactive = strtolower(trim((string) $student->status_keaktifan)) === 'tidak aktif';
-                $recordUpdates['student_status'] = $isInactive ? 'dropout' : 'aktif';
-                $recordUpdates['ket_tidak_aktif'] = $student->keterangan_tidak_aktif;
-                $recordUpdates['tanggal_tidak_aktif'] = $student->tanggal_tidak_aktif;
+                $calc = StudentStatusService::calculateStatus($student, $activeYear);
+                $recordUpdates['student_status'] = $calc['status'];
+                $recordUpdates['ket_tidak_aktif'] = $calc['ket_tidak_aktif'];
+                $recordUpdates['tanggal_tidak_aktif'] = $calc['tanggal_tidak_aktif'];
             }
             $student->academicRecords()->updateOrCreate(
                 ['academic_year_id' => $activeYear->id],
@@ -866,7 +810,7 @@ class StudentController extends Controller
                     'jenjang' => $record?->classroom?->jenjang ?? $student->diterima_di_jenjang,
                     'tingkat' => $record?->tingkat,
                     'kelas' => $record?->classroom?->name,
-                    'student_status' => in_array($record?->student_status, ['Tinggal Kelas', 'mengulang']) ? 'Tinggal Kelas' : 'Naik Kelas',
+                    'student_status' => $record?->student_status ?: 'Aktif',
                     'ket_tidak_aktif' => $record?->ket_tidak_aktif,
                     // Registrasi
                     'status_keaktifan' => $student->status_keaktifan ?: 'Aktif',
@@ -1119,19 +1063,15 @@ class StudentController extends Controller
                         : ($selectedYearId ? [$selectedYearId] : []);
                 }
 
-                // Status per semester (strictly Naik Kelas / Tinggal Kelas)
-                $rawStatus = isset($d['student_status']) ? strtolower(trim((string) $d['student_status'])) : null;
-                $statusVal = (in_array($rawStatus, ['tinggal kelas', 'mengulang'])) ? 'Tinggal Kelas' : 'Naik Kelas';
-
-                // Sinkronisasi status keaktifan & keterangan ke semester yang ditargetkan
-                $finalStatusKeaktifan = $studentUpdateData['status_keaktifan'] ?? $student->status_keaktifan ?? 'Aktif';
-                $finalKetTidakAktif = $finalStatusKeaktifan === 'Aktif' ? null : ($studentUpdateData['keterangan_tidak_aktif'] ?? $student->keterangan_tidak_aktif);
-                $finalTglTidakAktif = $finalStatusKeaktifan === 'Aktif' ? null : ($studentUpdateData['tanggal_tidak_aktif'] ?? $student->tanggal_tidak_aktif);
-
                 $student->update($studentUpdateData);
 
                 // 2. Update / Create StudentAcademicRecord di setiap target academic year
                 foreach ($studentYearIds as $yId) {
+                    $yearModel = AcademicYear::find($yId);
+                    $calcStatus = $yearModel
+                        ? StudentStatusService::calculateStatus($student, $yearModel)
+                        : ['status' => 'Aktif', 'ket_tidak_aktif' => null, 'tanggal_tidak_aktif' => null];
+
                     $record = StudentAcademicRecord::where('student_id', $student->id)
                         ->where('academic_year_id', $yId)
                         ->first();
@@ -1140,15 +1080,15 @@ class StudentController extends Controller
                         $record = StudentAcademicRecord::create([
                             'student_id' => $student->id,
                             'academic_year_id' => $yId,
-                            'student_status' => $statusVal,
-                            'ket_tidak_aktif' => $finalKetTidakAktif,
-                            'tanggal_tidak_aktif' => $finalTglTidakAktif,
+                            'student_status' => $calcStatus['status'],
+                            'ket_tidak_aktif' => $calcStatus['ket_tidak_aktif'],
+                            'tanggal_tidak_aktif' => $calcStatus['tanggal_tidak_aktif'],
                         ]);
                     } else {
                         $record->update([
-                            'student_status' => $statusVal,
-                            'ket_tidak_aktif' => $finalKetTidakAktif,
-                            'tanggal_tidak_aktif' => $finalTglTidakAktif,
+                            'student_status' => $calcStatus['status'],
+                            'ket_tidak_aktif' => $calcStatus['ket_tidak_aktif'],
+                            'tanggal_tidak_aktif' => $calcStatus['tanggal_tidak_aktif'],
                         ]);
                     }
 
@@ -1176,8 +1116,6 @@ class StudentController extends Controller
                         'jenjang' => $student->jenjang,
                         'tingkat' => $d['tingkat'] ?? $record->tingkat,
                         'program' => $d['program'] ?? $record->program,
-                        'student_status' => $statusVal,
-                        'ket_tidak_aktif' => $recordKet,
                         'classroom_id' => $classroomId,
                         'desil' => $d['desil'] ?? $record->desil,
                         'status_pip' => $d['status_pip'] ?? $record->status_pip,

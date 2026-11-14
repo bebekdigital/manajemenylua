@@ -106,12 +106,6 @@ const jkOptions = [
     { value: 'P', label: 'P (Perempuan)' },
 ];
 
-// 8. Pilihan Status per Semester (Data Dinamis di student_academic_records)
-const statusPerSemesterOptions = [
-    { value: 'Naik Kelas', label: 'Naik Kelas' },
-    { value: 'Tinggal Kelas', label: 'Tinggal Kelas' },
-];
-
 // 9. Pilihan Status Keaktifan Master (Data Statis di students)
 const statusKeaktifanOptions = [
     { value: 'Aktif', label: 'Aktif' },
@@ -216,7 +210,7 @@ const columns = computed(() => ({
         { key: 'jenjang', label: 'Jenjang', type: 'select', options: levelOptions.value, width: 'w-28' },
         { key: 'tingkat', label: 'Tingkat', type: 'number', width: 'w-20' },
         { key: 'kelas', label: 'Kelas', type: 'select', options: classroomOptions.value, width: 'w-28' },
-        { key: 'student_status', label: 'Status per Semester', type: 'select', options: statusPerSemesterOptions, width: 'w-44' },
+        { key: 'student_status', label: 'Status Semester (Sistem)', type: 'badge', readonly: true, width: 'w-44' },
     ],
     registrasi: [
         { key: 'status_keaktifan', label: 'Status Keaktifan', type: 'select', options: statusKeaktifanOptions, width: 'w-40' },
@@ -451,7 +445,7 @@ function clearAllSemesters() {
 
 function onBulkFieldChange() {
     bulkValue.value = '';
-    if ((bulkField.value === 'student_status' || bulkField.value === 'keterangan_tidak_aktif' || bulkField.value === 'status_keaktifan') && props.selectedAcademicYear) {
+    if ((bulkField.value === 'keterangan_tidak_aktif' || bulkField.value === 'status_keaktifan') && props.selectedAcademicYear) {
         bulkSelectedSemesters.value = [props.selectedAcademicYear.id];
     }
 }
@@ -491,8 +485,8 @@ function applyBulk() {
         }
     });
 
-    // Jika yang di-bulk adalah student_status, keterangan_tidak_aktif, atau status_keaktifan, simpan target semesternya
-    if (bulkField.value === 'student_status' || bulkField.value === 'keterangan_tidak_aktif' || bulkField.value === 'status_keaktifan') {
+    // Jika yang di-bulk adalah keterangan_tidak_aktif atau status_keaktifan, simpan target semesternya
+    if (bulkField.value === 'keterangan_tidak_aktif' || bulkField.value === 'status_keaktifan') {
         let targetYears = [];
         if (bulkSemesterScope.value === 'current') {
             targetYears = [props.selectedAcademicYear?.id || currentAcademicYearId.value];
@@ -514,7 +508,7 @@ function applyBulk() {
 
     const displayVal = val === '' || val === null || val === undefined ? '(dikosongkan)' : val;
     let scopeMsg = '';
-    if (bulkField.value === 'student_status' || bulkField.value === 'keterangan_tidak_aktif' || bulkField.value === 'status_keaktifan') {
+    if (bulkField.value === 'keterangan_tidak_aktif' || bulkField.value === 'status_keaktifan') {
         const countSem = activeTargetYearIds.value.size;
         scopeMsg = ` pada ${countSem} semester`;
     }
@@ -831,7 +825,7 @@ function groupSpan(groupKey) {
                             >
                                 <option value="">-- Pilih Kolom --</option>
                                 <optgroup v-for="grp in visibleGroups" :key="grp.key" :label="grp.label">
-                                    <option v-for="col in columns[grp.key]" :key="col.key" :value="col.key">
+                                    <option v-for="col in columns[grp.key].filter(c => !c.readonly)" :key="col.key" :value="col.key">
                                         {{ col.label }}
                                     </option>
                                 </optgroup>
@@ -918,8 +912,8 @@ function groupSpan(groupKey) {
                         </div>
                     </div>
 
-                    <!-- Opsi Target Semester (Muncul saat mengubah Status per Semester, Ket. Tidak Aktif, atau Status Keaktifan) -->
-                    <div v-if="bulkField === 'student_status' || bulkField === 'keterangan_tidak_aktif' || bulkField === 'status_keaktifan'" class="mt-4 pt-3.5 border-t border-emerald-100">
+                    <!-- Opsi Target Semester (Muncul saat mengubah Ket. Tidak Aktif atau Status Keaktifan) -->
+                    <div v-if="bulkField === 'keterangan_tidak_aktif' || bulkField === 'status_keaktifan'" class="mt-4 pt-3.5 border-t border-emerald-100">
                         <div class="flex items-center justify-between gap-2 mb-2 flex-wrap">
                             <label class="text-xs font-bold uppercase tracking-wider text-emerald-950 flex items-center gap-1.5">
                                 <span class="material-symbols-outlined text-[16px] text-emerald-700">event_repeat</span>
@@ -1194,6 +1188,36 @@ function groupSpan(groupKey) {
                                                     v-model="student[col.key]"
                                                     class="w-4 h-4 rounded accent-emerald-700 cursor-pointer"
                                                 />
+                                            </div>
+
+                                            <!-- Badge / Readonly type (e.g. Generate Sistem Status Semester) -->
+                                            <div v-else-if="col.type === 'badge' || col.readonly" class="flex items-center justify-center px-1 py-1">
+                                                <span
+                                                    :class="[
+                                                        'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-tight shadow-2xs select-none border',
+                                                        student[col.key] === 'Aktif' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                                                        student[col.key] === 'Tidak Aktif-Sebagian' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                                                        student[col.key] === 'Tidak Aktif' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                                                        student[col.key] === 'Lulus' ? 'bg-sky-50 text-sky-700 border-sky-200' :
+                                                        'bg-slate-50 text-slate-600 border-slate-200'
+                                                    ]"
+                                                    :title="'Digenerate otomatis oleh sistem (' + (student[col.key] || 'Aktif') + ')'"
+                                                >
+                                                    <span
+                                                        :class="[
+                                                            'w-1.5 h-1.5 rounded-full',
+                                                            student[col.key] === 'Aktif' ? 'bg-emerald-500' :
+                                                            student[col.key] === 'Tidak Aktif-Sebagian' ? 'bg-amber-500' :
+                                                            student[col.key] === 'Tidak Aktif' ? 'bg-rose-500' :
+                                                            student[col.key] === 'Lulus' ? 'bg-sky-500' :
+                                                            'bg-slate-400'
+                                                        ]"
+                                                    ></span>
+                                                    {{ student[col.key] || 'Aktif' }}
+                                                    <svg class="w-3 h-3 text-slate-400 ml-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                                    </svg>
+                                                </span>
                                             </div>
 
                                             <!-- Select type (Unit Formal, Unit Asrama, Program, Jenjang, Status, dll.) -->

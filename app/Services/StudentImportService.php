@@ -224,9 +224,7 @@ class StudentImportService
                         }
                     }
 
-                    $isTidakAktif = $student->status_keaktifan === 'Tidak Aktif' || $student->status_keaktifan === 'Lulus';
-                    $ketTidakAktif = $isTidakAktif ? $student->keterangan_tidak_aktif : null;
-                    $tglTidakAktif = $isTidakAktif ? $student->tanggal_tidak_aktif : null;
+                    $calc = StudentStatusService::calculateStatus($student, $activeYear);
 
                     $record = StudentAcademicRecord::where('student_id', $student->id)
                         ->where('academic_year_id', $activeYear->id)
@@ -235,9 +233,9 @@ class StudentImportService
                     $recordData = [
                         'unit' => $student->unit,
                         'jenjang' => $student->jenjang,
-                        'student_status' => 'Naik Kelas',
-                        'ket_tidak_aktif' => $ketTidakAktif,
-                        'tanggal_tidak_aktif' => $tglTidakAktif,
+                        'student_status' => $calc['status'],
+                        'ket_tidak_aktif' => $calc['ket_tidak_aktif'],
+                        'tanggal_tidak_aktif' => $calc['tanggal_tidak_aktif'],
                     ];
 
                     if ($classroomId) {
