@@ -326,12 +326,16 @@ class StudentController extends Controller
         $student = DB::transaction(function () use ($validated) {
             $isTidakAktif = in_array(strtolower($validated['status_keaktifan'] ?? 'aktif'), ['tidak aktif', 'tidak_aktif']);
 
-            // Auto calculate angkatan from tanggal_diterima or current year
+            // Auto calculate angkatan from tanggal_diterima or current year (semester genap belongs to previous year's TA)
             $angkatan = null;
             if (! empty($validated['tanggal_diterima'])) {
-                $angkatan = date('Y', strtotime($validated['tanggal_diterima']));
+                $month = (int) date('n', strtotime($validated['tanggal_diterima']));
+                $year = (int) date('Y', strtotime($validated['tanggal_diterima']));
+                $angkatan = (string) ($month < 7 ? $year - 1 : $year);
             } else {
-                $angkatan = date('Y');
+                $month = (int) date('n');
+                $year = (int) date('Y');
+                $angkatan = (string) ($month < 7 ? $year - 1 : $year);
             }
 
             $studentData = array_merge($validated, [

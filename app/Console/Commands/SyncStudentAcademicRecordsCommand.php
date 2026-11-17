@@ -104,6 +104,22 @@ class SyncStudentAcademicRecordsCommand extends Command
                     continue;
                 }
 
+                // Jika semester ini sudah selesai sebelum tanggal diterima siswa (misal siswa baru masuk di semester genap), siswa belum ada di semester ganjil
+                if ($student->tanggal_diterima && $year->end_date) {
+                    $tglMasuk = Carbon::parse($student->tanggal_diterima)->format('Y-m-d');
+                    $tglSelesaiSem = Carbon::parse($year->end_date)->format('Y-m-d');
+                    if ($tglMasuk > $tglSelesaiSem) {
+                        if (! $inspectOnly) {
+                            $del = StudentAcademicRecord::where('student_id', $student->id)
+                                ->where('academic_year_id', $year->id)
+                                ->delete();
+                            $deleted += $del;
+                        }
+
+                        continue;
+                    }
+                }
+
                 $yearOffset = $schoolYear - $entryYear;
                 $tingkat = $baseGrade + $yearOffset;
 
@@ -208,9 +224,13 @@ class SyncStudentAcademicRecordsCommand extends Command
     {
         // 1. Dari tanggal_diterima
         if ($student->tanggal_diterima) {
-            $year = (int) Carbon::parse($student->tanggal_diterima)->year;
-            if ($year >= 2010 && $year <= 2030) {
-                return $year;
+            $date = Carbon::parse($student->tanggal_diterima);
+            $year = (int) $date->year;
+            $month = (int) $date->month;
+            // Jika diterima antara Januari s/d Juni (Semester Genap), tahun ajaran masuknya dimulai dari tahun sebelumnya (e.g. Jan 2025 -> TA 2024/2025)
+            $academicEntryYear = $month < 7 ? $year - 1 : $year;
+            if ($academicEntryYear >= 2010 && $academicEntryYear <= 2030) {
+                return $academicEntryYear;
             }
         }
 

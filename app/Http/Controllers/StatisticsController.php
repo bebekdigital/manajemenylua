@@ -157,8 +157,18 @@ class StatisticsController extends Controller
         $studentsQuery = Student::query();
 
         if (! empty($matchingYearIds)) {
-            $studentsQuery->whereHas('academicRecords', function ($query) use ($matchingYearIds) {
-                $query->whereIn('academic_year_id', $matchingYearIds);
+            $studentsQuery->where(function ($query) use ($matchingYearIds, $selectedYearData) {
+                $query->whereHas('academicRecords', function ($sub) use ($matchingYearIds) {
+                    $sub->whereIn('academic_year_id', $matchingYearIds);
+                });
+
+                // Fallback: Siswa baru yang tanggal diterimanya masuk dalam rentang periode TA / Semester ini
+                if (! empty($selectedYearData['start_date']) && ! empty($selectedYearData['end_date'])) {
+                    $query->orWhere(function ($sub) use ($selectedYearData) {
+                        $sub->whereNotNull('tanggal_diterima')
+                            ->whereBetween('tanggal_diterima', [$selectedYearData['start_date'], $selectedYearData['end_date']]);
+                    });
+                }
             });
         }
 
@@ -171,12 +181,13 @@ class StatisticsController extends Controller
                         $query->latest('id')->limit(1)->with('classroom:id,name,unit,jenjang,grade');
                     }
                 },
+                'currentRecord.classroom',
             ])
             ->orderBy('unit')
             ->orderBy('nama')
             ->get()
             ->map(function (Student $student) {
-                $record = $student->academicRecords->first();
+                $record = $student->academicRecords->first() ?: $student->currentRecord;
 
                 // Cek status keaktifan dari master student dan catatan ket_tidak_aktif pada record semester
                 $masterStatus = strtolower(trim((string) ($student->status_keaktifan ?: 'aktif')));
@@ -220,12 +231,14 @@ class StatisticsController extends Controller
 
         $allStudentsForChart = Student::query()
             ->with('currentRecord:id,student_id,program')
-            ->select(['id', 'nama', 'unit', 'unit_pesantren', 'jenjang', 'angkatan', 'tanggal_diterima'])
+            ->select(['id', 'nama', 'jk', 'status_keaktifan', 'unit', 'unit_pesantren', 'jenjang', 'angkatan', 'tanggal_diterima'])
             ->get()
             ->map(function ($s) {
                 return [
                     'id' => $s->id,
                     'nama' => $s->nama,
+                    'jk' => strtoupper(trim((string) ($s->jk ?? ''))),
+                    'status_keaktifan' => $s->status_keaktifan,
                     'unit' => $s->unit,
                     'unit_pesantren' => $s->unit_pesantren,
                     'program' => $s->currentRecord?->program,

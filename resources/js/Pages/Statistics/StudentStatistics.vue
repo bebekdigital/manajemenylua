@@ -291,9 +291,20 @@ function isNewStudentForYear(student, yearName, semesterFilter, allYearsList = [
 }
 
 const newStudentsCount = computed(() => {
-    return filteredStudents.value.filter(s =>
-        isNewStudentForYear(s, selectedYearName.value, selectedSemester.value, props.allAcademicYears)
+    const currentYear = selectedYearName.value;
+    const currentSem = selectedSemester.value;
+
+    const fromFiltered = filteredStudents.value.filter(s =>
+        isNewStudentForYear(s, currentYear, currentSem, props.allAcademicYears)
     ).length;
+
+    // Selaraskan dengan chartStudentsSource (sumber data grafik batang) untuk unit & TA yang sama
+    const fromChart = chartStudentsSource.value
+        .filter(s => matchesUnit(s, activeUnit.value))
+        .filter(s => isNewStudentForYear(s, currentYear, currentSem, props.allAcademicYears))
+        .length;
+
+    return Math.max(fromFiltered, fromChart);
 });
 
 // ============================================================
@@ -605,9 +616,25 @@ const newStudentsChartOptions = computed(() => ({
 // Siswa baru yang masuk dalam Tahun Ajaran yang sedang dipilih pada grafik
 const studentsInSelectedChartYear = computed(() => {
     if (!selectedChartYear.value) return [];
-    return filteredStudents.value.filter(s =>
-        isNewStudentForYear(s, selectedChartYear.value, selectedSemester.value, props.allAcademicYears)
-    );
+
+    const map = new Map();
+    filteredStudents.value.forEach(s => {
+        if (isNewStudentForYear(s, selectedChartYear.value, selectedSemester.value, props.allAcademicYears)) {
+            map.set(s.id, s);
+        }
+    });
+
+    chartStudentsSource.value
+        .filter(s => matchesUnit(s, activeUnit.value))
+        .forEach(s => {
+            if (isNewStudentForYear(s, selectedChartYear.value, selectedSemester.value, props.allAcademicYears)) {
+                if (!map.has(s.id)) {
+                    map.set(s.id, s);
+                }
+            }
+        });
+
+    return Array.from(map.values());
 });
 
 const chartYearCounts = computed(() => {
