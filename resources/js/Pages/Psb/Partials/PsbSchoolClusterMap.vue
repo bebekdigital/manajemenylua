@@ -758,11 +758,17 @@ async function initMap() {
         pointsCanvasRenderer = L.canvas({ padding: 0.3 });
         schoolPointsLayer = L.layerGroup().addTo(map);
 
-        resetZoom();
+        // Preload desa GeoJSON di background agar klik kecamatan langsung instan
+        loadDesaGeoJson();
     } catch (err) {
         loadError.value = err?.message || 'Gagal memuat peta wilayah Solo Raya.';
     } finally {
         isLoading.value = false;
+        await nextTick();
+        if (map) {
+            map.invalidateSize();
+            resetZoom();
+        }
     }
 }
 
@@ -919,21 +925,21 @@ watch(
             <span class="text-[11px] text-slate-500 font-medium">Klik titik mana pun untuk melihat profil &amp; siswa sekolahnya</span>
         </div>
 
-        <!-- Loading / Error State -->
-        <div v-if="isLoading" class="h-[380px] sm:h-[460px] rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center">
-            <div class="flex flex-col items-center gap-2 text-slate-400">
-                <span class="material-symbols-outlined text-3xl animate-spin text-emerald-700">sync</span>
-                <span class="text-xs font-semibold">Memuat peta kecamatan Solo Raya...</span>
+        <!-- Container Peta (selalu render dimensi penuh agar Leaflet & fitBounds tidak 0x0) -->
+        <div class="relative w-full h-[400px] sm:h-[480px] rounded-2xl border border-slate-200/90 bg-[#f8fafc] overflow-hidden">
+            <!-- Loading State Overlay -->
+            <div v-if="isLoading" class="absolute inset-0 bg-slate-50/95 z-[500] flex flex-col items-center justify-center gap-2">
+                <span class="material-symbols-outlined text-3xl animate-spin text-emerald-700">progress_activity</span>
+                <span class="text-xs font-semibold text-slate-500">Memuat peta kecamatan Solo Raya...</span>
             </div>
-        </div>
 
-        <div v-else-if="loadError" class="h-[320px] rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-center p-6 text-center">
-            <p class="text-xs font-bold text-rose-800">{{ loadError }}</p>
-        </div>
+            <!-- Error State Overlay -->
+            <div v-else-if="loadError" class="absolute inset-0 bg-white z-[500] flex flex-col items-center justify-center p-6 text-center">
+                <span class="material-symbols-outlined text-3xl text-rose-500 mb-1">map</span>
+                <p class="text-xs font-bold text-rose-800">{{ loadError }}</p>
+            </div>
 
-        <!-- Container Peta -->
-        <div v-show="!isLoading && !loadError" class="relative w-full h-[400px] sm:h-[480px] rounded-2xl border border-slate-200/90 bg-[#f8fafc] overflow-hidden">
-            <div ref="mapContainerRef" class="w-full h-full z-10 bg-[#f8fafc]"></div>
+            <div ref="mapContainerRef" class="w-full h-full z-10 psb-leaflet-bg"></div>
 
             <!-- Breadcrumb & Back to Kecamatan (Saat Drill-Down ke Desa) -->
             <div
@@ -1101,6 +1107,9 @@ watch(
 </template>
 
 <style>
+.psb-leaflet-bg.leaflet-container {
+    background-color: #f8fafc !important;
+}
 .leaflet-custom-tooltip {
     background-color: rgba(255, 255, 255, 0.96) !important;
     border: 1px solid rgba(226, 232, 240, 0.9) !important;
