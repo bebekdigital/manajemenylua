@@ -342,9 +342,11 @@ class StudentImportService
                     $activeStart = $activeYear->start_date?->format('Y-m-d');
                     $exitDate = $student->tanggal_lulus?->format('Y-m-d') ?? $student->tanggal_tidak_aktif?->format('Y-m-d');
                     $leftBeforeActive = in_array($student->status_keaktifan, ['Lulus', 'Tidak Aktif'])
-                        && (($exitDate && $activeStart && $exitDate < $activeStart) || ($student->status_keaktifan === 'Lulus' && ! $exitDate));
+                        && (($exitDate && $activeStart && $exitDate <= $activeStart) || ($student->status_keaktifan === 'Lulus' && ! $exitDate));
 
-                    if (! $leftBeforeActive) {
+                    $calc = StudentStatusService::calculateStatus($student, $activeYear);
+
+                    if (! $leftBeforeActive && strcasecmp($calc['status'], 'Lulus') !== 0) {
                         $classroomId = null;
                         $tingkat = null;
                         $kelasInput = $this->cleanString($colDiterimaJenjang ?? ($row['BG'] ?? null));
@@ -360,8 +362,6 @@ class StudentImportService
                                 $tingkat = $matchingClass->grade;
                             }
                         }
-
-                        $calc = StudentStatusService::calculateStatus($student, $activeYear);
 
                         $record = StudentAcademicRecord::where('student_id', $student->id)
                             ->where('academic_year_id', $activeYear->id)

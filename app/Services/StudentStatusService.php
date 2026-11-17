@@ -135,6 +135,14 @@ class StudentStatusService
 
             $calc = self::calculateStatus($studentModel, $record->academicYear);
 
+            if (strcasecmp($calc['status'], 'Lulus') === 0) {
+                DB::table('student_academic_records')
+                    ->where('id', $record->id)
+                    ->delete();
+
+                continue;
+            }
+
             DB::table('student_academic_records')
                 ->where('id', $record->id)
                 ->update([
@@ -162,6 +170,15 @@ class StudentStatusService
                         }
 
                         $calc = self::calculateStatus($student, $record->academicYear);
+
+                        if (strcasecmp($calc['status'], 'Lulus') === 0) {
+                            DB::table('student_academic_records')
+                                ->where('id', $record->id)
+                                ->delete();
+                            $updatedCount++;
+
+                            continue;
+                        }
 
                         DB::table('student_academic_records')
                             ->where('id', $record->id)

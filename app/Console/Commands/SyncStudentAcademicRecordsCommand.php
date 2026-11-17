@@ -12,7 +12,7 @@ use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
-#[Signature('students:sync-academic-records {--inspect : Hanya inspect data tanpa mengubah DB} {--test-stats : Tes eksekusi StatisticsController} {--nisn= : Periksa data siswa tertentu berdasarkan NISN}')]
+#[Signature('students:sync-academic-records {--inspect : Hanya inspect data tanpa mengubah DB} {--test-stats : Tes eksekusi StatisticsController} {--nisn= : Periksa data siswa tertentu berdasarkan NISN} {--angkatan= : Sinkronisasi hanya angkatan tertentu}')]
 #[Description('Sinkronisasi dan backfill data riwayat akademik siswa per tahun ajaran')]
 class SyncStudentAcademicRecordsCommand extends Command
 {
@@ -68,7 +68,11 @@ class SyncStudentAcademicRecordsCommand extends Command
             return 1;
         }
 
-        $students = Student::all();
+        $studentsQuery = Student::query();
+        if ($angkatanFilter = $this->option('angkatan')) {
+            $studentsQuery->where('angkatan', $angkatanFilter);
+        }
+        $students = $studentsQuery->get();
         $this->info("Total data siswa: {$students->count()}");
 
         $created = 0;
@@ -86,7 +90,11 @@ class SyncStudentAcademicRecordsCommand extends Command
             }
 
             $baseGrade = $this->determineBaseGrade($student);
-            $maxGrade = $baseGrade + ($student->jenjang === 'SD' ? 5 : 2); // SMP: 7-9, SMA: 10-12, SD: 1-6
+            $maxGrade = match (strtoupper((string) $student->jenjang)) {
+                'SD' => 6,
+                'SMA', 'SMK', 'MA' => 12,
+                default => 9,
+            };
 
             foreach ($academicYears as $year) {
                 // Parse tahun ajaran utama (contoh: '2024/2025' -> 2024)
@@ -133,6 +141,34 @@ class SyncStudentAcademicRecordsCommand extends Command
                 $ketTidakAktif = $isAlumni ? 'Lulus' : $calc['ket_tidak_aktif'];
                 $tanggalTidakAktif = $isAlumni ? null : $calc['tanggal_tidak_aktif'];
 
+                // Untuk status Lulus tidak perlu dimasukkan ke Riwayat Keaktifan
+                if (strcasecmp($studentStatus, 'Lulus') === 0) {
+                    if (! $inspectOnly) {
+                        $del = StudentAcademicRecord::where('student_id', $student->id)
+                            ->where('academic_year_id', $year->id)
+                            ->delete();
+                        $deleted += $del;
+                    }
+
+                    continue;
+                }
+
+                // Untuk siswa Tidak Aktif pada semester-semester setelah tanggal tidak aktifnya berhenti di semester tersebut
+                if ($student->tanggal_tidak_aktif && $year->start_date) {
+                    $tglKeluar = Carbon::parse($student->tanggal_tidak_aktif)->format('Y-m-d');
+                    $tglMulaiSem = Carbon::parse($year->start_date)->format('Y-m-d');
+                    if ($tglKeluar < $tglMulaiSem) {
+                        if (! $inspectOnly) {
+                            $del = StudentAcademicRecord::where('student_id', $student->id)
+                                ->where('academic_year_id', $year->id)
+                                ->delete();
+                            $deleted += $del;
+                        }
+
+                        continue;
+                    }
+                }
+
                 if ($inspectOnly) {
                     continue;
                 }
@@ -141,8 +177,8 @@ class SyncStudentAcademicRecordsCommand extends Command
                     ->where('academic_year_id', $year->id)
                     ->first();
 
-                // Tentukan program: pertahankan yang ada jika valid, jika kosong tentukan berdasarkan pesantren & jenjang
-                $program = $existingRecord?->program;
+                // Tentukan program: pertahankan yang ada jika valid, jika kosong gunakan program master student atau fallback jenjang
+                $program = $existingRecord?->program ?: $student->program;
                 if (! $program) {
                     $hasPesantren = ! empty($student->unit_pesantren) && stripos($student->unit_pesantren, 'PPTQ') !== false;
                     if ($student->jenjang === 'SMP') {
@@ -262,6 +298,46 @@ class SyncStudentAcademicRecordsCommand extends Command
 
     private function determineBaseGrade(Student $student): int
     {
+        $raw = strtoupper(trim((string) ($student->diterima_di_jenjang ?? '')));
+        if ($raw !== '') {
+            if (preg_match('/\b(12|XII)\b/', $raw)) {
+                return 12;
+            }
+            if (preg_match('/\b(11|XI)\b/', $raw)) {
+                return 11;
+            }
+            if (preg_match('/\b(10|X)\b/', $raw)) {
+                return 10;
+            }
+            if (preg_match('/\b(9|IX)\b/', $raw)) {
+                return 9;
+            }
+            if (preg_match('/\b(8|VIII)\b/', $raw)) {
+                return 8;
+            }
+            if (preg_match('/\b(7|VII)\b/', $raw)) {
+                return 7;
+            }
+            if (preg_match('/\b(6|VI)\b/', $raw)) {
+                return 6;
+            }
+            if (preg_match('/\b(5|V)\b/', $raw)) {
+                return 5;
+            }
+            if (preg_match('/\b(4|IV)\b/', $raw)) {
+                return 4;
+            }
+            if (preg_match('/\b(3|III)\b/', $raw)) {
+                return 3;
+            }
+            if (preg_match('/\b(2|II)\b/', $raw)) {
+                return 2;
+            }
+            if (preg_match('/\b(1|I)\b/', $raw)) {
+                return 1;
+            }
+        }
+
         return match (strtoupper((string) $student->jenjang)) {
             'SD' => 1,
             'SMA', 'SMK', 'MA' => 10,

@@ -536,7 +536,14 @@ class StudentController extends Controller
                     $ay = $r->academicYear;
                     $status = $r->student_status ?: 'Aktif';
 
-                    if (in_array($status, ['Tidak Aktif', 'Lulus', 'Tidak Aktif-Sebagian'])) {
+                    // Untuk status Lulus tidak perlu dimasukkan ke Riwayat Keaktifan
+                    if (strcasecmp($status, 'Lulus') === 0) {
+                        $stopAfterThis = true;
+
+                        continue;
+                    }
+
+                    if (in_array($status, ['Tidak Aktif', 'Tidak Aktif-Sebagian'])) {
                         $stopAfterThis = true;
                     }
 
@@ -654,7 +661,11 @@ class StudentController extends Controller
             if ($activeYear) {
                 $calc = StudentStatusService::calculateStatus($student, $activeYear);
                 $record = $student->academicRecords()->where('academic_year_id', $activeYear->id)->first();
-                if ($record) {
+                if (strcasecmp($calc['status'], 'Lulus') === 0) {
+                    if ($record) {
+                        $record->delete();
+                    }
+                } elseif ($record) {
                     $record->update([
                         'student_status' => $calc['status'],
                         'ket_tidak_aktif' => $calc['ket_tidak_aktif'],
