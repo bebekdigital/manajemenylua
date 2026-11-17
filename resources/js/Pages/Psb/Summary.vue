@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 import * as XLSX from 'xlsx';
 import AppLayout from '@/Layouts/AppLayout.vue';
@@ -415,6 +415,18 @@ function handleQuadrantSelectSchools(payload) {
     }
 }
 
+async function handleSelectKecamatanFromMap(payload) {
+    if (!payload?.kecamatan) return;
+    if (payload.kabupaten && selectedKabupaten.value !== payload.kabupaten) {
+        selectedKabupaten.value = payload.kabupaten;
+        await nextTick();
+    }
+    selectedKecamatan.value = payload.kecamatan;
+    if (tableSectionRef.value) {
+        tableSectionRef.value.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
 function resetFilters() {
     activeUnit.value = hasSmpitStudents.value ? 'SMPIT' : 'all';
     selectedTa.value = 'Semua';
@@ -800,12 +812,15 @@ function exportExcel() {
                     />
                 </div>
 
-                <!-- Diagram 2: Peta Sebaran Titik Sekolah Solo Raya (Marker Cluster) -->
+                <!-- Diagram 2: Peta Wilayah Kecamatan -> Desa & Titik Sekolah Solo Raya -->
                 <div class="mb-5">
                     <PsbSchoolClusterMap
                         :schools="regionFilteredSchools"
                         :selected-kabupaten="selectedKabupaten"
+                        :selected-kecamatan="selectedKecamatan"
                         @select-school="selectedSchoolModal = $event"
+                        @select-kecamatan="handleSelectKecamatanFromMap"
+                        @reset-kecamatan="selectedKecamatan = 'Semua'"
                     />
                 </div>
 
