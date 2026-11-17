@@ -54,6 +54,17 @@ const canViewEmployee = computed(() => {
                         <span class="text-[11px] font-semibold text-slate-700 mt-1.5 leading-tight group-hover:text-emerald-950">Database Siswa</span>
                     </Link>
 
+                    <!-- Section: PSB -->
+                    <Link
+                        href="/psb/ringkasan"
+                        class="flex flex-col items-center group cursor-pointer text-center"
+                    >
+                        <div class="w-12 h-12 rounded-2xl bg-violet-50 border border-violet-200/80 flex items-center justify-center text-violet-800 group-hover:bg-violet-100 group-active:scale-95 transition-all shadow-2xs">
+                            <span class="material-symbols-outlined text-[24px]">analytics</span>
+                        </div>
+                        <span class="text-[11px] font-semibold text-slate-700 mt-1.5 leading-tight group-hover:text-violet-950">PSB</span>
+                    </Link>
+
                     <!-- 2. Section: Database Pegawai (Langsung ke Data Pegawai) -->
                     <Link
                         v-if="canViewEmployee"

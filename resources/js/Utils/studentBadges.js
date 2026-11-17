@@ -158,3 +158,4 @@ export function getUnitBadgeClass(type = 'formal') {
     }
     return 'bg-slate-100 text-slate-800 border-slate-300';
 }
+

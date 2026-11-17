@@ -16,6 +16,7 @@ const activeRoute = computed(() => {
     if (url.startsWith('/persetujuan')) return 'persetujuan';
     if (url.startsWith('/students/statistics') || url.startsWith('/statistics')) return 'student-statistics';
     if (url.startsWith('/students')) return 'students';
+    if (url.startsWith('/psb')) return 'psb-summary';
     if (url.startsWith('/administration')) return 'administration';
     if (url.startsWith('/staff/statistics')) return 'staff-statistics';
     if (url.startsWith('/staff')) return 'staff';
@@ -35,6 +36,7 @@ const activeRouteLabel = computed(() => {
     if (route === 'persetujuan') return 'Persetujuan Perizinan';
     if (route === 'student-statistics') return 'Statistik Siswa';
     if (route === 'students') return 'Data Siswa';
+    if (route === 'psb-summary') return 'Ringkasan PSB';
     if (route === 'administration') return 'Administrasi & Cetak Dokumen';
     if (route === 'staff-statistics') return 'Statistik Pegawai';
     if (route === 'staff') return 'Data Pegawai';
@@ -58,7 +60,7 @@ const activeRouteLabel = computed(() => {
             <TopNav
                 :page-title="activeRouteLabel"
                 :is-home-overlay="activeRoute === 'overview'"
-                :hide-mobile="activeRoute === 'staff' || activeRoute === 'students' || activeRoute === 'student-statistics'"
+                :hide-mobile="activeRoute === 'staff' || activeRoute === 'students' || activeRoute === 'student-statistics' || activeRoute === 'psb-summary'"
             />
 
             <!-- Page Slot -->

@@ -36,6 +36,23 @@ class SectionController extends Controller
                 ],
             ],
         ],
+        'psb' => [
+            'slug' => 'psb',
+            'title' => 'PSB',
+            'subtitle' => 'Pemetaan potensi sekolah asal SD/MI/PKBM dan ringkasan penerimaan siswa baru.',
+            'icon' => 'analytics',
+            'color' => 'emerald',
+            'submenus' => [
+                [
+                    'title' => 'Ringkasan PSB',
+                    'subtitle' => 'Sandingkan data SD/MI/PKBM se-Solo Raya dengan histori siswa baru.',
+                    'icon' => 'analytics',
+                    'href' => '/psb/ringkasan',
+                    'badge' => 'Pemetaan',
+                    'external' => false,
+                ],
+            ],
+        ],
         'database-pegawai' => [
             'slug' => 'database-pegawai',
             'title' => 'Database Pegawai',
@@ -120,6 +137,7 @@ class SectionController extends Controller
     {
         $primarySubmenuRoutes = [
             'database-siswa' => '/students',
+            'psb' => '/psb/ringkasan',
             'database-pegawai' => '/staff',
             'administrasi-aset' => '/administration',
             'akademik' => '/pembelajaran/kelas',

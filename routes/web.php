@@ -12,6 +12,7 @@ use App\Http\Controllers\EmployeePermitController;
 use App\Http\Controllers\PembelajaranController;
 use App\Http\Controllers\PortalController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PsbController;
 use App\Http\Controllers\RolePermissionController;
 use App\Http\Controllers\SchoolClassController;
 use App\Http\Controllers\SchoolLevelController;
@@ -153,6 +154,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/statistics', [StatisticsController::class, 'index'])->name('statistics.index');
     Route::get('/students/statistics', [StatisticsController::class, 'index'])->name('students.statistics');
     Route::get('/staff/statistics', [StatisticsController::class, 'staffIndex'])->name('staff.statistics');
+
+    // Penerimaan Siswa Baru (PSB)
+    Route::get('/psb', fn () => redirect()->route('psb.summary'))->name('psb.index');
+    Route::get('/psb/ringkasan', [PsbController::class, 'summary'])->name('psb.summary');
 
     // Data Pegawai
     Route::get('/staff', [EmployeeController::class, 'index'])->name('staff.index');

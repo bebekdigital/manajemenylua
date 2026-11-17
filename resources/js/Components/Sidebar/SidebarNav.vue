@@ -82,6 +82,24 @@ const canViewEmployee = computed(() => {
             </div>
 
             <!-- Garis Pemisah Kategori -->
+            <div class="h-[1px] bg-emerald-800/80 mx-2"></div>
+
+            <!-- Category: PSB -->
+            <div>
+                <div class="px-3 pb-1 text-[10.5px] font-medium text-emerald-200/70 tracking-wider uppercase">
+                    PSB
+                </div>
+                <ul class="space-y-0.5">
+                    <SidebarMenuItem
+                        href="/psb/ringkasan"
+                        icon="analytics"
+                        label="Ringkasan"
+                        :active="currentRoute === 'psb-summary'"
+                    />
+                </ul>
+            </div>
+
+            <!-- Garis Pemisah Kategori -->
             <div v-if="canViewEmployee" class="h-[1px] bg-emerald-800/80 mx-2"></div>
 
             <!-- Category: DATABASE PEGAWAI -->

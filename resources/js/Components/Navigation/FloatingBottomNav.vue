@@ -25,6 +25,13 @@ const activeSection = computed(() => {
     }
 
     if (
+        path.startsWith('/section/psb') ||
+        path.startsWith('/psb')
+    ) {
+        return 'psb';
+    }
+
+    if (
         path.startsWith('/section/database-pegawai') ||
         path.startsWith('/staff')
     ) {
@@ -78,6 +85,25 @@ const navItems = computed(() => {
                 href: '/students',
                 icon: 'groups',
                 active: path.startsWith('/students') && !path.startsWith('/students/statistics'),
+                external: false,
+            },
+        ];
+    }
+
+    if (section === 'psb') {
+        return [
+            {
+                label: 'Beranda',
+                href: '/beranda',
+                icon: 'grid_view',
+                active: path === '/' || path === '/beranda',
+                external: false,
+            },
+            {
+                label: 'Ringkasan PSB',
+                href: '/psb/ringkasan',
+                icon: 'analytics',
+                active: path.startsWith('/psb/ringkasan'),
                 external: false,
             },
         ];
