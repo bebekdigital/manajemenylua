@@ -218,6 +218,7 @@ class StatisticsController extends Controller
                     'keterangan_tidak_aktif' => $keteranganTidakAktif,
                     'program' => $record?->program ?: ($student->getAttribute('program') ?: 'Umum'),
                     'kelas' => $record?->classroom?->name ?? ($record?->tingkat ? "Kelas {$record->tingkat}" : '-'),
+                    'status_registrasi' => $student->status_registrasi ?: 'Siswa Baru',
                     'tanggal_diterima' => $student->tanggal_diterima ? $student->tanggal_diterima->format('Y-m-d') : null,
                     'sekolah_asal' => $student->sekolah_asal,
                     'kecamatan' => $student->kecamatan,
@@ -231,7 +232,7 @@ class StatisticsController extends Controller
 
         $allStudentsForChart = Student::query()
             ->with('currentRecord:id,student_id,program')
-            ->select(['id', 'nama', 'jk', 'status_keaktifan', 'unit', 'unit_pesantren', 'jenjang', 'angkatan', 'tanggal_diterima'])
+            ->select(['id', 'nama', 'jk', 'status_keaktifan', 'status_registrasi', 'unit', 'unit_pesantren', 'jenjang', 'angkatan', 'tanggal_diterima'])
             ->get()
             ->map(function ($s) {
                 return [
@@ -239,6 +240,7 @@ class StatisticsController extends Controller
                     'nama' => $s->nama,
                     'jk' => strtoupper(trim((string) ($s->jk ?? ''))),
                     'status_keaktifan' => $s->status_keaktifan,
+                    'status_registrasi' => $s->status_registrasi ?: 'Siswa Baru',
                     'unit' => $s->unit,
                     'unit_pesantren' => $s->unit_pesantren,
                     'program' => $s->currentRecord?->program,

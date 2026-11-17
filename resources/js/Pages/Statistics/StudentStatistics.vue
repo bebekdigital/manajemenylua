@@ -89,6 +89,8 @@ function resetToCurrentAcademicYear() {
     selectedYearName.value = currentYear;
     selectedSemester.value = 'Semua';
     selectedChartYear.value = currentYear;
+    studentTypeTab.value = 'all';
+    studentGenderTab.value = 'all';
     showStudentsTab.value = false;
     handleFilterChange();
 }
@@ -290,21 +292,41 @@ function isNewStudentForYear(student, yearName, semesterFilter, allYearsList = [
     return false;
 }
 
+function isMutasiMasuk(student) {
+    const reg = String(student?.status_registrasi || '').toLowerCase().trim();
+    return reg.includes('mutasi');
+}
+
 const newStudentsCount = computed(() => {
     const currentYear = selectedYearName.value;
     const currentSem = selectedSemester.value;
 
     const fromFiltered = filteredStudents.value.filter(s =>
         isNewStudentForYear(s, currentYear, currentSem, props.allAcademicYears)
-    ).length;
+    );
 
-    // Selaraskan dengan chartStudentsSource (sumber data grafik batang) untuk unit & TA yang sama
     const fromChart = chartStudentsSource.value
         .filter(s => matchesUnit(s, activeUnit.value))
-        .filter(s => isNewStudentForYear(s, currentYear, currentSem, props.allAcademicYears))
-        .length;
+        .filter(s => isNewStudentForYear(s, currentYear, currentSem, props.allAcademicYears));
 
-    return Math.max(fromFiltered, fromChart);
+    const sourceList = fromChart.length >= fromFiltered.length ? fromChart : fromFiltered;
+
+    let siswaBaru = 0;
+    let mutasiMasuk = 0;
+
+    sourceList.forEach(s => {
+        if (isMutasiMasuk(s)) {
+            mutasiMasuk++;
+        } else {
+            siswaBaru++;
+        }
+    });
+
+    return {
+        total: sourceList.length,
+        siswaBaru,
+        mutasiMasuk,
+    };
 });
 
 // ============================================================
@@ -420,7 +442,7 @@ const programMetrics = computed(() => {
 });
 
 // ============================================================
-// Grafik Batang Jumlah Siswa Baru (x = TA, y = Jumlah Siswa)
+// Grafik Batang Bertumpuk Siswa Baru & Mutasi Masuk (x = TA, y = Jumlah Siswa)
 // ============================================================
 const newStudentsChartKey = ref(0);
 const selectedChartYear = ref(
@@ -428,6 +450,7 @@ const selectedChartYear = ref(
 );
 const showStudentsTab = ref(false);
 const studentGenderTab = ref('all'); // 'all' | 'L' | 'P'
+const studentTypeTab = ref('all'); // 'all' | 'baru' | 'mutasi'
 const studentSearchQuery = ref('');
 
 watch(selectedYearName, (newVal) => {
@@ -480,12 +503,26 @@ const chartAcademicYears = computed(() => {
 const newStudentsPerYear = computed(() => {
     const list = chartStudentsSource.value.filter(s => matchesUnit(s, activeUnit.value));
     return chartAcademicYears.value.map(year => {
-        const count = list.filter(s =>
+        const matching = list.filter(s =>
             isNewStudentForYear(s, year, selectedSemester.value, props.allAcademicYears)
-        ).length;
+        );
+
+        let siswaBaru = 0;
+        let mutasiMasuk = 0;
+
+        matching.forEach(s => {
+            if (isMutasiMasuk(s)) {
+                mutasiMasuk++;
+            } else {
+                siswaBaru++;
+            }
+        });
+
         return {
             year,
-            count,
+            total: matching.length,
+            siswaBaru,
+            mutasiMasuk,
         };
     });
 });
@@ -496,14 +533,40 @@ const newStudentsChartData = computed(() => {
         labels: list.map(item => item.year),
         datasets: [
             {
-                label: 'Jumlah Siswa Baru',
-                data: list.map(item => item.count),
-                backgroundColor: list.map(item => item.year === selectedChartYear.value ? '#fbbf24' : '#047857'),
-                hoverBackgroundColor: list.map(item => item.year === selectedChartYear.value ? '#f59e0b' : '#065f46'),
-                borderWidth: 0,
-                borderRadius: { topLeft: 6, topRight: 6, bottomLeft: 0, bottomRight: 0 },
-                borderSkipped: 'bottom',
+                label: 'Siswa Baru',
+                data: list.map(item => item.siswaBaru),
+                backgroundColor: list.map(item =>
+                    item.year === selectedChartYear.value ? '#047857' : '#10b981'
+                ),
+                hoverBackgroundColor: list.map(item =>
+                    item.year === selectedChartYear.value ? '#065f46' : '#059669'
+                ),
+                borderWidth: list.map(item => (item.year === selectedChartYear.value ? 2 : 0)),
+                borderColor: '#064e3b',
+                borderRadius: list.map(item =>
+                    item.mutasiMasuk > 0
+                        ? { topLeft: 0, topRight: 0, bottomLeft: 6, bottomRight: 6 }
+                        : { topLeft: 6, topRight: 6, bottomLeft: 6, bottomRight: 6 }
+                ),
+                borderSkipped: false,
                 maxBarThickness: 48,
+                stack: 'masuk',
+            },
+            {
+                label: 'Mutasi Masuk',
+                data: list.map(item => item.mutasiMasuk),
+                backgroundColor: list.map(item =>
+                    item.year === selectedChartYear.value ? '#d97706' : '#f59e0b'
+                ),
+                hoverBackgroundColor: list.map(item =>
+                    item.year === selectedChartYear.value ? '#b45309' : '#d97706'
+                ),
+                borderWidth: list.map(item => (item.year === selectedChartYear.value ? 2 : 0)),
+                borderColor: '#92400e',
+                borderRadius: { topLeft: 6, topRight: 6, bottomLeft: 0, bottomRight: 0 },
+                borderSkipped: false,
+                maxBarThickness: 48,
+                stack: 'masuk',
             },
         ],
     };
@@ -513,7 +576,7 @@ const newStudentsChartOptions = computed(() => ({
     responsive: true,
     maintainAspectRatio: false,
     layout: {
-        padding: { top: 24 },
+        padding: { top: 28 },
     },
     onHover: (event, chartElement) => {
         const canvas = event?.native?.target;
@@ -546,30 +609,47 @@ const newStudentsChartOptions = computed(() => ({
         legend: { display: false },
         title: { display: false },
         tooltip: {
-            backgroundColor: 'rgba(15, 23, 42, 0.92)',
+            backgroundColor: 'rgba(15, 23, 42, 0.94)',
             titleFont: { size: 13, weight: 'bold', family: "'Plus Jakarta Sans', 'Inter', sans-serif" },
             bodyFont: { size: 12, family: "'Plus Jakarta Sans', 'Inter', sans-serif" },
             padding: 12,
             cornerRadius: 12,
+            mode: 'index',
+            intersect: false,
             callbacks: {
                 title: (items) => `Tahun Ajaran ${items[0].label}`,
-                label: (item) => ` ${item.raw} Siswa Baru`,
+                label: (item) => ` ${item.dataset.label}: ${item.raw} Siswa`,
+                afterBody: (items) => {
+                    const total = items.reduce((sum, it) => sum + (Number(it.raw) || 0), 0);
+                    return ` Total Masuk: ${total} Siswa`;
+                },
             },
         },
         datalabels: {
+            display: (ctx) => {
+                // Tampilkan total hanya pada dataset index 1 (Mutasi Masuk) agar hanya ada 1 angka total di atas batang bertumpuk
+                return ctx.datasetIndex === 1;
+            },
             anchor: 'end',
             align: 'top',
+            formatter: (value, ctx) => {
+                const dataIndex = ctx.dataIndex;
+                const ds0 = Number(ctx.chart.data.datasets[0]?.data[dataIndex]) || 0;
+                const ds1 = Number(ctx.chart.data.datasets[1]?.data[dataIndex]) || 0;
+                const total = ds0 + ds1;
+                return total > 0 ? total : '';
+            },
             color: (ctx) => {
                 const year = chartAcademicYears.value[ctx.dataIndex];
-                return year === selectedChartYear.value ? '#b45309' : '#047857';
+                return year === selectedChartYear.value ? '#047857' : '#334155';
             },
-            font: { weight: 'bold', size: 11.5, family: "'Plus Jakarta Sans', 'Inter', sans-serif" },
-            offset: 2,
-            formatter: (value) => (value > 0 ? value : ''),
+            font: { weight: '800', size: 12, family: "'Plus Jakarta Sans', 'Inter', sans-serif" },
+            offset: 4,
         },
     },
     scales: {
         x: {
+            stacked: true,
             title: {
                 display: true,
                 text: 'Tahun Ajaran (TA)',
@@ -585,9 +665,10 @@ const newStudentsChartOptions = computed(() => ({
             border: { display: false },
         },
         y: {
+            stacked: true,
             title: {
                 display: true,
-                text: 'Jumlah Siswa',
+                text: 'Jumlah Siswa Masuk',
                 color: '#64748b',
                 font: { size: 11.5, weight: '600', family: "'Plus Jakarta Sans', 'Inter', sans-serif" },
                 padding: { bottom: 8 },
@@ -641,16 +722,35 @@ const chartYearCounts = computed(() => {
     const list = studentsInSelectedChartYear.value;
     let male = 0;
     let female = 0;
+    let siswaBaru = 0;
+    let mutasiMasuk = 0;
+
     list.forEach(s => {
         const jk = String(s.jk || '').toUpperCase();
         if (jk === 'L') male++;
         else if (jk === 'P') female++;
+
+        if (isMutasiMasuk(s)) {
+            mutasiMasuk++;
+        } else {
+            siswaBaru++;
+        }
     });
-    return { total: list.length, male, female };
+
+    return { total: list.length, male, female, siswaBaru, mutasiMasuk };
 });
 
 const displayedNewStudents = computed(() => {
     let list = studentsInSelectedChartYear.value;
+
+    // Filter Tipe Pendaftaran (Siswa Baru / Mutasi Masuk)
+    if (studentTypeTab.value === 'baru') {
+        list = list.filter(s => !isMutasiMasuk(s));
+    } else if (studentTypeTab.value === 'mutasi') {
+        list = list.filter(s => isMutasiMasuk(s));
+    }
+
+    // Filter Gender
     if (studentGenderTab.value === 'L') {
         list = list.filter(s => String(s.jk || '').toUpperCase() === 'L');
     } else if (studentGenderTab.value === 'P') {
@@ -956,8 +1056,13 @@ function getClassMalePercent(item) {
                         <span class="material-symbols-outlined text-[24px]">person_add</span>
                     </div>
                     <div class="min-w-0">
-                        <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Siswa Baru</p>
-                        <p class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-0.5 leading-tight">{{ newStudentsCount }}</p>
+                        <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Siswa Baru & Mutasi</p>
+                        <div class="flex items-baseline gap-2 mt-0.5 flex-wrap">
+                            <p class="text-2xl sm:text-3xl font-extrabold text-slate-900 leading-tight">{{ newStudentsCount.total }}</p>
+                            <span v-if="newStudentsCount.mutasiMasuk > 0" class="text-xs text-slate-500 font-medium">
+                                ({{ newStudentsCount.siswaBaru }} Baru + {{ newStudentsCount.mutasiMasuk }} Mutasi)
+                            </span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -970,10 +1075,22 @@ function getClassMalePercent(item) {
                     <div class="flex items-center gap-2">
                         <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span>
                         <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                            Jumlah Siswa Baru per Tahun Ajaran ({{ activeUnitLabel }})
+                            Jumlah Siswa Masuk per Tahun Ajaran ({{ activeUnitLabel }})
                         </h3>
                     </div>
-                    <div class="flex items-center gap-2 text-xs font-semibold text-slate-500">
+                    <div class="flex items-center gap-3 text-xs font-semibold text-slate-500 flex-wrap">
+                        <!-- Legend Stacked: Siswa Baru & Mutasi Masuk -->
+                        <div class="flex items-center gap-2.5">
+                            <div class="flex items-center gap-1.5">
+                                <span class="w-3 h-3 rounded-sm bg-emerald-600 inline-block shadow-2xs"></span>
+                                <span class="text-slate-600 font-medium text-[11px]">Siswa Baru</span>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <span class="w-3 h-3 rounded-sm bg-amber-500 inline-block shadow-2xs"></span>
+                                <span class="text-slate-600 font-medium text-[11px]">Mutasi Masuk</span>
+                            </div>
+                        </div>
+
                         <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-900 border border-emerald-200 text-[11px] font-bold">
                             <span class="w-2 h-2 rounded-full bg-yellow-400 inline-block"></span>
                             <span>TA: {{ selectedChartYear }}</span>
@@ -1010,13 +1127,13 @@ function getClassMalePercent(item) {
                 <!-- TAB RINCIAN NAMA SISWA BARU (MASIH 1 CONTAINER)              -->
                 <!-- ============================================================ -->
                 <div v-if="showStudentsTab" class="mt-6 pt-5 border-t border-slate-100">
-                    <!-- Tab Header: Judul & Sub-tabs Gender -->
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                    <!-- Tab Header: Judul & Sub-tabs (Tipe Pendaftaran + Gender) -->
+                    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-4">
                         <div>
                             <div class="flex items-center gap-2">
                                 <span class="w-2 h-2 rounded-full bg-yellow-400 inline-block"></span>
                                 <h4 class="text-xs sm:text-sm font-bold text-slate-900">
-                                    Daftar Nama Siswa Baru — TA {{ selectedChartYear }}
+                                    Daftar Nama Siswa Masuk — TA {{ selectedChartYear }}
                                 </h4>
                                 <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-950 border border-emerald-300">
                                     {{ chartYearCounts.total }} Siswa
@@ -1027,46 +1144,89 @@ function getClassMalePercent(item) {
                             </p>
                         </div>
 
-                        <!-- Sub-tabs Gender: Semua, Laki-laki, Perempuan -->
-                        <div class="bg-slate-100 p-1 rounded-full inline-flex items-center gap-0.5 self-start sm:self-auto shrink-0 border border-slate-200/90">
-                            <button
-                                type="button"
-                                @click="studentGenderTab = 'all'"
-                                :class="[
-                                    'px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer',
-                                    studentGenderTab === 'all'
-                                        ? 'bg-emerald-900 text-yellow-200 shadow-2xs'
-                                        : 'text-slate-600 hover:text-slate-900'
-                                ]"
-                            >
-                                Semua ({{ chartYearCounts.total }})
-                            </button>
-                            <button
-                                type="button"
-                                @click="studentGenderTab = 'L'"
-                                :class="[
-                                    'inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer',
-                                    studentGenderTab === 'L'
-                                        ? 'bg-emerald-700 text-white shadow-2xs'
-                                        : 'text-slate-600 hover:text-slate-900'
-                                ]"
-                            >
-                                <span class="px-1 py-0.2 rounded bg-emerald-100 text-emerald-900 text-[9px] font-extrabold">L</span>
-                                <span>Putra ({{ chartYearCounts.male }})</span>
-                            </button>
-                            <button
-                                type="button"
-                                @click="studentGenderTab = 'P'"
-                                :class="[
-                                    'inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer',
-                                    studentGenderTab === 'P'
-                                        ? 'bg-yellow-400 text-emerald-950 shadow-2xs'
-                                        : 'text-slate-600 hover:text-slate-900'
-                                ]"
-                            >
-                                <span class="px-1 py-0.2 rounded bg-yellow-100 text-amber-900 text-[9px] font-extrabold">P</span>
-                                <span>Putri ({{ chartYearCounts.female }})</span>
-                            </button>
+                        <!-- Sub-tabs: Tipe & Gender Filter -->
+                        <div class="flex flex-wrap items-center gap-2">
+                            <!-- Filter Tipe: Semua / Siswa Baru / Mutasi Masuk -->
+                            <div class="bg-slate-100 p-1 rounded-full inline-flex items-center gap-0.5 border border-slate-200/90">
+                                <button
+                                    type="button"
+                                    @click="studentTypeTab = 'all'"
+                                    :class="[
+                                        'px-2.5 py-1 rounded-full text-xs font-bold transition-all cursor-pointer',
+                                        studentTypeTab === 'all'
+                                            ? 'bg-emerald-900 text-yellow-200 shadow-2xs'
+                                            : 'text-slate-600 hover:text-slate-900'
+                                    ]"
+                                >
+                                    Semua ({{ chartYearCounts.total }})
+                                </button>
+                                <button
+                                    type="button"
+                                    @click="studentTypeTab = 'baru'"
+                                    :class="[
+                                        'px-2.5 py-1 rounded-full text-xs font-bold transition-all cursor-pointer',
+                                        studentTypeTab === 'baru'
+                                            ? 'bg-emerald-700 text-white shadow-2xs'
+                                            : 'text-slate-600 hover:text-slate-900'
+                                    ]"
+                                >
+                                    Siswa Baru ({{ chartYearCounts.siswaBaru }})
+                                </button>
+                                <button
+                                    type="button"
+                                    @click="studentTypeTab = 'mutasi'"
+                                    :class="[
+                                        'px-2.5 py-1 rounded-full text-xs font-bold transition-all cursor-pointer',
+                                        studentTypeTab === 'mutasi'
+                                            ? 'bg-amber-600 text-white shadow-2xs'
+                                            : 'text-slate-600 hover:text-slate-900'
+                                    ]"
+                                >
+                                    Mutasi ({{ chartYearCounts.mutasiMasuk }})
+                                </button>
+                            </div>
+
+                            <!-- Sub-tabs Gender: Semua, Laki-laki, Perempuan -->
+                            <div class="bg-slate-100 p-1 rounded-full inline-flex items-center gap-0.5 border border-slate-200/90">
+                                <button
+                                    type="button"
+                                    @click="studentGenderTab = 'all'"
+                                    :class="[
+                                        'px-2.5 py-1 rounded-full text-xs font-bold transition-all cursor-pointer',
+                                        studentGenderTab === 'all'
+                                            ? 'bg-emerald-900 text-yellow-200 shadow-2xs'
+                                            : 'text-slate-600 hover:text-slate-900'
+                                    ]"
+                                >
+                                    Semua Gender
+                                </button>
+                                <button
+                                    type="button"
+                                    @click="studentGenderTab = 'L'"
+                                    :class="[
+                                        'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold transition-all cursor-pointer',
+                                        studentGenderTab === 'L'
+                                            ? 'bg-emerald-700 text-white shadow-2xs'
+                                            : 'text-slate-600 hover:text-slate-900'
+                                    ]"
+                                >
+                                    <span class="px-1 py-0.2 rounded bg-emerald-100 text-emerald-900 text-[9px] font-extrabold">L</span>
+                                    <span>Putra ({{ chartYearCounts.male }})</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    @click="studentGenderTab = 'P'"
+                                    :class="[
+                                        'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold transition-all cursor-pointer',
+                                        studentGenderTab === 'P'
+                                            ? 'bg-yellow-400 text-emerald-950 shadow-2xs'
+                                            : 'text-slate-600 hover:text-slate-900'
+                                    ]"
+                                >
+                                    <span class="px-1 py-0.2 rounded bg-yellow-100 text-amber-900 text-[9px] font-extrabold">P</span>
+                                    <span>Putri ({{ chartYearCounts.female }})</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -1100,7 +1260,15 @@ function getClassMalePercent(item) {
                                         {{ st.jk || '-' }}
                                     </span>
                                     <div class="min-w-0">
-                                        <p class="text-xs font-bold text-slate-900 truncate">{{ st.nama || 'Siswa Tanpa Nama' }}</p>
+                                        <div class="flex items-center gap-1.5 flex-wrap">
+                                            <p class="text-xs font-bold text-slate-900 truncate">{{ st.nama || 'Siswa Tanpa Nama' }}</p>
+                                            <span
+                                                class="px-1.5 py-0.2 rounded text-[9.5px] font-bold"
+                                                :class="isMutasiMasuk(st) ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-emerald-50 text-emerald-800 border border-emerald-200'"
+                                            >
+                                                {{ isMutasiMasuk(st) ? 'Mutasi' : 'Baru' }}
+                                            </span>
+                                        </div>
                                         <p class="text-[11px] text-slate-500 truncate">
                                             {{ st.unit }} • Kelas: {{ st.kelas || '-' }}
                                         </p>
@@ -1119,6 +1287,7 @@ function getClassMalePercent(item) {
                                     <tr>
                                         <th class="py-2.5 px-3.5 w-12 text-center">No</th>
                                         <th class="py-2.5 px-3.5">Nama Siswa</th>
+                                        <th class="py-2.5 px-3.5 text-center w-28">Status Masuk</th>
                                         <th class="py-2.5 px-3.5 text-center w-24">Gender</th>
                                         <th class="py-2.5 px-3.5">Unit Sekolah</th>
                                         <th class="py-2.5 px-3.5">Kelas</th>
@@ -1133,6 +1302,14 @@ function getClassMalePercent(item) {
                                     >
                                         <td class="py-2.5 px-3.5 text-center text-slate-400 font-medium">{{ idx + 1 }}</td>
                                         <td class="py-2.5 px-3.5 font-bold text-slate-900">{{ st.nama || '-' }}</td>
+                                        <td class="py-2.5 px-3.5 text-center">
+                                            <span
+                                                class="inline-flex items-center justify-center px-2 py-0.5 rounded text-[10.5px] font-bold"
+                                                :class="isMutasiMasuk(st) ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-emerald-50 text-emerald-800 border border-emerald-200'"
+                                            >
+                                                {{ isMutasiMasuk(st) ? 'Mutasi Masuk' : 'Siswa Baru' }}
+                                            </span>
+                                        </td>
                                         <td class="py-2.5 px-3.5 text-center">
                                             <span
                                                 class="inline-flex items-center justify-center px-2 py-0.5 rounded text-[10.5px] font-bold"
@@ -1153,7 +1330,7 @@ function getClassMalePercent(item) {
                     <!-- Empty State saat tidak ada siswa -->
                     <div v-else class="py-8 text-center text-slate-400 text-xs">
                         <span class="material-symbols-outlined text-2xl mb-1 text-slate-300 block">person_off</span>
-                        <span>Tidak ada siswa baru yang sesuai kriteria pada TA {{ selectedChartYear }}.</span>
+                        <span>Tidak ada siswa yang sesuai kriteria pada TA {{ selectedChartYear }}.</span>
                     </div>
                 </div>
             </div>
