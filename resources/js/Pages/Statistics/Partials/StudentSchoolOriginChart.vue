@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
 const props = defineProps({
     students: {
@@ -14,11 +14,52 @@ const props = defineProps({
         type: String,
         default: 'Semua Unit',
     },
+    isAllTime: {
+        type: Boolean,
+        default: false,
+    },
 });
 
 // State Filter & Pencarian Bar Utama
+const statusFilter = ref('all'); // 'all' | 'aktif' | 'lulus' | 'tidak_aktif'
 const searchQuery = ref('');
 const filterLimit = ref('10'); // '5', '10', '20', 'all'
+
+watch(() => props.isAllTime, () => {
+    statusFilter.value = 'all';
+});
+
+function getStudentCategory(student) {
+    if (!student) return 'tidak_aktif';
+    const raw = (student.status_keaktifan || student.student_status || 'aktif').toString().toLowerCase().trim();
+    if (raw === 'lulus') return 'lulus';
+    if (raw.includes('tidak') || raw === 'dropout' || raw === 'mutasi_keluar' || student.keterangan_tidak_aktif) return 'tidak_aktif';
+    return 'aktif';
+}
+
+function matchesStatusFilter(student) {
+    if (statusFilter.value === 'all') return true;
+    return getStudentCategory(student) === statusFilter.value;
+}
+
+const statusCounts = computed(() => {
+    const list = props.students || [];
+    let aktif = 0;
+    let lulus = 0;
+    let tidak_aktif = 0;
+    list.forEach(s => {
+        const cat = getStudentCategory(s);
+        if (cat === 'aktif') aktif++;
+        else if (cat === 'lulus') lulus++;
+        else tidak_aktif++;
+    });
+    return {
+        all: list.length,
+        aktif,
+        lulus,
+        tidak_aktif,
+    };
+});
 
 // State Modal Pop-up Rincian Siswa
 const selectedSchoolModal = ref(null);
@@ -153,7 +194,7 @@ function normalizeSchoolName(raw) {
 
 // Agregasi & Normalisasi Data
 const originStats = computed(() => {
-    const list = props.students || [];
+    const list = (props.students || []).filter(s => matchesStatusFilter(s));
     const schoolMap = {};
     const unrecordedStudents = [];
     const totalStudents = list.length;
@@ -171,13 +212,28 @@ const originStats = computed(() => {
     });
 
     const recordedList = Object.entries(schoolMap)
-        .map(([name, studentList]) => ({
-            name,
-            count: studentList.length,
-            percentage: totalStudents > 0 ? Number(((studentList.length / totalStudents) * 100).toFixed(1)) : 0,
-            students: studentList.sort((a, b) => (a.nama || '').localeCompare(b.nama || '')),
-            isUnrecorded: false,
-        }))
+        .map(([name, studentList]) => {
+            let aktifCount = 0;
+            let lulusCount = 0;
+            let tidakAktifCount = 0;
+            studentList.forEach(s => {
+                const cat = getStudentCategory(s);
+                if (cat === 'aktif') aktifCount++;
+                else if (cat === 'lulus') lulusCount++;
+                else tidakAktifCount++;
+            });
+
+            return {
+                name,
+                count: studentList.length,
+                aktifCount,
+                lulusCount,
+                tidakAktifCount,
+                percentage: totalStudents > 0 ? Number(((studentList.length / totalStudents) * 100).toFixed(1)) : 0,
+                students: studentList.sort((a, b) => (a.nama || '').localeCompare(b.nama || '')),
+                isUnrecorded: false,
+            };
+        })
         .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
 
     const unrecordedItem = {
@@ -263,7 +319,7 @@ const modalFilteredStudents = computed(() => {
                         Statistik Asal Sekolah Siswa
                     </h3>
                     <p class="text-[11px] text-slate-400 font-medium mt-0.5">
-                        Berdasarkan data registrasi sekolah asal — {{ unit }} (TA {{ academicYear }})
+                        Berdasarkan data registrasi sekolah asal — {{ unit }} ({{ isAllTime ? 'Semua TA / All Time' : `TA ${academicYear}` }})
                     </p>
                 </div>
             </div>
@@ -284,6 +340,36 @@ const modalFilteredStudents = computed(() => {
                     <span class="material-symbols-outlined text-[14px] text-amber-600">help_outline</span>
                     <span>{{ originStats.unrecordedCount }} Belum Terdata ({{ originStats.unrecordedPercentage }}%)</span>
                     <span class="material-symbols-outlined text-[13px] text-amber-500">chevron_right</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Baris Filter Status Siswa -->
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <div class="inline-flex items-center p-1 bg-slate-100 rounded-full border border-slate-200/90 overflow-x-auto max-w-full">
+                <button
+                    v-for="tab in [
+                        { key: 'all', label: 'Semua', count: statusCounts.all },
+                        { key: 'aktif', label: 'Aktif', count: statusCounts.aktif },
+                        { key: 'lulus', label: 'Lulus', count: statusCounts.lulus },
+                        { key: 'tidak_aktif', label: 'Tidak Aktif', count: statusCounts.tidak_aktif },
+                    ]"
+                    :key="tab.key"
+                    type="button"
+                    @click="statusFilter = tab.key"
+                    :class="[
+                        'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer shrink-0',
+                        statusFilter === tab.key
+                            ? (tab.key === 'lulus'
+                                ? 'bg-blue-700 text-white shadow-2xs'
+                                : (tab.key === 'tidak_aktif'
+                                    ? 'bg-rose-700 text-white shadow-2xs'
+                                    : 'bg-emerald-900 text-yellow-200 shadow-2xs'))
+                            : 'text-slate-600 hover:text-slate-900'
+                    ]"
+                >
+                    <span>{{ tab.label }}</span>
+                    <span class="text-[10.5px] opacity-80">({{ tab.count }})</span>
                 </button>
             </div>
         </div>
@@ -369,6 +455,11 @@ const modalFilteredStudents = computed(() => {
                             <h4 class="text-xs sm:text-[13px] font-bold text-slate-900 group-hover:text-emerald-950 break-words leading-snug">
                                 {{ item.name }}
                             </h4>
+                            <p v-if="statusFilter === 'all' && (item.lulusCount > 0 || item.tidakAktifCount > 0)" class="text-[10.5px] text-slate-500 font-medium mt-0.5 flex flex-wrap gap-x-2">
+                                <span v-if="item.aktifCount > 0" class="text-emerald-700">{{ item.aktifCount }} Aktif</span>
+                                <span v-if="item.lulusCount > 0" class="text-blue-700">{{ item.lulusCount }} Lulus</span>
+                                <span v-if="item.tidakAktifCount > 0" class="text-rose-700">{{ item.tidakAktifCount }} Keluar</span>
+                            </p>
                         </div>
                     </div>
 
@@ -386,17 +477,28 @@ const modalFilteredStudents = computed(() => {
                     </div>
                 </div>
 
-                <!-- Bar Horizontal Proporsional -->
+                <!-- Bar Horizontal Proporsional (Bertumpuk saat mode Semua jika ada variasi status) -->
                 <div class="w-full bg-slate-200/70 rounded-full h-2.5 overflow-hidden">
                     <div
-                        class="h-full rounded-full transition-all duration-500"
-                        :class="{
-                            'bg-emerald-700': idx === 0 && !searchQuery,
-                            'bg-emerald-600': idx > 0 && idx < 3 && !searchQuery,
-                            'bg-emerald-500': idx >= 3 || searchQuery,
-                        }"
+                        class="h-full rounded-full overflow-hidden flex transition-all duration-500"
                         :style="{ width: `${Math.max((item.count / maxCount) * 100, 3)}%` }"
-                    ></div>
+                    >
+                        <div
+                            v-if="item.aktifCount > 0"
+                            class="h-full bg-emerald-600"
+                            :style="{ width: `${(item.aktifCount / item.count) * 100}%` }"
+                        ></div>
+                        <div
+                            v-if="item.lulusCount > 0"
+                            class="h-full bg-blue-600"
+                            :style="{ width: `${(item.lulusCount / item.count) * 100}%` }"
+                        ></div>
+                        <div
+                            v-if="item.tidakAktifCount > 0"
+                            class="h-full bg-rose-500"
+                            :style="{ width: `${(item.tidakAktifCount / item.count) * 100}%` }"
+                        ></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -470,7 +572,7 @@ const modalFilteredStudents = computed(() => {
                             </h3>
                             <p class="text-[11px] text-slate-500 font-medium mt-0.5">
                                 Total <span class="font-bold text-slate-800">{{ selectedSchoolModal.count }} Siswa</span>
-                                ({{ selectedSchoolModal.percentage }}% dari seluruh siswa) • {{ unit }} (TA {{ academicYear }})
+                                ({{ selectedSchoolModal.percentage }}% dari seluruh siswa) • {{ unit }} ({{ isAllTime ? 'Semua TA / All Time' : `TA ${academicYear}` }})
                             </p>
                         </div>
                     </div>
@@ -531,9 +633,16 @@ const modalFilteredStudents = computed(() => {
                                     {{ sIdx + 1 }}
                                 </span>
 
-                                <span class="text-xs sm:text-[13px] font-bold text-slate-900 group-hover/row:text-emerald-950 break-words leading-tight">
-                                    {{ student.nama }}
-                                </span>
+                                <div class="min-w-0">
+                                    <div class="text-xs sm:text-[13px] font-bold text-slate-900 group-hover/row:text-emerald-950 break-words leading-tight">
+                                        {{ student.nama }}
+                                    </div>
+                                    <div v-if="student.angkatan || (student.kelas && student.kelas !== '-')" class="text-[11px] text-slate-500 font-medium mt-0.5">
+                                        <span v-if="student.kelas && student.kelas !== '-'">Kelas {{ student.kelas }}</span>
+                                        <span v-if="student.kelas && student.kelas !== '-' && student.angkatan"> • </span>
+                                        <span v-if="student.angkatan">Angkatan {{ student.angkatan }}</span>
+                                    </div>
+                                </div>
                             </div>
 
                             <!-- JK & Status Keaktifan -->
@@ -553,13 +662,17 @@ const modalFilteredStudents = computed(() => {
                                 <!-- Status Keaktifan -->
                                 <span
                                     class="text-[10px] sm:text-[11px] font-bold px-2.5 py-0.5 rounded-lg border flex items-center gap-1.5"
-                                    :class="isStudentActive(student)
-                                        ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                                        : 'bg-rose-50 text-rose-800 border-rose-200'"
+                                    :class="getStudentCategory(student) === 'lulus'
+                                        ? 'bg-blue-50 text-blue-800 border-blue-200'
+                                        : (getStudentCategory(student) === 'aktif'
+                                            ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                            : 'bg-rose-50 text-rose-800 border-rose-200')"
                                 >
                                     <span
                                         class="w-1.5 h-1.5 rounded-full"
-                                        :class="isStudentActive(student) ? 'bg-emerald-600' : 'bg-rose-600'"
+                                        :class="getStudentCategory(student) === 'lulus'
+                                            ? 'bg-blue-600'
+                                            : (getStudentCategory(student) === 'aktif' ? 'bg-emerald-600' : 'bg-rose-600')"
                                     ></span>
                                     <span>{{ getStudentStatusLabel(student) }}</span>
                                 </span>

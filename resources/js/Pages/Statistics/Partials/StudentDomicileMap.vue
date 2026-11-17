@@ -25,6 +25,10 @@ const props = defineProps({
         type: String,
         default: 'Semua Unit',
     },
+    isAllTime: {
+        type: Boolean,
+        default: false,
+    },
 });
 
 const mapContainer = ref(null);
@@ -49,6 +53,52 @@ const SCHOOL_ADDRESS = 'Sidorejo, Selokaton, Kec. Gondangrejo, Kab. Karanganyar'
 
 // Level Agregasi: 'kecamatan' atau 'desa'
 const aggregationLevel = ref('kecamatan');
+
+// Filter status keaktifan internal peta: 'all' | 'aktif' | 'lulus' | 'tidak_aktif'
+const statusFilter = ref(props.isAllTime ? 'all' : 'aktif');
+
+watch(() => props.isAllTime, (newVal) => {
+    statusFilter.value = newVal ? 'all' : 'aktif';
+});
+
+function getStudentCategory(student) {
+    if (!student) return 'tidak_aktif';
+    const raw = (student.status_keaktifan || student.student_status || 'aktif').toLowerCase().trim();
+    if (raw === 'lulus') return 'lulus';
+    if (raw.includes('tidak') || raw === 'dropout' || raw === 'mutasi_keluar') return 'tidak_aktif';
+    return 'aktif';
+}
+
+function matchesStatusFilter(student) {
+    if (statusFilter.value === 'all') return true;
+    return getStudentCategory(student) === statusFilter.value;
+}
+
+const statusCounts = computed(() => {
+    const list = props.students || [];
+    let aktif = 0;
+    let lulus = 0;
+    let tidak_aktif = 0;
+    list.forEach(s => {
+        const cat = getStudentCategory(s);
+        if (cat === 'aktif') aktif++;
+        else if (cat === 'lulus') lulus++;
+        else tidak_aktif++;
+    });
+    return {
+        all: list.length,
+        aktif,
+        lulus,
+        tidak_aktif,
+    };
+});
+
+const statusLabelText = computed(() => {
+    if (statusFilter.value === 'all') return 'seluruh siswa (Aktif, Lulus & Tidak Aktif)';
+    if (statusFilter.value === 'lulus') return 'siswa lulus (alumni)';
+    if (statusFilter.value === 'tidak_aktif') return 'siswa tidak aktif';
+    return 'siswa aktif';
+});
 
 // Switcher mode tampilan: 'peta' atau 'bar'
 const activeView = ref('peta');
@@ -160,7 +210,7 @@ function findMatchedKecamatan(rawKec, rawKab) {
     return matched;
 }
 
-// Agregasi sebaran siswa aktif per kecamatan di Solo Raya & Grobogan serta Luar Wilayah
+// Agregasi sebaran siswa per kecamatan di Solo Raya & Grobogan serta Luar Wilayah
 const distribution = computed(() => {
     const list = props.students || [];
     const countsByKey = {}; // featureKey -> count
@@ -171,9 +221,7 @@ const distribution = computed(() => {
     let activeTotal = 0;
 
     list.forEach(s => {
-        const rawStatus = (s.status_keaktifan || s.student_status || 'aktif').toLowerCase().trim();
-        const isActive = !rawStatus.includes('tidak') && rawStatus !== 'dropout' && rawStatus !== 'mutasi_keluar';
-        if (!isActive) return;
+        if (!matchesStatusFilter(s)) return;
         activeTotal++;
 
         const rawKec = s.kecamatan || '';
@@ -225,7 +273,7 @@ const distribution = computed(() => {
     };
 });
 
-// Agregasi sebaran siswa aktif per desa/kelurahan
+// Agregasi sebaran siswa per desa/kelurahan
 const desaDistribution = computed(() => {
     const list = props.students || [];
     const countsByKey = {}; // featureKey -> count
@@ -234,9 +282,7 @@ const desaDistribution = computed(() => {
     let totalCovered = 0;
 
     list.forEach(s => {
-        const rawStatus = (s.status_keaktifan || s.student_status || 'aktif').toLowerCase().trim();
-        const isActive = !rawStatus.includes('tidak') && rawStatus !== 'dropout' && rawStatus !== 'mutasi_keluar';
-        if (!isActive) return;
+        if (!matchesStatusFilter(s)) return;
 
         const rawKec = s.kecamatan || '';
         const rawKab = s.kabupaten || '';
@@ -1121,6 +1167,11 @@ watch(() => props.students, () => {
     updateMapLayers();
 }, { deep: true });
 
+watch(statusFilter, () => {
+    clearHover();
+    updateMapLayers();
+});
+
 watch(activeView, (newVal) => {
     if (newVal === 'peta' && map) {
         nextTick(() => {
@@ -1175,7 +1226,7 @@ onBeforeUnmount(() => {
                         Sebaran Domisili Siswa
                     </h3>
                     <p class="text-[11px] text-slate-400 font-medium mt-0.5">
-                        Berdasarkan <span class="font-bold text-slate-600">{{ aggregationLevel === 'desa' ? 'Desa / Kelurahan' : 'Kecamatan' }}</span> domisili siswa aktif — {{ unit }} (TA {{ academicYear }})
+                        Berdasarkan <span class="font-bold text-slate-600">{{ aggregationLevel === 'desa' ? 'Desa / Kelurahan' : 'Kecamatan' }}</span> domisili {{ statusLabelText }} — {{ unit }} ({{ isAllTime ? 'Semua TA / All Time' : `TA ${academicYear}` }})
                     </p>
                 </div>
             </div>
@@ -1263,6 +1314,36 @@ onBeforeUnmount(() => {
                     <span class="w-2 h-2 rounded-full bg-amber-500"></span>
                     <span>Luar Wilayah: {{ distribution.outsideTotal }}</span>
                     <span class="material-symbols-outlined text-[14px]">info</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Baris Filter Status Siswa pada Peta Domisili -->
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-3.5">
+            <div class="inline-flex items-center p-1 bg-slate-100 rounded-full border border-slate-200/90 overflow-x-auto max-w-full">
+                <button
+                    v-for="tab in [
+                        { key: 'all', label: 'Semua', count: statusCounts.all },
+                        { key: 'aktif', label: 'Aktif', count: statusCounts.aktif },
+                        { key: 'lulus', label: 'Lulus', count: statusCounts.lulus },
+                        { key: 'tidak_aktif', label: 'Tidak Aktif', count: statusCounts.tidak_aktif },
+                    ]"
+                    :key="tab.key"
+                    type="button"
+                    @click="statusFilter = tab.key"
+                    :class="[
+                        'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer shrink-0',
+                        statusFilter === tab.key
+                            ? (tab.key === 'lulus'
+                                ? 'bg-blue-700 text-white shadow-2xs'
+                                : (tab.key === 'tidak_aktif'
+                                    ? 'bg-rose-700 text-white shadow-2xs'
+                                    : 'bg-emerald-900 text-yellow-200 shadow-2xs'))
+                            : 'text-slate-600 hover:text-slate-900'
+                    ]"
+                >
+                    <span>{{ tab.label }}</span>
+                    <span class="text-[10.5px] opacity-80">({{ tab.count }})</span>
                 </button>
             </div>
         </div>
@@ -1773,7 +1854,7 @@ onBeforeUnmount(() => {
                             </h3>
                             <p class="text-[11px] text-slate-500 font-medium mt-0.5">
                                 Total <span class="font-bold text-slate-800">{{ selectedKecamatanModal.count }} Siswa</span>
-                                ({{ selectedKecamatanModal.percentage }}% dari seluruh siswa aktif) • {{ unit }} (TA {{ academicYear }})
+                                ({{ selectedKecamatanModal.percentage }}% dari {{ statusLabelText }}) • {{ unit }} ({{ isAllTime ? 'Semua TA / All Time' : `TA ${academicYear}` }})
                             </p>
                         </div>
                     </div>
@@ -1838,10 +1919,12 @@ onBeforeUnmount(() => {
                                     <div class="text-xs sm:text-[13px] font-bold text-slate-900 group-hover/row:text-emerald-950 break-words leading-tight">
                                         {{ student.nama }}
                                     </div>
-                                    <div v-if="student.desa || student.kelas" class="text-[11px] text-slate-500 font-medium mt-0.5">
+                                    <div v-if="student.desa || student.kelas || student.angkatan" class="text-[11px] text-slate-500 font-medium mt-0.5">
                                         <span v-if="student.desa">Desa {{ student.desa }}</span>
-                                        <span v-if="student.desa && student.kelas"> • </span>
-                                        <span v-if="student.kelas">Kelas {{ student.kelas }}</span>
+                                        <span v-if="student.desa && (student.kelas || student.angkatan)"> • </span>
+                                        <span v-if="student.kelas && student.kelas !== '-'">Kelas {{ student.kelas }}</span>
+                                        <span v-if="student.kelas && student.kelas !== '-' && student.angkatan"> • </span>
+                                        <span v-if="student.angkatan">Angkatan {{ student.angkatan }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -1861,13 +1944,17 @@ onBeforeUnmount(() => {
 
                                 <span
                                     class="text-[10px] sm:text-[11px] font-bold px-2.5 py-0.5 rounded-lg border flex items-center gap-1.5"
-                                    :class="isStudentActive(student)
-                                        ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                                        : 'bg-rose-50 text-rose-800 border-rose-200'"
+                                    :class="getStudentCategory(student) === 'lulus'
+                                        ? 'bg-blue-50 text-blue-800 border-blue-200'
+                                        : (getStudentCategory(student) === 'aktif'
+                                            ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                            : 'bg-rose-50 text-rose-800 border-rose-200')"
                                 >
                                     <span
                                         class="w-1.5 h-1.5 rounded-full"
-                                        :class="isStudentActive(student) ? 'bg-emerald-600' : 'bg-rose-600'"
+                                        :class="getStudentCategory(student) === 'lulus'
+                                            ? 'bg-blue-600'
+                                            : (getStudentCategory(student) === 'aktif' ? 'bg-emerald-600' : 'bg-rose-600')"
                                     ></span>
                                     <span>{{ getStudentStatusLabel(student) }}</span>
                                 </span>

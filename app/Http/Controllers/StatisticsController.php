@@ -42,14 +42,20 @@ class StatisticsController extends Controller
         $requestedYearName = $request->query('academic_year') ?? $request->query('ta');
         $requestedSemester = $request->query('semester');
 
-        $selectedYearName = ($requestedYearName && (in_array($requestedYearName, $availableYearNames) || empty($availableYearNames)))
-            ? $requestedYearName
-            : $defaultYearName;
+        $isAllTime = strcasecmp(trim((string) $requestedYearName), 'Semua') === 0;
+
+        $selectedYearName = $isAllTime
+            ? 'Semua'
+            : (($requestedYearName && (in_array($requestedYearName, $availableYearNames) || empty($availableYearNames)))
+                ? $requestedYearName
+                : $defaultYearName);
 
         $allowedSemesters = ['Semua', 'Ganjil', 'Genap'];
-        $selectedSemester = ($requestedSemester && in_array($requestedSemester, $allowedSemesters))
-            ? $requestedSemester
-            : $defaultSemester;
+        $selectedSemester = $isAllTime
+            ? 'Semua'
+            : (($requestedSemester && in_array($requestedSemester, $allowedSemesters))
+                ? $requestedSemester
+                : $defaultSemester);
 
         session([
             'selected_academic_year_name' => $selectedYearName,
@@ -57,18 +63,20 @@ class StatisticsController extends Controller
         ]);
 
         // Cari record Tahun Ajaran yang sesuai untuk query data kelas & siswa
-        $matchingYears = $allAcademicYears->filter(function ($y) use ($selectedYearName, $selectedSemester) {
-            if ($y->name !== $selectedYearName) {
-                return false;
-            }
-            if ($selectedSemester !== 'Semua' && $y->semester !== $selectedSemester) {
-                return false;
-            }
+        $matchingYears = $isAllTime
+            ? collect()
+            : $allAcademicYears->filter(function ($y) use ($selectedYearName, $selectedSemester) {
+                if ($y->name !== $selectedYearName) {
+                    return false;
+                }
+                if ($selectedSemester !== 'Semua' && $y->semester !== $selectedSemester) {
+                    return false;
+                }
 
-            return true;
-        });
+                return true;
+            });
 
-        if ($matchingYears->isEmpty()) {
+        if (! $isAllTime && $matchingYears->isEmpty()) {
             $matchingYears = $allAcademicYears->filter(fn ($y) => $y->name === $selectedYearName);
         }
 
