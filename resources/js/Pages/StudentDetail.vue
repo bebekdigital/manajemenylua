@@ -404,6 +404,15 @@ onUnmounted(() => {
                                 <span>{{ student.keterangan_tidak_aktif || student.ket_tidak_aktif }}</span>
                             </span>
 
+                            <!-- Tanggal Kelulusan jika Lulus -->
+                            <span
+                                v-if="student.status_keaktifan === 'Lulus' && student.formatted_tanggal_lulus"
+                                class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100/70 text-blue-900 border border-blue-300"
+                            >
+                                <span class="material-symbols-outlined text-[14px]">school</span>
+                                <span>Lulus: {{ student.formatted_tanggal_lulus }}</span>
+                            </span>
+
                             <!-- Badge Jenis Kelamin -->
                             <span
                                 v-if="student.jk"

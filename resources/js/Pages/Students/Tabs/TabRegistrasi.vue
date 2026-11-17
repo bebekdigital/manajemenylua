@@ -46,6 +46,7 @@ const form = useForm({
     status_keaktifan: 'Aktif',
     keterangan_tidak_aktif: '',
     tanggal_tidak_aktif: '',
+    tanggal_lulus: '',
 });
 
 function initForm() {
@@ -71,6 +72,7 @@ function initForm() {
 
     form.keterangan_tidak_aktif = props.student.keterangan_tidak_aktif || props.student.ket_tidak_aktif || '';
     form.tanggal_tidak_aktif = props.student.tanggal_tidak_aktif || '';
+    form.tanggal_lulus = props.student.tanggal_lulus || '';
 }
 
 initForm();
@@ -449,28 +451,41 @@ function hasActiveUnit(row) {
                             </span>
                         </p>
                     </div>
-                    <div>
-                        <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Keterangan Tidak Aktif</label>
-                        <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">
-                            <span
-                                v-if="(student.status_keaktifan === 'Tidak Aktif' || student.student_status === 'tidak_aktif') && (student.keterangan_tidak_aktif || student.ket_tidak_aktif)"
-                                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200"
-                            >
-                                <span class="material-symbols-outlined text-[14px] text-amber-600">info</span>
-                                {{ student.keterangan_tidak_aktif || student.ket_tidak_aktif }}
-                            </span>
-                            <span v-else class="text-slate-400 font-normal">-</span>
-                        </p>
-                    </div>
-                    <div>
-                        <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Tanggal Tidak Aktif</label>
-                        <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">
-                            <span v-if="(student.status_keaktifan === 'Tidak Aktif' || student.student_status === 'tidak_aktif') && student.tanggal_tidak_aktif" class="text-slate-900">
-                                {{ formatTanggalIndoText(student.tanggal_tidak_aktif) }}
-                            </span>
-                            <span v-else class="text-slate-400 font-normal">-</span>
-                        </p>
-                    </div>
+                    <template v-if="student.status_keaktifan === 'Lulus'">
+                        <div>
+                            <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Tanggal Kelulusan</label>
+                            <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">
+                                <span v-if="student.tanggal_lulus" class="text-slate-900">
+                                    {{ formatTanggalIndoText(student.tanggal_lulus) }}
+                                </span>
+                                <span v-else class="text-slate-400 font-normal">-</span>
+                            </p>
+                        </div>
+                    </template>
+                    <template v-else>
+                        <div>
+                            <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Keterangan Tidak Aktif</label>
+                            <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">
+                                <span
+                                    v-if="(student.status_keaktifan === 'Tidak Aktif' || student.student_status === 'tidak_aktif') && (student.keterangan_tidak_aktif || student.ket_tidak_aktif)"
+                                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200"
+                                >
+                                    <span class="material-symbols-outlined text-[14px] text-amber-600">info</span>
+                                    {{ student.keterangan_tidak_aktif || student.ket_tidak_aktif }}
+                                </span>
+                                <span v-else class="text-slate-400 font-normal">-</span>
+                            </p>
+                        </div>
+                        <div>
+                            <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Tanggal Tidak Aktif</label>
+                            <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">
+                                <span v-if="(student.status_keaktifan === 'Tidak Aktif' || student.student_status === 'tidak_aktif') && student.tanggal_tidak_aktif" class="text-slate-900">
+                                    {{ formatTanggalIndoText(student.tanggal_tidak_aktif) }}
+                                </span>
+                                <span v-else class="text-slate-400 font-normal">-</span>
+                            </p>
+                        </div>
+                    </template>
                 </div>
             </div>
 
@@ -829,6 +844,26 @@ function hasActiveUnit(row) {
                                 type="date"
                                 class="w-full px-3.5 py-2 rounded-xl border border-rose-200 text-xs sm:text-sm font-semibold text-rose-950 bg-white shadow-2xs focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all cursor-pointer"
                             />
+                        </div>
+                    </div>
+
+                    <!-- Tanggal Kelulusan jika Lulus dipilih -->
+                    <div
+                        v-if="form.status_keaktifan === 'Lulus'"
+                        class="p-4 rounded-2xl bg-blue-50/70 border border-blue-200/80 grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in"
+                    >
+                        <div>
+                            <label class="block text-[11px] font-bold text-blue-900 uppercase tracking-wider mb-1">
+                                Tanggal Kelulusan
+                            </label>
+                            <input
+                                v-model="form.tanggal_lulus"
+                                type="date"
+                                class="w-full px-3.5 py-2 rounded-xl border border-blue-200 text-xs sm:text-sm font-semibold text-blue-950 bg-white shadow-2xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer"
+                            />
+                            <p class="text-[11px] text-blue-700/80 mt-1">
+                                Keterangan & Tanggal Tidak Aktif tidak perlu diisi untuk siswa yang sudah lulus.
+                            </p>
                         </div>
                     </div>
                 </div>

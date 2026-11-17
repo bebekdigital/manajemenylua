@@ -186,21 +186,29 @@ class StatisticsController extends Controller
             ->orderBy('unit')
             ->orderBy('nama')
             ->get()
-            ->map(function (Student $student) {
+            ->map(function (Student $student) use ($selectedYearData) {
                 $record = $student->academicRecords->first() ?: $student->currentRecord;
 
                 // Cek status keaktifan dari master student dan catatan ket_tidak_aktif pada record semester
                 $masterStatus = strtolower(trim((string) ($student->status_keaktifan ?: 'aktif')));
                 $recordKet = $record?->ket_tidak_aktif;
+                $selectedEndDate = $selectedYearData['end_date'] ?? null;
 
-                $isInactive = $masterStatus === 'tidak aktif'
+                $lulusBelumTerjadi = $masterStatus === 'lulus'
+                    && $student->tanggal_lulus
+                    && $selectedEndDate
+                    && $student->tanggal_lulus->format('Y-m-d') > $selectedEndDate;
+
+                $isInactive = ! $lulusBelumTerjadi && (
+                    $masterStatus === 'tidak aktif'
                     || str_contains($masterStatus, 'tidak')
                     || $masterStatus === 'lulus'
-                    || (! empty($recordKet) && strcasecmp($recordKet, 'aktif') !== 0);
+                    || (! empty($recordKet) && strcasecmp($recordKet, 'aktif') !== 0)
+                );
 
                 $normalizedStatus = $isInactive ? 'tidak_aktif' : 'aktif';
-                $displayStatusKeaktifan = $student->status_keaktifan ?: ($normalizedStatus === 'aktif' ? 'Aktif' : 'Tidak Aktif');
-                $keteranganTidakAktif = $recordKet ?: $student->keterangan_tidak_aktif;
+                $displayStatusKeaktifan = $lulusBelumTerjadi ? 'Aktif' : ($student->status_keaktifan ?: ($normalizedStatus === 'aktif' ? 'Aktif' : 'Tidak Aktif'));
+                $keteranganTidakAktif = $lulusBelumTerjadi ? null : ($recordKet ?: $student->keterangan_tidak_aktif);
 
                 return [
                     'id' => $student->id,

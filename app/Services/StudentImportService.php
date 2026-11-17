@@ -64,6 +64,7 @@ class StudentImportService
             $headerRow = $rowsSiswa[1] ?? [];
             $isNewTemplate = isset($headerRow['G']) && str_contains(strtolower((string) $headerRow['G']), 'program');
             $hasNpsnColumn = isset($headerRow['BC']) && str_contains(strtoupper((string) $headerRow['BC']), 'NPSN');
+            $hasTanggalLulusColumn = isset($headerRow['BQ']) && (str_contains(strtolower((string) $headerRow['BQ']), 'lulus') || str_contains(strtolower((string) $headerRow['BQ']), 'kelulusan'));
 
             // Skip header (row 1)
             array_shift($rowsSiswa);
@@ -178,6 +179,7 @@ class StudentImportService
                     $colStatusKeaktifan = $row['BN'] ?? null;
                     $colKetTidakAktif = $row['BO'] ?? null;
                     $colTglTidakAktif = $row['BP'] ?? null;
+                    $colTglLulus = ($hasTanggalLulusColumn || ! empty($row['BQ'])) ? ($row['BQ'] ?? null) : null;
                 } elseif ($isNewTemplate) {
                     $colSekolahAsal = $row['BB'] ?? null;
                     $colNpsn = null;
@@ -194,6 +196,7 @@ class StudentImportService
                     $colStatusKeaktifan = $row['BM'] ?? null;
                     $colKetTidakAktif = $row['BN'] ?? null;
                     $colTglTidakAktif = $row['BO'] ?? null;
+                    $colTglLulus = null;
                 } else {
                     $colSekolahAsal = $row['AZ'] ?? null;
                     $colNpsn = null;
@@ -210,7 +213,18 @@ class StudentImportService
                     $colStatusKeaktifan = $row['BK'] ?? null;
                     $colKetTidakAktif = $row['BL'] ?? null;
                     $colTglTidakAktif = $row['BM'] ?? null;
+                    $colTglLulus = null;
                 }
+
+                $parsedTglLulus = $this->parseDate($colTglLulus);
+                $parsedTglTidakAktif = $this->parseDate($colTglTidakAktif);
+                $rawStatusKeaktifan = strtolower(trim((string) $colStatusKeaktifan));
+                $rawKetTidakAktif = strtolower(trim((string) $colKetTidakAktif));
+
+                $isLulus = $rawStatusKeaktifan === 'lulus'
+                    || $rawKetTidakAktif === 'lulus'
+                    || (! empty($parsedTglLulus) && empty($rawStatusKeaktifan));
+                $isTidakAktif = ! $isLulus && in_array($rawStatusKeaktifan, ['tidak aktif', 'tidak_aktif', 'non-aktif', 'non_aktif']);
 
                 $studentData = [
                     'nama' => $nama,
@@ -254,36 +268,10 @@ class StudentImportService
                     'tanggal_diterima' => $this->parseDate($colTglDiterima),
                     'info_psb' => $this->cleanString($colInfoPsb),
                     'status_registrasi' => $this->cleanString($colStatusRegistrasi),
-                    'status_keaktifan' => (function () use ($colStatusKeaktifan) {
-                        $raw = strtolower(trim((string) $colStatusKeaktifan));
-                        if ($raw === 'lulus') {
-                            return 'Lulus';
-                        }
-                        if (in_array($raw, ['tidak aktif', 'tidak_aktif', 'non-aktif', 'non_aktif'])) {
-                            return 'Tidak Aktif';
-                        }
-
-                        return 'Aktif';
-                    })(),
-                    'keterangan_tidak_aktif' => (function () use ($colStatusKeaktifan, $colKetTidakAktif) {
-                        $raw = strtolower(trim((string) $colStatusKeaktifan));
-                        if ($raw === 'lulus') {
-                            return 'Lulus';
-                        }
-                        if (in_array($raw, ['tidak aktif', 'tidak_aktif', 'non-aktif', 'non_aktif'])) {
-                            return $this->cleanString($colKetTidakAktif) ?: 'Lainnya';
-                        }
-
-                        return null;
-                    })(),
-                    'tanggal_tidak_aktif' => (function () use ($colStatusKeaktifan, $colTglTidakAktif) {
-                        $raw = strtolower(trim((string) $colStatusKeaktifan));
-                        if ($raw === 'lulus' || in_array($raw, ['tidak aktif', 'tidak_aktif', 'non-aktif', 'non_aktif'])) {
-                            return $this->parseDate($colTglTidakAktif) ?: now()->toDateString();
-                        }
-
-                        return null;
-                    })(),
+                    'status_keaktifan' => $isLulus ? 'Lulus' : ($isTidakAktif ? 'Tidak Aktif' : 'Aktif'),
+                    'keterangan_tidak_aktif' => $isTidakAktif ? ($this->cleanString($colKetTidakAktif) ?: 'Lainnya') : null,
+                    'tanggal_tidak_aktif' => $isTidakAktif ? ($parsedTglTidakAktif ?: now()->toDateString()) : null,
+                    'tanggal_lulus' => $isLulus ? ($parsedTglLulus ?: $parsedTglTidakAktif) : null,
                     'ayah_nama' => $this->cleanString($colAyahNama),
                     'ayah_tahun_lahir' => $this->cleanInteger($colAyahThn),
                     'ayah_pendidikan' => $this->cleanString($colAyahPdd),
@@ -348,55 +336,62 @@ class StudentImportService
                 $studentMap[$nisn]->jenjang_from_excel = $studentData['jenjang'] ?? 'SD';
 
                 // Otomatis sinkronkan ke riwayat akademik Tahun Ajaran Aktif
-                // Admin tidak perlu lagi melakukan pemetaan riwayat manual untuk siswa baru/impor
+                // Jika siswa sudah lulus/tidak aktif sebelum Tahun Ajaran Aktif dimulai, jangan buatkan record baru di TA Aktif
                 $activeYear = AcademicYear::current();
                 if ($activeYear) {
-                    $classroomId = null;
-                    $tingkat = null;
-                    $kelasInput = $this->cleanString($colDiterimaJenjang ?? ($row['BG'] ?? null));
-                    if ($kelasInput) {
-                        $matchingClass = Classroom::where('academic_year_id', $activeYear->id)
-                            ->where(function ($q) use ($kelasInput) {
-                                $q->where('name', $kelasInput)
-                                    ->orWhere('name', 'like', "%{$kelasInput}%");
-                            })
-                            ->first();
-                        if ($matchingClass) {
-                            $classroomId = $matchingClass->id;
-                            $tingkat = $matchingClass->grade;
+                    $activeStart = $activeYear->start_date?->format('Y-m-d');
+                    $exitDate = $student->tanggal_lulus?->format('Y-m-d') ?? $student->tanggal_tidak_aktif?->format('Y-m-d');
+                    $leftBeforeActive = in_array($student->status_keaktifan, ['Lulus', 'Tidak Aktif'])
+                        && (($exitDate && $activeStart && $exitDate < $activeStart) || ($student->status_keaktifan === 'Lulus' && ! $exitDate));
+
+                    if (! $leftBeforeActive) {
+                        $classroomId = null;
+                        $tingkat = null;
+                        $kelasInput = $this->cleanString($colDiterimaJenjang ?? ($row['BG'] ?? null));
+                        if ($kelasInput) {
+                            $matchingClass = Classroom::where('academic_year_id', $activeYear->id)
+                                ->where(function ($q) use ($kelasInput) {
+                                    $q->where('name', $kelasInput)
+                                        ->orWhere('name', 'like', "%{$kelasInput}%");
+                                })
+                                ->first();
+                            if ($matchingClass) {
+                                $classroomId = $matchingClass->id;
+                                $tingkat = $matchingClass->grade;
+                            }
                         }
+
+                        $calc = StudentStatusService::calculateStatus($student, $activeYear);
+
+                        $record = StudentAcademicRecord::where('student_id', $student->id)
+                            ->where('academic_year_id', $activeYear->id)
+                            ->first();
+
+                        $recordData = [
+                            'unit' => $student->unit ?? $studentData['unit'],
+                            'jenjang' => $student->jenjang ?? $studentData['jenjang'],
+                            'program' => $studentData['program'] ?? $rawProgram ?? $student->program,
+                            'unit_pesantren' => $studentData['unit_pesantren'] ?? $finalUnitPesantren ?? $student->unit_pesantren,
+                            'student_status' => $calc['status'],
+                            'ket_tidak_aktif' => $calc['ket_tidak_aktif'],
+                            'tanggal_tidak_aktif' => $calc['tanggal_tidak_aktif'],
+                        ];
+
+                        if ($classroomId) {
+                            $recordData['classroom_id'] = $classroomId;
+                            $recordData['tingkat'] = $tingkat;
+                        }
+
+                        if ($record) {
+                            $record->update(array_filter($recordData, fn ($v) => ! is_null($v)));
+                        } else {
+                            StudentAcademicRecord::create(array_merge([
+                                'student_id' => $student->id,
+                                'academic_year_id' => $activeYear->id,
+                            ], $recordData));
+                        }
+                        $academicRecordsCount++;
                     }
-
-                    $calc = StudentStatusService::calculateStatus($student, $activeYear);
-
-                    $record = StudentAcademicRecord::where('student_id', $student->id)
-                        ->where('academic_year_id', $activeYear->id)
-                        ->first();
-
-                    $recordData = [
-                        'unit' => $student->unit ?? $studentData['unit'],
-                        'jenjang' => $student->jenjang ?? $studentData['jenjang'],
-                        'program' => $studentData['program'] ?? $rawProgram ?? $student->program,
-                        'unit_pesantren' => $studentData['unit_pesantren'] ?? $finalUnitPesantren ?? $student->unit_pesantren,
-                        'student_status' => $calc['status'],
-                        'ket_tidak_aktif' => $calc['ket_tidak_aktif'],
-                        'tanggal_tidak_aktif' => $calc['tanggal_tidak_aktif'],
-                    ];
-
-                    if ($classroomId) {
-                        $recordData['classroom_id'] = $classroomId;
-                        $recordData['tingkat'] = $tingkat;
-                    }
-
-                    if ($record) {
-                        $record->update(array_filter($recordData, fn ($v) => ! is_null($v)));
-                    } else {
-                        StudentAcademicRecord::create(array_merge([
-                            'student_id' => $student->id,
-                            'academic_year_id' => $activeYear->id,
-                        ], $recordData));
-                    }
-                    $academicRecordsCount++;
                 }
 
                 // Handle Family Data

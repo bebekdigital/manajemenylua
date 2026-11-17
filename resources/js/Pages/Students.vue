@@ -269,10 +269,13 @@ const statusCounts = computed(() => {
     const all = list.length;
     let aktif = 0;
     let tidakAktif = 0;
+    let lulus = 0;
 
     list.forEach(s => {
         const raw = (s.status_keaktifan || 'Aktif').toLowerCase().trim();
-        if (raw === 'tidak aktif' || raw === 'tidak_aktif' || raw.includes('tidak')) {
+        if (raw === 'lulus') {
+            lulus++;
+        } else if (raw === 'tidak aktif' || raw === 'tidak_aktif' || raw.includes('tidak')) {
             tidakAktif++;
         } else {
             aktif++;
@@ -283,6 +286,7 @@ const statusCounts = computed(() => {
         semua: all,
         aktif,
         tidak_aktif: tidakAktif,
+        lulus,
     };
 });
 
@@ -290,6 +294,7 @@ const statusTabs = computed(() => [
     { key: 'semua', label: 'Semua', count: statusCounts.value.semua },
     { key: 'aktif', label: 'Aktif', count: statusCounts.value.aktif },
     { key: 'tidak_aktif', label: 'Tidak Aktif', count: statusCounts.value.tidak_aktif },
+    { key: 'lulus', label: 'Lulus', count: statusCounts.value.lulus },
 ]);
 
 // Daftar angkatan unik

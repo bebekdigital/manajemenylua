@@ -141,6 +141,7 @@ const form = useForm({
     status_keaktifan: 'Aktif',
     keterangan_tidak_aktif: '',
     tanggal_tidak_aktif: '',
+    tanggal_lulus: '',
 
     // Tab 5: Kesejahteraan
     status_kip: false,
@@ -1213,6 +1214,19 @@ onUnmounted(() => {
                                         <span class="w-2 h-2 rounded-full bg-rose-300"></span>
                                         <span>Tidak Aktif</span>
                                     </button>
+                                    <button
+                                        type="button"
+                                        @click="form.status_keaktifan = 'Lulus'"
+                                        :class="[
+                                            'inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer',
+                                            form.status_keaktifan === 'Lulus'
+                                                ? 'bg-blue-700 text-white shadow-xs'
+                                                : 'text-slate-600 hover:text-slate-900'
+                                        ]"
+                                    >
+                                        <span class="w-2 h-2 rounded-full bg-blue-300"></span>
+                                        <span>Lulus</span>
+                                    </button>
                                 </div>
                             </div>
 
@@ -1241,6 +1255,23 @@ onUnmounted(() => {
                                         type="date"
                                         class="w-full px-3.5 py-2.5 rounded-xl border border-rose-200 text-xs sm:text-sm font-semibold text-rose-950 bg-white shadow-2xs focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all cursor-pointer"
                                     />
+                                </div>
+                            </div>
+
+                            <div
+                                v-if="form.status_keaktifan === 'Lulus'"
+                                class="p-4 rounded-2xl bg-blue-50/70 border border-blue-200/80 grid grid-cols-1 md:grid-cols-2 gap-4"
+                            >
+                                <div>
+                                    <label class="block text-[11px] font-bold text-blue-900 uppercase tracking-wider mb-1">Tanggal Kelulusan</label>
+                                    <input
+                                        v-model="form.tanggal_lulus"
+                                        type="date"
+                                        class="w-full px-3.5 py-2.5 rounded-xl border border-blue-200 text-xs sm:text-sm font-semibold text-blue-950 bg-white shadow-2xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer"
+                                    />
+                                    <p class="text-[11px] text-blue-700/80 mt-1">
+                                        Keterangan & Tanggal Tidak Aktif tidak perlu diisi untuk siswa yang sudah lulus.
+                                    </p>
                                 </div>
                             </div>
                         </div>

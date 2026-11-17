@@ -71,14 +71,17 @@ class StudentImportTest extends TestCase
         $this->assertSame('1', (string) $sheet1->getCell('D2')->getValue());
         $this->assertSame('5', (string) $sheet1->getCell('D3')->getValue());
 
-        // Kolom status keaktifan baru setelah kolom terakhir (BJ)
-        $this->assertSame('Status Keaktifan (Aktif/Tidak Aktif)', $sheet1->getCell('BK1')->getValue());
-        $this->assertSame('Keterangan Tidak Aktif', $sheet1->getCell('BL1')->getValue());
-        $this->assertSame('Tanggal Tidak Aktif (YYYY-MM-DD)', $sheet1->getCell('BM1')->getValue());
+        // Kolom status keaktifan & kelulusan pada template terbaru
+        $this->assertSame('Status Keaktifan (Aktif/Tidak Aktif/Lulus)', $sheet1->getCell('BN1')->getValue());
+        $this->assertSame('Keterangan Tidak Aktif', $sheet1->getCell('BO1')->getValue());
+        $this->assertSame('Tanggal Tidak Aktif (YYYY-MM-DD)', $sheet1->getCell('BP1')->getValue());
+        $this->assertSame('Tanggal Kelulusan (YYYY-MM-DD)', $sheet1->getCell('BQ1')->getValue());
 
-        $this->assertSame('Aktif', $sheet1->getCell('BK2')->getValue());
-        $this->assertSame('Tidak Aktif', $sheet1->getCell('BK3')->getValue());
-        $this->assertSame('Mutasi Keluar', $sheet1->getCell('BL3')->getValue());
+        $this->assertSame('Aktif', $sheet1->getCell('BN2')->getValue());
+        $this->assertSame('Tidak Aktif', $sheet1->getCell('BN3')->getValue());
+        $this->assertSame('Mutasi Keluar', $sheet1->getCell('BO3')->getValue());
+        $this->assertSame('Lulus', $sheet1->getCell('BN4')->getValue());
+        $this->assertSame('2024-06-20', $sheet1->getCell('BQ4')->getValue());
 
         // Row 2 is SD sample
         $this->assertSame('SD', $sheet1->getCell('E2')->getValue());
@@ -265,6 +268,80 @@ class StudentImportTest extends TestCase
         $this->assertSame('5', $s2->angkatan);
         $this->assertSame('Mutasi Keluar', $s2->keterangan_tidak_aktif);
         $this->assertSame('2025-08-15', $s2->tanggal_tidak_aktif?->format('Y-m-d'));
+
+        if (file_exists($tempPath)) {
+            @unlink($tempPath);
+        }
+    }
+
+    public function test_imports_graduated_students_with_tanggal_lulus(): void
+    {
+        $spreadsheet = new Spreadsheet;
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('1. Data Siswa');
+
+        $row1 = [
+            'A' => 'NISN', 'B' => 'Nama Lengkap', 'C' => 'NIPD', 'D' => 'Angkatan', 'E' => 'Jenjang',
+            'F' => 'Unit Pendidikan Formal', 'G' => 'Program', 'BC' => 'NPSN',
+            'BN' => 'Status Keaktifan (Aktif/Tidak Aktif/Lulus)',
+            'BO' => 'Keterangan Tidak Aktif',
+            'BP' => 'Tanggal Tidak Aktif (YYYY-MM-DD)',
+            'BQ' => 'Tanggal Kelulusan (YYYY-MM-DD)',
+        ];
+        foreach ($row1 as $col => $val) {
+            $sheet->setCellValue($col.'1', $val);
+        }
+
+        // Row 2: Lulus dengan status Lulus + tanggal kelulusan tanpa keterangan/tgl tidak aktif
+        $sheet->setCellValue('A2', '0077770001');
+        $sheet->setCellValue('B2', 'Zaid Bin Tsabit');
+        $sheet->setCellValue('D2', '2');
+        $sheet->setCellValue('E2', 'SMP');
+        $sheet->setCellValue('F2', 'SMPIT Ulil Albab');
+        $sheet->setCellValue('BN2', 'Lulus');
+        $sheet->setCellValue('BQ2', '2024-06-20');
+
+        // Row 3: Hanya isi Tanggal Kelulusan (status keaktifan dibiarkan kosong -> otomatis Lulus)
+        $sheet->setCellValue('A3', '0077770002');
+        $sheet->setCellValue('B3', 'Salman Al-Farisi');
+        $sheet->setCellValue('D3', '1');
+        $sheet->setCellValue('E3', 'SMA');
+        $sheet->setCellValue('F3', 'SMAIT Ulil Albab');
+        $sheet->setCellValue('BQ3', '2023-06-15');
+
+        $tempPath = tempnam(sys_get_temp_dir(), 'test_import_lulus_').'.xlsx';
+        $writer = new Xlsx($spreadsheet);
+        $writer->save($tempPath);
+
+        $uploadedFile = new UploadedFile(
+            $tempPath,
+            'template_siswa_lulus.xlsx',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            null,
+            true
+        );
+
+        $response = $this->post('/students/import', [
+            'file' => $uploadedFile,
+            'unit' => 'all',
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        $s1 = Student::where('nisn', '0077770001')->first();
+        $this->assertNotNull($s1);
+        $this->assertSame('Lulus', $s1->status_keaktifan);
+        $this->assertNull($s1->keterangan_tidak_aktif);
+        $this->assertNull($s1->tanggal_tidak_aktif);
+        $this->assertSame('2024-06-20', $s1->tanggal_lulus?->format('Y-m-d'));
+
+        $s2 = Student::where('nisn', '0077770002')->first();
+        $this->assertNotNull($s2);
+        $this->assertSame('Lulus', $s2->status_keaktifan);
+        $this->assertNull($s2->keterangan_tidak_aktif);
+        $this->assertNull($s2->tanggal_tidak_aktif);
+        $this->assertSame('2023-06-15', $s2->tanggal_lulus?->format('Y-m-d'));
 
         if (file_exists($tempPath)) {
             @unlink($tempPath);

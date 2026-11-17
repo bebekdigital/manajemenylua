@@ -233,6 +233,7 @@ const columns = computed(() => ({
         { key: 'status_keaktifan', label: 'Status Keaktifan', type: 'select', options: statusKeaktifanOptions, width: 'w-40' },
         { key: 'keterangan_tidak_aktif', label: 'Ket. Tidak Aktif', type: 'select', options: ketTidakAktifOptions, width: 'w-44' },
         { key: 'tanggal_tidak_aktif', label: 'Tgl Tidak Aktif', type: 'date', width: 'w-36' },
+        { key: 'tanggal_lulus', label: 'Tgl Kelulusan', type: 'date', width: 'w-36' },
         { key: 'sekolah_asal', label: 'Sekolah Asal', type: 'text', width: 'w-40' },
         { key: 'npsn', label: 'NPSN', type: 'text', width: 'w-32' },
         { key: 'status_keluarga', label: 'Status Keluarga', type: 'select', options: statusKeluargaOptions, width: 'w-36' },
@@ -617,18 +618,27 @@ function applyBulk() {
         if (bulkField.value === 'keterangan_tidak_aktif') {
             if (val) {
                 s.status_keaktifan = 'Tidak Aktif';
+                s.tanggal_lulus = null;
             }
         } else if (bulkField.value === 'status_keaktifan') {
             if (val === 'Aktif') {
                 s.keterangan_tidak_aktif = '';
                 s.tanggal_tidak_aktif = null;
+                s.tanggal_lulus = null;
             } else if (val === 'Lulus') {
-                s.keterangan_tidak_aktif = 'Lulus';
+                s.keterangan_tidak_aktif = '';
+                s.tanggal_tidak_aktif = null;
+            } else if (val === 'Tidak Aktif') {
+                s.tanggal_lulus = null;
             }
+        } else if (bulkField.value === 'tanggal_lulus' && val) {
+            s.status_keaktifan = 'Lulus';
+            s.keterangan_tidak_aktif = '';
+            s.tanggal_tidak_aktif = null;
         }
     });
 
-    if (bulkField.value === 'keterangan_tidak_aktif' || bulkField.value === 'status_keaktifan') {
+    if (['keterangan_tidak_aktif', 'status_keaktifan', 'tanggal_lulus'].includes(bulkField.value)) {
         let targetYears = [];
         if (bulkSemesterScope.value === 'current') {
             targetYears = [props.selectedAcademicYear?.id || currentAcademicYearId.value];
@@ -650,7 +660,7 @@ function applyBulk() {
 
     const displayVal = val === '' || val === null || val === undefined ? '(dikosongkan)' : val;
     let scopeMsg = '';
-    if (bulkField.value === 'keterangan_tidak_aktif' || bulkField.value === 'status_keaktifan') {
+    if (['keterangan_tidak_aktif', 'status_keaktifan', 'tanggal_lulus'].includes(bulkField.value)) {
         const countSem = activeTargetYearIds.value.size;
         scopeMsg = ` pada ${countSem} semester`;
     }
@@ -713,6 +723,20 @@ function onCellSelectChange(student, key) {
         } else {
             student.unit_pesantren = '';
         }
+    } else if (key === 'status_keaktifan') {
+        if (student.status_keaktifan === 'Aktif') {
+            student.keterangan_tidak_aktif = '';
+            student.tanggal_tidak_aktif = null;
+            student.tanggal_lulus = null;
+        } else if (student.status_keaktifan === 'Lulus') {
+            student.keterangan_tidak_aktif = '';
+            student.tanggal_tidak_aktif = null;
+        } else if (student.status_keaktifan === 'Tidak Aktif') {
+            student.tanggal_lulus = null;
+        }
+    } else if (key === 'keterangan_tidak_aktif' && student.keterangan_tidak_aktif) {
+        student.status_keaktifan = 'Tidak Aktif';
+        student.tanggal_lulus = null;
     }
 }
 

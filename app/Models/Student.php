@@ -41,6 +41,7 @@ class Student extends Model
         'status_keaktifan',
         'keterangan_tidak_aktif',
         'tanggal_tidak_aktif',
+        'tanggal_lulus',
         'jalan',
         'rt',
         'rw',
@@ -106,6 +107,7 @@ class Student extends Model
             'tanggal_lahir' => 'date',
             'tanggal_diterima' => 'date',
             'tanggal_tidak_aktif' => 'date',
+            'tanggal_lulus' => 'date',
             'anak_ke' => 'integer',
             'desil' => 'integer',
             'status_pip' => 'boolean',
@@ -160,7 +162,7 @@ class Student extends Model
     protected static function booted(): void
     {
         static::saved(function (Student $student) {
-            if ($student->wasChanged(['status_keaktifan', 'keterangan_tidak_aktif', 'tanggal_tidak_aktif'])) {
+            if ($student->wasChanged(['status_keaktifan', 'keterangan_tidak_aktif', 'tanggal_tidak_aktif', 'tanggal_lulus'])) {
                 StudentStatusService::syncForStudent($student);
             }
         });

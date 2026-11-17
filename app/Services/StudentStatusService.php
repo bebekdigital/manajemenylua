@@ -44,6 +44,7 @@ class StudentStatusService
         $masterKeaktifan = trim((string) ($student->status_keaktifan ?: 'Aktif'));
         $masterKet = trim((string) ($student->keterangan_tidak_aktif ?? ''));
         $tglTidakAktif = $student->tanggal_tidak_aktif ? Carbon::parse($student->tanggal_tidak_aktif)->format('Y-m-d') : null;
+        $tglLulus = $student->tanggal_lulus ? Carbon::parse($student->tanggal_lulus)->format('Y-m-d') : null;
         $hasInactiveState = ! empty($masterKet) || strcasecmp($masterKeaktifan, 'Aktif') !== 0;
 
         if (! $hasInactiveState) {
@@ -54,7 +55,32 @@ class StudentStatusService
             ];
         }
 
-        $ketSemester = $masterKet ?: (strcasecmp($masterKeaktifan, 'Lulus') === 0 ? 'Lulus' : 'Tidak Aktif');
+        if (strcasecmp($masterKeaktifan, 'Lulus') === 0 || strcasecmp($masterKet, 'Lulus') === 0) {
+            $effectiveLulusDate = $tglLulus ?: $tglTidakAktif;
+            if ($effectiveLulusDate) {
+                if ($effectiveLulusDate > $endDate) {
+                    return [
+                        'status' => 'Aktif',
+                        'ket_tidak_aktif' => null,
+                        'tanggal_tidak_aktif' => null,
+                    ];
+                }
+
+                return [
+                    'status' => 'Lulus',
+                    'ket_tidak_aktif' => 'Lulus',
+                    'tanggal_tidak_aktif' => $effectiveLulusDate,
+                ];
+            }
+
+            return [
+                'status' => 'Lulus',
+                'ket_tidak_aktif' => 'Lulus',
+                'tanggal_tidak_aktif' => null,
+            ];
+        }
+
+        $ketSemester = $masterKet ?: 'Tidak Aktif';
 
         if ($tglTidakAktif) {
             if ($tglTidakAktif <= $startDate) {
@@ -76,14 +102,6 @@ class StudentStatusService
                     'tanggal_tidak_aktif' => $tglTidakAktif,
                 ];
             }
-        }
-
-        if (strcasecmp($masterKeaktifan, 'Lulus') === 0 || strcasecmp($masterKet, 'Lulus') === 0) {
-            return [
-                'status' => 'Lulus',
-                'ket_tidak_aktif' => 'Lulus',
-                'tanggal_tidak_aktif' => null,
-            ];
         }
 
         return [
