@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
+import { getGenderBadgeClass, getGenderLabel } from '@/Utils/studentBadges';
 
 const props = defineProps({
     show: Boolean,
@@ -237,10 +238,10 @@ watch([filterAngkatan, filterJk, searchQuery], () => {
                             <td class="px-3 sm:px-4 py-2 sm:py-2.5 font-semibold text-xs sm:text-sm">{{ student.nama }}</td>
                             <td class="px-3 sm:px-4 py-2 sm:py-2.5">
                                 <span :class="[
-                                    'inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-xs font-semibold',
-                                    student.jk === 'L' ? 'bg-blue-100 text-blue-800' : 'bg-pink-100 text-pink-800'
+                                    'inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-xs font-semibold border',
+                                    getGenderBadgeClass(student.jk)
                                 ]">
-                                    {{ student.jk === 'L' ? 'Laki-laki' : 'Perempuan' }}
+                                    {{ getGenderLabel(student.jk) }}
                                 </span>
                             </td>
                             <td class="px-3 sm:px-4 py-2 sm:py-2.5 text-[11px] sm:text-sm">{{ student.angkatan || '-' }}</td>

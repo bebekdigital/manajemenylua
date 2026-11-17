@@ -1,6 +1,12 @@
 <script setup>
 import { computed } from 'vue';
 import { Link } from '@inertiajs/vue3';
+import {
+    getGenderBadgeClass,
+    getGenderLabel,
+    getProgramBadgeClass,
+    getUnitBadgeClass,
+} from '@/Utils/studentBadges';
 
 const props = defineProps({
     students: {
@@ -240,14 +246,10 @@ function getAlamatLengkap(s) {
                                     <span
                                         v-if="student.jk"
                                         :class="[
-                                            'text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 leading-none',
-                                            student.jk === 'L'
-                                                ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                                                : (student.jk === 'P'
-                                                    ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                                                    : 'bg-slate-100 text-slate-600 border border-slate-200')
+                                            'text-[10px] font-bold px-1.5 py-0.5 rounded border shrink-0 leading-none',
+                                            getGenderBadgeClass(student.jk)
                                         ]"
-                                        :title="student.jk === 'L' ? 'Laki-laki' : (student.jk === 'P' ? 'Perempuan' : student.jk)"
+                                        :title="getGenderLabel(student.jk)"
                                     >
                                         {{ student.jk }}
                                     </span>
@@ -275,7 +277,7 @@ function getAlamatLengkap(s) {
                             <div class="flex items-center gap-1.5 flex-wrap">
                                 <span
                                     v-if="student.jenjang"
-                                    class="inline-flex items-center px-2 py-0.5 rounded-md text-[11.5px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200"
+                                    class="inline-flex items-center px-2 py-0.5 rounded-md text-[11.5px] font-semibold bg-slate-100 text-slate-800 border border-slate-200"
                                 >
                                     {{ student.jenjang }}
                                 </span>
@@ -288,7 +290,7 @@ function getAlamatLengkap(s) {
                                 </span>
                                 <span
                                     v-if="student.kelas"
-                                    class="inline-flex items-center px-1.5 py-0.5 rounded-md text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200"
+                                    class="inline-flex items-center px-1.5 py-0.5 rounded-md text-[11px] font-semibold bg-slate-50 text-slate-800 border border-slate-300"
                                     :title="'Kelas ' + student.kelas"
                                 >
                                     {{ student.kelas }}
@@ -300,18 +302,18 @@ function getAlamatLengkap(s) {
                         <!-- Unit (Menampung Unit Formal DAN Unit Asrama di bawahnya - Badge beda warna tanpa icon) -->
                         <td class="py-3.5 px-3 align-middle whitespace-nowrap">
                             <div class="flex flex-col items-start gap-1">
-                                <!-- Unit Formal Badge (Warna Netral Slate Berbingkai Tanpa Icon) -->
+                                <!-- Unit Formal Badge -->
                                 <span
                                     v-if="student.unit"
-                                    class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-100 text-slate-800 border border-slate-300 whitespace-nowrap"
+                                    :class="['inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold border whitespace-nowrap', getUnitBadgeClass('formal')]"
                                     :title="'Unit Formal: ' + student.unit"
                                 >
                                     {{ student.unit }}
                                 </span>
-                                <!-- Unit Asrama / Pesantren Badge (Warna Berbeda: Indigo Berbingkai Tanpa Icon) di bawah Unit Formal -->
+                                <!-- Unit Asrama / Pesantren Badge -->
                                 <span
                                     v-if="student.unit_pesantren"
-                                    class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 whitespace-nowrap"
+                                    :class="['inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold border whitespace-nowrap', getUnitBadgeClass('pesantren')]"
                                     :title="'Unit Asrama: ' + student.unit_pesantren"
                                 >
                                     {{ student.unit_pesantren }}
@@ -324,12 +326,7 @@ function getAlamatLengkap(s) {
                         <td class="py-3.5 px-3 align-middle whitespace-nowrap">
                             <span
                                 v-if="student.program"
-                                class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold"
-                                :class="student.program.toLowerCase().includes('boarding')
-                                    ? 'bg-amber-100 text-amber-800 border border-amber-300'
-                                    : (student.program.toLowerCase().includes('fullday')
-                                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                                        : 'bg-slate-100 text-slate-700 border border-slate-200')"
+                                :class="['inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold border', getProgramBadgeClass(student.program)]"
                             >
                                 {{ student.program }}
                             </span>

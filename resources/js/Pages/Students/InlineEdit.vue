@@ -2,6 +2,10 @@
 import { ref, computed, reactive, onMounted, onUnmounted } from 'vue';
 import { Head, router, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import {
+    getStatusKeaktifanBadgeClass,
+    getStatusKeaktifanDotClass,
+} from '@/Utils/studentBadges';
 
 defineOptions({ layout: AppLayout });
 
@@ -1432,22 +1436,14 @@ function groupSpan(groupKey) {
                                                 <span
                                                     :class="[
                                                         'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-tight shadow-2xs select-none border',
-                                                        student[col.key] === 'Aktif' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                                                        student[col.key] === 'Tidak Aktif-Sebagian' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                                                        student[col.key] === 'Tidak Aktif' ? 'bg-rose-50 text-rose-700 border-rose-200' :
-                                                        student[col.key] === 'Lulus' ? 'bg-sky-50 text-sky-700 border-sky-200' :
-                                                        'bg-slate-50 text-slate-600 border-slate-200'
+                                                        getStatusKeaktifanBadgeClass(student[col.key] || 'Aktif')
                                                     ]"
                                                     :title="'Digenerate otomatis oleh sistem (' + (student[col.key] || 'Aktif') + ')'"
                                                 >
                                                     <span
                                                         :class="[
                                                             'w-1.5 h-1.5 rounded-full',
-                                                            student[col.key] === 'Aktif' ? 'bg-emerald-500' :
-                                                            student[col.key] === 'Tidak Aktif-Sebagian' ? 'bg-amber-500' :
-                                                            student[col.key] === 'Tidak Aktif' ? 'bg-rose-500' :
-                                                            student[col.key] === 'Lulus' ? 'bg-sky-500' :
-                                                            'bg-slate-400'
+                                                            getStatusKeaktifanDotClass(student[col.key] || 'Aktif')
                                                         ]"
                                                     ></span>
                                                     <span>{{ student[col.key] || 'Aktif' }}</span>

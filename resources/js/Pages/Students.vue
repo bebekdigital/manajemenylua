@@ -7,6 +7,7 @@ import StudentTable from '@/Components/Students/StudentTable.vue';
 import StudentImportModal from '@/Components/Students/StudentImportModal.vue';
 import StudentPhotoUploadModal from '@/Components/Students/StudentPhotoUploadModal.vue';
 import EditDataButton from '@/Components/Shared/EditDataButton.vue';
+import { getGenderBadgeClass, getGenderLabel } from '@/Utils/studentBadges';
 
 defineOptions({
     layout: AppLayout,
@@ -834,10 +835,9 @@ const downloadTemplate = async () => {
                                         v-if="student.jk"
                                         :class="[
                                             'text-[9.5px] font-bold px-1.5 py-0.5 rounded-md border shrink-0',
-                                            student.jk === 'L'
-                                                ? 'bg-blue-50 text-blue-700 border-blue-200'
-                                                : 'bg-rose-50 text-rose-700 border-rose-200'
+                                            getGenderBadgeClass(student.jk)
                                         ]"
+                                        :title="getGenderLabel(student.jk)"
                                     >
                                         {{ student.jk }}
                                     </span>

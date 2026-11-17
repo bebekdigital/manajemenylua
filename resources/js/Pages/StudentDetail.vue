@@ -4,6 +4,13 @@ import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import TabIdentitas from './Students/Tabs/TabIdentitas.vue';
 import TabRegistrasi from './Students/Tabs/TabRegistrasi.vue';
+import {
+    getGenderBadgeClass,
+    getGenderLabel,
+    getProgramBadgeClass,
+    getStatusKeaktifanBadgeClass,
+    getStatusKeaktifanDotClass,
+} from '@/Utils/studentBadges';
 
 defineOptions({
     layout: AppLayout,
@@ -279,10 +286,7 @@ function getInitials(name) {
 }
 
 function getAvatarStyle(s) {
-    if (s?.jk === 'L') {
-        return 'bg-blue-50 text-blue-800 border-blue-200/80';
-    }
-    return 'bg-rose-50 text-rose-800 border-rose-200/80';
+    return getGenderBadgeClass(s?.jk);
 }
 
 const tabsContainerRef = ref(null);
@@ -381,16 +385,12 @@ onUnmounted(() => {
                             <span
                                 :class="[
                                     'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border shadow-2xs',
-                                    student.status_keaktifan === 'Tidak Aktif'
-                                        ? 'bg-rose-50 text-rose-800 border-rose-200'
-                                        : (student.status_keaktifan === 'Lulus'
-                                            ? 'bg-blue-50 text-blue-900 border-blue-200'
-                                            : 'bg-emerald-100 text-emerald-950 border-emerald-300')
+                                    getStatusKeaktifanBadgeClass(student)
                                 ]"
                             >
                                 <span
                                     class="w-2 h-2 rounded-full"
-                                    :class="student.status_keaktifan === 'Tidak Aktif' ? 'bg-rose-500' : (student.status_keaktifan === 'Lulus' ? 'bg-blue-600' : 'bg-emerald-600')"
+                                    :class="getStatusKeaktifanDotClass(student)"
                                 ></span>
                                 <span>{{ student.status_keaktifan === 'Tidak Aktif' ? 'Tidak Aktif' : (student.status_keaktifan === 'Lulus' ? 'Lulus' : 'Aktif') }}</span>
                             </span>
@@ -418,16 +418,16 @@ onUnmounted(() => {
                                 v-if="student.jk"
                                 :class="[
                                     'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border',
-                                    student.jk === 'L' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-rose-50 text-rose-700 border-rose-200'
+                                    getGenderBadgeClass(student.jk)
                                 ]"
                             >
-                                {{ student.jk === 'L' ? 'Laki-laki' : 'Perempuan' }}
+                                {{ getGenderLabel(student.jk) }}
                             </span>
 
                             <!-- Badge Program (hanya muncul jika siswa aktif) -->
                             <span
                                 v-if="student.program && student.status_keaktifan !== 'Tidak Aktif'"
-                                class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200"
+                                :class="['inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border', getProgramBadgeClass(student.program)]"
                             >
                                 {{ student.program }}
                             </span>

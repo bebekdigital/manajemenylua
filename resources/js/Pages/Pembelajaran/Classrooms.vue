@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue';
 import { Head, router, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import ClassroomAddStudentModal from './ClassroomAddStudentModal.vue';
+import { getClassroomStatusBadgeClass, getProgramBadgeClass } from '@/Utils/studentBadges';
 
 defineOptions({
     layout: AppLayout,
@@ -90,15 +91,7 @@ function statusLabel(status) {
 }
 
 function statusColor(status) {
-    const map = {
-        aktif: 'bg-emerald-100 text-emerald-800',
-        mutasi_masuk: 'bg-blue-100 text-blue-800',
-        mutasi_keluar: 'bg-amber-100 text-amber-800',
-        lulus: 'bg-indigo-100 text-indigo-800',
-        mengulang: 'bg-orange-100 text-orange-800',
-        dropout: 'bg-red-100 text-red-800',
-    };
-    return map[status] || 'bg-gray-100 text-gray-600';
+    return getClassroomStatusBadgeClass(status);
 }
 
 const showTADropdown = ref(false);
@@ -475,9 +468,17 @@ function removeSelected() {
                                     </span>
                                 </td>
                                 <td class="p-3 text-on-surface-variant whitespace-nowrap">{{ student.kelas || '-' }}</td>
-                                <td class="p-3 text-on-surface-variant">{{ student.program || '-' }}</td>
                                 <td class="p-3">
-                                    <span :class="['inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold', statusColor(student.student_status)]">
+                                    <span
+                                        v-if="student.program"
+                                        :class="['inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border', getProgramBadgeClass(student.program)]"
+                                    >
+                                        {{ student.program }}
+                                    </span>
+                                    <span v-else class="text-on-surface-variant">-</span>
+                                </td>
+                                <td class="p-3">
+                                    <span :class="['inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border', statusColor(student.student_status)]">
                                         {{ statusLabel(student.student_status) }}
                                     </span>
                                 </td>

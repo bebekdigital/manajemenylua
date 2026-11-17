@@ -1,5 +1,6 @@
 <script setup>
 import { computed, inject, nextTick, ref, watch } from 'vue';
+import { getProgramBadgeClass, getUnitBadgeClass } from '@/Utils/studentBadges';
 
 const props = defineProps({
     student: {
@@ -632,7 +633,10 @@ watch(
                 <div>
                     <label class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Unit Sekolah Formal</label>
                     <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">
-                        {{ student.unit || '-' }}
+                        <span v-if="student.unit" :class="['inline-flex items-center px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-semibold border', getUnitBadgeClass('formal')]">
+                            {{ student.unit }}
+                        </span>
+                        <span v-else class="text-slate-400">-</span>
                     </p>
                 </div>
 
@@ -640,7 +644,10 @@ watch(
                 <div>
                     <label class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Unit Kepesantrenan / Asrama</label>
                     <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">
-                        {{ student.unit_pesantren || '-' }}
+                        <span v-if="student.unit_pesantren" :class="['inline-flex items-center px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-semibold border', getUnitBadgeClass('pesantren')]">
+                            {{ student.unit_pesantren }}
+                        </span>
+                        <span v-else class="text-slate-400">-</span>
                     </p>
                 </div>
 
@@ -648,12 +655,7 @@ watch(
                 <div>
                     <label class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Program Pendidikan</label>
                     <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">
-                        <span :class="[
-                            'inline-flex items-center px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-semibold',
-                            (student.program || '').toLowerCase().includes('boarding') ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' :
-                            (student.program || '').toLowerCase().includes('fullday') ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' :
-                            'bg-slate-100 text-slate-700 border border-slate-200'
-                        ]">
+                        <span :class="['inline-flex items-center px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-semibold border', getProgramBadgeClass(student.program || 'Umum')]">
                             {{ student.program || 'Umum' }}
                         </span>
                     </p>
@@ -669,7 +671,7 @@ watch(
                 <div>
                     <label class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Angkatan</label>
                     <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">
-                        <span v-if="student.angkatan" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                        <span v-if="student.angkatan" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
                             Angkatan {{ student.angkatan }}
                         </span>
                         <span v-else class="text-slate-400">-</span>

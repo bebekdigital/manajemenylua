@@ -4,6 +4,13 @@ import { Head, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import StudentDomicileMap from './Partials/StudentDomicileMap.vue';
 import StudentSchoolOriginChart from './Partials/StudentSchoolOriginChart.vue';
+import {
+    BADGE_COLORS,
+    getGenderBadgeClass,
+    getGenderShortLabel,
+    getProgramBadgeClass,
+    getRegistrationTypeBadgeClass,
+} from '@/Utils/studentBadges';
 import { Bar } from 'vue-chartjs';
 import {
     Chart as ChartJS,
@@ -1109,11 +1116,11 @@ const displayedNewStudents = computed(() => {
                                     :class="[
                                         'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold transition-all cursor-pointer',
                                         studentGenderTab === 'L'
-                                            ? 'bg-emerald-700 text-white shadow-2xs'
+                                            ? BADGE_COLORS.gender.L.pillActiveClass
                                             : 'text-slate-600 hover:text-slate-900'
                                     ]"
                                 >
-                                    <span class="px-1 py-0.2 rounded bg-emerald-100 text-emerald-900 text-[9px] font-extrabold">L</span>
+                                    <span :class="['px-1 py-0.2 rounded text-[9px] font-extrabold', BADGE_COLORS.gender.L.pillBadgeClass]">L</span>
                                     <span>Putra ({{ chartYearCounts.male }})</span>
                                 </button>
                                 <button
@@ -1122,11 +1129,11 @@ const displayedNewStudents = computed(() => {
                                     :class="[
                                         'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold transition-all cursor-pointer',
                                         studentGenderTab === 'P'
-                                            ? 'bg-yellow-400 text-emerald-950 shadow-2xs'
+                                            ? BADGE_COLORS.gender.P.pillActiveClass
                                             : 'text-slate-600 hover:text-slate-900'
                                     ]"
                                 >
-                                    <span class="px-1 py-0.2 rounded bg-yellow-100 text-amber-900 text-[9px] font-extrabold">P</span>
+                                    <span :class="['px-1 py-0.2 rounded text-[9px] font-extrabold', BADGE_COLORS.gender.P.pillBadgeClass]">P</span>
                                     <span>Putri ({{ chartYearCounts.female }})</span>
                                 </button>
                             </div>
@@ -1157,8 +1164,8 @@ const displayedNewStudents = computed(() => {
                             >
                                 <div class="flex items-center gap-2.5 min-w-0">
                                     <span
-                                        class="w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs shrink-0"
-                                        :class="st.jk === 'L' ? 'bg-emerald-100 text-emerald-900 border border-emerald-300' : 'bg-yellow-100 text-amber-900 border border-yellow-300'"
+                                        class="w-7 h-7 rounded-lg border flex items-center justify-center font-bold text-xs shrink-0"
+                                        :class="getGenderBadgeClass(st.jk)"
                                     >
                                         {{ st.jk || '-' }}
                                     </span>
@@ -1166,8 +1173,8 @@ const displayedNewStudents = computed(() => {
                                         <div class="flex items-center gap-1.5 flex-wrap">
                                             <p class="text-xs font-bold text-slate-900 truncate">{{ st.nama || 'Siswa Tanpa Nama' }}</p>
                                             <span
-                                                class="px-1.5 py-0.2 rounded text-[9.5px] font-bold"
-                                                :class="isMutasiMasuk(st) ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-emerald-50 text-emerald-800 border border-emerald-200'"
+                                                class="px-1.5 py-0.2 rounded border text-[9.5px] font-bold"
+                                                :class="getRegistrationTypeBadgeClass(isMutasiMasuk(st))"
                                             >
                                                 {{ isMutasiMasuk(st) ? 'Mutasi' : 'Baru' }}
                                             </span>
@@ -1207,18 +1214,18 @@ const displayedNewStudents = computed(() => {
                                         <td class="py-2.5 px-3.5 font-bold text-slate-900">{{ st.nama || '-' }}</td>
                                         <td class="py-2.5 px-3.5 text-center">
                                             <span
-                                                class="inline-flex items-center justify-center px-2 py-0.5 rounded text-[10.5px] font-bold"
-                                                :class="isMutasiMasuk(st) ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-emerald-50 text-emerald-800 border border-emerald-200'"
+                                                class="inline-flex items-center justify-center px-2 py-0.5 rounded border text-[10.5px] font-bold"
+                                                :class="getRegistrationTypeBadgeClass(isMutasiMasuk(st))"
                                             >
                                                 {{ isMutasiMasuk(st) ? 'Mutasi Masuk' : 'Siswa Baru' }}
                                             </span>
                                         </td>
                                         <td class="py-2.5 px-3.5 text-center">
                                             <span
-                                                class="inline-flex items-center justify-center px-2 py-0.5 rounded text-[10.5px] font-bold"
-                                                :class="st.jk === 'L' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-yellow-50 text-amber-900 border border-yellow-300'"
+                                                class="inline-flex items-center justify-center px-2 py-0.5 rounded border text-[10.5px] font-bold"
+                                                :class="getGenderBadgeClass(st.jk)"
                                             >
-                                                {{ st.jk === 'L' ? 'L (Putra)' : (st.jk === 'P' ? 'P (Putri)' : '-') }}
+                                                {{ getGenderShortLabel(st.jk) }}
                                             </span>
                                         </td>
                                         <td class="py-2.5 px-3.5 text-slate-600 font-medium">{{ st.unit }}</td>
@@ -1258,31 +1265,30 @@ const displayedNewStudents = computed(() => {
                         </span>
                     </div>
 
-                    <!-- Box Sesuai Gambar User (Persis Screenshot dengan Persen di Bawah & Bar Perempuan Kuning) -->
                     <div class="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
-                        <!-- Baris Atas: [L] Laki-laki ... Perempuan [P] (Tanpa persen di samping nama gender) -->
+                        <!-- Baris Atas: [L] Laki-laki ... Perempuan [P] -->
                         <div class="flex items-center justify-between text-xs sm:text-[13.5px] font-bold mb-2.5 sm:mb-3">
-                            <div class="flex items-center gap-2 text-emerald-950">
-                                <span class="inline-flex items-center justify-center w-6 h-6 rounded-lg text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 shadow-2xs">L</span>
+                            <div class="flex items-center gap-2 text-cyan-950">
+                                <span :class="['inline-flex items-center justify-center w-6 h-6 rounded-lg text-[11px] font-bold border shadow-2xs', getGenderBadgeClass('L')]">L</span>
                                 <span>Laki-laki</span>
                             </div>
-                            <div class="flex items-center gap-2 text-emerald-950">
+                            <div class="flex items-center gap-2 text-fuchsia-950">
                                 <span>Perempuan</span>
-                                <span class="inline-flex items-center justify-center w-6 h-6 rounded-lg text-[11px] font-bold bg-yellow-50 text-amber-900 border border-yellow-300 shadow-2xs">P</span>
+                                <span :class="['inline-flex items-center justify-center w-6 h-6 rounded-lg text-[11px] font-bold border shadow-2xs', getGenderBadgeClass('P')]">P</span>
                             </div>
                         </div>
 
-                        <!-- Dual Bar: Emerald Tua (#047857) untuk Putra & Kuning/Amber (#fbbf24) untuk Putri -->
+                        <!-- Dual Bar: Cyan untuk Laki-laki & Fuchsia untuk Perempuan -->
                         <div class="w-full h-3.5 sm:h-4 rounded-full bg-slate-100 overflow-hidden flex">
                             <div
                                 v-if="genderTotal > 0"
-                                class="bg-[#047857] h-full transition-all duration-500"
+                                :class="[BADGE_COLORS.gender.L.barClass, 'h-full transition-all duration-500']"
                                 :style="{ width: `${malePercentage}%` }"
                                 :title="`Laki-laki: ${metrics.male} siswa (${malePercentage}%)`"
                             ></div>
                             <div
                                 v-if="genderTotal > 0"
-                                class="bg-[#fbbf24] h-full transition-all duration-500"
+                                :class="[BADGE_COLORS.gender.P.barClass, 'h-full transition-all duration-500']"
                                 :style="{ width: `${femalePercentage}%` }"
                                 :title="`Perempuan: ${metrics.female} siswa (${femalePercentage}%)`"
                             ></div>
@@ -1316,37 +1322,37 @@ const displayedNewStudents = computed(() => {
                     <div class="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
                         <!-- Baris Atas: [U] Umum ... (Opsional [F] Fullday) ... Boarding [B] -->
                         <div class="flex items-center justify-between text-xs sm:text-[13.5px] font-bold mb-2.5 sm:mb-3">
-                            <div class="flex items-center gap-2 text-emerald-950">
-                                <span class="inline-flex items-center justify-center w-6 h-6 rounded-lg text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 shadow-2xs">U</span>
+                            <div class="flex items-center gap-2 text-slate-800">
+                                <span :class="['inline-flex items-center justify-center w-6 h-6 rounded-lg text-[11px] font-bold border shadow-2xs', getProgramBadgeClass('Umum')]">U</span>
                                 <span>Umum</span>
                             </div>
-                            <div v-if="programMetrics.fullday > 0" class="flex items-center gap-2 text-amber-950">
-                                <span class="inline-flex items-center justify-center w-6 h-6 rounded-lg text-[11px] font-bold bg-yellow-50 text-amber-900 border border-yellow-300 shadow-2xs">F</span>
+                            <div v-if="programMetrics.fullday > 0" class="flex items-center gap-2 text-teal-900">
+                                <span :class="['inline-flex items-center justify-center w-6 h-6 rounded-lg text-[11px] font-bold border shadow-2xs', getProgramBadgeClass('Fullday')]">F</span>
                                 <span>Fullday</span>
                             </div>
-                            <div class="flex items-center gap-2 text-slate-900">
+                            <div class="flex items-center gap-2 text-violet-950">
                                 <span>Boarding</span>
-                                <span class="inline-flex items-center justify-center w-6 h-6 rounded-lg text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-2xs">B</span>
+                                <span :class="['inline-flex items-center justify-center w-6 h-6 rounded-lg text-[11px] font-bold border shadow-2xs', getProgramBadgeClass('Boarding')]">B</span>
                             </div>
                         </div>
 
-                        <!-- Bar: Emerald (#047857) untuk Umum, Kuning (#f59e0b) untuk Fullday bila ada, Indigo (#4f46e5) untuk Boarding -->
+                        <!-- Bar: Slate untuk Umum, Teal untuk Fullday, Violet untuk Boarding -->
                         <div class="w-full h-3.5 sm:h-4 rounded-full bg-slate-100 overflow-hidden flex">
                             <div
                                 v-if="programMetrics.total > 0 && programMetrics.umum > 0"
-                                class="bg-[#047857] h-full transition-all duration-500"
+                                :class="[BADGE_COLORS.program.umum.barClass, 'h-full transition-all duration-500']"
                                 :style="{ width: `${programMetrics.umumPercentage}%` }"
                                 :title="`Umum: ${programMetrics.umum} siswa (${programMetrics.umumPercentage}%)`"
                             ></div>
                             <div
                                 v-if="programMetrics.total > 0 && programMetrics.fullday > 0"
-                                class="bg-[#f59e0b] h-full transition-all duration-500"
+                                :class="[BADGE_COLORS.program.fullday.barClass, 'h-full transition-all duration-500']"
                                 :style="{ width: `${programMetrics.fulldayPercentage}%` }"
                                 :title="`Fullday: ${programMetrics.fullday} siswa (${programMetrics.fulldayPercentage}%)`"
                             ></div>
                             <div
                                 v-if="programMetrics.total > 0 && programMetrics.boarding > 0"
-                                class="bg-[#4f46e5] h-full transition-all duration-500"
+                                :class="[BADGE_COLORS.program.boarding.barClass, 'h-full transition-all duration-500']"
                                 :style="{ width: `${programMetrics.boardingPercentage}%` }"
                                 :title="`Boarding: ${programMetrics.boarding} siswa (${programMetrics.boardingPercentage}%)`"
                             ></div>

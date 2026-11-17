@@ -2,6 +2,12 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import {
+    getGenderBadgeClass,
+    getGenderLabel,
+    getStatusKeaktifanBadgeClass,
+    getStatusKeaktifanDotClass,
+} from '@/Utils/studentBadges';
 
 // Perbesar toleransi geser Leaflet untuk layar sentuh/mobile
 if (L.Draggable?.prototype?.options) {
@@ -1933,28 +1939,20 @@ onBeforeUnmount(() => {
                             <div class="flex items-center gap-2 shrink-0">
                                 <span
                                     class="text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-lg border text-center min-w-[24px]"
-                                    :class="student.jk === 'L'
-                                        ? 'bg-sky-50 text-sky-800 border-sky-200'
-                                        : (student.jk === 'P' ? 'bg-rose-50 text-rose-800 border-rose-200' : 'bg-slate-50 text-slate-700 border-slate-200')"
-                                    :title="student.jk === 'L' ? 'Laki-laki' : (student.jk === 'P' ? 'Perempuan' : student.jk)"
+                                    :class="getGenderBadgeClass(student.jk)"
+                                    :title="getGenderLabel(student.jk)"
                                 >
-                                    <span class="hidden sm:inline">{{ student.jk === 'L' ? 'Laki-laki' : (student.jk === 'P' ? 'Perempuan' : student.jk) }}</span>
+                                    <span class="hidden sm:inline">{{ getGenderLabel(student.jk) }}</span>
                                     <span class="sm:hidden">{{ student.jk || '-' }}</span>
                                 </span>
 
                                 <span
                                     class="text-[10px] sm:text-[11px] font-bold px-2.5 py-0.5 rounded-lg border flex items-center gap-1.5"
-                                    :class="getStudentCategory(student) === 'lulus'
-                                        ? 'bg-blue-50 text-blue-800 border-blue-200'
-                                        : (getStudentCategory(student) === 'aktif'
-                                            ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                                            : 'bg-rose-50 text-rose-800 border-rose-200')"
+                                    :class="getStatusKeaktifanBadgeClass(student)"
                                 >
                                     <span
                                         class="w-1.5 h-1.5 rounded-full"
-                                        :class="getStudentCategory(student) === 'lulus'
-                                            ? 'bg-blue-600'
-                                            : (getStudentCategory(student) === 'aktif' ? 'bg-emerald-600' : 'bg-rose-600')"
+                                        :class="getStatusKeaktifanDotClass(student)"
                                     ></span>
                                     <span>{{ getStudentStatusLabel(student) }}</span>
                                 </span>

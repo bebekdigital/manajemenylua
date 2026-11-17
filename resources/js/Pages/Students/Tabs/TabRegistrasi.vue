@@ -1,6 +1,13 @@
 <script setup>
 import { ref, reactive, computed, watch, inject } from 'vue';
 import { useForm, usePage } from '@inertiajs/vue3';
+import {
+    getProgramBadgeClass,
+    getRegistrationTypeBadgeClass,
+    getStatusKeaktifanBadgeClass,
+    getStatusKeaktifanDotClass,
+    getUnitBadgeClass,
+} from '@/Utils/studentBadges';
 
 const props = defineProps({
     student: {
@@ -174,7 +181,7 @@ const timelineUnits = computed(() => {
             name,
             type: isPesantren ? 'pesantren' : 'formal',
             badgeText: isPesantren ? 'Unit Asrama / Pesantren' : 'Unit Sekolah Formal',
-            badgeColor: isPesantren ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-emerald-50 text-emerald-800 border-emerald-200',
+            badgeColor: getUnitBadgeClass(isPesantren ? 'pesantren' : 'formal'),
         });
     };
 
@@ -268,28 +275,11 @@ function getCellData(row, unit) {
 }
 
 function getStatusBadgeClass(status) {
-    const s = (status || '').toLowerCase().trim();
-    if (s === 'aktif') {
-        return 'bg-emerald-50 text-emerald-800 border-emerald-200';
-    }
-    if (s === 'tidak aktif-sebagian' || s === 'aktif sebagian') {
-        return 'bg-amber-50 text-amber-900 border-amber-300';
-    }
-    if (s === 'lulus') {
-        return 'bg-blue-50 text-blue-800 border-blue-200';
-    }
-    if (s === 'tidak aktif' || s.includes('tidak') || s.includes('mutasi') || s.includes('drop') || s.includes('keluar')) {
-        return 'bg-rose-50 text-rose-800 border-rose-200';
-    }
-    return 'bg-slate-50 text-slate-700 border-slate-200';
+    return getStatusKeaktifanBadgeClass(status);
 }
 
 function getStatusDotClass(status) {
-    const s = (status || '').toLowerCase().trim();
-    if (s === 'aktif') return 'bg-emerald-600';
-    if (s === 'tidak aktif-sebagian' || s === 'aktif sebagian') return 'bg-amber-500';
-    if (s === 'lulus') return 'bg-blue-600';
-    return 'bg-rose-600';
+    return getStatusKeaktifanDotClass(status);
 }
 
 function formatStatus(status) {
@@ -372,11 +362,7 @@ function hasActiveUnit(row) {
                             v-if="student.status_registrasi"
                             :class="[
                                 'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border',
-                                student.status_registrasi === 'Siswa Baru'
-                                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                                    : (student.status_registrasi === 'Mutasi Masuk'
-                                        ? 'bg-amber-50 text-amber-800 border-amber-200'
-                                        : 'bg-slate-100 text-slate-700 border-slate-200')
+                                getRegistrationTypeBadgeClass(student.status_registrasi)
                             ]"
                         >
                             {{ student.status_registrasi }}
@@ -420,7 +406,7 @@ function hasActiveUnit(row) {
                 <div class="flex items-center gap-2 mb-4 pb-2 border-b border-slate-100">
                     <span
                         class="w-2.5 h-2.5 rounded-full inline-block"
-                        :class="student.status_keaktifan === 'Tidak Aktif' ? 'bg-rose-500' : (student.status_keaktifan === 'Lulus' ? 'bg-blue-600' : 'bg-emerald-600')"
+                        :class="getStatusKeaktifanDotClass(student)"
                     ></span>
                     <h4 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Status Keaktifan Siswa</h4>
                 </div>
@@ -429,25 +415,10 @@ function hasActiveUnit(row) {
                         <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Status Keaktifan</label>
                         <p class="mt-1">
                             <span
-                                v-if="student.status_keaktifan === 'Tidak Aktif' || student.student_status === 'tidak_aktif'"
-                                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200"
+                                :class="['inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border', getStatusKeaktifanBadgeClass(student)]"
                             >
-                                <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-                                Tidak Aktif
-                            </span>
-                            <span
-                                v-else-if="student.status_keaktifan === 'Lulus'"
-                                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-800 border border-blue-200"
-                            >
-                                <span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
-                                Lulus
-                            </span>
-                            <span
-                                v-else
-                                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200"
-                            >
-                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
-                                Aktif
+                                <span :class="['w-1.5 h-1.5 rounded-full', getStatusKeaktifanDotClass(student)]"></span>
+                                {{ student.status_keaktifan === 'Tidak Aktif' || student.student_status === 'tidak_aktif' ? 'Tidak Aktif' : (student.status_keaktifan === 'Lulus' ? 'Lulus' : 'Aktif') }}
                             </span>
                         </p>
                     </div>
@@ -468,9 +439,9 @@ function hasActiveUnit(row) {
                             <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">
                                 <span
                                     v-if="(student.status_keaktifan === 'Tidak Aktif' || student.student_status === 'tidak_aktif') && (student.keterangan_tidak_aktif || student.ket_tidak_aktif)"
-                                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200"
+                                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-rose-100/70 text-rose-900 border border-rose-300"
                                 >
-                                    <span class="material-symbols-outlined text-[14px] text-amber-600">info</span>
+                                    <span class="material-symbols-outlined text-[14px] text-rose-600">info</span>
                                     {{ student.keterangan_tidak_aktif || student.ket_tidak_aktif }}
                                 </span>
                                 <span v-else class="text-slate-400 font-normal">-</span>
@@ -543,7 +514,10 @@ function hasActiveUnit(row) {
                                                 Tingkat {{ row.tingkat }}
                                             </span>
                                             <span v-if="row.tingkat && row.program" class="text-slate-300">•</span>
-                                            <span v-if="row.program" class="text-slate-600 font-medium">
+                                            <span
+                                                v-if="row.program"
+                                                :class="['inline-flex items-center px-1.5 py-0.5 rounded-md text-[10.5px] font-semibold border', getProgramBadgeClass(row.program)]"
+                                            >
                                                 {{ row.program }}
                                             </span>
                                         </div>
@@ -606,7 +580,10 @@ function hasActiveUnit(row) {
                                     Tingkat {{ row.tingkat }}
                                 </span>
                                 <span v-if="row.tingkat && row.program" class="text-slate-300">•</span>
-                                <span v-if="row.program" class="text-slate-600 font-medium text-[11px]">
+                                <span
+                                    v-if="row.program"
+                                    :class="['inline-flex items-center px-1.5 py-0.5 rounded-md text-[10.5px] font-semibold border', getProgramBadgeClass(row.program)]"
+                                >
                                     {{ row.program }}
                                 </span>
                             </div>
