@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { Bubble } from 'vue-chartjs';
 import {
     Chart as ChartJS,
@@ -21,72 +21,124 @@ const props = defineProps({
 
 const emit = defineEmits(['select-tier', 'select-schools']);
 
+const bubbleChartRef = ref(null);
+const zoomWindow = ref(null); // null = semua area, atau { xMin, xMax, yMin, yMax }
+const zoomPreset = ref('all'); // 'all' | 'dense' | 'custom'
+
+// State pan / drag kanvas
+const isDragging = ref(false);
+let dragStartPx = null;
+let dragStartWindow = null;
+let suppressNextClick = false;
+
 const zeroCount = computed(() =>
     props.schools.filter((s) => s.tier === 'belum_tergarap').length
 );
 
-/**
- * Kelompokkan sekolah berdasarkan titik (X = taCount, Y = totalStudents, tier)
- * sehingga sekolah pada koordinat kembar tidak saling menumpuk, melainkan tampil sebagai bubble agregat.
- */
-const groupedCoordinates = computed(() => {
-    const groups = {
-        basis_utama: new Map(),
-        potensial: new Map(),
-        vakum: new Map(),
-    };
-
-    props.schools.forEach((school) => {
-        if (school.tier === 'belum_tergarap') return;
-        const map = groups[school.tier];
-        if (!map) return;
-
-        const key = `${school.taCount}_${school.totalStudents}`;
-        if (!map.has(key)) {
-            map.set(key, {
-                x: school.taCount,
-                y: school.totalStudents,
-                tier: school.tier,
-                schools: [],
-            });
-        }
-        map.get(key).schools.push(school);
-    });
-
-    const toPoints = (map) =>
-        Array.from(map.values()).map((item) => ({
-            x: item.x,
-            y: item.y,
-            r: Math.min(7 + Math.sqrt(item.schools.length) * 4, 22),
-            tier: item.tier,
-            count: item.schools.length,
-            schools: item.schools,
-        }));
-
-    return {
-        basis_utama: toPoints(groups.basis_utama),
-        potensial: toPoints(groups.potensial),
-        vakum: toPoints(groups.vakum),
-    };
-});
-
-const maxAxes = computed(() => {
+// Domain penuh grafik
+const fullBounds = computed(() => {
     let maxX = 4;
     let maxY = 8;
     props.schools.forEach((s) => {
         if (s.taCount > maxX) maxX = s.taCount;
         if (s.totalStudents > maxY) maxY = s.totalStudents;
     });
+    const xMax = maxX + 1;
+    const yMax = maxY + Math.max(2, Math.ceil(maxY * 0.15));
     return {
-        xMax: maxX + 1,
-        yMax: maxY + Math.max(2, Math.ceil(maxY * 0.15)),
+        xMin: -0.75,
+        xMax,
+        yMin: -Math.max(1.2, yMax * 0.08),
+        yMax,
     };
+});
+
+// Window sumbu aktif (full atau zoom/pan)
+const activeBounds = computed(() => zoomWindow.value || fullBounds.value);
+
+const isZoomed = computed(() => zoomWindow.value !== null);
+
+/**
+ * Kelompokkan sekolah berdasarkan titik integer (origX = taCount, origY = totalStudents),
+ * lalu jika dalam 1 titik terdapat lebih dari 1 tier (misal Potensial & Vakum di 1 TA, 1 Siswa),
+ * geser posisi masing-masing lingkaran secara simetris ke sisi berbeda agar terpisah dan mudah diklik.
+ */
+const groupedCoordinates = computed(() => {
+    const pointMap = new Map();
+
+    props.schools.forEach((school) => {
+        if (school.tier === 'belum_tergarap') return;
+        const coordKey = `${school.taCount}_${school.totalStudents}`;
+        if (!pointMap.has(coordKey)) {
+            pointMap.set(coordKey, {
+                origX: school.taCount,
+                origY: school.totalStudents,
+                tiers: new Map(),
+            });
+        }
+        const entry = pointMap.get(coordKey);
+        if (!entry.tiers.has(school.tier)) {
+            entry.tiers.set(school.tier, []);
+        }
+        entry.tiers.get(school.tier).push(school);
+    });
+
+    const xSpan = Math.max(2, activeBounds.value.xMax - activeBounds.value.xMin);
+    const ySpan = Math.max(3, activeBounds.value.yMax - activeBounds.value.yMin);
+
+    // Offset proporsional terhadap rentang zoom aktif sehingga jarak antar sisi selalu jelas terbaca
+    const dx = Math.min(0.22, Math.max(0.09, xSpan * 0.032));
+    const dy = Math.min(Math.max(0.28, ySpan * 0.038), 1.4);
+
+    const out = {
+        basis_utama: [],
+        potensial: [],
+        vakum: [],
+    };
+
+    const tierOrder = ['basis_utama', 'potensial', 'vakum'];
+
+    pointMap.forEach(({ origX, origY, tiers }) => {
+        const presentTiers = tierOrder.filter((t) => tiers.has(t));
+        const n = presentTiers.length;
+
+        presentTiers.forEach((tierKey, idx) => {
+            const list = tiers.get(tierKey);
+            let offsetX = 0;
+            let offsetY = 0;
+
+            if (n === 2) {
+                // Pisahkan ke sisi kiri-atas vs kanan-bawah
+                offsetX = idx === 0 ? -dx : dx;
+                offsetY = idx === 0 ? dy * 0.65 : -dy * 0.65;
+            } else if (n === 3) {
+                // Formasi segitiga mengelilingi titik asli (origX, origY)
+                const angles = [Math.PI / 2, (7 * Math.PI) / 6, (11 * Math.PI) / 6];
+                offsetX = Math.cos(angles[idx]) * dx * 1.15;
+                offsetY = Math.sin(angles[idx]) * dy * 1.05;
+            }
+
+            out[tierKey].push({
+                x: Number((origX + offsetX).toFixed(3)),
+                y: Number((origY + offsetY).toFixed(3)),
+                origX,
+                origY,
+                hasOffset: n > 1,
+                r: Math.min(7 + Math.sqrt(list.length) * 3.8, 21),
+                tier: tierKey,
+                count: list.length,
+                schools: list,
+            });
+        });
+    });
+
+    return out;
 });
 
 const chartData = computed(() => ({
     datasets: [
         {
-            label: `Basis Utama`,
+            label: 'Basis Utama',
             data: groupedCoordinates.value.basis_utama,
             backgroundColor: PSB_TIERS.basis_utama.fillRgba,
             borderColor: PSB_TIERS.basis_utama.strokeHex,
@@ -94,7 +146,7 @@ const chartData = computed(() => ({
             hoverBorderWidth: 3,
         },
         {
-            label: `Potensial`,
+            label: 'Potensial',
             data: groupedCoordinates.value.potensial,
             backgroundColor: PSB_TIERS.potensial.fillRgba,
             borderColor: PSB_TIERS.potensial.strokeHex,
@@ -102,7 +154,7 @@ const chartData = computed(() => ({
             hoverBorderWidth: 3,
         },
         {
-            label: `Vakum`,
+            label: 'Vakum',
             data: groupedCoordinates.value.vakum,
             backgroundColor: PSB_TIERS.vakum.fillRgba,
             borderColor: PSB_TIERS.vakum.strokeHex,
@@ -110,19 +162,23 @@ const chartData = computed(() => ({
             hoverBorderWidth: 3,
         },
         {
-            label: `Belum Tergarap (0,0)`,
-            data: zeroCount.value > 0
-                ? [
-                      {
-                          x: 0,
-                          y: 0,
-                          r: 17,
-                          tier: 'belum_tergarap',
-                          count: zeroCount.value,
-                          schools: [],
-                      },
-                  ]
-                : [],
+            label: 'Belum Tergarap (0,0)',
+            data:
+                zeroCount.value > 0
+                    ? [
+                          {
+                              x: 0,
+                              y: 0,
+                              origX: 0,
+                              origY: 0,
+                              hasOffset: false,
+                              r: 15,
+                              tier: 'belum_tergarap',
+                              count: zeroCount.value,
+                              schools: [],
+                          },
+                      ]
+                    : [],
             backgroundColor: 'rgba(100, 116, 139, 0.25)',
             borderColor: '#475569',
             borderWidth: 2,
@@ -131,7 +187,7 @@ const chartData = computed(() => ({
     ],
 }));
 
-// Plugin untuk menggambar garis batas kuadran & label zona pada canvas
+// Plugin canvas: zona kuadran, garis penghubung ke titik asli untuk orbital offset, dan label (0,0) di atas agar tak tabrakan
 const quadrantPlugin = {
     id: 'psbQuadrantLines',
     beforeDatasetsDraw(chart) {
@@ -146,16 +202,29 @@ const quadrantPlugin = {
         ctx.rect(chartArea.left, chartArea.top, chartArea.width, chartArea.height);
         ctx.clip();
 
-        // Highlight halus zona Basis Utama (Kanan & Atas ambang batas)
-        ctx.fillStyle = 'rgba(16, 185, 129, 0.04)';
+        // Highlight halus zona Basis Utama
+        ctx.fillStyle = 'rgba(16, 185, 129, 0.045)';
         if (xSplit < chartArea.right) {
-            ctx.fillRect(Math.max(xSplit, chartArea.left), chartArea.top, chartArea.right - Math.max(xSplit, chartArea.left), chartArea.bottom - chartArea.top);
+            ctx.fillRect(
+                Math.max(xSplit, chartArea.left),
+                chartArea.top,
+                chartArea.right - Math.max(xSplit, chartArea.left),
+                chartArea.bottom - chartArea.top
+            );
         }
         if (ySplit > chartArea.top) {
-            ctx.fillRect(chartArea.left, chartArea.top, Math.max(0, Math.min(xSplit, chartArea.right) - chartArea.left), Math.max(0, ySplit - chartArea.top));
+            const rightEdge = Math.min(xSplit, chartArea.right);
+            if (rightEdge > chartArea.left) {
+                ctx.fillRect(
+                    chartArea.left,
+                    chartArea.top,
+                    rightEdge - chartArea.left,
+                    Math.min(ySplit, chartArea.bottom) - chartArea.top
+                );
+            }
         }
 
-        // Garis putus-putus pembatas kuadran
+        // Garis putus-putus kuadran
         ctx.strokeStyle = 'rgba(148, 163, 184, 0.55)';
         ctx.lineWidth = 1.25;
         ctx.setLineDash([5, 5]);
@@ -174,7 +243,7 @@ const quadrantPlugin = {
             ctx.stroke();
         }
 
-        // Garis sumbu 0 yang lebih tegas
+        // Sumbu 0
         const xZero = scales.x.getPixelForValue(0);
         const yZero = scales.y.getPixelForValue(0);
         ctx.setLineDash([]);
@@ -193,7 +262,38 @@ const quadrantPlugin = {
             ctx.stroke();
         }
 
-        // Label zona di sudut grafik
+        // Garis hubung titik yang di-offset ke pusat grid integer aslinya (agar jelas titik kembar milik X,Y yang sama)
+        const drawnAnchors = new Set();
+        [0, 1, 2].forEach((dsIdx) => {
+            const meta = chart.getDatasetMeta(dsIdx);
+            const rawList = chart.data.datasets[dsIdx]?.data || [];
+            if (!meta?.data) return;
+
+            meta.data.forEach((pt, idx) => {
+                const raw = rawList[idx];
+                if (!raw?.hasOffset) return;
+                const ax = scales.x.getPixelForValue(raw.origX);
+                const ay = scales.y.getPixelForValue(raw.origY);
+
+                ctx.beginPath();
+                ctx.moveTo(ax, ay);
+                ctx.lineTo(pt.x, pt.y);
+                ctx.strokeStyle = 'rgba(100, 116, 139, 0.45)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+
+                const key = `${raw.origX}_${raw.origY}`;
+                if (!drawnAnchors.has(key)) {
+                    drawnAnchors.add(key);
+                    ctx.beginPath();
+                    ctx.arc(ax, ay, 2.5, 0, Math.PI * 2);
+                    ctx.fillStyle = '#475569';
+                    ctx.fill();
+                }
+            });
+        });
+
+        // Watermark kuadran
         ctx.font = '700 10px Inter, system-ui, sans-serif';
         ctx.fillStyle = 'rgba(4, 120, 87, 0.65)';
         ctx.textAlign = 'right';
@@ -202,33 +302,60 @@ const quadrantPlugin = {
         ctx.restore();
     },
     afterDatasetsDraw(chart) {
-        const { ctx, chartArea, scales } = chart;
-        if (!chartArea || !scales?.x || !scales?.y) return;
+        const { ctx, chartArea } = chart;
+        if (!chartArea) return;
 
-        // Gambar label penanda di samping titik (0, 0)
+        // Gambar label titik (0, 0) di ATAS bubble-nya (bukan di kanan) supaya tidak tabrakan dengan kolom 1 TA
         const zeroMeta = chart.getDatasetMeta(3);
         if (zeroMeta && zeroMeta.data && zeroMeta.data.length > 0) {
             const pt = zeroMeta.data[0];
             const raw = chart.data.datasets[3]?.data?.[0];
-            if (pt && raw) {
+            if (pt && raw && pt.x >= chartArea.left - 10 && pt.x <= chartArea.right + 10 && pt.y >= chartArea.top - 10 && pt.y <= chartArea.bottom + 10) {
                 ctx.save();
-                // Lingkaran luar putus-putus di titik (0,0)
                 ctx.beginPath();
-                ctx.arc(pt.x, pt.y, 21, 0, Math.PI * 2);
+                ctx.rect(chartArea.left, chartArea.top, chartArea.width, chartArea.height);
+                ctx.clip();
+
+                // Cincin luar putus-putus di (0,0)
+                ctx.beginPath();
+                ctx.arc(pt.x, pt.y, 19, 0, Math.PI * 2);
                 ctx.setLineDash([4, 3]);
                 ctx.strokeStyle = '#64748b';
                 ctx.lineWidth = 1.5;
                 ctx.stroke();
-
                 ctx.setLineDash([]);
-                ctx.font = '700 10.5px Inter, system-ui, sans-serif';
+
+                // Pill label di atas titik (0, 0)
+                const labelText = `${raw.count.toLocaleString('id-ID')} Sekolah (0,0)`;
+                ctx.font = '700 10px Inter, system-ui, sans-serif';
+                const textW = ctx.measureText(labelText).width;
+                const boxW = textW + 14;
+                const boxH = 20;
+                const boxX = Math.max(chartArea.left + 6, pt.x - 10);
+                const boxY = Math.max(chartArea.top + 6, pt.y - 44);
+
+                // Garis penghubung ke bubble (0,0)
+                ctx.beginPath();
+                ctx.moveTo(pt.x, pt.y - 19);
+                ctx.lineTo(pt.x, boxY + boxH);
+                ctx.strokeStyle = '#94a3b8';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+
+                // Kotak rounded putih
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+                ctx.strokeStyle = '#cbd5e1';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.roundRect(boxX, boxY, boxW, boxH, 6);
+                ctx.fill();
+                ctx.stroke();
+
                 ctx.fillStyle = '#334155';
                 ctx.textAlign = 'left';
                 ctx.textBaseline = 'middle';
-                ctx.fillText(`${raw.count.toLocaleString('id-ID')} Sekolah (0 Siswa)`, pt.x + 26, pt.y - 6);
-                ctx.font = '500 9.5px Inter, system-ui, sans-serif';
-                ctx.fillStyle = '#64748b';
-                ctx.fillText('Klik titik (0,0) untuk melihat daftar', pt.x + 26, pt.y + 7);
+                ctx.fillText(labelText, boxX + 7, boxY + boxH / 2);
+
                 ctx.restore();
             }
         }
@@ -238,16 +365,29 @@ const quadrantPlugin = {
 const chartOptions = computed(() => ({
     responsive: true,
     maintainAspectRatio: false,
+    animation: {
+        duration: 220,
+    },
     layout: {
-        padding: { top: 14, right: 16, bottom: 6, left: 4 },
+        padding: { top: 14, right: 18, bottom: 6, left: 4 },
     },
     onHover: (event, elements) => {
         const canvas = event?.native?.target;
         if (canvas) {
-            canvas.style.cursor = elements && elements.length > 0 ? 'pointer' : 'default';
+            if (isDragging.value) {
+                canvas.style.cursor = 'grabbing';
+            } else if (elements && elements.length > 0) {
+                canvas.style.cursor = 'pointer';
+            } else {
+                canvas.style.cursor = isZoomed.value ? 'grab' : 'default';
+            }
         }
     },
     onClick: (_event, elements, chart) => {
+        if (suppressNextClick) {
+            suppressNextClick = false;
+            return;
+        }
         if (!elements || elements.length === 0) return;
         const { datasetIndex, index } = elements[0];
         const point = chart.data.datasets[datasetIndex]?.data?.[index];
@@ -257,7 +397,7 @@ const chartOptions = computed(() => ({
             emit('select-tier', 'belum_tergarap');
         } else if (point.schools && point.schools.length > 0) {
             emit('select-schools', {
-                title: `${PSB_TIERS[point.tier]?.label || 'Sekolah'} — ${point.x} TA, ${point.y} Siswa`,
+                title: `${PSB_TIERS[point.tier]?.label || 'Sekolah'} — ${point.origX} TA, ${point.origY} Siswa`,
                 schools: point.schools,
             });
         }
@@ -281,10 +421,10 @@ const chartOptions = computed(() => ({
                     const raw = items[0]?.raw;
                     if (!raw) return '';
                     if (raw.tier === 'belum_tergarap') {
-                        return `Titik (0, 0) — Belum Tergarap`;
+                        return 'Titik (0, 0) — Belum Tergarap';
                     }
                     const tierLabel = PSB_TIERS[raw.tier]?.label || '';
-                    return `${tierLabel} (${raw.x} TA • ${raw.y} Siswa)`;
+                    return `${tierLabel} (${raw.origX} TA • ${raw.origY} Siswa)`;
                 },
                 label(item) {
                     const raw = item.raw;
@@ -292,16 +432,16 @@ const chartOptions = computed(() => ({
                     if (raw.tier === 'belum_tergarap') {
                         return [
                             `Total: ${raw.count.toLocaleString('id-ID')} sekolah berstatus 0 siswa`,
-                            `Klik penanda ini untuk memfilter tabel ke Belum Tergarap (0)`,
+                            'Klik penanda ini untuk melihat daftar Sekolah 0',
                         ];
                     }
-                    const lines = [`Jumlah: ${raw.count} sekolah pada posisi ini`];
+                    const lines = [`Jumlah: ${raw.count} sekolah pada kategori & posisi ini`];
                     const preview = (raw.schools || []).slice(0, 5);
                     preview.forEach((s) => {
                         lines.push(`• ${s.nama} (${s.kecamatan})`);
                     });
                     if (raw.count > 5) {
-                        lines.push(`... dan ${raw.count - 5} sekolah lainnya (klik untuk lihat)`);
+                        lines.push(`... dan ${raw.count - 5} sekolah lainnya (klik lingkaran)`);
                     }
                     return lines;
                 },
@@ -310,8 +450,8 @@ const chartOptions = computed(() => ({
     },
     scales: {
         x: {
-            min: -0.6,
-            max: maxAxes.value.xMax,
+            min: activeBounds.value.xMin,
+            max: activeBounds.value.xMax,
             title: {
                 display: true,
                 text: 'Konsistensi (Jumlah Tahun Ajaran Menyumbang)',
@@ -332,8 +472,8 @@ const chartOptions = computed(() => ({
             },
         },
         y: {
-            min: -1.1,
-            max: maxAxes.value.yMax,
+            min: activeBounds.value.yMin,
+            max: activeBounds.value.yMax,
             title: {
                 display: true,
                 text: 'Total Siswa Masuk',
@@ -354,12 +494,156 @@ const chartOptions = computed(() => ({
         },
     },
 }));
+
+// ============================================================
+// Kontrol Zoom & Pan (Tombol Preset, +/- Zoom, Scroll Wheel, Drag)
+// ============================================================
+function clampWindow(win) {
+    const fb = fullBounds.value;
+    const minXSpan = 1.6;
+    const minYSpan = 2.6;
+
+    let xSpan = Math.max(minXSpan, Math.min(fb.xMax - fb.xMin, win.xMax - win.xMin));
+    let ySpan = Math.max(minYSpan, Math.min(fb.yMax - fb.yMin, win.yMax - win.yMin));
+
+    let xMin = Math.max(fb.xMin, win.xMin);
+    let xMax = xMin + xSpan;
+    if (xMax > fb.xMax) {
+        xMax = fb.xMax;
+        xMin = Math.max(fb.xMin, xMax - xSpan);
+    }
+
+    let yMin = Math.max(fb.yMin, win.yMin);
+    let yMax = yMin + ySpan;
+    if (yMax > fb.yMax) {
+        yMax = fb.yMax;
+        yMin = Math.max(fb.yMin, yMax - ySpan);
+    }
+
+    const almostFull =
+        xSpan >= (fb.xMax - fb.xMin) * 0.96 && ySpan >= (fb.yMax - fb.yMin) * 0.96;
+
+    if (almostFull) {
+        return null;
+    }
+
+    return {
+        xMin: Number(xMin.toFixed(3)),
+        xMax: Number(xMax.toFixed(3)),
+        yMin: Number(yMin.toFixed(3)),
+        yMax: Number(yMax.toFixed(3)),
+    };
+}
+
+function setPresetAll() {
+    zoomWindow.value = null;
+    zoomPreset.value = 'all';
+}
+
+function setPresetDense() {
+    const fb = fullBounds.value;
+    zoomWindow.value = clampWindow({
+        xMin: -0.55,
+        xMax: Math.min(fb.xMax, 3.35),
+        yMin: -0.7,
+        yMax: Math.min(fb.yMax, 6.2),
+    });
+    zoomPreset.value = zoomWindow.value ? 'dense' : 'all';
+}
+
+function applyZoomFactor(factor, anchorDataX = null, anchorDataY = null) {
+    const cur = activeBounds.value;
+    const xSpan = cur.xMax - cur.xMin;
+    const ySpan = cur.yMax - cur.yMin;
+
+    const cx = anchorDataX !== null ? anchorDataX : cur.xMin + xSpan / 2;
+    const cy = anchorDataY !== null ? anchorDataY : cur.yMin + ySpan / 2;
+
+    const newXSpan = xSpan * factor;
+    const newYSpan = ySpan * factor;
+
+    const rx = (cx - cur.xMin) / xSpan;
+    const ry = (cy - cur.yMin) / ySpan;
+
+    zoomWindow.value = clampWindow({
+        xMin: cx - rx * newXSpan,
+        xMax: cx + (1 - rx) * newXSpan,
+        yMin: cy - ry * newYSpan,
+        yMax: cy + (1 - ry) * newYSpan,
+    });
+    zoomPreset.value = zoomWindow.value ? 'custom' : 'all';
+}
+
+function handleWheel(e) {
+    const chart = bubbleChartRef.value?.chart;
+    if (!chart?.chartArea || !chart?.scales?.x || !chart?.scales?.y) return;
+
+    const rect = chart.canvas.getBoundingClientRect();
+    const px = e.clientX - rect.left;
+    const py = e.clientY - rect.top;
+
+    // Hanya zoom jika kursor berada di dalam area plot chart
+    const area = chart.chartArea;
+    if (px < area.left || px > area.right || py < area.top || py > area.bottom) return;
+
+    e.preventDefault();
+
+    const dataX = chart.scales.x.getValueForPixel(px);
+    const dataY = chart.scales.y.getValueForPixel(py);
+    const factor = e.deltaY < 0 ? 0.78 : 1.28;
+    applyZoomFactor(factor, dataX, dataY);
+}
+
+function handlePointerDown(e) {
+    if (!isZoomed.value) return;
+    if (e.button !== 0) return;
+    isDragging.value = true;
+    suppressNextClick = false;
+    dragStartPx = { x: e.clientX, y: e.clientY };
+    dragStartWindow = { ...activeBounds.value };
+}
+
+function handlePointerMove(e) {
+    if (!isDragging.value || !dragStartPx || !dragStartWindow) return;
+    const chart = bubbleChartRef.value?.chart;
+    if (!chart?.chartArea) return;
+
+    const dxPx = e.clientX - dragStartPx.x;
+    const dyPx = e.clientY - dragStartPx.y;
+
+    if (Math.hypot(dxPx, dyPx) >= 5) {
+        suppressNextClick = true;
+    } else {
+        return;
+    }
+
+    const area = chart.chartArea;
+    const xSpan = dragStartWindow.xMax - dragStartWindow.xMin;
+    const ySpan = dragStartWindow.yMax - dragStartWindow.yMin;
+
+    const dxVal = -(dxPx / area.width) * xSpan;
+    const dyVal = (dyPx / area.height) * ySpan;
+
+    zoomWindow.value = clampWindow({
+        xMin: dragStartWindow.xMin + dxVal,
+        xMax: dragStartWindow.xMax + dxVal,
+        yMin: dragStartWindow.yMin + dyVal,
+        yMax: dragStartWindow.yMax + dyVal,
+    });
+    zoomPreset.value = zoomWindow.value ? 'custom' : 'all';
+}
+
+function handlePointerUp() {
+    isDragging.value = false;
+    dragStartPx = null;
+    dragStartWindow = null;
+}
 </script>
 
 <template>
     <div class="bg-white rounded-3xl border border-slate-200/90 p-4 sm:p-6 shadow-xs flex flex-col">
-        <!-- Header & Legend Tier -->
-        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-100">
+        <!-- Header, Zoom Controls & Legend Tier -->
+        <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-100">
             <div class="flex items-start gap-2.5">
                 <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block mt-1.5 shrink-0"></span>
                 <div>
@@ -367,34 +651,98 @@ const chartOptions = computed(() => ({
                         Matriks Potensi Sekolah (Konsistensi vs Total Siswa)
                     </h3>
                     <p class="text-[11.5px] text-slate-500 mt-0.5">
-                        Titik <span class="font-bold text-slate-700">(0, 0)</span> merangkum sekolah Belum Tergarap; klik bubble mana pun untuk melihat daftar sekolahnya.
+                        Titik kembar otomatis dipisah ke sisi berbeda; gunakan scroll / tombol <span class="font-bold text-slate-700">Zoom Area Padat</span> untuk memperbesar titik yang berdekatan.
                     </p>
                 </div>
             </div>
 
-            <!-- Legend Klik Cepat -->
-            <div class="flex items-center gap-1.5 flex-wrap">
-                <button
-                    v-for="tierKey in ['basis_utama', 'potensial', 'vakum', 'belum_tergarap']"
-                    :key="tierKey"
-                    type="button"
-                    @click="emit('select-tier', tierKey)"
-                    :class="[
-                        'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border transition-all cursor-pointer hover:opacity-90 active:scale-95',
-                        PSB_TIERS[tierKey].badgeClass,
-                    ]"
-                    :title="PSB_TIERS[tierKey].description"
-                >
-                    <span :class="['w-2 h-2 rounded-full', PSB_TIERS[tierKey].dotClass]"></span>
-                    <span>{{ PSB_TIERS[tierKey].shortLabel }}</span>
-                </button>
+            <div class="flex flex-wrap items-center gap-2">
+                <!-- Kontrol Zoom Cepat -->
+                <div class="inline-flex items-center p-0.5 bg-slate-100 rounded-xl border border-slate-200/90">
+                    <button
+                        type="button"
+                        @click="setPresetAll"
+                        :class="[
+                            'px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer',
+                            zoomPreset === 'all' ? 'bg-white text-emerald-950 shadow-2xs' : 'text-slate-500 hover:text-slate-800',
+                        ]"
+                    >
+                        Semua Area
+                    </button>
+                    <button
+                        type="button"
+                        @click="setPresetDense"
+                        :class="[
+                            'px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer',
+                            zoomPreset === 'dense' ? 'bg-emerald-900 text-yellow-200 shadow-2xs' : 'text-slate-600 hover:text-slate-900',
+                        ]"
+                        title="Perbesar area 0–3 TA & 0–6 Siswa yang paling padat"
+                    >
+                        Zoom Area Padat
+                    </button>
+                    <button
+                        type="button"
+                        @click="applyZoomFactor(0.72)"
+                        class="px-2 py-1 rounded-lg text-xs font-extrabold text-slate-700 hover:bg-white cursor-pointer"
+                        title="Perbesar (+)"
+                    >
+                        +
+                    </button>
+                    <button
+                        type="button"
+                        @click="applyZoomFactor(1.35)"
+                        :disabled="!isZoomed"
+                        class="px-2 py-1 rounded-lg text-xs font-extrabold text-slate-700 hover:bg-white disabled:opacity-35 cursor-pointer"
+                        title="Perkecil (−)"
+                    >
+                        −
+                    </button>
+                </div>
+
+                <!-- Legend Klik Cepat -->
+                <div class="flex items-center gap-1.5 flex-wrap">
+                    <button
+                        v-for="tierKey in ['basis_utama', 'potensial', 'vakum', 'belum_tergarap']"
+                        :key="tierKey"
+                        type="button"
+                        @click="emit('select-tier', tierKey)"
+                        :class="[
+                            'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border transition-all cursor-pointer hover:opacity-90 active:scale-95',
+                            PSB_TIERS[tierKey].badgeClass,
+                        ]"
+                        :title="PSB_TIERS[tierKey].description"
+                    >
+                        <span :class="['w-2 h-2 rounded-full', PSB_TIERS[tierKey].dotClass]"></span>
+                        <span>{{ PSB_TIERS[tierKey].shortLabel }}</span>
+                    </button>
+                </div>
             </div>
         </div>
 
-        <!-- Chart Canvas -->
-        <div class="h-[310px] sm:h-[360px] w-full relative">
-            <Bubble :data="chartData" :options="chartOptions" :plugins="[quadrantPlugin]" />
+        <!-- Chart Canvas dengan dukungan Wheel Zoom & Drag Pan -->
+        <div
+            class="h-[330px] sm:h-[380px] w-full relative select-none"
+            @wheel="handleWheel"
+            @pointerdown="handlePointerDown"
+            @pointermove="handlePointerMove"
+            @pointerup="handlePointerUp"
+            @pointerleave="handlePointerUp"
+        >
+            <Bubble ref="bubbleChartRef" :data="chartData" :options="chartOptions" :plugins="[quadrantPlugin]" />
+
+            <div
+                v-if="isZoomed"
+                class="absolute bottom-11 right-3 z-10 px-2.5 py-1 rounded-lg bg-white/95 border border-slate-200 shadow-xs text-[10.5px] font-semibold text-slate-600 flex items-center gap-2"
+            >
+                <span>Mode Zoom (geser kanvas atau scroll)</span>
+                <button
+                    type="button"
+                    @click="setPresetAll"
+                    class="text-emerald-700 font-bold hover:underline cursor-pointer"
+                >
+                    Reset
+                </button>
+            </div>
         </div>
     </div>
 </template>
-
