@@ -100,7 +100,7 @@ const navItems = computed(() => {
                 external: false,
             },
             {
-                label: 'Ringkasan PSB',
+                label: 'Pemetaan',
                 href: '/psb/ringkasan',
                 icon: 'analytics',
                 active: path.startsWith('/psb/ringkasan'),

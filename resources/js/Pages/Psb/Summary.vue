@@ -488,7 +488,7 @@ function exportExcel() {
 
 <template>
     <div>
-        <Head title="Ringkasan PSB - Pemetaan Sekolah Asal Solo Raya" />
+        <Head title="Pemetaan Potensi PSB" />
 
         <div ref="pageContainerRef" class="flex-grow max-w-container-max mx-auto w-full px-4 md:px-gutter pt-4 md:pt-6 pb-8">
             <!-- Sticky Mobile Header (Muncul saat di-scroll) -->
@@ -498,7 +498,7 @@ function exportExcel() {
             >
                 <div class="min-w-0">
                     <span class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block leading-none">PSB</span>
-                    <h2 class="text-sm font-bold text-slate-900 truncate">Ringkasan Sekolah Asal</h2>
+                    <h2 class="text-sm font-bold text-slate-900 truncate">Pemetaan Potensi PSB</h2>
                 </div>
                 <span class="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-900 border border-emerald-200 text-[11px] font-bold shrink-0">
                     {{ kpiStats.reached }} / {{ kpiStats.total.toLocaleString('id-ID') }}
@@ -508,20 +508,15 @@ function exportExcel() {
             <!-- Page Header -->
             <div ref="mainTitleRef" class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
                 <div>
-                    <div class="flex items-center gap-2 mb-1">
-                        <span class="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-200 text-[10.5px] font-bold uppercase tracking-wider">
-                            PSB • Solo Raya
-                        </span>
-                        <span v-if="datasetMeta?.total" class="text-[11px] text-slate-400 font-medium">
-                            Sumber Referensi: Pusdatin Kemendikdasmen ({{ datasetMeta.total.toLocaleString('id-ID') }} SD/MI/PKBM)
+                    <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+                        Pemetaan Potensi PSB
+                    </h1>
+                    <div v-if="datasetMeta?.total" class="mt-2">
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-semibold">
+                            <span class="material-symbols-outlined text-[14px] text-emerald-700">verified</span>
+                            <span>Sumber Referensi: Pusdatin Kemendikdasmen ({{ datasetMeta.total.toLocaleString('id-ID') }} SD/MI/PKBM)</span>
                         </span>
                     </div>
-                    <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
-                        Ringkasan Sekolah Asal (SD / MI / PKBM)
-                    </h1>
-                    <p class="text-xs sm:text-sm text-slate-500 mt-1">
-                        Sandingkan populasi SD sederajat se-Solo Raya dengan histori siswa masuk untuk memetakan sekolah basis, potensial, vakum, maupun yang masih <span class="font-bold text-slate-700">0 siswa</span>.
-                    </p>
                 </div>
 
                 <div class="flex items-center gap-2 self-start sm:self-auto shrink-0">
@@ -571,34 +566,61 @@ function exportExcel() {
                         </div>
                     </div>
 
-                    <!-- Filter TA & Status Pendaftaran -->
-                    <div class="flex flex-wrap items-center gap-2.5">
-                        <div class="flex items-center gap-1.5">
-                            <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">TA Masuk:</label>
+                    <!-- Filter TA & Status Pendaftaran (Mobile: sebaris 2 kolom dropdown; Desktop: TA dropdown + tab warna) -->
+                    <div class="grid grid-cols-2 md:flex md:flex-wrap items-center gap-2 sm:gap-2.5 w-full lg:w-auto">
+                        <!-- Filter TA (Warna Indigo) -->
+                        <div class="flex flex-col md:flex-row md:items-center gap-1 md:gap-1.5 min-w-0">
+                            <label class="text-[10.5px] font-bold text-indigo-700 uppercase tracking-wider shrink-0">TA Masuk</label>
                             <select
                                 v-model="selectedTa"
-                                class="rounded-xl border border-slate-200 bg-slate-50 hover:bg-white px-3 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:border-emerald-600 cursor-pointer"
+                                :class="[
+                                    'w-full md:w-auto rounded-xl border px-3 py-1.5 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 cursor-pointer transition-colors',
+                                    selectedTa !== 'Semua'
+                                        ? 'bg-indigo-100/90 border-indigo-300 text-indigo-950'
+                                        : 'bg-indigo-50/80 hover:bg-indigo-100/60 border-indigo-200 text-indigo-900',
+                                ]"
                             >
-                                <option value="Semua">Semua TA (All Time)</option>
+                                <option value="Semua">Semua TA</option>
                                 <option v-for="ta in availableTaNames" :key="ta" :value="ta">TA {{ ta }}</option>
                             </select>
                         </div>
 
-                        <div class="bg-slate-100 p-1 rounded-full inline-flex items-center gap-0.5 border border-slate-200/90">
+                        <!-- Mobile: Dropdown Semua Masuk sebaris di samping TA -->
+                        <div class="flex md:hidden flex-col gap-1 min-w-0">
+                            <label class="text-[10.5px] font-bold text-teal-700 uppercase tracking-wider shrink-0">Status Masuk</label>
+                            <select
+                                v-model="registrationFilter"
+                                :class="[
+                                    'w-full rounded-xl border px-3 py-1.5 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-teal-500/20 cursor-pointer transition-colors',
+                                    registrationFilter === 'mutasi'
+                                        ? 'bg-amber-100/90 border-amber-300 text-amber-950'
+                                        : (registrationFilter === 'baru'
+                                            ? 'bg-emerald-100/90 border-emerald-300 text-emerald-950'
+                                            : 'bg-teal-50/80 border-teal-200 text-teal-900'),
+                                ]"
+                            >
+                                <option value="all">Semua Masuk</option>
+                                <option value="baru">Siswa Baru</option>
+                                <option value="mutasi">Mutasi</option>
+                            </select>
+                        </div>
+
+                        <!-- Desktop: Tab Semua Masuk | Siswa Baru | Mutasi -->
+                        <div class="hidden md:inline-flex bg-teal-50/80 p-1 rounded-full items-center gap-0.5 border border-teal-200/90">
                             <button
                                 v-for="opt in [
-                                    { key: 'all', label: 'Semua Masuk' },
-                                    { key: 'baru', label: 'Siswa Baru' },
-                                    { key: 'mutasi', label: 'Mutasi' },
+                                    { key: 'all', label: 'Semua Masuk', activeClass: 'bg-emerald-900 text-yellow-200 shadow-2xs' },
+                                    { key: 'baru', label: 'Siswa Baru', activeClass: 'bg-emerald-600 text-white shadow-2xs' },
+                                    { key: 'mutasi', label: 'Mutasi', activeClass: 'bg-amber-600 text-white shadow-2xs' },
                                 ]"
                                 :key="opt.key"
                                 type="button"
                                 @click="registrationFilter = opt.key"
                                 :class="[
-                                    'px-2.5 py-1 rounded-full text-[11px] font-bold transition-all cursor-pointer',
+                                    'px-3 py-1 rounded-full text-[11px] font-bold transition-all cursor-pointer',
                                     registrationFilter === opt.key
-                                        ? 'bg-white text-emerald-950 shadow-2xs border border-slate-200'
-                                        : 'text-slate-500 hover:text-slate-800',
+                                        ? opt.activeClass
+                                        : 'text-teal-800/80 hover:text-teal-950 hover:bg-teal-100/60',
                                 ]"
                             >
                                 {{ opt.label }}
@@ -610,10 +632,15 @@ function exportExcel() {
                 <!-- Baris 2: Filter Wilayah (Kabupaten, Kecamatan) + Bentuk + Status Sekolah -->
                 <div class="pt-3 border-t border-slate-100 grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                     <div>
-                        <label class="block text-[10.5px] font-bold text-slate-400 uppercase tracking-wider mb-1">Kabupaten / Kota</label>
+                        <label class="block text-[10.5px] font-bold text-sky-700 uppercase tracking-wider mb-1">Kabupaten / Kota</label>
                         <select
                             v-model="selectedKabupaten"
-                            class="w-full rounded-xl border border-slate-200 bg-slate-50 hover:bg-white px-3 py-2 text-xs font-semibold text-slate-800 focus:outline-none focus:border-emerald-600 cursor-pointer"
+                            :class="[
+                                'w-full rounded-xl border px-3 py-2 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-sky-500/20 cursor-pointer transition-colors',
+                                selectedKabupaten !== 'Semua'
+                                    ? 'bg-sky-100/90 border-sky-300 text-sky-950'
+                                    : 'bg-sky-50/80 hover:bg-sky-100/60 border-sky-200 text-sky-900',
+                            ]"
                         >
                             <option value="Semua">Semua Solo Raya (7 Kab/Kota)</option>
                             <option v-for="kab in SOLO_RAYA_KABUPATENS" :key="kab" :value="kab">{{ kab === 'Surakarta' ? 'Kota Surakarta' : `Kab. ${kab}` }}</option>
@@ -621,10 +648,15 @@ function exportExcel() {
                     </div>
 
                     <div>
-                        <label class="block text-[10.5px] font-bold text-slate-400 uppercase tracking-wider mb-1">Kecamatan</label>
+                        <label class="block text-[10.5px] font-bold text-teal-700 uppercase tracking-wider mb-1">Kecamatan</label>
                         <select
                             v-model="selectedKecamatan"
-                            class="w-full rounded-xl border border-slate-200 bg-slate-50 hover:bg-white px-3 py-2 text-xs font-semibold text-slate-800 focus:outline-none focus:border-emerald-600 cursor-pointer"
+                            :class="[
+                                'w-full rounded-xl border px-3 py-2 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-teal-500/20 cursor-pointer transition-colors',
+                                selectedKecamatan !== 'Semua'
+                                    ? 'bg-teal-100/90 border-teal-300 text-teal-950'
+                                    : 'bg-teal-50/80 hover:bg-teal-100/60 border-teal-200 text-teal-900',
+                            ]"
                         >
                             <option value="Semua">Semua Kecamatan ({{ availableKecamatans.length }})</option>
                             <option v-for="kec in availableKecamatans" :key="kec" :value="kec">{{ kec }}</option>
@@ -632,10 +664,15 @@ function exportExcel() {
                     </div>
 
                     <div>
-                        <label class="block text-[10.5px] font-bold text-slate-400 uppercase tracking-wider mb-1">Bentuk Sekolah</label>
+                        <label class="block text-[10.5px] font-bold text-violet-700 uppercase tracking-wider mb-1">Bentuk Sekolah</label>
                         <select
                             v-model="selectedBentuk"
-                            class="w-full rounded-xl border border-slate-200 bg-slate-50 hover:bg-white px-3 py-2 text-xs font-semibold text-slate-800 focus:outline-none focus:border-emerald-600 cursor-pointer"
+                            :class="[
+                                'w-full rounded-xl border px-3 py-2 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-violet-500/20 cursor-pointer transition-colors',
+                                selectedBentuk !== 'Semua'
+                                    ? 'bg-violet-100/90 border-violet-300 text-violet-950'
+                                    : 'bg-violet-50/80 hover:bg-violet-100/60 border-violet-200 text-violet-900',
+                            ]"
                         >
                             <option value="Semua">Semua (SD, MI, PKBM)</option>
                             <option value="SD">SD Sederajat</option>
@@ -645,10 +682,15 @@ function exportExcel() {
                     </div>
 
                     <div>
-                        <label class="block text-[10.5px] font-bold text-slate-400 uppercase tracking-wider mb-1">Status Sekolah</label>
+                        <label class="block text-[10.5px] font-bold text-amber-700 uppercase tracking-wider mb-1">Status Sekolah</label>
                         <select
                             v-model="selectedSchoolStatus"
-                            class="w-full rounded-xl border border-slate-200 bg-slate-50 hover:bg-white px-3 py-2 text-xs font-semibold text-slate-800 focus:outline-none focus:border-emerald-600 cursor-pointer"
+                            :class="[
+                                'w-full rounded-xl border px-3 py-2 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-amber-500/20 cursor-pointer transition-colors',
+                                selectedSchoolStatus !== 'Semua'
+                                    ? 'bg-amber-100/90 border-amber-300 text-amber-950'
+                                    : 'bg-amber-50/80 hover:bg-amber-100/60 border-amber-200 text-amber-900',
+                            ]"
                         >
                             <option value="Semua">Semua Status (Negeri &amp; Swasta)</option>
                             <option value="Negeri">Negeri</option>

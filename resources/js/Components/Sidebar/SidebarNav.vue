@@ -93,7 +93,7 @@ const canViewEmployee = computed(() => {
                     <SidebarMenuItem
                         href="/psb/ringkasan"
                         icon="analytics"
-                        label="Ringkasan"
+                        label="Pemetaan"
                         :active="currentRoute === 'psb-summary'"
                     />
                 </ul>

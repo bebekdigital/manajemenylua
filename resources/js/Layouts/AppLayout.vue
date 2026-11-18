@@ -36,7 +36,7 @@ const activeRouteLabel = computed(() => {
     if (route === 'persetujuan') return 'Persetujuan Perizinan';
     if (route === 'student-statistics') return 'Statistik Siswa';
     if (route === 'students') return 'Data Siswa';
-    if (route === 'psb-summary') return 'Ringkasan PSB';
+    if (route === 'psb-summary') return 'Pemetaan Potensi PSB';
     if (route === 'administration') return 'Administrasi & Cetak Dokumen';
     if (route === 'staff-statistics') return 'Statistik Pegawai';
     if (route === 'staff') return 'Data Pegawai';

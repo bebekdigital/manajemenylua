@@ -44,7 +44,7 @@ class SectionController extends Controller
             'color' => 'emerald',
             'submenus' => [
                 [
-                    'title' => 'Ringkasan PSB',
+                    'title' => 'Pemetaan PSB',
                     'subtitle' => 'Sandingkan data SD/MI/PKBM se-Solo Raya dengan histori siswa baru.',
                     'icon' => 'analytics',
                     'href' => '/psb/ringkasan',
