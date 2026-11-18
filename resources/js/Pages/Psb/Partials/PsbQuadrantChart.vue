@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { Bubble } from 'vue-chartjs';
 import {
     Chart as ChartJS,
@@ -21,14 +21,20 @@ const props = defineProps({
 
 const emit = defineEmits(['select-tier', 'select-schools']);
 
+const chartWrapperRef = ref(null);
 const bubbleChartRef = ref(null);
 const zoomWindow = ref(null); // null = semua area, atau { xMin, xMax, yMin, yMax }
 const zoomPreset = ref('all'); // 'all' | 'dense' | 'custom'
 
-// State pan / drag kanvas
+// State pan / drag & pinch-to-zoom kanvas
 const isDragging = ref(false);
+const isPinching = ref(false);
 let dragStartPx = null;
 let dragStartWindow = null;
+let pinchStartDist = 0;
+let pinchStartMidPx = null;
+let pinchStartDataMid = null;
+let pinchStartWindow = null;
 let suppressNextClick = false;
 
 const zeroCount = computed(() =>
@@ -366,7 +372,7 @@ const chartOptions = computed(() => ({
     responsive: true,
     maintainAspectRatio: false,
     animation: {
-        duration: 220,
+        duration: isDragging.value || isPinching.value ? 0 : 180,
     },
     layout: {
         padding: { top: 14, right: 18, bottom: 6, left: 4 },
@@ -595,6 +601,7 @@ function handleWheel(e) {
 }
 
 function handlePointerDown(e) {
+    if (e.pointerType === 'touch') return;
     if (!isZoomed.value) return;
     if (e.button !== 0) return;
     isDragging.value = true;
@@ -604,6 +611,7 @@ function handlePointerDown(e) {
 }
 
 function handlePointerMove(e) {
+    if (e.pointerType === 'touch') return;
     if (!isDragging.value || !dragStartPx || !dragStartWindow) return;
     const chart = bubbleChartRef.value?.chart;
     if (!chart?.chartArea) return;
@@ -633,11 +641,162 @@ function handlePointerMove(e) {
     zoomPreset.value = zoomWindow.value ? 'custom' : 'all';
 }
 
-function handlePointerUp() {
+function handlePointerUp(e) {
+    if (e?.pointerType === 'touch') return;
     isDragging.value = false;
     dragStartPx = null;
     dragStartWindow = null;
 }
+
+// ============================================================
+// Touch Gestures Mobile: Pinch-to-Zoom (2 Jari) & Pan (1 Jari)
+// ============================================================
+function getTouchDistAndMid(t0, t1) {
+    const dist = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY);
+    const midX = (t0.clientX + t1.clientX) / 2;
+    const midY = (t0.clientY + t1.clientY) / 2;
+    return { dist, midX, midY };
+}
+
+function startPinchFromTouches(touches) {
+    const chart = bubbleChartRef.value?.chart;
+    if (!chart?.chartArea || !chart?.scales?.x || !chart?.scales?.y) return;
+
+    const { dist, midX, midY } = getTouchDistAndMid(touches[0], touches[1]);
+    if (dist < 10) return;
+
+    const rect = chart.canvas.getBoundingClientRect();
+    const px = midX - rect.left;
+    const py = midY - rect.top;
+
+    isPinching.value = true;
+    isDragging.value = false;
+    suppressNextClick = true;
+    pinchStartDist = dist;
+    pinchStartMidPx = { x: px, y: py };
+    pinchStartDataMid = {
+        x: chart.scales.x.getValueForPixel(px),
+        y: chart.scales.y.getValueForPixel(py),
+    };
+    pinchStartWindow = { ...activeBounds.value };
+}
+
+function handleTouchStart(e) {
+    if (e.touches.length === 2) {
+        e.preventDefault();
+        startPinchFromTouches(e.touches);
+    } else if (e.touches.length === 1 && isZoomed.value) {
+        isPinching.value = false;
+        isDragging.value = true;
+        suppressNextClick = false;
+        dragStartPx = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        dragStartWindow = { ...activeBounds.value };
+    }
+}
+
+function handleTouchMove(e) {
+    const chart = bubbleChartRef.value?.chart;
+    if (!chart?.chartArea) return;
+
+    if (e.touches.length === 2) {
+        e.preventDefault();
+        if (!isPinching.value || !pinchStartWindow || !pinchStartDataMid) {
+            startPinchFromTouches(e.touches);
+            return;
+        }
+
+        const { dist, midX, midY } = getTouchDistAndMid(e.touches[0], e.touches[1]);
+        if (dist < 10 || pinchStartDist < 10) return;
+
+        const rect = chart.canvas.getBoundingClientRect();
+        const curPx = midX - rect.left;
+        const curPy = midY - rect.top;
+        const area = chart.chartArea;
+
+        const scaleFactor = pinchStartDist / dist;
+        const startXSpan = pinchStartWindow.xMax - pinchStartWindow.xMin;
+        const startYSpan = pinchStartWindow.yMax - pinchStartWindow.yMin;
+
+        const newXSpan = startXSpan * scaleFactor;
+        const newYSpan = startYSpan * scaleFactor;
+
+        // Jaga titik data awal tetap mengikuti posisi titik tengah kedua jari di layar
+        const rx = Math.max(0, Math.min(1, (curPx - area.left) / area.width));
+        const ry = Math.max(0, Math.min(1, (area.bottom - curPy) / area.height));
+
+        zoomWindow.value = clampWindow({
+            xMin: pinchStartDataMid.x - rx * newXSpan,
+            xMax: pinchStartDataMid.x + (1 - rx) * newXSpan,
+            yMin: pinchStartDataMid.y - ry * newYSpan,
+            yMax: pinchStartDataMid.y + (1 - ry) * newYSpan,
+        });
+        zoomPreset.value = zoomWindow.value ? 'custom' : 'all';
+        return;
+    }
+
+    if (e.touches.length === 1 && isDragging.value && isZoomed.value && dragStartPx && dragStartWindow) {
+        const dxPx = e.touches[0].clientX - dragStartPx.x;
+        const dyPx = e.touches[0].clientY - dragStartPx.y;
+
+        if (Math.hypot(dxPx, dyPx) >= 4) {
+            suppressNextClick = true;
+            e.preventDefault();
+        } else {
+            return;
+        }
+
+        const area = chart.chartArea;
+        const xSpan = dragStartWindow.xMax - dragStartWindow.xMin;
+        const ySpan = dragStartWindow.yMax - dragStartWindow.yMin;
+
+        const dxVal = -(dxPx / area.width) * xSpan;
+        const dyVal = (dyPx / area.height) * ySpan;
+
+        zoomWindow.value = clampWindow({
+            xMin: dragStartWindow.xMin + dxVal,
+            xMax: dragStartWindow.xMax + dxVal,
+            yMin: dragStartWindow.yMin + dyVal,
+            yMax: dragStartWindow.yMax + dyVal,
+        });
+        zoomPreset.value = zoomWindow.value ? 'custom' : 'all';
+    }
+}
+
+function handleTouchEnd(e) {
+    if (e.touches.length === 0) {
+        isPinching.value = false;
+        isDragging.value = false;
+        dragStartPx = null;
+        dragStartWindow = null;
+        pinchStartWindow = null;
+        pinchStartDataMid = null;
+    } else if (e.touches.length === 1 && isPinching.value) {
+        isPinching.value = false;
+        if (isZoomed.value) {
+            isDragging.value = true;
+            dragStartPx = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            dragStartWindow = { ...activeBounds.value };
+        }
+    }
+}
+
+onMounted(() => {
+    const el = chartWrapperRef.value;
+    if (!el) return;
+    el.addEventListener('touchstart', handleTouchStart, { passive: false });
+    el.addEventListener('touchmove', handleTouchMove, { passive: false });
+    el.addEventListener('touchend', handleTouchEnd, { passive: true });
+    el.addEventListener('touchcancel', handleTouchEnd, { passive: true });
+});
+
+onBeforeUnmount(() => {
+    const el = chartWrapperRef.value;
+    if (!el) return;
+    el.removeEventListener('touchstart', handleTouchStart);
+    el.removeEventListener('touchmove', handleTouchMove);
+    el.removeEventListener('touchend', handleTouchEnd);
+    el.removeEventListener('touchcancel', handleTouchEnd);
+});
 </script>
 
 <template>
@@ -719,9 +878,11 @@ function handlePointerUp() {
             </div>
         </div>
 
-        <!-- Chart Canvas dengan dukungan Wheel Zoom & Drag Pan -->
+        <!-- Chart Canvas dengan dukungan Wheel Zoom, Pinch-to-Zoom (Mobile), & Drag Pan -->
         <div
+            ref="chartWrapperRef"
             class="h-[330px] sm:h-[380px] w-full relative select-none"
+            :style="{ touchAction: isZoomed ? 'none' : 'pan-y' }"
             @wheel="handleWheel"
             @pointerdown="handlePointerDown"
             @pointermove="handlePointerMove"
