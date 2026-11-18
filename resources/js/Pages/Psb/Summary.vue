@@ -490,15 +490,14 @@ function exportExcel() {
     <div>
         <Head title="Pemetaan Potensi PSB" />
 
-        <div ref="pageContainerRef" class="flex-grow max-w-container-max mx-auto w-full px-4 md:px-gutter pt-4 md:pt-6 pb-8">
+        <div ref="pageContainerRef" class="flex-grow max-w-container-max mx-auto w-full p-4 md:p-margin-desktop bg-white min-h-screen">
             <!-- Sticky Mobile Header (Muncul saat di-scroll) -->
             <div
-                class="md:hidden fixed top-0 inset-x-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 px-4 py-2.5 flex items-center justify-between transition-all duration-200"
-                :class="isScrolledPastTitle ? 'translate-y-0 opacity-100 shadow-xs' : '-translate-y-full opacity-0 pointer-events-none'"
+                class="md:hidden fixed top-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 px-4 py-3 pt-[max(0.85rem,env(safe-area-inset-top))] flex items-center justify-between transition-all duration-200"
+                :class="isScrolledPastTitle ? 'translate-y-0 opacity-100 shadow-2xs' : '-translate-y-full opacity-0 pointer-events-none'"
             >
                 <div class="min-w-0">
-                    <span class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block leading-none">PSB</span>
-                    <h2 class="text-sm font-bold text-slate-900 truncate">Pemetaan Potensi PSB</h2>
+                    <h2 class="text-base font-bold text-slate-900 tracking-tight truncate">Pemetaan Potensi PSB</h2>
                 </div>
                 <span class="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-900 border border-emerald-200 text-[11px] font-bold shrink-0">
                     {{ kpiStats.reached }} / {{ kpiStats.total.toLocaleString('id-ID') }}
@@ -506,15 +505,15 @@ function exportExcel() {
             </div>
 
             <!-- Page Header -->
-            <div ref="mainTitleRef" class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+            <div ref="mainTitleRef" class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-3 sm:pt-4 md:pt-0 mb-5">
                 <div>
-                    <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+                    <h1 class="text-2xl sm:text-2xl font-extrabold text-slate-900 tracking-tight leading-tight">
                         Pemetaan Potensi PSB
                     </h1>
-                    <div v-if="datasetMeta?.total" class="mt-2">
+                    <div class="mt-2">
                         <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-semibold">
                             <span class="material-symbols-outlined text-[14px] text-emerald-700">verified</span>
-                            <span>Sumber Referensi: Pusdatin Kemendikdasmen ({{ datasetMeta.total.toLocaleString('id-ID') }} SD/MI/PKBM)</span>
+                            <span>Sumber : Pusdatin Kemendikdasmen</span>
                         </span>
                     </div>
                 </div>

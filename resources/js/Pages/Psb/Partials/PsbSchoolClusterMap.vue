@@ -37,12 +37,15 @@ let desaLayer = null;
 let desaCanvasRenderer = null;
 let kabupatenLayer = null;
 let schoolPointsLayer = null;
+let areaLabelLayer = null;
+let schoolLabelLayer = null;
 let pointsCanvasRenderer = null;
 let campusMarker = null;
 let activeHoverLayer = null;
 let currentHoveredKey = null;
 let singleTooltip = null;
 let desaLoadingPromise = null;
+let currentDotCandidates = [];
 
 // Lokasi Kampus Sekolah (sama dengan StudentDomicileMap)
 const SCHOOL_COORDS = [-7.4989289, 110.822498];
@@ -469,6 +472,7 @@ function buildDesaLayer() {
 function renderSchoolDots() {
     if (!map || !schoolPointsLayer) return;
     schoolPointsLayer.clearLayers();
+    currentDotCandidates = [];
 
     if (!showSchoolDots.value) return;
 
@@ -494,6 +498,7 @@ function renderSchoolDots() {
     // Urutkan supaya Basis Utama di lapisan paling atas
     const order = { belum_tergarap: 0, vakum: 1, potensial: 2, basis_utama: 3 };
     candidates.sort((a, b) => (order[a.tier] || 0) - (order[b.tier] || 0));
+    currentDotCandidates = candidates;
 
     candidates.forEach((school) => {
         const tier = PSB_TIERS[school.tier] || PSB_TIERS.belum_tergarap;
@@ -518,6 +523,152 @@ function renderSchoolDots() {
 
     if (schoolPointsLayer.bringToFront) {
         schoolPointsLayer.bringToFront();
+    }
+}
+
+function renderMapLabels() {
+    if (!map) return;
+
+    const zoom = map.getZoom();
+    const viewBounds = map.getBounds().pad(0.08);
+
+    // 1. Label Nama Kecamatan / Nama Desa
+    if (areaLabelLayer) {
+        areaLabelLayer.clearLayers();
+
+        if (aggregationLevel.value === 'kecamatan' && kecamatanGeoData.value?.features) {
+            const minGapPx = zoom >= 11 ? 26 : (zoom >= 10 ? 34 : 44);
+            const items = [];
+
+            kecamatanGeoData.value.features.forEach((f) => {
+                const lat = Number(f.properties?.lat);
+                const lng = Number(f.properties?.lng);
+                const name = f.properties?.kecamatan;
+                if (!name || !lat || !lng || !viewBounds.contains([lat, lng])) return;
+                const stats = getKecStats(f);
+                items.push({ lat, lng, name, students: stats.students });
+            });
+
+            // Prioritaskan kecamatan dengan siswa masuk agar labelnya selalu muncul dulu
+            items.sort((a, b) => b.students - a.students);
+
+            const placedPts = [];
+            items.forEach((item) => {
+                const pt = map.latLngToContainerPoint([item.lat, item.lng]);
+                const crowded = placedPts.some((p) => Math.hypot(pt.x - p.x, pt.y - p.y) < minGapPx);
+                if (crowded) return;
+                placedPts.push(pt);
+
+                const isDarkBg = item.students >= 10;
+                const textColor = isDarkBg ? '#ffffff' : '#1e293b';
+                const shadow = isDarkBg
+                    ? '0 1px 2px rgba(6,78,59,0.95), 0 0 3px rgba(6,78,59,0.85)'
+                    : '0 0 3px rgba(255,255,255,0.95), 0 0 4px rgba(255,255,255,0.95)';
+                const fontSize = zoom >= 11 ? '10px' : '9px';
+
+                L.marker([item.lat, item.lng], {
+                    interactive: false,
+                    icon: L.divIcon({
+                        className: 'psb-map-text-label',
+                        iconSize: [0, 0],
+                        html: `<div style="transform:translate(-50%,-50%); white-space:nowrap; font-size:${fontSize}; font-weight:700; color:${textColor}; text-shadow:${shadow}; pointer-events:none; letter-spacing:0.01em;">${escapeHtml(item.name)}</div>`,
+                    }),
+                }).addTo(areaLabelLayer);
+            });
+        } else if (aggregationLevel.value === 'desa' && desaGeoData.value?.features) {
+            // Tampilkan semua nama desa saat masuk 1 kecamatan, atau saat zoom >= 12 di mode seluruh Solo Raya
+            const shouldRenderDesa = Boolean(drillKecamatan.value) || zoom >= 12;
+            if (shouldRenderDesa) {
+                const minGapPx = zoom >= 13 ? 24 : 36;
+                let features = desaGeoData.value.features;
+                if (drillKecamatan.value) {
+                    features = features.filter(
+                        (f) =>
+                            normalizeWilayahKey(f.properties?.kecamatan) === drillKecamatan.value.kecKey &&
+                            normalizeWilayahKey(f.properties?.kabupaten) === drillKecamatan.value.kabKey
+                    );
+                } else if (props.selectedKabupaten && props.selectedKabupaten !== 'Semua') {
+                    const kabKey = normalizeWilayahKey(props.selectedKabupaten);
+                    features = features.filter((f) => normalizeWilayahKey(f.properties?.kabupaten) === kabKey);
+                }
+
+                const items = [];
+                features.forEach((f) => {
+                    const lat = Number(f.properties?.lat);
+                    const lng = Number(f.properties?.lng);
+                    const name = f.properties?.desa;
+                    if (!name || !lat || !lng || !viewBounds.contains([lat, lng])) return;
+                    const stats = getDesaStats(f);
+                    items.push({ lat, lng, name, students: stats.students });
+                });
+
+                items.sort((a, b) => b.students - a.students);
+
+                const placedPts = [];
+                items.forEach((item) => {
+                    const pt = map.latLngToContainerPoint([item.lat, item.lng]);
+                    const crowded = placedPts.some((p) => Math.hypot(pt.x - p.x, pt.y - p.y) < minGapPx);
+                    if (crowded) return;
+                    placedPts.push(pt);
+
+                    const isDarkBg = item.students >= 10;
+                    const textColor = isDarkBg ? '#ffffff' : '#334155';
+                    const shadow = isDarkBg
+                        ? '0 1px 2px rgba(6,78,59,0.95), 0 0 3px rgba(6,78,59,0.85)'
+                        : '0 0 3px rgba(255,255,255,0.98), 0 0 4px rgba(255,255,255,0.98)';
+
+                    L.marker([item.lat, item.lng], {
+                        interactive: false,
+                        icon: L.divIcon({
+                            className: 'psb-map-text-label',
+                            iconSize: [0, 0],
+                            html: `<div style="transform:translate(-50%,-50%); white-space:nowrap; font-size:9.5px; font-weight:700; color:${textColor}; text-shadow:${shadow}; pointer-events:none;">${escapeHtml(item.name)}</div>`,
+                        }),
+                    }).addTo(areaLabelLayer);
+                });
+            }
+        }
+    }
+
+    // 2. Label Nama Sekolah pada Tiap Titik (hanya muncul saat di-zoom agar tidak sesak)
+    if (schoolLabelLayer) {
+        schoolLabelLayer.clearLayers();
+
+        const shouldShowSchoolNames =
+            showSchoolDots.value &&
+            currentDotCandidates.length > 0 &&
+            (zoom >= 13 || (Boolean(drillKecamatan.value) && zoom >= 12));
+
+        if (!shouldShowSchoolNames) return;
+
+        const visibleSchools = currentDotCandidates.filter((s) => viewBounds.contains([s.lat, s.lng]));
+        // Prioritaskan Basis -> Potensial -> Vakum -> Belum Tergarap (reverse dari array urut render)
+        const priorityList = [...visibleSchools].reverse();
+
+        const boxGapX = zoom >= 15 ? 72 : (zoom >= 14 ? 95 : 120);
+        const boxGapY = zoom >= 15 ? 16 : 20;
+        const placedBoxes = [];
+
+        priorityList.forEach((school) => {
+            const pt = map.latLngToContainerPoint([school.lat, school.lng]);
+            const collides = placedBoxes.some(
+                (b) => Math.abs(pt.x - b.x) < boxGapX && Math.abs(pt.y - b.y) < boxGapY
+            );
+            if (collides) return;
+            placedBoxes.push(pt);
+
+            const tier = PSB_TIERS[school.tier] || PSB_TIERS.belum_tergarap;
+            const shortName = school.nama.length > 26 ? `${school.nama.slice(0, 25)}…` : school.nama;
+
+            L.marker([school.lat, school.lng], {
+                interactive: false,
+                icon: L.divIcon({
+                    className: 'psb-school-point-label',
+                    iconSize: [0, 0],
+                    html: `<div style="transform:translate(-50%, 8px); white-space:nowrap; font-size:9.5px; font-weight:700; color:${tier.strokeHex}; background:rgba(255,255,255,0.92); border:1px solid ${tier.strokeHex}; border-radius:6px; padding:1px 5px; box-shadow:0 1px 3px rgba(15,23,42,0.14); pointer-events:none;">${escapeHtml(shortName)}</div>`,
+                }),
+            }).addTo(schoolLabelLayer);
+        });
     }
 }
 
@@ -600,6 +751,7 @@ function updateLayersAndFocus(specificKecLayer = null) {
     }
 
     renderSchoolDots();
+    renderMapLabels();
 
     if (specificKecLayer && specificKecLayer.getBounds().isValid()) {
         map.fitBounds(specificKecLayer.getBounds(), { padding: [24, 24], animate: true });
@@ -754,9 +906,13 @@ async function initMap() {
             </div>
         `);
 
-        // Layer 4: Titik SD/MI/PKBM Overlay
+        // Layer 4: Titik SD/MI/PKBM Overlay & Label Wilayah/Sekolah
         pointsCanvasRenderer = L.canvas({ padding: 0.3 });
         schoolPointsLayer = L.layerGroup().addTo(map);
+        areaLabelLayer = L.layerGroup().addTo(map);
+        schoolLabelLayer = L.layerGroup().addTo(map);
+
+        map.on('zoomend moveend', renderMapLabels);
 
         // Preload desa GeoJSON di background agar klik kecamatan langsung instan
         loadDesaGeoJson();
@@ -768,6 +924,7 @@ async function initMap() {
         if (map) {
             map.invalidateSize();
             resetZoom();
+            renderMapLabels();
         }
     }
 }
@@ -1109,6 +1266,11 @@ watch(
 <style>
 .psb-leaflet-bg.leaflet-container {
     background-color: #f8fafc !important;
+}
+.psb-map-text-label,
+.psb-school-point-label {
+    background: transparent !important;
+    border: none !important;
 }
 .leaflet-custom-tooltip {
     background-color: rgba(255, 255, 255, 0.96) !important;
