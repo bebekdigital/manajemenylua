@@ -571,7 +571,7 @@ function renderMapLabels() {
                     icon: L.divIcon({
                         className: 'psb-map-text-label',
                         iconSize: [0, 0],
-                        html: `<div style="transform:translate(-50%,-50%); white-space:nowrap; font-size:${fontSize}; font-weight:700; color:${textColor}; text-shadow:${shadow}; pointer-events:none; letter-spacing:0.01em;">${escapeHtml(item.name)}</div>`,
+                        html: `<div style="display:inline-block; width:max-content; transform:translate(-50%,-50%); white-space:nowrap; font-size:${fontSize}; font-weight:700; color:${textColor}; text-shadow:${shadow}; pointer-events:none; letter-spacing:0.01em;">${escapeHtml(item.name)}</div>`,
                     }),
                 }).addTo(areaLabelLayer);
             });
@@ -622,7 +622,7 @@ function renderMapLabels() {
                         icon: L.divIcon({
                             className: 'psb-map-text-label',
                             iconSize: [0, 0],
-                            html: `<div style="transform:translate(-50%,-50%); white-space:nowrap; font-size:9.5px; font-weight:700; color:${textColor}; text-shadow:${shadow}; pointer-events:none;">${escapeHtml(item.name)}</div>`,
+                            html: `<div style="display:inline-block; width:max-content; transform:translate(-50%,-50%); white-space:nowrap; font-size:9.5px; font-weight:700; color:${textColor}; text-shadow:${shadow}; pointer-events:none;">${escapeHtml(item.name)}</div>`,
                         }),
                     }).addTo(areaLabelLayer);
                 });
@@ -645,8 +645,8 @@ function renderMapLabels() {
         // Prioritaskan Basis -> Potensial -> Vakum -> Belum Tergarap (reverse dari array urut render)
         const priorityList = [...visibleSchools].reverse();
 
-        const boxGapX = zoom >= 15 ? 72 : (zoom >= 14 ? 95 : 120);
-        const boxGapY = zoom >= 15 ? 16 : 20;
+        const boxGapX = zoom >= 15 ? 64 : (zoom >= 14 ? 82 : 105);
+        const boxGapY = zoom >= 15 ? 14 : 18;
         const placedBoxes = [];
 
         priorityList.forEach((school) => {
@@ -665,7 +665,7 @@ function renderMapLabels() {
                 icon: L.divIcon({
                     className: 'psb-school-point-label',
                     iconSize: [0, 0],
-                    html: `<div style="transform:translate(-50%, 8px); white-space:nowrap; font-size:9.5px; font-weight:700; color:${tier.strokeHex}; background:rgba(255,255,255,0.92); border:1px solid ${tier.strokeHex}; border-radius:6px; padding:1px 5px; box-shadow:0 1px 3px rgba(15,23,42,0.14); pointer-events:none;">${escapeHtml(shortName)}</div>`,
+                    html: `<div style="display:inline-block; width:max-content; transform:translate(-50%, 7px); white-space:nowrap; font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size:8px; font-weight:600; color:${tier.strokeHex}; text-shadow:0 0 3px rgba(255,255,255,0.98), 0 0 2px rgba(255,255,255,0.98); letter-spacing:-0.02em; pointer-events:none;">${escapeHtml(shortName)}</div>`,
                 }),
             }).addTo(schoolLabelLayer);
         });
