@@ -343,8 +343,8 @@ const signatoryDate = computed(() => {
 
             <!-- Bagian Pas Foto + Tanda Tangan -->
             <div class="flex justify-end items-end pb-12 px-4">
-                <!-- Pas Foto 3x4 (berjarak ~1.2x jari-jari stempel standar dari tengah kolom TTD) -->
-                <div class="flex flex-col items-center shrink-0" style="margin-right: 0.7cm;">
+                <!-- Pas Foto 3x4 (berjarak 2.2cm di sebelah kiri kolom TTD) -->
+                <div class="flex flex-col items-center shrink-0" style="margin-right: 2.2cm;">
                     <div
                         class="border border-black flex items-center justify-center overflow-hidden"
                         style="width: 3cm; height: 4cm;"

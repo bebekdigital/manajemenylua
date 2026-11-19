@@ -322,12 +322,12 @@ class StudentIdentityPdfService
             $drawRow($rowNumber++.'.', 'Pekerjaan Wali', (string) ($student['wali_pekerjaan'] ?? '-'));
         }
 
-        // Bottom Block: Pas Foto 3x4 (30mm x 40mm) + Signature (0.7cm gap)
+        // Bottom Block: Pas Foto 3x4 (30mm x 40mm) + Signature (2.2cm gap)
         $sigX = 128.0;
         $sigW = 54.0;
         $photoW = 30.0;
         $photoH = 40.0;
-        $photoX = $sigX - 7.0 - $photoW; // 0.7cm (7mm) left of signature column (~1.2x stamp radius from center)
+        $photoX = $sigX - 22.0 - $photoW; // 2.2cm (22mm) left of signature column
 
         // Ensure photo & signature stay neatly near bottom without overlapping table
         $sigTopY = max($y + 6.0, 224.0);
