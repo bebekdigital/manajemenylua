@@ -342,9 +342,9 @@ const signatoryDate = computed(() => {
             </div>
 
             <!-- Bagian Pas Foto + Tanda Tangan -->
-            <div class="flex justify-between pb-12 px-4">
-                <!-- Pas Foto 3x4 -->
-                <div class="flex flex-col items-center">
+            <div class="flex justify-end items-end pb-12 px-4">
+                <!-- Pas Foto 3x4 (berjarak ~1.2x jari-jari stempel standar dari tengah kolom TTD) -->
+                <div class="flex flex-col items-center shrink-0" style="margin-right: 0.7cm;">
                     <div
                         class="border border-black flex items-center justify-center overflow-hidden"
                         style="width: 3cm; height: 4cm;"
@@ -360,7 +360,7 @@ const signatoryDate = computed(() => {
                 </div>
 
                 <!-- Tanda Tangan dengan Space Cukup untuk TTD Basah -->
-                <div class="text-left text-sm pr-16">
+                <div class="text-left text-sm pr-8">
                     <p>{{ signatory.tempat_penandatangan || signatory.tempat_titimangsa || 'Karanganyar' }}, {{ signatoryDate }}</p>
                     <p>Kepala Sekolah</p>
                     
