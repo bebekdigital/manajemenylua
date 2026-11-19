@@ -58,7 +58,7 @@ const unitOptions = computed(() => {
 });
 
 const filteredStudents = computed(() => {
-    return unitTabStudents.value.filter((student) => {
+    const filtered = unitTabStudents.value.filter((student) => {
         // Status keaktifan
         if (statusFilter.value && statusFilter.value !== 'semua') {
             const raw = (student.status_keaktifan || 'Aktif').toLowerCase().trim();
@@ -96,6 +96,14 @@ const filteredStudents = computed(() => {
         }
 
         return true;
+    });
+
+    return [...filtered].sort((a, b) => {
+        const valA = (a.nama || '').toString().replace(/[\u2018\u2019]/g, "'").toLowerCase();
+        const valB = (b.nama || '').toString().replace(/[\u2018\u2019]/g, "'").toLowerCase();
+        if (valA < valB) return -1;
+        if (valA > valB) return 1;
+        return 0;
     });
 });
 
@@ -251,16 +259,33 @@ function showToastNotice(type, message) {
     }, 5000);
 }
 
+// --- Per-student Foto 3x4 Slider (Default: true/Iya when photo exists) ---
+const hiddenPhotoIds = ref([]);
+
+const isStudentPhotoEnabled = (student) => {
+    return Boolean(student?.photo_url) && !hiddenPhotoIds.value.includes(student.id);
+};
+
+const toggleStudentPhoto = (studentId) => {
+    const idx = hiddenPhotoIds.value.indexOf(studentId);
+    if (idx > -1) {
+        hiddenPhotoIds.value.splice(idx, 1);
+    } else {
+        hiddenPhotoIds.value.push(studentId);
+    }
+};
+
 // --- Direct PDF Download ---
 const isDownloadingPdf = ref(false);
 const downloadPdfProgress = ref('');
+const downloadingStudentId = ref(null);
 
 function getXsrfToken() {
     const match = document.cookie.match(/XSRF-TOKEN=([^;]+)/);
     return match ? decodeURIComponent(match[1]) : '';
 }
 
-async function fetchAndSavePdf(studentIds, pages, showPhoto, filename) {
+async function fetchAndSavePdf(studentIds, pages, showPhoto, filename, hiddenIds = hiddenPhotoIds.value) {
     const res = await fetch('/administration/identity-document/pdf', {
         method: 'POST',
         headers: {
@@ -273,6 +298,7 @@ async function fetchAndSavePdf(studentIds, pages, showPhoto, filename) {
             student_ids: studentIds,
             pages,
             show_photo: showPhoto,
+            hidden_photo_ids: hiddenIds,
             filename,
         }),
     });
@@ -291,6 +317,29 @@ async function fetchAndSavePdf(studentIds, pages, showPhoto, filename) {
     document.body.removeChild(link);
     setTimeout(() => URL.revokeObjectURL(url), 10000);
 }
+
+const quickDownloadPdf = async (student) => {
+    if (!student || downloadingStudentId.value !== null) return;
+
+    downloadingStudentId.value = student.id;
+    const filename = `Identitas - ${student.nama} (${student.nisn || '-'}).pdf`;
+
+    try {
+        await fetchAndSavePdf(
+            [student.id],
+            ['cover', 'school_profile', 'identity'],
+            isStudentPhotoEnabled(student),
+            filename,
+            hiddenPhotoIds.value
+        );
+        showToastNotice('success', `Berhasil mengunduh PDF ${student.nama}.`);
+    } catch (err) {
+        console.error('Gagal mengunduh PDF siswa:', err);
+        showToastNotice('error', 'Gagal mengunduh berkas PDF siswa. Silakan coba lagi.');
+    } finally {
+        downloadingStudentId.value = null;
+    }
+};
 
 const handleDownloadPdfFromGenerator = async ({ students, pages, showPhoto, mode }) => {
     if (!students || students.length === 0) return;
@@ -382,7 +431,7 @@ const quickPrint = (student) => {
     executePrint(
         [student],
         ['cover', 'school_profile', 'identity'],
-        true,
+        isStudentPhotoEnabled(student),
         `Identitas - ${student.nama} (${student.nisn || '-'})`
     );
 };
@@ -544,7 +593,7 @@ const handlePrintSingleFromGenerator = ({ student, pages, showPhoto }) => {
                                     <th class="py-3.5 px-3 text-[11.5px] font-bold uppercase tracking-wider">Kelas & Jenjang</th>
                                     <th class="py-3.5 px-3 text-[11.5px] font-bold uppercase tracking-wider">Unit & Angkatan</th>
                                     <th class="py-3.5 px-3 text-center text-[11.5px] font-bold uppercase tracking-wider">Foto 3x4</th>
-                                    <th class="py-3.5 px-4 text-center text-[11.5px] font-bold uppercase tracking-wider w-44">Aksi Per Nama</th>
+                                    <th class="py-3.5 px-4 text-center text-[11.5px] font-bold uppercase tracking-wider w-56">Aksi Per Nama</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-200">
@@ -610,13 +659,34 @@ const handlePrintSingleFromGenerator = ({ student, pages, showPhoto }) => {
                                         </div>
                                     </td>
                                     <td class="py-3 px-3 text-center align-middle whitespace-nowrap">
-                                        <span
-                                            v-if="student.photo_url"
-                                            class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200"
-                                        >
-                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                            Ada Foto
-                                        </span>
+                                        <div v-if="student.photo_url" class="inline-flex items-center justify-center gap-2">
+                                            <button
+                                                type="button"
+                                                role="switch"
+                                                :aria-checked="isStudentPhotoEnabled(student)"
+                                                @click="toggleStudentPhoto(student.id)"
+                                                :class="[
+                                                    'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-1',
+                                                    isStudentPhotoEnabled(student) ? 'bg-emerald-700' : 'bg-slate-300'
+                                                ]"
+                                                :title="isStudentPhotoEnabled(student) ? 'Klik untuk sembunyikan foto siswa ini' : 'Klik untuk tampilkan foto siswa ini'"
+                                            >
+                                                <span
+                                                    :class="[
+                                                        'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-xs ring-0 transition duration-200 ease-in-out',
+                                                        isStudentPhotoEnabled(student) ? 'translate-x-4' : 'translate-x-0'
+                                                    ]"
+                                                />
+                                            </button>
+                                            <span
+                                                :class="[
+                                                    'text-[11px] font-bold w-9 text-left',
+                                                    isStudentPhotoEnabled(student) ? 'text-emerald-800' : 'text-slate-500'
+                                                ]"
+                                            >
+                                                {{ isStudentPhotoEnabled(student) ? 'Iya' : 'Tidak' }}
+                                            </span>
+                                        </div>
                                         <span
                                             v-else
                                             class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-500 border border-slate-200"
@@ -634,6 +704,17 @@ const handlePrintSingleFromGenerator = ({ student, pages, showPhoto }) => {
                                             >
                                                 <span class="material-symbols-outlined text-[16px]">visibility</span>
                                                 <span>Preview</span>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                @click="quickDownloadPdf(student)"
+                                                :disabled="downloadingStudentId === student.id"
+                                                class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-emerald-50 border border-emerald-700/40 text-emerald-900 hover:bg-emerald-100 transition-all active:scale-95 cursor-pointer disabled:opacity-50 disabled:cursor-wait"
+                                                title="Download PDF Langsung"
+                                            >
+                                                <span v-if="downloadingStudentId === student.id" class="material-symbols-outlined text-[15px] animate-spin">sync</span>
+                                                <span v-else class="material-symbols-outlined text-[15px]">picture_as_pdf</span>
+                                                <span>{{ downloadingStudentId === student.id ? 'Unduh...' : 'Download' }}</span>
                                             </button>
                                             <button
                                                 type="button"
@@ -718,7 +799,7 @@ const handlePrintSingleFromGenerator = ({ student, pages, showPhoto }) => {
                         :template="template"
                         :pages-to-print="batchPagesToPrint"
                         :is-last-in-batch="idx === batchStudentsToPrint.length - 1"
-                        :show-photo="batchShowPhoto"
+                        :show-photo="batchShowPhoto && !hiddenPhotoIds.includes(st.id)"
                     />
                 </template>
             </div>
@@ -730,6 +811,7 @@ const handlePrintSingleFromGenerator = ({ student, pages, showPhoto }) => {
             :students="activePreviewStudents"
             :initial-pages="activePreviewPages"
             :show-photo="activePreviewShowPhoto"
+            :hidden-photo-ids="hiddenPhotoIds"
             :template="template"
             @close="isPreviewModalOpen = false"
             @print="handlePrintFromPreview"

@@ -113,9 +113,10 @@ class AdministrationController extends Controller
                     $q->where('academic_year_id', $selectedYear->id);
                 });
             })
-            ->orderBy('unit')
             ->orderBy('nama')
             ->get()
+            ->sortBy(fn (Student $student) => str_replace(["\u{2018}", "\u{2019}"], "'", mb_strtolower((string) $student->nama, 'UTF-8')), SORT_STRING)
+            ->values()
             ->map(fn (Student $student) => $this->mapStudentForIdentityDocument($student, $selectedYear));
 
         return Inertia::render('Administration/IdentityDocument', [
@@ -143,6 +144,8 @@ class AdministrationController extends Controller
             'pages' => ['nullable', 'array', 'min:1'],
             'pages.*' => ['string', 'in:cover,school_profile,identity'],
             'show_photo' => ['nullable', 'boolean'],
+            'hidden_photo_ids' => ['nullable', 'array'],
+            'hidden_photo_ids.*' => ['integer'],
             'filename' => ['nullable', 'string', 'max:180'],
         ]);
 
@@ -161,9 +164,9 @@ class AdministrationController extends Controller
             'siblings',
         ])
             ->whereIn('id', $validated['student_ids'])
-            ->orderBy('unit')
             ->orderBy('nama')
             ->get()
+            ->sortBy(fn (Student $student) => str_replace(["\u{2018}", "\u{2019}"], "'", mb_strtolower((string) $student->nama, 'UTF-8')), SORT_STRING)
             ->map(fn (Student $student) => $this->mapStudentForIdentityDocument($student, $selectedYear))
             ->values()
             ->all();
@@ -173,8 +176,9 @@ class AdministrationController extends Controller
         $showPhoto = array_key_exists('show_photo', $validated)
             ? filter_var($validated['show_photo'], FILTER_VALIDATE_BOOLEAN)
             : true;
+        $hiddenPhotoIds = array_map('intval', $validated['hidden_photo_ids'] ?? []);
 
-        $pdfBinary = $pdfService->generatePdf($students, $template, $pages, $showPhoto);
+        $pdfBinary = $pdfService->generatePdf($students, $template, $pages, $showPhoto, $hiddenPhotoIds);
 
         $defaultName = count($students) === 1
             ? 'Identitas - '.$students[0]['nama'].' ('.$students[0]['nisn'].').pdf'

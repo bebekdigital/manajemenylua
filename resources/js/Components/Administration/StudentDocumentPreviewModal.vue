@@ -23,6 +23,10 @@ const props = defineProps({
         type: Boolean,
         default: true,
     },
+    hiddenPhotoIds: {
+        type: Array,
+        default: () => [],
+    },
     template: {
         type: Object,
         required: true,
@@ -206,7 +210,7 @@ const triggerPrint = () => {
                         :template="template"
                         :pages-to-print="pagesToPrint"
                         :is-last-in-batch="idx === previewStudents.length - 1"
-                        :show-photo="showPhoto"
+                        :show-photo="showPhoto && !hiddenPhotoIds.includes(st.id)"
                     />
                 </div>
             </div>

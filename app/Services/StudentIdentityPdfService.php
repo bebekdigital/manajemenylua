@@ -16,12 +16,14 @@ class StudentIdentityPdfService
      *
      * @param  array<int, array<string, mixed>>  $students
      * @param  array<int, string>  $pages
+     * @param  array<int, int>  $hiddenPhotoIds
      */
     public function generatePdf(
         array $students,
         DocumentTemplate $template,
         array $pages = ['cover', 'school_profile', 'identity'],
-        bool $showPhoto = true
+        bool $showPhoto = true,
+        array $hiddenPhotoIds = []
     ): string {
         $pdf = new SimplePdfWriter;
 
@@ -33,7 +35,9 @@ class StudentIdentityPdfService
                 $this->renderSchoolProfilePage($pdf, $template);
             }
             if (in_array('identity', $pages, true)) {
-                $this->renderIdentityPage($pdf, $student, $template, $showPhoto);
+                $studentId = isset($student['id']) ? (int) $student['id'] : null;
+                $shouldRenderPhoto = $showPhoto && ($studentId === null || ! in_array($studentId, $hiddenPhotoIds, true));
+                $this->renderIdentityPage($pdf, $student, $template, $shouldRenderPhoto);
             }
         }
 
