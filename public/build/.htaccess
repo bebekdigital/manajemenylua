@@ -1,7 +1,0 @@
-<IfModule mod_headers.c>
-    Header set Access-Control-Allow-Origin "*"
-</IfModule>
-<IfModule mod_mime.c>
-    AddType text/javascript .js
-    AddType text/css .css
-</IfModule>

@@ -14,6 +14,10 @@ const props = defineProps({
         type: Array,
         default: () => ['cover', 'school_profile', 'identity'],
     },
+    isLastInBatch: {
+        type: Boolean,
+        default: true,
+    },
 });
 
 const school = computed(() => props.template?.school_profile || {});
@@ -38,7 +42,7 @@ const signatoryDate = computed(() => {
 </script>
 
 <template>
-    <div class="student-document-container font-serif text-black">
+    <div class="student-document-container font-serif text-black" :class="{ 'is-last-batch': isLastInBatch }">
         <!-- ================= HALAMAN 1: COVER DEPAN ================= -->
         <div 
             v-if="pagesToPrint.includes('cover')"
@@ -408,7 +412,7 @@ const signatoryDate = computed(() => {
         page-break-after: always !important;
         break-after: page !important;
     }
-    .document-page:last-child {
+    .student-document-container.is-last-batch .document-page:last-child {
         page-break-after: avoid !important;
         break-after: avoid !important;
     }

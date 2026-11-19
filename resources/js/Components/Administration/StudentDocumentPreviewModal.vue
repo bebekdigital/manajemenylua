@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import StudentDocumentSheet from './StudentDocumentSheet.vue';
 
 const props = defineProps({
@@ -15,6 +15,10 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    initialPages: {
+        type: Array,
+        default: () => ['cover', 'school_profile', 'identity'],
+    },
     template: {
         type: Object,
         required: true,
@@ -26,9 +30,30 @@ const emit = defineEmits(['close', 'print']);
 const activePageFilter = ref('all'); // 'all', 'cover', 'school_profile', 'identity'
 const zoomLevel = ref(85); // percentage
 
+const previewStudents = computed(() => {
+    if (props.students && props.students.length > 0) {
+        return props.students;
+    }
+    return props.student ? [props.student] : [];
+});
+
+const isBulkPreview = computed(() => previewStudents.value.length > 1);
+
+const basePages = computed(() => {
+    return props.initialPages && props.initialPages.length > 0
+        ? props.initialPages
+        : ['cover', 'school_profile', 'identity'];
+});
+
+watch(() => props.isOpen, (open) => {
+    if (open) {
+        activePageFilter.value = 'all';
+    }
+});
+
 const pagesToPrint = computed(() => {
     if (activePageFilter.value === 'all') {
-        return ['cover', 'school_profile', 'identity'];
+        return basePages.value;
     }
     return [activePageFilter.value];
 });
@@ -50,7 +75,8 @@ onUnmounted(() => {
 
 const triggerPrint = () => {
     emit('print', {
-        student: props.student,
+        student: previewStudents.value.length === 1 ? previewStudents.value[0] : null,
+        students: previewStudents.value,
         pages: pagesToPrint.value,
     });
 };
@@ -58,8 +84,8 @@ const triggerPrint = () => {
 
 <template>
     <div 
-        v-if="isOpen && student"
-        class="fixed inset-0 z-50 overflow-y-auto bg-black/70 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4"
+        v-if="isOpen && previewStudents.length > 0"
+        class="fixed inset-0 z-[60] overflow-y-auto bg-black/70 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4"
     >
         <!-- Modal Container -->
         <div class="bg-surface rounded-2xl w-full max-w-5xl h-[92vh] flex flex-col shadow-2xl overflow-hidden border border-outline-variant">
@@ -72,29 +98,39 @@ const triggerPrint = () => {
                     </div>
                     <div>
                         <h3 class="font-bold text-lg text-on-surface leading-tight">
-                            Preview Berkas: {{ student.nama }}
+                            <template v-if="isBulkPreview">
+                                Preview Gabungan ({{ previewStudents.length }} Siswa)
+                            </template>
+                            <template v-else>
+                                Preview Berkas: {{ previewStudents[0].nama }}
+                            </template>
                         </h3>
                         <p class="text-xs text-on-surface-variant">
-                            NISN: <span class="font-mono font-medium">{{ student.nisn }}</span> | Kelas: <span class="font-semibold">{{ student.kelas }}</span>
+                            <template v-if="isBulkPreview">
+                                Total {{ previewStudents.length * pagesToPrint.length }} halaman A4 siap dicetak sekaligus
+                            </template>
+                            <template v-else>
+                                NISN: <span class="font-mono font-medium">{{ previewStudents[0].nisn }}</span> | Kelas: <span class="font-semibold">{{ previewStudents[0].kelas }}</span>
+                            </template>
                         </p>
                     </div>
                 </div>
 
                 <!-- Page Filter Segmented Buttons -->
-                <div class="flex items-center bg-surface-container-high rounded-xl p-1 text-xs font-medium text-on-surface-variant">
+                <div class="flex items-center bg-surface-container-high rounded-xl p-1 text-xs font-medium text-on-surface-variant flex-wrap">
                     <button 
                         @click="activePageFilter = 'all'"
                         :class="[
-                            'px-3 py-1.5 rounded-lg transition-all',
+                            'px-3 py-1.5 rounded-lg transition-all cursor-pointer',
                             activePageFilter === 'all' ? 'bg-surface shadow-xs text-primary font-bold' : 'hover:text-on-surface'
                         ]"
                     >
-                        Semua Halaman (3)
+                        {{ basePages.length === 3 ? 'Semua Halaman (3)' : `Halaman Dipilih (${basePages.length})` }}
                     </button>
                     <button 
                         @click="activePageFilter = 'cover'"
                         :class="[
-                            'px-3 py-1.5 rounded-lg transition-all',
+                            'px-3 py-1.5 rounded-lg transition-all cursor-pointer',
                             activePageFilter === 'cover' ? 'bg-surface shadow-xs text-primary font-bold' : 'hover:text-on-surface'
                         ]"
                     >
@@ -103,7 +139,7 @@ const triggerPrint = () => {
                     <button 
                         @click="activePageFilter = 'school_profile'"
                         :class="[
-                            'px-3 py-1.5 rounded-lg transition-all',
+                            'px-3 py-1.5 rounded-lg transition-all cursor-pointer',
                             activePageFilter === 'school_profile' ? 'bg-surface shadow-xs text-primary font-bold' : 'hover:text-on-surface'
                         ]"
                     >
@@ -112,7 +148,7 @@ const triggerPrint = () => {
                     <button 
                         @click="activePageFilter = 'identity'"
                         :class="[
-                            'px-3 py-1.5 rounded-lg transition-all',
+                            'px-3 py-1.5 rounded-lg transition-all cursor-pointer',
                             activePageFilter === 'identity' ? 'bg-surface shadow-xs text-primary font-bold' : 'hover:text-on-surface'
                         ]"
                     >
@@ -139,7 +175,7 @@ const triggerPrint = () => {
                         class="bg-primary hover:bg-primary-container text-on-primary hover:text-on-primary-container px-4 py-2 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-all shadow-sm active:scale-98 cursor-pointer"
                     >
                         <span class="material-symbols-outlined text-base">print</span>
-                        <span>Cetak Dokumen</span>
+                        <span>{{ isBulkPreview ? `Cetak Sekaligus (${previewStudents.length})` : 'Cetak Dokumen' }}</span>
                     </button>
 
                     <!-- Close Button -->
@@ -156,13 +192,16 @@ const triggerPrint = () => {
             <!-- Modal Content Preview Scroll Area -->
             <div class="flex-grow overflow-y-auto bg-slate-200/80 dark:bg-slate-900/80 p-6 flex justify-center">
                 <div 
-                    class="transition-transform duration-200 origin-top"
+                    class="transition-transform duration-200 origin-top space-y-6"
                     :style="{ transform: `scale(${zoomLevel / 100})`, transformOrigin: 'top center' }"
                 >
                     <StudentDocumentSheet 
-                        :student="student"
+                        v-for="(st, idx) in previewStudents"
+                        :key="st.id || idx"
+                        :student="st"
                         :template="template"
                         :pages-to-print="pagesToPrint"
+                        :is-last-in-batch="idx === previewStudents.length - 1"
                     />
                 </div>
             </div>
