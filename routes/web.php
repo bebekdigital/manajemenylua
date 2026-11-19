@@ -203,6 +203,7 @@ Route::middleware('auth')->group(function () {
     // Administrasi & Cetak Berkas Siswa
     Route::get('/administration', [AdministrationController::class, 'index'])->name('administration.index');
     Route::get('/administration/identity-document', [AdministrationController::class, 'identityDocument'])->name('administration.identity-document');
+    Route::post('/administration/identity-document/pdf', [AdministrationController::class, 'downloadIdentityPdf'])->name('administration.identity-document.pdf');
     Route::get('/administration/identity-document/template', [AdministrationController::class, 'editTemplate'])->name('administration.template.edit');
     Route::post('/administration/identity-document/template', [AdministrationController::class, 'updateTemplate'])->name('administration.template.update');
     Route::post('/administration/identity-document/template/reset', [AdministrationController::class, 'resetTemplate'])->name('administration.template.reset');

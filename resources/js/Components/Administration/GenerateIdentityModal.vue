@@ -10,9 +10,17 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    isDownloading: {
+        type: Boolean,
+        default: false,
+    },
+    downloadProgress: {
+        type: String,
+        default: '',
+    },
 });
 
-const emit = defineEmits(['close', 'preview', 'print-bulk', 'download-pdf-bulk', 'print-single', 'download-pdf-single']);
+const emit = defineEmits(['close', 'preview', 'print-bulk', 'print-single', 'download-pdf']);
 
 // 1. Checklist halaman
 const selectedPages = ref(['cover', 'school_profile', 'identity']);
@@ -21,16 +29,15 @@ const showPhoto = ref(true);
 // 3. Pilihan gabung file ('merged') atau per siswa ('per_student')
 const fileMode = ref('merged');
 
-// Per-student queue state when fileMode === 'per_student' & > 1 student
-const showPerStudentQueue = ref(false);
-const queueActionType = ref('print'); // 'print' | 'pdf'
+// Per-student print queue (only used when user explicitly clicks "Cetak Langsung" in per_student mode with >1 students)
+const showPerStudentPrintQueue = ref(false);
 const processedIds = ref([]);
 
 watch(
     () => props.isOpen,
     (open) => {
         if (open) {
-            showPerStudentQueue.value = false;
+            showPerStudentPrintQueue.value = false;
             processedIds.value = [];
         }
     }
@@ -48,7 +55,7 @@ function setPagesPreset(preset) {
 }
 
 function handleDirectPrint() {
-    if (!isValid.value) return;
+    if (!isValid.value || props.isDownloading) return;
 
     if (fileMode.value === 'merged') {
         emit('print-bulk', {
@@ -63,34 +70,23 @@ function handleDirectPrint() {
             showPhoto: showPhoto.value,
         });
     } else {
-        queueActionType.value = 'print';
-        showPerStudentQueue.value = true;
+        showPerStudentPrintQueue.value = true;
     }
 }
 
 function handleDownloadPdf() {
-    if (!isValid.value) return;
+    if (!isValid.value || props.isDownloading) return;
 
-    if (fileMode.value === 'merged') {
-        emit('download-pdf-bulk', {
-            students: props.selectedStudents,
-            pages: [...selectedPages.value],
-            showPhoto: showPhoto.value,
-        });
-    } else if (props.selectedStudents.length === 1) {
-        emit('download-pdf-single', {
-            student: props.selectedStudents[0],
-            pages: [...selectedPages.value],
-            showPhoto: showPhoto.value,
-        });
-    } else {
-        queueActionType.value = 'pdf';
-        showPerStudentQueue.value = true;
-    }
+    emit('download-pdf', {
+        students: props.selectedStudents,
+        pages: [...selectedPages.value],
+        showPhoto: showPhoto.value,
+        mode: fileMode.value,
+    });
 }
 
 function handlePreview() {
-    if (!isValid.value) return;
+    if (!isValid.value || props.isDownloading) return;
     emit('preview', {
         students: props.selectedStudents,
         pages: [...selectedPages.value],
@@ -98,22 +94,15 @@ function handlePreview() {
     });
 }
 
-function processSingleStudent(student, actionType) {
+function printSingleFromQueue(student) {
     if (!processedIds.value.includes(student.id)) {
         processedIds.value.push(student.id);
     }
-
-    const payload = {
+    emit('print-single', {
         student,
         pages: [...selectedPages.value],
         showPhoto: showPhoto.value,
-    };
-
-    if (actionType === 'pdf') {
-        emit('download-pdf-single', payload);
-    } else {
-        emit('print-single', payload);
-    }
+    });
 }
 
 function isProcessed(id) {
@@ -125,7 +114,7 @@ function isProcessed(id) {
     <div
         v-if="isOpen"
         class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 print:hidden"
-        @click.self="$emit('close')"
+        @click.self="!isDownloading && $emit('close')"
     >
         <div class="bg-white rounded-2xl w-full max-w-xl max-h-[92vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
             <!-- Header -->
@@ -145,8 +134,9 @@ function isProcessed(id) {
                 </div>
                 <button
                     type="button"
+                    :disabled="isDownloading"
                     @click="$emit('close')"
-                    class="p-1.5 rounded-xl text-emerald-100 hover:text-white hover:bg-white/10 transition-colors cursor-pointer shrink-0"
+                    class="p-1.5 rounded-xl text-emerald-100 hover:text-white hover:bg-white/10 transition-colors cursor-pointer shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
                     title="Tutup"
                 >
                     <span class="material-symbols-outlined text-[22px]">close</span>
@@ -155,7 +145,7 @@ function isProcessed(id) {
 
             <!-- Body -->
             <div class="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5">
-                <template v-if="!showPerStudentQueue">
+                <template v-if="!showPerStudentPrintQueue">
                     <!-- 1. Checklist Halaman yang Mau Dicetak -->
                     <div class="space-y-2.5">
                         <div class="flex items-center justify-between gap-2">
@@ -288,7 +278,7 @@ function isProcessed(id) {
                                 <div>
                                     <div class="font-bold text-xs sm:text-sm text-slate-900">Gabung File</div>
                                     <p class="text-[11px] text-slate-500 mt-0.5 leading-snug">
-                                        Semua siswa digabung berurutan dalam 1 dokumen siap cetak / 1 PDF.
+                                        Semua siswa digabung menjadi 1 file PDF / 1 kali cetak.
                                     </p>
                                 </div>
                             </button>
@@ -309,7 +299,7 @@ function isProcessed(id) {
                                 <div>
                                     <div class="font-bold text-xs sm:text-sm text-slate-900">Per Siswa</div>
                                     <p class="text-[11px] text-slate-500 mt-0.5 leading-snug">
-                                        Dipisah per nama siswa (nama file PDF otomatis sesuai nama siswa).
+                                        Unduh multi-file PDF otomatis terpisah per nama siswa.
                                     </p>
                                 </div>
                             </button>
@@ -317,20 +307,20 @@ function isProcessed(id) {
                     </div>
                 </template>
 
-                <!-- Queue View saat mode Per Siswa & siswa > 1 -->
+                <!-- Queue View only if Direct Print is clicked in Per Siswa mode with > 1 student -->
                 <template v-else>
                     <div class="flex items-center justify-between gap-2 pb-3 border-b border-slate-200">
                         <div>
                             <h4 class="text-sm font-bold text-slate-900">
-                                Daftar {{ queueActionType === 'pdf' ? 'Download PDF' : 'Cetak' }} Per Siswa ({{ selectedStudents.length }})
+                                Daftar Cetak Langsung Per Siswa ({{ selectedStudents.length }})
                             </h4>
                             <p class="text-xs text-slate-500 mt-0.5">
-                                Klik tombol pada setiap nama siswa. Nama file otomatis menggunakan nama siswa.
+                                Klik Cetak pada masing-masing nama siswa.
                             </p>
                         </div>
                         <button
                             type="button"
-                            @click="showPerStudentQueue = false"
+                            @click="showPerStudentPrintQueue = false"
                             class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 cursor-pointer shrink-0"
                         >
                             <span class="material-symbols-outlined text-[16px]">arrow_back</span>
@@ -354,7 +344,7 @@ function isProcessed(id) {
                                             class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold"
                                         >
                                             <span class="material-symbols-outlined text-[12px]">check</span>
-                                            Diproses
+                                            Dicetak
                                         </span>
                                     </div>
                                     <div class="text-[11px] text-slate-500 font-mono">
@@ -363,26 +353,14 @@ function isProcessed(id) {
                                 </div>
                             </div>
 
-                            <div class="flex items-center gap-1.5 shrink-0">
-                                <button
-                                    type="button"
-                                    @click="processSingleStudent(st, 'print')"
-                                    class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-xs font-semibold text-slate-700 cursor-pointer"
-                                    title="Cetak Langsung Siswa Ini"
-                                >
-                                    <span class="material-symbols-outlined text-[15px]">print</span>
-                                    <span>Cetak</span>
-                                </button>
-                                <button
-                                    type="button"
-                                    @click="processSingleStudent(st, 'pdf')"
-                                    class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-900 hover:bg-emerald-800 text-yellow-200 text-xs font-bold cursor-pointer"
-                                    title="Download PDF Siswa Ini"
-                                >
-                                    <span class="material-symbols-outlined text-[15px]">picture_as_pdf</span>
-                                    <span>PDF</span>
-                                </button>
-                            </div>
+                            <button
+                                type="button"
+                                @click="printSingleFromQueue(st)"
+                                class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-900 hover:bg-emerald-800 text-yellow-200 text-xs font-bold cursor-pointer shrink-0"
+                            >
+                                <span class="material-symbols-outlined text-[15px]">print</span>
+                                <span>{{ isProcessed(st.id) ? 'Cetak Ulang' : 'Cetak' }}</span>
+                            </button>
                         </div>
                     </div>
                 </template>
@@ -399,7 +377,7 @@ function isProcessed(id) {
                     </span>
 
                     <button
-                        v-if="!showPerStudentQueue && isValid"
+                        v-if="!showPerStudentPrintQueue && isValid && !isDownloading"
                         type="button"
                         @click="handlePreview"
                         class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-[11px] font-semibold text-slate-700 cursor-pointer ml-1"
@@ -411,11 +389,11 @@ function isProcessed(id) {
                 </div>
 
                 <!-- Tombol Cetak Langsung dan Download PDF -->
-                <div v-if="!showPerStudentQueue" class="flex items-center gap-2 ml-auto">
+                <div v-if="!showPerStudentPrintQueue" class="flex items-center gap-2 ml-auto">
                     <button
                         type="button"
                         @click="handleDirectPrint"
-                        :disabled="!isValid"
+                        :disabled="!isValid || isDownloading"
                         class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-emerald-800 bg-white hover:bg-emerald-50 text-emerald-900 text-xs sm:text-sm font-bold shadow-2xs transition-all active:scale-95 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         <span class="material-symbols-outlined text-[18px]">print</span>
@@ -424,11 +402,12 @@ function isProcessed(id) {
                     <button
                         type="button"
                         @click="handleDownloadPdf"
-                        :disabled="!isValid"
+                        :disabled="!isValid || isDownloading"
                         class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 text-xs sm:text-sm font-bold shadow-sm transition-all active:scale-95 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        <span class="material-symbols-outlined text-[18px]">picture_as_pdf</span>
-                        <span>Download PDF</span>
+                        <span v-if="isDownloading" class="material-symbols-outlined text-[18px] animate-spin">sync</span>
+                        <span v-else class="material-symbols-outlined text-[18px]">picture_as_pdf</span>
+                        <span>{{ isDownloading ? (downloadProgress || 'Mengunduh PDF...') : 'Download PDF' }}</span>
                     </button>
                 </div>
 

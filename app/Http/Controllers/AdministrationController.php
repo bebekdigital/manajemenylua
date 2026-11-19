@@ -6,9 +6,11 @@ use App\Models\AcademicYear;
 use App\Models\Classroom;
 use App\Models\DocumentTemplate;
 use App\Models\Student;
+use App\Services\StudentIdentityPdfService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -114,77 +116,7 @@ class AdministrationController extends Controller
             ->orderBy('unit')
             ->orderBy('nama')
             ->get()
-            ->map(function (Student $student) use ($selectedYear) {
-                $record = $student->academicRecords->first();
-                $classroom = $record?->classroom;
-
-                // Alamat lengkap
-                $alamatParts = array_filter([
-                    $student->jalan,
-                    ($student->rt || $student->rw) ? ('RT '.($student->rt ?: '-').' / RW '.($student->rw ?: '-')) : null,
-                    $student->dusun,
-                    $student->desa,
-                    $student->kecamatan,
-                    $student->kabupaten,
-                    $student->provinsi,
-                ]);
-                $alamatLengkap = ! empty($alamatParts) ? implode(', ', $alamatParts) : '-';
-
-                // Jenis kelamin formal
-                $jkLabel = $student->jk === 'L' ? 'Laki-laki' : ($student->jk === 'P' ? 'Perempuan' : '-');
-
-                // Tanggal diterima default
-                $tanggalDiterima = $selectedYear?->start_date
-                    ? Carbon::parse($selectedYear->start_date)->translatedFormat('d F Y')
-                    : ($student->created_at ? $student->created_at->translatedFormat('d F Y') : '-');
-
-                // Kelas diterima
-                $kelasDiterima = $classroom?->name ?? ($record?->tingkat ? 'Kelas '.$record->tingkat : 'VII (Tujuh)');
-
-                return [
-                    'id' => $student->id,
-                    'nisn' => $student->nisn ?? '-',
-                    'nis' => $student->nipd ?? $student->nisn ?? '-',
-                    'nipd' => $student->nipd ?? '-',
-                    'nama' => $student->nama,
-                    'nama_kapital' => mb_strtoupper($student->nama, 'UTF-8'),
-                    'jk' => $jkLabel,
-                    'jk_raw' => $student->jk,
-                    'tempat_lahir' => $student->tempat_lahir ?? '-',
-                    'tanggal_lahir' => $student->tanggal_lahir ? $student->tanggal_lahir->translatedFormat('d F Y') : '-',
-                    'ttl' => $student->ttl,
-                    'nik' => $student->nik ?? '-',
-                    'no_kk' => $student->no_kk ?? '-',
-                    'agama' => $student->agama ?? 'Islam',
-                    'unit' => $student->unit ?? 'SMPIT Ulil Albab',
-                    'unit_pesantren' => $student->unit_pesantren ?? $record?->unit_pesantren ?? '-',
-                    'program' => $student->program ?? 'Fullday',
-                    'jenjang' => $record?->jenjang ?? 'SMP',
-                    'tingkat' => $record?->tingkat,
-                    'angkatan' => $student->angkatan,
-                    'status_keaktifan' => $student->status_keaktifan ?? 'Aktif',
-                    'photo_url' => $student->photo_url,
-                    'classroom_id' => $classroom?->id,
-                    'kelas' => $classroom?->name ?? '-',
-                    'kelas_diterima' => $student->diterima_di_jenjang ?? $kelasDiterima,
-                    'tanggal_diterima' => $student->tanggal_diterima ? $student->tanggal_diterima->translatedFormat('d F Y') : $tanggalDiterima,
-                    'status_keluarga' => $student->status_keluarga ?? 'Anak Kandung',
-                    'anak_ke' => $student->anak_ke ? (string) $student->anak_ke : (string) ($student->siblings->count() + 1),
-                    'no_wa' => $student->no_wa ?? '-',
-                    'sekolah_asal' => $student->sekolah_asal ?? '-',
-                    'alamat' => $alamatLengkap,
-                    'ayah_nama' => $student->ayah_nama ?? '-',
-                    'ayah_pekerjaan' => $student->ayah_pekerjaan ?? '-',
-                    'ayah_penghasilan' => $student->ayah_penghasilan ?? '-',
-                    'ibu_nama' => $student->ibu_nama ?? '-',
-                    'ibu_pekerjaan' => $student->ibu_pekerjaan ?? '-',
-                    'ibu_penghasilan' => $student->ibu_penghasilan ?? '-',
-                    'wali_nama' => $student->wali_nama ?? '-',
-                    'wali_alamat' => $student->wali_nama ? $alamatLengkap : '-',
-                    'wali_hp' => $student->wali_nama ? ($student->no_wa ?? '-') : '-',
-                    'wali_pekerjaan' => $student->wali_pekerjaan ?? '-',
-                ];
-            });
+            ->map(fn (Student $student) => $this->mapStudentForIdentityDocument($student, $selectedYear));
 
         return Inertia::render('Administration/IdentityDocument', [
             'students' => $students,
@@ -198,6 +130,146 @@ class AdministrationController extends Controller
             ] : null,
             'template' => $template,
         ]);
+    }
+
+    /**
+     * Generate and directly download student identity PDF (single, merged, or per-student).
+     */
+    public function downloadIdentityPdf(Request $request, StudentIdentityPdfService $pdfService): HttpResponse
+    {
+        $validated = $request->validate([
+            'student_ids' => ['required', 'array', 'min:1'],
+            'student_ids.*' => ['required', 'integer', 'exists:students,id'],
+            'pages' => ['nullable', 'array', 'min:1'],
+            'pages.*' => ['string', 'in:cover,school_profile,identity'],
+            'show_photo' => ['nullable', 'boolean'],
+            'filename' => ['nullable', 'string', 'max:180'],
+        ]);
+
+        $selectedYearId = session('selected_academic_year_id');
+        $selectedYear = $selectedYearId
+            ? AcademicYear::find($selectedYearId)
+            : (AcademicYear::current() ?? AcademicYear::first());
+
+        $students = Student::with([
+            'academicRecords' => function ($query) use ($selectedYear) {
+                if ($selectedYear) {
+                    $query->where('academic_year_id', $selectedYear->id);
+                }
+                $query->with('classroom');
+            },
+            'siblings',
+        ])
+            ->whereIn('id', $validated['student_ids'])
+            ->orderBy('unit')
+            ->orderBy('nama')
+            ->get()
+            ->map(fn (Student $student) => $this->mapStudentForIdentityDocument($student, $selectedYear))
+            ->values()
+            ->all();
+
+        $template = DocumentTemplate::getStudentIdentityTemplate();
+        $pages = $validated['pages'] ?? ['cover', 'school_profile', 'identity'];
+        $showPhoto = array_key_exists('show_photo', $validated)
+            ? filter_var($validated['show_photo'], FILTER_VALIDATE_BOOLEAN)
+            : true;
+
+        $pdfBinary = $pdfService->generatePdf($students, $template, $pages, $showPhoto);
+
+        $defaultName = count($students) === 1
+            ? 'Identitas - '.$students[0]['nama'].' ('.$students[0]['nisn'].').pdf'
+            : 'Identitas Siswa - Gabungan ('.count($students).' Siswa).pdf';
+
+        $rawName = $validated['filename'] ?? $defaultName;
+        $safeFilename = preg_replace('/[^A-Za-z0-9\-_(). ]+/', '_', $rawName) ?: 'identitas_siswa.pdf';
+        if (! str_ends_with(strtolower($safeFilename), '.pdf')) {
+            $safeFilename .= '.pdf';
+        }
+
+        return response($pdfBinary, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.$safeFilename.'"',
+            'Cache-Control' => 'no-store, no-cache, must-revalidate',
+        ]);
+    }
+
+    /**
+     * Format student model data for student identity document preview, print, and PDF.
+     *
+     * @return array<string, mixed>
+     */
+    private function mapStudentForIdentityDocument(Student $student, ?AcademicYear $selectedYear): array
+    {
+        $record = $student->academicRecords->first();
+        $classroom = $record?->classroom;
+
+        // Alamat lengkap
+        $alamatParts = array_filter([
+            $student->jalan,
+            ($student->rt || $student->rw) ? ('RT '.($student->rt ?: '-').' / RW '.($student->rw ?: '-')) : null,
+            $student->dusun,
+            $student->desa,
+            $student->kecamatan,
+            $student->kabupaten,
+            $student->provinsi,
+        ]);
+        $alamatLengkap = ! empty($alamatParts) ? implode(', ', $alamatParts) : '-';
+
+        // Jenis kelamin formal
+        $jkLabel = $student->jk === 'L' ? 'Laki-laki' : ($student->jk === 'P' ? 'Perempuan' : '-');
+
+        // Tanggal diterima default
+        $tanggalDiterima = $selectedYear?->start_date
+            ? Carbon::parse($selectedYear->start_date)->translatedFormat('d F Y')
+            : ($student->created_at ? $student->created_at->translatedFormat('d F Y') : '-');
+
+        // Kelas diterima
+        $kelasDiterima = $classroom?->name ?? ($record?->tingkat ? 'Kelas '.$record->tingkat : 'VII (Tujuh)');
+
+        return [
+            'id' => $student->id,
+            'nisn' => $student->nisn ?? '-',
+            'nis' => $student->nipd ?? $student->nisn ?? '-',
+            'nipd' => $student->nipd ?? '-',
+            'nama' => $student->nama,
+            'nama_kapital' => mb_strtoupper($student->nama, 'UTF-8'),
+            'jk' => $jkLabel,
+            'jk_raw' => $student->jk,
+            'tempat_lahir' => $student->tempat_lahir ?? '-',
+            'tanggal_lahir' => $student->tanggal_lahir ? $student->tanggal_lahir->translatedFormat('d F Y') : '-',
+            'ttl' => $student->ttl,
+            'nik' => $student->nik ?? '-',
+            'no_kk' => $student->no_kk ?? '-',
+            'agama' => $student->agama ?? 'Islam',
+            'unit' => $student->unit ?? 'SMPIT Ulil Albab',
+            'unit_pesantren' => $student->unit_pesantren ?? $record?->unit_pesantren ?? '-',
+            'program' => $student->program ?? 'Fullday',
+            'jenjang' => $record?->jenjang ?? 'SMP',
+            'tingkat' => $record?->tingkat,
+            'angkatan' => $student->angkatan,
+            'status_keaktifan' => $student->status_keaktifan ?? 'Aktif',
+            'photo_url' => $student->photo_url,
+            'foto_path' => $student->foto,
+            'classroom_id' => $classroom?->id,
+            'kelas' => $classroom?->name ?? '-',
+            'kelas_diterima' => $student->diterima_di_jenjang ?? $kelasDiterima,
+            'tanggal_diterima' => $student->tanggal_diterima ? $student->tanggal_diterima->translatedFormat('d F Y') : $tanggalDiterima,
+            'status_keluarga' => $student->status_keluarga ?? 'Anak Kandung',
+            'anak_ke' => $student->anak_ke ? (string) $student->anak_ke : (string) ($student->siblings->count() + 1),
+            'no_wa' => $student->no_wa ?? '-',
+            'sekolah_asal' => $student->sekolah_asal ?? '-',
+            'alamat' => $alamatLengkap,
+            'ayah_nama' => $student->ayah_nama ?? '-',
+            'ayah_pekerjaan' => $student->ayah_pekerjaan ?? '-',
+            'ayah_penghasilan' => $student->ayah_penghasilan ?? '-',
+            'ibu_nama' => $student->ibu_nama ?? '-',
+            'ibu_pekerjaan' => $student->ibu_pekerjaan ?? '-',
+            'ibu_penghasilan' => $student->ibu_penghasilan ?? '-',
+            'wali_nama' => $student->wali_nama ?? '-',
+            'wali_alamat' => $student->wali_nama ? $alamatLengkap : '-',
+            'wali_hp' => $student->wali_nama ? ($student->no_wa ?? '-') : '-',
+            'wali_pekerjaan' => $student->wali_pekerjaan ?? '-',
+        ];
     }
 
     /**

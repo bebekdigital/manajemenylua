@@ -239,34 +239,112 @@ const handlePreviewFromGenerator = ({ students, pages, showPhoto }) => {
     isPreviewModalOpen.value = true;
 };
 
-// --- Toast Hint ---
-const pdfHintMessage = ref('');
-let pdfHintTimer = null;
+// --- Toast Notice ---
+const toastNotice = ref({ show: false, type: 'success', message: '' });
+let toastTimer = null;
 
-function showPdfHint(msg) {
-    pdfHintMessage.value = msg;
-    if (pdfHintTimer) clearTimeout(pdfHintTimer);
-    pdfHintTimer = setTimeout(() => {
-        pdfHintMessage.value = '';
-    }, 6000);
+function showToastNotice(type, message) {
+    toastNotice.value = { show: true, type, message };
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+        toastNotice.value.show = false;
+    }, 5000);
 }
+
+// --- Direct PDF Download ---
+const isDownloadingPdf = ref(false);
+const downloadPdfProgress = ref('');
+
+function getXsrfToken() {
+    const match = document.cookie.match(/XSRF-TOKEN=([^;]+)/);
+    return match ? decodeURIComponent(match[1]) : '';
+}
+
+async function fetchAndSavePdf(studentIds, pages, showPhoto, filename) {
+    const res = await fetch('/administration/identity-document/pdf', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/pdf',
+            'X-XSRF-TOKEN': getXsrfToken(),
+            'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: JSON.stringify({
+            student_ids: studentIds,
+            pages,
+            show_photo: showPhoto,
+            filename,
+        }),
+    });
+
+    if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+    }
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+
+const handleDownloadPdfFromGenerator = async ({ students, pages, showPhoto, mode }) => {
+    if (!students || students.length === 0) return;
+
+    isDownloadingPdf.value = true;
+    downloadPdfProgress.value = '';
+
+    try {
+        if (mode === 'per_student') {
+            for (let i = 0; i < students.length; i++) {
+                const st = students[i];
+                downloadPdfProgress.value = `Mengunduh ${i + 1}/${students.length}...`;
+                const filename = `Identitas - ${st.nama} (${st.nisn || '-'}).pdf`;
+                await fetchAndSavePdf([st.id], pages, showPhoto, filename);
+                if (i < students.length - 1) {
+                    await new Promise((resolve) => setTimeout(resolve, 350));
+                }
+            }
+            showToastNotice('success', `Berhasil mengunduh ${students.length} file PDF per siswa.`);
+        } else {
+            downloadPdfProgress.value = 'Menyiapkan PDF...';
+            const filename = students.length === 1
+                ? `Identitas - ${students[0].nama} (${students[0].nisn || '-'}).pdf`
+                : `Identitas Siswa - Gabungan (${students.length} Siswa).pdf`;
+            await fetchAndSavePdf(
+                students.map((s) => s.id),
+                pages,
+                showPhoto,
+                filename
+            );
+            showToastNotice('success', `Berhasil mengunduh file PDF (${students.length} siswa).`);
+        }
+        isGenerateModalOpen.value = false;
+    } catch (err) {
+        console.error('Gagal mengunduh PDF:', err);
+        showToastNotice('error', 'Gagal mengunduh berkas PDF. Silakan coba lagi.');
+    } finally {
+        isDownloadingPdf.value = false;
+        downloadPdfProgress.value = '';
+    }
+};
 
 // --- Print Queue ---
 const batchStudentsToPrint = ref([]);
 const batchPagesToPrint = ref(['cover', 'school_profile', 'identity']);
 const batchShowPhoto = ref(true);
 
-const executePrint = async (students, pages, showPhoto, customTitle, isPdfMode = false) => {
+const executePrint = async (students, pages, showPhoto, customTitle) => {
     if (!students || students.length === 0 || !pages || pages.length === 0) return;
 
     batchStudentsToPrint.value = students;
     batchPagesToPrint.value = pages;
     batchShowPhoto.value = showPhoto;
     await nextTick();
-
-    if (isPdfMode) {
-        showPdfHint('Pada dialog cetak, pilih Tujuan/Printer: "Simpan sebagai PDF / Save as PDF" untuk mengunduh berkas PDF.');
-    }
 
     const originalTitle = document.title;
     if (customTitle) {
@@ -297,7 +375,7 @@ const handlePrintFromPreview = ({ student, students, pages }) => {
         ? `Identitas - ${targetList[0].nama} (${targetList[0].nisn || '-'})`
         : `Identitas Siswa - Gabungan (${targetList.length} Siswa)`;
 
-    executePrint(targetList, pages, activePreviewShowPhoto.value, title, false);
+    executePrint(targetList, pages, activePreviewShowPhoto.value, title);
 };
 
 const quickPrint = (student) => {
@@ -305,8 +383,7 @@ const quickPrint = (student) => {
         [student],
         ['cover', 'school_profile', 'identity'],
         true,
-        `Identitas - ${student.nama} (${student.nisn || '-'})`,
-        false
+        `Identitas - ${student.nama} (${student.nisn || '-'})`
     );
 };
 
@@ -314,14 +391,7 @@ const handlePrintBulkFromGenerator = ({ students, pages, showPhoto }) => {
     const title = students.length === 1
         ? `Identitas - ${students[0].nama} (${students[0].nisn || '-'})`
         : `Identitas Siswa - Gabungan (${students.length} Siswa)`;
-    executePrint(students, pages, showPhoto, title, false);
-};
-
-const handleDownloadPdfBulkFromGenerator = ({ students, pages, showPhoto }) => {
-    const title = students.length === 1
-        ? `Identitas - ${students[0].nama} (${students[0].nisn || '-'})`
-        : `Identitas Siswa - Gabungan (${students.length} Siswa)`;
-    executePrint(students, pages, showPhoto, title, true);
+    executePrint(students, pages, showPhoto, title);
 };
 
 const handlePrintSingleFromGenerator = ({ student, pages, showPhoto }) => {
@@ -329,18 +399,7 @@ const handlePrintSingleFromGenerator = ({ student, pages, showPhoto }) => {
         [student],
         pages,
         showPhoto,
-        `Identitas - ${student.nama} (${student.nisn || '-'})`,
-        false
-    );
-};
-
-const handleDownloadPdfSingleFromGenerator = ({ student, pages, showPhoto }) => {
-    executePrint(
-        [student],
-        pages,
-        showPhoto,
-        `Identitas - ${student.nama} (${student.nisn || '-'})`,
-        true
+        `Identitas - ${student.nama} (${student.nisn || '-'})`
     );
 };
 </script>
@@ -411,23 +470,30 @@ const handleDownloadPdfSingleFromGenerator = ({ student, pages, showPhoto }) => 
                 </div>
             </div>
 
-            <!-- Toast Hint for Save as PDF -->
+            <!-- Toast Notice -->
             <Transition
                 enter-active-class="transition duration-200 ease-out"
-                enter-from-class="opacity-0 -translate-y-2"
+                enter-from-class="opacity-0 translate-y-2"
                 leave-active-class="transition duration-150 ease-in"
-                leave-to-class="opacity-0 -translate-y-2"
+                leave-to-class="opacity-0 translate-y-2"
             >
                 <div
-                    v-if="pdfHintMessage"
-                    class="fixed bottom-5 right-5 z-[70] max-w-sm bg-emerald-950 text-white px-4 py-3 rounded-2xl shadow-2xl border border-emerald-700 flex items-start gap-2.5 text-xs"
+                    v-if="toastNotice.show"
+                    :class="[
+                        'fixed bottom-5 right-5 z-[70] max-w-sm px-4 py-3 rounded-2xl shadow-2xl border flex items-center gap-2.5 text-xs font-medium',
+                        toastNotice.type === 'error'
+                            ? 'bg-rose-900 text-white border-rose-700'
+                            : 'bg-emerald-950 text-white border-emerald-700'
+                    ]"
                 >
-                    <span class="material-symbols-outlined text-yellow-200 text-[20px] shrink-0">picture_as_pdf</span>
-                    <div class="leading-relaxed">{{ pdfHintMessage }}</div>
+                    <span class="material-symbols-outlined text-[20px] shrink-0" :class="toastNotice.type === 'error' ? 'text-rose-200' : 'text-yellow-200'">
+                        {{ toastNotice.type === 'error' ? 'error' : 'check_circle' }}
+                    </span>
+                    <div class="leading-relaxed flex-1">{{ toastNotice.message }}</div>
                     <button
                         type="button"
-                        @click="pdfHintMessage = ''"
-                        class="text-emerald-200 hover:text-white cursor-pointer shrink-0"
+                        @click="toastNotice.show = false"
+                        class="opacity-75 hover:opacity-100 cursor-pointer shrink-0"
                     >
                         <span class="material-symbols-outlined text-[16px]">close</span>
                     </button>
@@ -673,12 +739,13 @@ const handleDownloadPdfSingleFromGenerator = ({ student, pages, showPhoto }) => 
         <GenerateIdentityModal
             :is-open="isGenerateModalOpen"
             :selected-students="selectedStudentsList"
+            :is-downloading="isDownloadingPdf"
+            :download-progress="downloadPdfProgress"
             @close="isGenerateModalOpen = false"
             @preview="handlePreviewFromGenerator"
             @print-bulk="handlePrintBulkFromGenerator"
-            @download-pdf-bulk="handleDownloadPdfBulkFromGenerator"
             @print-single="handlePrintSingleFromGenerator"
-            @download-pdf-single="handleDownloadPdfSingleFromGenerator"
+            @download-pdf="handleDownloadPdfFromGenerator"
         />
     </div>
 </template>
