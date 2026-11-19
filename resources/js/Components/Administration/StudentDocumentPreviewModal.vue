@@ -19,6 +19,10 @@ const props = defineProps({
         type: Array,
         default: () => ['cover', 'school_profile', 'identity'],
     },
+    showPhoto: {
+        type: Boolean,
+        default: true,
+    },
     template: {
         type: Object,
         required: true,
@@ -202,6 +206,7 @@ const triggerPrint = () => {
                         :template="template"
                         :pages-to-print="pagesToPrint"
                         :is-last-in-batch="idx === previewStudents.length - 1"
+                        :show-photo="showPhoto"
                     />
                 </div>
             </div>

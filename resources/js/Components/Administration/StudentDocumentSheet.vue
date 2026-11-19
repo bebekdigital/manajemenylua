@@ -18,6 +18,10 @@ const props = defineProps({
         type: Boolean,
         default: true,
     },
+    showPhoto: {
+        type: Boolean,
+        default: true,
+    },
 });
 
 const school = computed(() => props.template?.school_profile || {});
@@ -346,7 +350,7 @@ const signatoryDate = computed(() => {
                         style="width: 3cm; height: 4cm;"
                     >
                         <img
-                            v-if="student?.photo_url"
+                            v-if="showPhoto && student?.photo_url"
                             :src="student.photo_url"
                             :alt="student?.nama"
                             class="w-full h-full object-cover"
