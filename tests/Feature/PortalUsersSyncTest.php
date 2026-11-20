@@ -306,6 +306,7 @@ class PortalUsersSyncTest extends TestCase
             $table->string('role');
             $table->string('feature_group');
             $table->string('feature_name');
+            $table->string('data_scope', 20)->default('all');
             $table->boolean('can_view')->default(true);
             $table->boolean('can_create')->default(true);
             $table->boolean('can_update')->default(true);

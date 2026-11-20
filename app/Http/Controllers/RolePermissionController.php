@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Department;
 use App\Models\RolePermission;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class RolePermissionController extends Controller
 {
@@ -40,6 +42,7 @@ class RolePermissionController extends Controller
             'permissions' => ['required', 'array'],
             'permissions.*.group' => ['required', 'string'],
             'permissions.*.name' => ['nullable', 'string'],
+            'permissions.*.data_scope' => ['nullable', 'string', 'in:self,unit,all'],
             'permissions.*.can_view' => ['nullable', 'boolean'],
             'permissions.*.can_create' => ['nullable', 'boolean'],
             'permissions.*.can_update' => ['nullable', 'boolean'],
@@ -56,27 +59,39 @@ class RolePermissionController extends Controller
             return back()->withErrors(['role' => 'Jabatan tujuan harus dipilih.']);
         }
 
-        DB::transaction(function () use ($targetRoles, $validated) {
+        $hasDataScopeColumn = Schema::hasColumn('role_permissions', 'data_scope');
+
+        DB::transaction(function () use ($targetRoles, $validated, $hasDataScopeColumn) {
             foreach ($targetRoles as $role) {
                 foreach ($validated['permissions'] as $item) {
+                    $attributes = [
+                        'feature_name' => $item['name'] ?? $item['group'],
+                        'can_view' => ! empty($item['can_view']),
+                        'can_create' => ! empty($item['can_create']),
+                        'can_update' => ! empty($item['can_update']),
+                        'can_delete' => ! empty($item['can_delete']),
+                        'can_export' => ! empty($item['can_export']),
+                        'can_import' => ! empty($item['can_import']),
+                    ];
+
+                    if ($hasDataScopeColumn) {
+                        $attributes['data_scope'] = $item['group'] === 'employee_detail_history'
+                            ? RolePermission::normalizeDataScope($item['data_scope'] ?? null, $role)
+                            : RolePermission::SCOPE_ALL;
+                    }
+
                     RolePermission::updateOrCreate(
                         [
                             'role' => $role,
                             'feature_group' => $item['group'],
                         ],
-                        [
-                            'feature_name' => $item['name'] ?? $item['group'],
-                            'can_view' => ! empty($item['can_view']),
-                            'can_create' => ! empty($item['can_create']),
-                            'can_update' => ! empty($item['can_update']),
-                            'can_delete' => ! empty($item['can_delete']),
-                            'can_export' => ! empty($item['can_export']),
-                            'can_import' => ! empty($item['can_import']),
-                        ]
+                        $attributes
                     );
                 }
             }
         });
+
+        Department::forgetOrganizationCaches();
 
         $count = count($targetRoles);
         $message = $count > 1

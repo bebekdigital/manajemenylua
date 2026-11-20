@@ -88,6 +88,41 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the normalized unit names assigned to this user account.
+     *
+     * @return array<int, string>
+     */
+    public function employeeUnits(): array
+    {
+        $units = [];
+
+        if (! empty($this->unit)) {
+            $units[] = mb_strtolower(trim((string) $this->unit));
+        }
+
+        $employee = $this->employeeProfile();
+        if ($employee) {
+            $positions = $employee->relationLoaded('positions')
+                ? $employee->positions
+                : $employee->positions()->get();
+
+            $activePositions = $positions->filter(fn (EmployeePosition $pos): bool => empty($pos->tst_jabatan));
+            $sourcePositions = $activePositions->isNotEmpty()
+                ? $activePositions
+                : $positions->sortByDesc('tmt_jabatan')->take(1);
+
+            foreach ($sourcePositions as $pos) {
+                $unit = mb_strtolower(trim((string) ($pos->unit_kerja ?? '')));
+                if ($unit !== '') {
+                    $units[] = $unit;
+                }
+            }
+        }
+
+        return array_values(array_unique(array_filter($units)));
+    }
+
+    /**
      * Get default password generated from user account (tanggal lahir YYYYMMDD).
      */
     public function getDefaultPassword(?Employee $matchedEmployee = null): ?string

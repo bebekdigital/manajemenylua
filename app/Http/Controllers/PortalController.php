@@ -216,6 +216,9 @@ class PortalController extends Controller
                         'category' => $feat['category'],
                         'description' => $feat['description'],
                         'supported_actions' => $feat['supported_actions'],
+                        'data_scope' => $feat['group'] === 'employee_detail_history'
+                            ? ($isSuper ? RolePermission::SCOPE_ALL : RolePermission::getDefaultDataScopeForRole($r))
+                            : RolePermission::SCOPE_ALL,
                         'can_view' => $isSuper,
                         'can_create' => $isSuper,
                         'can_update' => $isSuper,

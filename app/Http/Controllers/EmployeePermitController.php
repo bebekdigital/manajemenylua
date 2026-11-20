@@ -399,20 +399,15 @@ class EmployeePermitController extends Controller
             abort(401);
         }
 
-        $employee = Employee::findOrFail($employeeId);
+        $employee = Employee::with('positions')->findOrFail($employeeId);
 
         // Atasan langsung sesuai hierarki diagram jabatan atau superadmin diizinkan mengakses perizinan bawahannya
         if ($user->canApprovePermitFor($employee)) {
             return;
         }
 
-        if ($user->isTeacher()) {
-            $myEmployee = $user->employeeProfile();
-            if (! $myEmployee || (string) $myEmployee->id !== (string) $employeeId) {
-                abort(403, 'Akses ditolak: Anda hanya dapat mengakses data perizinan atas nama Anda sendiri.');
-            }
-
-            return;
+        if (! RolePermission::canAccessEmployee($user, $employee)) {
+            abort(403, 'Akses ditolak: Anda tidak memiliki cakupan akses untuk mengelola data perizinan pegawai ini.');
         }
 
         if (! RolePermission::canAccess($user, 'employee_detail_history', $action)) {

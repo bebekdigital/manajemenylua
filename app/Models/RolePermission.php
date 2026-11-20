@@ -4,15 +4,23 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Schema;
 
 class RolePermission extends Model
 {
     use HasFactory;
 
+    public const SCOPE_SELF = 'self';
+
+    public const SCOPE_UNIT = 'unit';
+
+    public const SCOPE_ALL = 'all';
+
     protected $fillable = [
         'role',
         'feature_group',
         'feature_name',
+        'data_scope',
         'can_view',
         'can_create',
         'can_update',
@@ -132,6 +140,9 @@ class RolePermission extends Model
                 'description' => $feat['description'],
                 'parent_group' => $feat['parent_group'] ?? null,
                 'supported_actions' => $feat['supported_actions'],
+                'data_scope' => $group === 'employee_detail_history'
+                    ? ($isSuper ? self::SCOPE_ALL : self::normalizeDataScope($perm?->data_scope, $role))
+                    : self::SCOPE_ALL,
                 'can_view' => $isSuper || (bool) ($perm?->can_view),
                 'can_create' => $isSuper || (bool) ($perm?->can_create),
                 'can_update' => $isSuper || (bool) ($perm?->can_update),
@@ -189,6 +200,11 @@ class RolePermission extends Model
                     'role' => $role,
                     'feature_group' => $group,
                     'feature_name' => $feat['name'],
+                    ...(Schema::hasColumn('role_permissions', 'data_scope') ? [
+                        'data_scope' => $group === 'employee_detail_history'
+                            ? self::getDefaultDataScopeForRole($role)
+                            : self::SCOPE_ALL,
+                    ] : []),
                     'can_view' => $canView,
                     'can_create' => $canCreate,
                     'can_update' => $canUpdate,
@@ -279,6 +295,117 @@ class RolePermission extends Model
         $defaults = self::getDefaultValuesForRoleAndGroup($role, $group);
 
         return (bool) ($defaults[$action] ?? false);
+    }
+
+    /**
+     * Normalize any scope value into one of self | unit | all.
+     */
+    public static function normalizeDataScope(?string $scope, string $role = ''): string
+    {
+        if (in_array($scope, [self::SCOPE_SELF, self::SCOPE_UNIT, self::SCOPE_ALL], true)) {
+            return $scope;
+        }
+
+        return self::getDefaultDataScopeForRole($role);
+    }
+
+    /**
+     * Get the default employee data visibility scope for a given role.
+     */
+    public static function getDefaultDataScopeForRole(string $role): string
+    {
+        $lowerRole = strtolower(trim($role));
+
+        if (in_array($lowerRole, ['superadmin', 'admin'], true)) {
+            return self::SCOPE_ALL;
+        }
+
+        if (str_contains($lowerRole, 'guru') || str_contains($lowerRole, 'wali kelas')) {
+            return self::SCOPE_SELF;
+        }
+
+        return self::SCOPE_ALL;
+    }
+
+    /**
+     * Resolve the effective Data Pegawai visibility scope (self | unit | all) for a user or role.
+     */
+    public static function getEmployeeDataScope(User|string|null $userOrRole): string
+    {
+        if (! $userOrRole) {
+            return self::SCOPE_SELF;
+        }
+
+        $role = trim($userOrRole instanceof User ? (string) $userOrRole->role : (string) $userOrRole);
+
+        if (in_array(strtolower($role), ['superadmin', 'admin'], true)) {
+            return self::SCOPE_ALL;
+        }
+
+        if (! Schema::hasTable('role_permissions') || ! Schema::hasColumn('role_permissions', 'data_scope')) {
+            return self::getDefaultDataScopeForRole($role);
+        }
+
+        $perm = self::where('role', $role)
+            ->where('feature_group', 'employee_detail_history')
+            ->first();
+
+        if (! $perm && (str_contains(strtolower($role), 'guru') || str_contains(strtolower($role), 'wali kelas'))) {
+            $perm = self::where('role', 'Guru')
+                ->where('feature_group', 'employee_detail_history')
+                ->first();
+        }
+
+        if ($perm && ! empty($perm->data_scope)) {
+            return self::normalizeDataScope($perm->data_scope, $role);
+        }
+
+        return self::getDefaultDataScopeForRole($role);
+    }
+
+    /**
+     * Determine whether a user can view/access a specific employee under the configured scope hierarchy.
+     * Hierarchy is cumulative: all > unit > self.
+     */
+    public static function canAccessEmployee(User $user, Employee $employee, ?string $scope = null, ?Employee $myEmployee = null, ?array $userUnits = null): bool
+    {
+        $effectiveScope = $scope ?? self::getEmployeeDataScope($user);
+
+        if ($effectiveScope === self::SCOPE_ALL) {
+            return true;
+        }
+
+        $ownEmployee = $myEmployee ?? $user->employeeProfile();
+        if ($ownEmployee && (int) $ownEmployee->id === (int) $employee->id) {
+            return true;
+        }
+
+        if ($effectiveScope !== self::SCOPE_UNIT) {
+            return false;
+        }
+
+        $units = $userUnits ?? $user->employeeUnits();
+        if ($units === []) {
+            return false;
+        }
+
+        $positions = $employee->relationLoaded('positions')
+            ? $employee->positions
+            : $employee->positions()->get();
+
+        $activePositions = $positions->filter(fn (EmployeePosition $pos): bool => empty($pos->tst_jabatan));
+        $sourcePositions = $activePositions->isNotEmpty()
+            ? $activePositions
+            : $positions->sortByDesc('tmt_jabatan')->take(1);
+
+        foreach ($sourcePositions as $pos) {
+            $targetUnit = mb_strtolower(trim((string) ($pos->unit_kerja ?? '')));
+            if ($targetUnit !== '' && in_array($targetUnit, $units, true)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

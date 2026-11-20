@@ -42,8 +42,10 @@ class EmployeeController extends Controller
         $canExport = RolePermission::canAccess($user, 'employee_directory', 'export');
         $canImport = RolePermission::canAccess($user, 'employee_directory', 'import');
 
-        $isTeacher = $user?->isTeacher() ?? false;
-        $myEmployee = $isTeacher ? $user?->employeeProfile() : null;
+        $dataScope = RolePermission::getEmployeeDataScope($user);
+        $isSelfScope = $dataScope === RolePermission::SCOPE_SELF;
+        $myEmployee = $dataScope !== RolePermission::SCOPE_ALL ? $user?->employeeProfile() : null;
+        $userUnits = $dataScope === RolePermission::SCOPE_UNIT ? ($user?->employeeUnits() ?? []) : [];
 
         $selectedYearId = $request->query('academic_year_id') ?? session('selected_academic_year_id');
         $selectedYear = $selectedYearId
@@ -57,24 +59,23 @@ class EmployeeController extends Controller
             'trainingHistories',
         ])->orderBy('nama');
 
-        // Batasi akses: Role Guru hanya bisa melihat data pegawai atas nama dia sendiri
-        if ($isTeacher) {
-            if ($myEmployee) {
-                $query->where('id', $myEmployee->id);
-            } else {
-                $query->whereRaw('1 = 0');
-            }
+        $employeeCollection = $query->get();
+
+        if ($user && $dataScope !== RolePermission::SCOPE_ALL) {
+            $employeeCollection = $employeeCollection
+                ->filter(fn (Employee $emp): bool => RolePermission::canAccessEmployee($user, $emp, $dataScope, $myEmployee, $userUnits))
+                ->values();
         }
 
-        $employees = $query
-            ->get()
+        $employees = $employeeCollection
             ->map(function (Employee $employee) {
                 return $this->mapEmployeeForList($employee);
             });
 
         return Inertia::render('Staff', [
             'employees' => $employees,
-            'isTeacher' => $isTeacher,
+            'isTeacher' => $isSelfScope,
+            'dataScope' => $dataScope,
             'permissions' => [
                 'can_create' => $canCreate,
                 'can_update' => $canUpdate,
@@ -103,12 +104,12 @@ class EmployeeController extends Controller
             abort(403, 'Akses ditolak: Role Anda tidak memiliki izin untuk melihat detail profil pegawai.');
         }
 
-        if ($user?->isTeacher()) {
-            $myEmployee = $user->employeeProfile();
-            $targetEmployee = Employee::find($id);
-            $isSupervisor = $targetEmployee && $user->canApprovePermitFor($targetEmployee);
-            if (! $isSupervisor && (! $myEmployee || (string) $myEmployee->id !== (string) $id)) {
-                abort(403, 'Akses ditolak: Sebagai Guru, Anda hanya dapat melihat data profil pegawai atas nama Anda sendiri.');
+        $dataScope = RolePermission::getEmployeeDataScope($user);
+        if ($user && $dataScope !== RolePermission::SCOPE_ALL) {
+            $targetEmployee = Employee::with('positions')->findOrFail($id);
+            $isSupervisor = $user->canApprovePermitFor($targetEmployee);
+            if (! $isSupervisor && ! RolePermission::canAccessEmployee($user, $targetEmployee, $dataScope)) {
+                abort(403, 'Akses ditolak: Role Anda tidak memiliki cakupan akses untuk melihat data profil pegawai ini.');
             }
         }
 
@@ -291,30 +292,33 @@ class EmployeeController extends Controller
             ])->toArray(),
         ];
 
-        $isTeacher = $user?->isTeacher() ?? false;
-        $myEmployee = $isTeacher ? $user?->employeeProfile() : null;
+        $dataScope = RolePermission::getEmployeeDataScope($user);
+        $myEmployee = $dataScope !== RolePermission::SCOPE_ALL ? $user?->employeeProfile() : null;
+        $userUnits = $dataScope === RolePermission::SCOPE_UNIT ? ($user?->employeeUnits() ?? []) : [];
 
         return Inertia::render('StaffDetail', [
             'employee' => $employeeData,
-            'allEmployees' => function () use ($user, $isTeacher, $myEmployee) {
-                $cacheKey = 'staff_switcher_list_'.($isTeacher ? ($user?->id ?? 'guest') : 'admin');
+            'allEmployees' => function () use ($user, $dataScope, $myEmployee, $userUnits) {
+                $cacheKey = $dataScope === RolePermission::SCOPE_ALL
+                    ? 'staff_switcher_list_admin'
+                    : 'staff_switcher_list_'.($user?->id ?? 'guest').'_'.$dataScope;
 
-                return Cache::remember($cacheKey, 300, function () use ($isTeacher, $myEmployee) {
-                    $employeeListQuery = Employee::query()->orderBy('nama');
-                    if ($isTeacher) {
-                        if ($myEmployee) {
-                            $employeeListQuery->where('id', $myEmployee->id);
-                        } else {
-                            $employeeListQuery->whereRaw('1 = 0');
-                        }
+                return Cache::remember($cacheKey, 300, function () use ($user, $dataScope, $myEmployee, $userUnits) {
+                    $list = Employee::query()
+                        ->orderBy('nama')
+                        ->with(['positions' => fn ($q) => $q->select(['id', 'employee_id', 'jabatan', 'unit_kerja', 'tmt_jabatan', 'tst_jabatan'])->latest('tmt_jabatan')])
+                        ->select(['id', 'nama', 'nipy'])
+                        ->get();
+
+                    if ($user && $dataScope !== RolePermission::SCOPE_ALL) {
+                        $list = $list
+                            ->filter(fn (Employee $emp): bool => RolePermission::canAccessEmployee($user, $emp, $dataScope, $myEmployee, $userUnits))
+                            ->values();
                     }
 
-                    return $employeeListQuery
-                        ->with(['positions' => fn ($q) => $q->select(['id', 'employee_id', 'jabatan', 'unit_kerja'])->latest('tmt_jabatan')])
-                        ->select(['id', 'nama', 'nipy'])
-                        ->get()
+                    return $list
                         ->map(function ($emp) {
-                            $latestPos = $emp->positions->first();
+                            $latestPos = $emp->activePosition();
 
                             return [
                                 'id' => $emp->id,
@@ -378,14 +382,11 @@ class EmployeeController extends Controller
             abort(403, 'Akses ditolak: Role Anda tidak memiliki izin untuk mengubah data pegawai.');
         }
 
-        if ($user?->isTeacher()) {
-            $myEmployee = $user->employeeProfile();
-            if (! $myEmployee || (string) $myEmployee->id !== (string) $id) {
-                abort(403, 'Akses ditolak: Sebagai Guru, Anda hanya dapat mengubah data profil pegawai atas nama Anda sendiri.');
-            }
-        }
+        $employee = Employee::with('positions')->findOrFail($id);
 
-        $employee = Employee::findOrFail($id);
+        if ($user && ! RolePermission::canAccessEmployee($user, $employee)) {
+            abort(403, 'Akses ditolak: Role Anda tidak memiliki cakupan akses untuk mengubah data profil pegawai ini.');
+        }
 
         $isIdentityTab = $request->input('_tab') === 'identitas';
         $identityRule = $isIdentityTab ? 'required' : 'nullable';
@@ -878,14 +879,13 @@ class EmployeeController extends Controller
             abort(403, "Akses ditolak: Role Anda tidak memiliki izin untuk {$actionLabel} data ini.");
         }
 
-        if ($user?->isTeacher()) {
-            $myEmployee = $user->employeeProfile();
-            if (! $myEmployee || (string) $myEmployee->id !== (string) $id) {
-                abort(403, 'Akses ditolak: Sebagai Guru, Anda hanya dapat mengelola data profil pegawai atas nama Anda sendiri.');
-            }
+        $employee = Employee::with('positions')->findOrFail($id);
+
+        if ($user && ! RolePermission::canAccessEmployee($user, $employee)) {
+            abort(403, 'Akses ditolak: Role Anda tidak memiliki cakupan akses untuk mengelola data profil pegawai ini.');
         }
 
-        return Employee::findOrFail($id);
+        return $employee;
     }
 
     /**
@@ -930,10 +930,7 @@ class EmployeeController extends Controller
 
         $employee->syncLinkedUserPosition();
 
-        Cache::forget('staff_switcher_list_admin');
-        if (auth()->check()) {
-            Cache::forget('staff_switcher_list_'.auth()->id());
-        }
+        Department::forgetOrganizationCaches();
 
         return back()->with('success', $msg);
     }
@@ -951,10 +948,7 @@ class EmployeeController extends Controller
 
         $employee->syncLinkedUserPosition();
 
-        Cache::forget('staff_switcher_list_admin');
-        if (auth()->check()) {
-            Cache::forget('staff_switcher_list_'.auth()->id());
-        }
+        Department::forgetOrganizationCaches();
 
         return back()->with('success', 'Riwayat penugasan & jabatan berhasil dihapus.');
     }
@@ -1104,7 +1098,7 @@ class EmployeeController extends Controller
     public function import(Request $request, EmployeeImportService $importService): RedirectResponse
     {
         $user = auth()->user();
-        if (! RolePermission::canAccess($user, 'employee_directory', 'import') || $user?->isTeacher()) {
+        if (! RolePermission::canAccess($user, 'employee_directory', 'import') || RolePermission::getEmployeeDataScope($user) === RolePermission::SCOPE_SELF) {
             abort(403, 'Akses ditolak: Role Anda tidak memiliki izin untuk mengimpor data pegawai.');
         }
 
@@ -1135,7 +1129,7 @@ class EmployeeController extends Controller
     public function downloadTemplate(): BinaryFileResponse
     {
         $user = auth()->user();
-        if (! RolePermission::canAccess($user, 'employee_directory', 'export') || $user?->isTeacher()) {
+        if (! RolePermission::canAccess($user, 'employee_directory', 'export') || RolePermission::getEmployeeDataScope($user) === RolePermission::SCOPE_SELF) {
             abort(403, 'Akses ditolak: Role Anda tidak memiliki izin untuk mengunduh template data pegawai.');
         }
 

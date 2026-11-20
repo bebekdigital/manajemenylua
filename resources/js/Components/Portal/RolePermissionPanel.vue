@@ -85,6 +85,7 @@ function loadRoleMatrix(role) {
             description: feat.description,
             parent_group: feat.parent_group || null,
             supported_actions: feat.supported_actions,
+            data_scope: 'all',
             can_view: true,
             can_create: true,
             can_update: true,
@@ -164,6 +165,7 @@ function onBidangChange(e) {
             description: feat.description,
             parent_group: feat.parent_group || null,
             supported_actions: feat.supported_actions,
+            data_scope: 'all',
             can_view: false,
             can_create: false,
             can_update: false,
@@ -236,6 +238,48 @@ const categoryMeta = {
 
 function getCategoryMeta(cat) {
     return categoryMeta[cat] || { icon: 'folder', color: 'bg-surface-container-high text-on-surface border-outline-variant/40' };
+}
+
+// Cakupan Data Pegawai 3-step cumulative slider (self < unit < all)
+const employeeScopeSteps = [
+    {
+        value: 'self',
+        label: 'Data Sendiri',
+        hint: 'Hanya dapat melihat data pegawai atas nama dirinya sendiri',
+    },
+    {
+        value: 'unit',
+        label: 'Data Unit',
+        hint: 'Otomatis mencakup Data Sendiri + seluruh pegawai dalam unitnya',
+    },
+    {
+        value: 'all',
+        label: 'Data Semua',
+        hint: 'Otomatis mencakup Data Sendiri, Data Unit + seluruh unit pegawai',
+    },
+];
+
+function getScopeIndex(scope) {
+    const idx = employeeScopeSteps.findIndex((s) => s.value === scope);
+    return idx === -1 ? 2 : idx;
+}
+
+function getScopeMeta(scope) {
+    return employeeScopeSteps[getScopeIndex(scope)];
+}
+
+function setEmployeeDataScope(item, scopeValue) {
+    if (isSuperadminActive.value) return;
+    item.data_scope = scopeValue;
+}
+
+function onScopeRangeInput(item, event) {
+    if (isSuperadminActive.value) return;
+    const idx = Number(event.target.value);
+    const step = employeeScopeSteps[idx];
+    if (step) {
+        item.data_scope = step.value;
+    }
 }
 
 // Hierarchy & Parent-Child Helpers
@@ -740,6 +784,88 @@ function savePermissions() {
                                     </div>
                                 </div>
                                 <div class="text-[11px] text-on-surface-variant leading-relaxed mt-0.5" :class="isChild(item) ? 'pl-6' : ''">{{ item.description }}</div>
+
+                                <!-- 3-Point Cumulative Data Scope Slider for Modul Data Pegawai -->
+                                <div
+                                    v-if="item.group === 'employee_detail_history'"
+                                    class="mt-3 p-3 rounded-xl bg-surface-container-low/80 border border-outline-variant/50 max-w-md"
+                                >
+                                    <div class="flex items-center justify-between gap-2 mb-2">
+                                        <span class="text-[10.5px] font-bold uppercase tracking-wider text-on-surface-variant flex items-center gap-1">
+                                            <span class="material-symbols-outlined text-[14px] text-primary">tune</span>
+                                            Cakupan Akses Data Pegawai
+                                        </span>
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary/10 text-primary border border-primary/20">
+                                            {{ getScopeMeta(item.data_scope).label }}
+                                        </span>
+                                    </div>
+
+                                    <!-- Interactive 3-Stop Track & Range Slider -->
+                                    <div class="relative px-2 py-1.5">
+                                        <div class="relative h-2 rounded-full bg-outline-variant/40">
+                                            <div
+                                                class="absolute left-0 top-0 h-full rounded-full bg-primary transition-all duration-200"
+                                                :style="{ width: `${getScopeIndex(item.data_scope) * 50}%` }"
+                                            ></div>
+
+                                            <!-- 3 Step Dots -->
+                                            <button
+                                                v-for="(step, sIdx) in employeeScopeSteps"
+                                                :key="step.value"
+                                                type="button"
+                                                :disabled="isSuperadminActive"
+                                                @click="setEmployeeDataScope(item, step.value)"
+                                                class="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all cursor-pointer disabled:cursor-not-allowed z-10"
+                                                :style="{ left: `${sIdx * 50}%` }"
+                                                :class="sIdx <= getScopeIndex(item.data_scope)
+                                                    ? 'bg-primary border-white text-white shadow-sm scale-105'
+                                                    : 'bg-surface-container-lowest border-outline-variant text-transparent hover:border-primary/60'"
+                                                :title="step.label"
+                                            >
+                                                <span
+                                                    v-if="sIdx <= getScopeIndex(item.data_scope)"
+                                                    class="material-symbols-outlined text-[11px] font-bold leading-none"
+                                                >check</span>
+                                            </button>
+                                        </div>
+
+                                        <input
+                                            type="range"
+                                            min="0"
+                                            max="2"
+                                            step="1"
+                                            :value="getScopeIndex(item.data_scope)"
+                                            :disabled="isSuperadminActive"
+                                            @input="onScopeRangeInput(item, $event)"
+                                            aria-label="Cakupan Akses Data Pegawai"
+                                            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed z-20"
+                                        />
+                                    </div>
+
+                                    <!-- Clickable Labels for the 3 Stops -->
+                                    <div class="grid grid-cols-3 gap-1 mt-1.5 text-[10.5px]">
+                                        <button
+                                            v-for="(step, sIdx) in employeeScopeSteps"
+                                            :key="'lbl_' + step.value"
+                                            type="button"
+                                            :disabled="isSuperadminActive"
+                                            @click="setEmployeeDataScope(item, step.value)"
+                                            class="py-0.5 px-1 rounded transition-colors cursor-pointer disabled:cursor-not-allowed"
+                                            :class="[
+                                                sIdx === 0 ? 'text-left' : (sIdx === 1 ? 'text-center' : 'text-right'),
+                                                sIdx <= getScopeIndex(item.data_scope)
+                                                    ? 'font-bold text-primary'
+                                                    : 'font-medium text-on-surface-variant hover:text-on-surface'
+                                            ]"
+                                        >
+                                            {{ step.label }}
+                                        </button>
+                                    </div>
+
+                                    <p class="mt-1.5 text-[10px] text-on-surface-variant leading-snug">
+                                        {{ getScopeMeta(item.data_scope).hint }}
+                                    </p>
+                                </div>
                             </td>
 
                             <!-- Kategori Badge -->

@@ -24,6 +24,8 @@ class Department extends Model
         if (Schema::hasTable('users')) {
             User::query()->pluck('id')->each(function (int $userId): void {
                 Cache::forget('staff_switcher_list_'.$userId);
+                Cache::forget('staff_switcher_list_'.$userId.'_'.RolePermission::SCOPE_SELF);
+                Cache::forget('staff_switcher_list_'.$userId.'_'.RolePermission::SCOPE_UNIT);
             });
         }
     }
