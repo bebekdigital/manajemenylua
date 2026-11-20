@@ -928,6 +928,8 @@ class EmployeeController extends Controller
             $msg = 'Riwayat penugasan & jabatan berhasil ditambahkan.';
         }
 
+        $employee->syncLinkedUserPosition();
+
         Cache::forget('staff_switcher_list_admin');
         if (auth()->check()) {
             Cache::forget('staff_switcher_list_'.auth()->id());
@@ -946,6 +948,8 @@ class EmployeeController extends Controller
 
         $employee->documents()->where('record_type', 'position')->where('record_id', $pos->id)->delete();
         $pos->delete();
+
+        $employee->syncLinkedUserPosition();
 
         Cache::forget('staff_switcher_list_admin');
         if (auth()->check()) {

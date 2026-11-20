@@ -819,7 +819,14 @@ function toggleUserStatus(user) {
 function formatDate(dateStr) {
     if (!dateStr) return '—';
     try {
-        const d = new Date(dateStr + (dateStr.includes('T') ? '' : 'T00:00:00'));
+        const trimmed = String(dateStr).trim();
+        const normalized = /^\d{4}-\d{2}-\d{2}$/.test(trimmed)
+            ? `${trimmed}T00:00:00`
+            : trimmed.replace(/^(\d{4}-\d{2}-\d{2})\s+/, '$1T');
+        const d = new Date(normalized);
+        if (Number.isNaN(d.getTime())) {
+            return dateStr;
+        }
         return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
     } catch {
         return dateStr;
@@ -1571,6 +1578,7 @@ onUnmounted(() => {
                                     <th class="py-3.5 px-4 text-center w-36">Pass Default</th>
                                     <th class="py-3.5 px-4 text-center w-32">Role</th>
                                     <th class="py-3.5 px-4 text-center w-32">Status Akses</th>
+                                    <th class="py-3.5 px-4 text-center w-36">Status Password</th>
                                     <th class="py-3.5 px-4 text-center w-36">Dibuat Pada</th>
                                     <th class="py-3.5 px-3 text-center w-32">Aksi</th>
                                 </tr>
@@ -1666,6 +1674,22 @@ onUnmounted(() => {
                                             </span>
                                         </div>
                                     </td>
+                                    <td class="py-3.5 px-4 text-center">
+                                        <span
+                                            v-if="u.has_changed_password"
+                                            class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10.5px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                        >
+                                            <span class="material-symbols-outlined text-[13px]">check_circle</span>
+                                            Sudah Ganti
+                                        </span>
+                                        <span
+                                            v-else
+                                            class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10.5px] font-bold bg-amber-50 text-amber-700 border border-amber-200"
+                                        >
+                                            <span class="material-symbols-outlined text-[13px]">key</span>
+                                            Belum Ganti
+                                        </span>
+                                    </td>
                                     <td class="py-3.5 px-4 text-center text-slate-500 text-xs">
                                         {{ formatDate(u.created_at) }}
                                     </td>
@@ -1706,7 +1730,7 @@ onUnmounted(() => {
                                     </td>
                                 </tr>
                                 <tr v-if="filteredUsers.length === 0">
-                                    <td colspan="8" class="py-12 text-center text-slate-400 italic">
+                                    <td colspan="9" class="py-12 text-center text-slate-400 italic">
                                         Data pengguna tidak ditemukan.
                                     </td>
                                 </tr>
@@ -1792,6 +1816,23 @@ onUnmounted(() => {
                                         </button>
                                     </div>
                                     <span v-else class="text-slate-400 text-xs">—</span>
+                                </div>
+                                <div>
+                                    <span class="text-[11px] text-slate-400 block font-medium">Status Password:</span>
+                                    <span
+                                        v-if="u.has_changed_password"
+                                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 mt-0.5"
+                                    >
+                                        <span class="material-symbols-outlined text-[12px]">check_circle</span>
+                                        Sudah Ganti
+                                    </span>
+                                    <span
+                                        v-else
+                                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-amber-50 text-amber-700 border border-amber-200 mt-0.5"
+                                    >
+                                        <span class="material-symbols-outlined text-[12px]">key</span>
+                                        Belum Ganti
+                                    </span>
                                 </div>
                                 <div>
                                     <span class="text-[11px] text-slate-400 block font-medium">Dibuat:</span>

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Facades\Schema;
 
 class Employee extends Model
 {
@@ -155,6 +156,58 @@ class Employee extends Model
     public function currentPosition(): HasOne
     {
         return $this->hasOne(EmployeePosition::class)->latestOfMany('tmt_jabatan');
+    }
+
+    /**
+     * Resolve the active assignment position (empty TST / still serving first).
+     */
+    public function activePosition(): ?EmployeePosition
+    {
+        $positions = $this->relationLoaded('positions')
+            ? $this->positions
+            : $this->positions()->get();
+
+        return $positions
+            ->filter(fn (EmployeePosition $pos): bool => empty($pos->tst_jabatan))
+            ->sortByDesc('tmt_jabatan')
+            ->first()
+            ?? $positions->sortByDesc('tmt_jabatan')->first();
+    }
+
+    /**
+     * Synchronize linked non-superadmin user accounts with the active position.
+     */
+    public function syncLinkedUserPosition(): void
+    {
+        if (! Schema::hasTable('users')) {
+            return;
+        }
+
+        $activePos = $this->activePosition();
+        $linkedUsers = User::query()
+            ->where(function ($query): void {
+                if (! empty($this->nipy)) {
+                    $query->orWhere('nipy', $this->nipy);
+                }
+                if (! empty($this->email)) {
+                    $query->orWhereRaw('LOWER(email) = ?', [mb_strtolower(trim((string) $this->email))]);
+                }
+                $query->orWhere('name', $this->nama);
+            })
+            ->get();
+
+        foreach ($linkedUsers as $linkedUser) {
+            $updates = [
+                'jabatan' => $activePos?->jabatan,
+                'unit' => $activePos?->unit_kerja,
+            ];
+
+            if ($linkedUser->role !== 'superadmin' && ! empty($activePos?->jabatan)) {
+                $updates['role'] = $activePos->jabatan;
+            }
+
+            $linkedUser->update($updates);
+        }
     }
 
     public function documents(): HasMany

@@ -58,16 +58,22 @@ class PortalController extends Controller
             }
 
             $passDefault = $user->getDefaultPassword($matchedEmp);
+            $activePos = $matchedEmp?->activePosition();
+            $resolvedRole = $user->role === 'superadmin'
+                ? 'superadmin'
+                : ($activePos?->jabatan ?: $user->role);
 
             return [
                 'id' => $user->id,
                 'name' => $user->name,
                 'username' => $user->username,
                 'email' => $user->email,
-                'role' => $user->role,
+                'role' => $resolvedRole,
                 'is_active' => (bool) ($user->is_active ?? true),
                 'pass_default' => $passDefault,
-                'created_at' => $user->created_at?->format('Y-m-d H:i'),
+                'must_change_password' => (bool) $user->must_change_password,
+                'has_changed_password' => $user->hasChangedDefaultPassword($matchedEmp),
+                'created_at' => $user->created_at?->toIso8601String(),
             ];
         });
 
@@ -174,7 +180,7 @@ class PortalController extends Controller
         $primaryRoles = ['superadmin', 'Kepala Bidang SDM', 'Guru'];
 
         $employees = $employeeModels->map(function (Employee $emp) use ($users) {
-            $latestPos = $emp->currentPosition ?? $emp->positions->sortByDesc('tmt_jabatan')->first();
+            $activePos = $emp->activePosition();
             $hasAccount = $users->contains(function ($u) use ($emp) {
                 return ($emp->nipy && ! empty($u['username']) && $u['username'] === $emp->nipy)
                     || strcasecmp($u['name'], $emp->nama) === 0
@@ -189,8 +195,8 @@ class PortalController extends Controller
                 'tanggal_lahir' => $emp->tanggal_lahir?->format('Y-m-d'),
                 'tanggal_lahir_formatted' => $emp->tanggal_lahir?->translatedFormat('d F Y') ?? '-',
                 'default_password' => $emp->tanggal_lahir ? $emp->tanggal_lahir->format('Ymd') : '12345678',
-                'jabatan' => $latestPos?->jabatan ?: 'Guru',
-                'unit_kerja' => $latestPos?->unit_kerja ?: '-',
+                'jabatan' => $activePos?->jabatan ?: 'Guru',
+                'unit_kerja' => $activePos?->unit_kerja ?: '-',
                 'has_account' => $hasAccount,
             ];
         });

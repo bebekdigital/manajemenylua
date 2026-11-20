@@ -62,8 +62,8 @@ class UserController extends Controller
                     ? $employee->tanggal_lahir->format('Ymd')
                     : '12345678';
 
-                // Role: diambil dari Jabatan Penugasan
-                $pos = $employee->currentPosition ?? $employee->positions->sortByDesc('tmt_jabatan')->first();
+                // Role: diambil dari Jabatan Aktif (belum TST)
+                $pos = $employee->activePosition();
                 $role = $pos?->jabatan ?: 'Guru';
 
                 $user = User::create([

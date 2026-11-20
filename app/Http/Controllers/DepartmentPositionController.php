@@ -194,6 +194,33 @@ class DepartmentPositionController extends Controller
                     $userQuery->whereRaw('LOWER(TRIM(unit)) = ?', [mb_strtolower($oldDeptName)]);
                 }
                 $userQuery->update($userUpdates);
+
+                if ($nameChanged) {
+                    $roleQuery = User::where('role', '!=', 'superadmin')
+                        ->where(function ($query) use ($oldName, $newName): void {
+                            $query->whereRaw('LOWER(TRIM(role)) = ?', [mb_strtolower($oldName)])
+                                ->orWhereRaw('LOWER(TRIM(jabatan)) = ?', [mb_strtolower($newName)]);
+                        });
+                    if ($oldDeptName !== null && $oldDeptName !== '') {
+                        $roleQuery->where(function ($query) use ($oldDeptName, $newDeptName): void {
+                            $query->whereRaw('LOWER(TRIM(unit)) = ?', [mb_strtolower($oldDeptName)]);
+                            if ($newDeptName !== null && $newDeptName !== '') {
+                                $query->orWhereRaw('LOWER(TRIM(unit)) = ?', [mb_strtolower($newDeptName)]);
+                            }
+                        });
+                    }
+                    $roleQuery->update(['role' => $newName]);
+                }
+            }
+
+            if (
+                $nameChanged
+                && $oldName !== ''
+                && Schema::hasTable('role_permissions')
+                && ! DepartmentPosition::whereRaw('LOWER(TRIM(name)) = ?', [mb_strtolower($oldName)])->exists()
+            ) {
+                RolePermission::whereRaw('LOWER(TRIM(role)) = ?', [mb_strtolower($oldName)])
+                    ->update(['role' => $newName]);
             }
         });
 

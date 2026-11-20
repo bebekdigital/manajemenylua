@@ -118,7 +118,7 @@ function submit() {
             leave-from-class="opacity-100"
             leave-to-class="opacity-0"
         >
-            <div v-if="show" class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+            <div v-if="show" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-2 sm:p-6">
                 <!-- Backdrop -->
                 <div
                     class="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
@@ -126,57 +126,35 @@ function submit() {
                 ></div>
 
                 <!-- Modal Dialog -->
-                <div class="bg-surface-container-lowest rounded-3xl shadow-2xl border border-outline-variant/30 overflow-hidden w-full max-w-3xl relative z-10 my-auto flex flex-col max-h-[90vh]">
+                <div class="bg-surface-container-lowest rounded-2xl sm:rounded-3xl shadow-2xl border border-outline-variant/30 overflow-hidden w-full max-w-3xl relative z-10 flex flex-col max-h-[92dvh] sm:max-h-[90vh]">
                     <!-- Header -->
-                    <div class="px-6 py-4 border-b border-outline-variant/30 flex items-center justify-between bg-surface-container-low/40 shrink-0">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
-                                <span class="material-symbols-outlined text-2xl">auto_mode</span>
+                    <div class="px-4 py-3 sm:px-6 sm:py-4 border-b border-outline-variant/30 flex items-center justify-between gap-3 bg-surface-container-low/40 shrink-0">
+                        <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                            <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                                <span class="material-symbols-outlined text-xl sm:text-2xl">auto_mode</span>
                             </div>
-                            <div>
-                                <h3 class="text-lg font-bold text-on-surface">Generate Akun Pegawai Otomatis</h3>
-                                <p class="text-xs text-on-surface-variant">Pilih pegawai untuk dibuatkan akun login sistem</p>
+                            <div class="min-w-0">
+                                <h3 class="text-sm sm:text-lg font-bold text-on-surface leading-tight truncate">Generate Akun Pegawai</h3>
+                                <p class="text-[11px] sm:text-xs text-on-surface-variant truncate">Pilih pegawai untuk dibuatkan akun login sistem</p>
                             </div>
                         </div>
                         <button
                             type="button"
                             @click="emit('close')"
-                            class="text-on-surface-variant hover:text-on-surface p-2 rounded-full hover:bg-surface-variant transition-colors cursor-pointer"
+                            class="text-on-surface-variant hover:text-on-surface p-1.5 sm:p-2 rounded-full hover:bg-surface-variant transition-colors cursor-pointer shrink-0"
                         >
                             <span class="material-symbols-outlined text-[20px]">close</span>
                         </button>
                     </div>
 
-                    <!-- Rules Info Banner -->
-                    <div class="p-4 mx-6 mt-4 rounded-2xl bg-primary/5 border border-primary/20 text-xs text-on-surface shrink-0 space-y-1.5">
-                        <div class="font-bold text-primary flex items-center gap-1.5 text-sm">
-                            <span class="material-symbols-outlined text-[18px]">info</span>
-                            Aturan Generate Akun Otomatis
-                        </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1 text-on-surface-variant">
-                            <div class="bg-white/80 p-2.5 rounded-xl border border-primary/10">
-                                <div class="font-bold text-on-surface text-[11px] mb-0.5">Username</div>
-                                <div class="text-[11px]">Kata pertama + kata terakhir + 2 angka acak (misal: <code class="bg-surface-container-high px-1 py-0.5 rounded text-primary font-mono font-bold">ahmadrahman42</code>)</div>
-                            </div>
-                            <div class="bg-white/80 p-2.5 rounded-xl border border-primary/10">
-                                <div class="font-bold text-on-surface text-[11px] mb-0.5">Password Default</div>
-                                <div class="text-[11px]">Tanggal lahir format <code class="bg-surface-container-high px-1 py-0.5 rounded text-primary font-mono font-bold">YYYYMMDD</code> (misal: <code class="bg-surface-container-high px-1 py-0.5 rounded font-mono">19880521</code>)</div>
-                            </div>
-                            <div class="bg-white/80 p-2.5 rounded-xl border border-primary/10">
-                                <div class="font-bold text-on-surface text-[11px] mb-0.5">Role / Kewenangan</div>
-                                <div class="text-[11px]">Otomatis diambil dari <strong>Jabatan Penugasan</strong> pegawai di data kepegawaian.</div>
-                            </div>
-                        </div>
-                    </div>
-
                     <!-- Filter & Search Toolbar -->
-                    <div class="px-6 py-3 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+                    <div class="px-4 py-2.5 sm:px-6 sm:py-3 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3 shrink-0 border-b border-outline-variant/20 sm:border-b-0">
                         <!-- Mode Tabs -->
                         <div class="flex p-1 bg-surface-container-low rounded-xl border border-outline-variant/40 w-full sm:w-auto">
                             <button
                                 type="button"
                                 @click="filterMode = 'unregistered'"
-                                class="flex-1 sm:flex-initial py-1.5 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer text-center"
+                                class="flex-1 sm:flex-initial py-1.5 px-2.5 sm:px-3 rounded-lg text-[11px] sm:text-xs font-semibold transition-all cursor-pointer text-center whitespace-nowrap"
                                 :class="filterMode === 'unregistered' ? 'bg-surface-container-lowest text-primary shadow-xs' : 'text-on-surface-variant hover:text-on-surface'"
                             >
                                 Belum Punya Akun ({{ unassignedCount }})
@@ -184,7 +162,7 @@ function submit() {
                             <button
                                 type="button"
                                 @click="filterMode = 'all'"
-                                class="flex-1 sm:flex-initial py-1.5 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer text-center"
+                                class="flex-1 sm:flex-initial py-1.5 px-2.5 sm:px-3 rounded-lg text-[11px] sm:text-xs font-semibold transition-all cursor-pointer text-center whitespace-nowrap"
                                 :class="filterMode === 'all' ? 'bg-surface-container-lowest text-primary shadow-xs' : 'text-on-surface-variant hover:text-on-surface'"
                             >
                                 Semua Pegawai ({{ allCount }})
@@ -204,15 +182,16 @@ function submit() {
                     </div>
 
                     <!-- Error Alert -->
-                    <div v-if="form.errors.employee_ids" class="px-6 py-1">
+                    <div v-if="form.errors.employee_ids" class="px-4 sm:px-6 py-1 shrink-0">
                         <div class="p-2.5 rounded-xl bg-error/10 text-error text-xs font-medium border border-error/20">
                             {{ form.errors.employee_ids }}
                         </div>
                     </div>
 
-                    <!-- Employee List Table -->
-                    <div class="flex-1 overflow-y-auto px-6 py-2 min-h-[220px]">
-                        <div class="rounded-2xl border border-outline-variant/60 overflow-hidden bg-white">
+                    <!-- Employee List Container -->
+                    <div class="flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 py-2">
+                        <!-- Desktop Table View -->
+                        <div class="hidden sm:block rounded-2xl border border-outline-variant/60 overflow-x-auto bg-white">
                             <table class="w-full text-left text-xs border-collapse">
                                 <thead>
                                     <tr class="bg-surface-container-low/70 text-on-surface-variant font-bold text-[10px] uppercase tracking-wider border-b border-outline-variant/60">
@@ -226,7 +205,7 @@ function submit() {
                                             />
                                         </th>
                                         <th class="p-3">Nama Pegawai</th>
-                                        <th class="p-3">Jabatan & Unit</th>
+                                        <th class="p-3">Jabatan &amp; Unit</th>
                                         <th class="p-3">Tanggal Lahir (Password)</th>
                                         <th class="p-3 text-center">Status Akun</th>
                                     </tr>
@@ -301,19 +280,102 @@ function submit() {
                                 </tbody>
                             </table>
                         </div>
+
+                        <!-- Mobile Card View -->
+                        <div class="sm:hidden space-y-2">
+                            <label
+                                v-if="selectableEmployees.length > 0"
+                                class="flex items-center justify-between px-3 py-2 rounded-xl bg-surface-container-low border border-outline-variant/50 text-xs font-bold text-on-surface cursor-pointer"
+                            >
+                                <span class="flex items-center gap-2">
+                                    <input
+                                        type="checkbox"
+                                        :checked="isAllSelected"
+                                        @change="toggleSelectAll"
+                                        class="rounded border-outline-variant text-primary focus:ring-primary/20 cursor-pointer"
+                                    />
+                                    <span>Pilih Semua ({{ selectableEmployees.length }})</span>
+                                </span>
+                                <span class="text-[11px] font-semibold text-primary">
+                                    {{ selectedIds.length }} dipilih
+                                </span>
+                            </label>
+
+                            <div
+                                v-for="emp in filteredEmployees"
+                                :key="'mob_' + emp.id"
+                                @click="!emp.has_account && toggleSelect(emp.id)"
+                                class="p-3 rounded-2xl border transition-colors bg-white"
+                                :class="[
+                                    emp.has_account ? 'opacity-60 border-outline-variant/40 bg-surface-container-low/30' : 'border-outline-variant/60 cursor-pointer active:bg-primary/5',
+                                    selectedIds.includes(emp.id) ? 'border-primary bg-primary/5 ring-1 ring-primary/20' : ''
+                                ]"
+                            >
+                                <div class="flex items-start gap-2.5">
+                                    <input
+                                        type="checkbox"
+                                        :value="emp.id"
+                                        :checked="selectedIds.includes(emp.id)"
+                                        :disabled="emp.has_account"
+                                        @click.stop
+                                        @change="toggleSelect(emp.id)"
+                                        class="mt-0.5 rounded border-outline-variant text-primary focus:ring-primary/20 cursor-pointer disabled:opacity-40 shrink-0"
+                                    />
+                                    <div class="min-w-0 flex-1 space-y-1">
+                                        <div class="flex items-start justify-between gap-2">
+                                            <div class="min-w-0">
+                                                <div class="font-bold text-on-surface text-xs leading-snug truncate">
+                                                    {{ emp.nama }}
+                                                </div>
+                                                <div v-if="emp.nipy" class="text-[10.5px] text-on-surface-variant font-mono">
+                                                    NIPY: {{ emp.nipy }}
+                                                </div>
+                                            </div>
+                                            <span
+                                                v-if="emp.has_account"
+                                                class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-secondary-container/40 text-on-secondary-container border border-secondary-container/60 shrink-0"
+                                            >
+                                                Sudah Ada
+                                            </span>
+                                            <span
+                                                v-else
+                                                class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 shrink-0"
+                                            >
+                                                Belum Ada
+                                            </span>
+                                        </div>
+
+                                        <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-[11px] pt-1 border-t border-outline-variant/30">
+                                            <div class="min-w-0 truncate">
+                                                <span class="font-semibold text-primary">{{ emp.jabatan }}</span>
+                                                <span class="text-on-surface-variant"> • {{ emp.unit_kerja }}</span>
+                                            </div>
+                                            <div class="font-mono font-bold text-on-surface shrink-0">
+                                                Pass: {{ emp.default_password }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div v-if="filteredEmployees.length === 0" class="py-8 text-center text-on-surface-variant italic text-xs">
+                                <span class="material-symbols-outlined text-3xl text-outline/40 block mb-1">person_search</span>
+                                Tidak ada data pegawai yang cocok dengan filter pencarian.
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Footer -->
-                    <div class="px-6 py-4 border-t border-outline-variant/30 flex items-center justify-between bg-surface-container-low/30 shrink-0">
-                        <div class="text-xs text-on-surface-variant">
+                    <div class="px-4 py-3 sm:px-6 sm:py-4 border-t border-outline-variant/30 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 sm:gap-3 bg-surface-container-low/30 shrink-0">
+                        <div class="text-[11px] sm:text-xs text-on-surface-variant text-center sm:text-left">
                             <strong>{{ selectedIds.length }}</strong> pegawai dipilih dari {{ unassignedCount }} yang belum memiliki akun
                         </div>
 
-                        <div class="flex items-center gap-3">
+                        <div class="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
                             <button
                                 type="button"
                                 @click="emit('close')"
-                                class="px-4 py-2.5 rounded-xl font-semibold text-sm text-on-surface-variant hover:bg-surface-variant hover:text-on-surface transition-colors cursor-pointer"
+                                class="w-full sm:w-auto px-4 py-2.5 rounded-xl font-semibold text-xs sm:text-sm text-on-surface-variant bg-surface-container-low sm:bg-transparent hover:bg-surface-variant hover:text-on-surface transition-colors cursor-pointer text-center"
                                 :disabled="form.processing"
                             >
                                 Batal
@@ -322,10 +384,10 @@ function submit() {
                                 type="button"
                                 @click="submit"
                                 :disabled="form.processing || selectedIds.length === 0"
-                                class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm bg-primary text-on-primary hover:bg-primary-container hover:text-primary transition-colors cursor-pointer shadow-xs shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                                class="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2.5 rounded-xl font-semibold text-xs sm:text-sm bg-primary text-on-primary hover:bg-primary-container hover:text-primary transition-colors cursor-pointer shadow-xs shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                             >
-                                <span v-if="form.processing" class="material-symbols-outlined text-[18px] animate-spin">sync</span>
-                                <span v-else class="material-symbols-outlined text-[18px]">auto_mode</span>
+                                <span v-if="form.processing" class="material-symbols-outlined text-[16px] sm:text-[18px] animate-spin">sync</span>
+                                <span v-else class="material-symbols-outlined text-[16px] sm:text-[18px]">auto_mode</span>
                                 <span>{{ form.processing ? 'Memproses...' : `Generate ${selectedIds.length} Akun` }}</span>
                             </button>
                         </div>

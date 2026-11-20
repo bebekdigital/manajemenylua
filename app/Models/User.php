@@ -11,6 +11,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Hash;
 
 #[Fillable(['name', 'username', 'role', 'is_active', 'email', 'password', 'must_change_password', 'nipy', 'status_kepegawaian', 'jk', 'ttl', 'unit', 'jabatan', 'no_wa', 'foto'])]
 #[Hidden(['password', 'remember_token'])]
@@ -113,6 +115,37 @@ class User extends Authenticatable
         }
 
         return null;
+    }
+
+    /**
+     * Determine whether the user has replaced their default password.
+     */
+    public function hasChangedDefaultPassword(?Employee $matchedEmployee = null): bool
+    {
+        if ($this->must_change_password) {
+            return false;
+        }
+
+        $defaultPassword = $this->getDefaultPassword($matchedEmployee);
+        $candidates = array_values(array_unique(array_filter([$defaultPassword, '12345678'])));
+
+        if ($candidates === [] || empty($this->password)) {
+            return true;
+        }
+
+        $cacheKey = 'user_default_pw_match_'.md5($this->id.'|'.$this->password.'|'.implode(',', $candidates));
+
+        $matchesDefault = Cache::remember($cacheKey, now()->addDays(30), function () use ($candidates): bool {
+            foreach ($candidates as $candidate) {
+                if (Hash::check($candidate, (string) $this->password)) {
+                    return true;
+                }
+            }
+
+            return false;
+        });
+
+        return ! $matchesDefault;
     }
 
     /**
