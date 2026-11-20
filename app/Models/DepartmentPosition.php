@@ -23,6 +23,20 @@ class DepartmentPosition extends Model
     ];
 
     /**
+     * Register model event hooks to keep cached organization lists in sync.
+     */
+    protected static function booted(): void
+    {
+        static::saved(function (): void {
+            Department::forgetOrganizationCaches();
+        });
+
+        static::deleted(function (): void {
+            Department::forgetOrganizationCaches();
+        });
+    }
+
+    /**
      * @return BelongsTo<Department, $this>
      */
     public function department(): BelongsTo

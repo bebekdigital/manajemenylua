@@ -4,9 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\Department;
 use App\Models\DepartmentPosition;
+use App\Models\EmployeePosition;
 use App\Models\RolePermission;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class DepartmentPositionController extends Controller
 {
@@ -27,7 +31,9 @@ class DepartmentPositionController extends Controller
             'order' => ['nullable', 'integer'],
         ]);
 
-        $query = DepartmentPosition::where('name', $validated['name']);
+        $name = trim((string) $validated['name']);
+
+        $query = DepartmentPosition::where('name', $name);
         if (! empty($validated['department_id'])) {
             $query->where('department_id', $validated['department_id']);
         }
@@ -36,7 +42,7 @@ class DepartmentPositionController extends Controller
         }
 
         DepartmentPosition::create([
-            'name' => $validated['name'],
+            'name' => $name,
             'department_id' => $validated['department_id'] ?? null,
             'level' => (int) $validated['level'],
             'parent_id' => $validated['parent_id'] ?? null,
@@ -62,13 +68,15 @@ class DepartmentPositionController extends Controller
             'order' => ['nullable', 'integer'],
         ]);
 
-        $exists = $department->positions()->where('name', $validated['name'])->exists();
+        $name = trim((string) $validated['name']);
+
+        $exists = $department->positions()->where('name', $name)->exists();
         if ($exists) {
             return back()->with('error', 'Jabatan sudah terdaftar di bidang ini.');
         }
 
         $department->positions()->create([
-            'name' => $validated['name'],
+            'name' => $name,
             'level' => (int) ($validated['level'] ?? 3),
             'parent_id' => $validated['parent_id'] ?? null,
             'order' => $validated['order'] ?? 0,
@@ -119,8 +127,18 @@ class DepartmentPositionController extends Controller
             return back()->with('error', 'Jabatan dengan nama ini sudah terdaftar.');
         }
 
+        $departmentPosition->loadMissing('department');
+        $oldName = trim((string) $departmentPosition->name);
+        $oldDeptName = $departmentPosition->department?->name
+            ? trim((string) $departmentPosition->department->name)
+            : null;
+        $newName = trim((string) $validated['name']);
+        $newDeptName = ! empty($targetDeptId)
+            ? trim((string) (Department::find($targetDeptId)?->name ?? ''))
+            : null;
+
         $data = [
-            'name' => $validated['name'],
+            'name' => $newName,
         ];
 
         if (array_key_exists('department_id', $validated)) {
@@ -136,7 +154,50 @@ class DepartmentPositionController extends Controller
             $data['order'] = (int) $validated['order'];
         }
 
-        $departmentPosition->update($data);
+        DB::transaction(function () use ($departmentPosition, $data, $oldName, $newName, $oldDeptName, $newDeptName): void {
+            $departmentPosition->update($data);
+
+            $nameChanged = $oldName !== '' && $oldName !== $newName;
+            $deptChanged = ($oldDeptName ?? '') !== ($newDeptName ?? '') && $newDeptName !== null && $newDeptName !== '';
+
+            if (! $nameChanged && ! $deptChanged) {
+                return;
+            }
+
+            if ($oldName !== '' && Schema::hasTable('employee_positions')) {
+                $empPosUpdates = [];
+                if ($nameChanged) {
+                    $empPosUpdates['jabatan'] = $newName;
+                }
+                if ($deptChanged) {
+                    $empPosUpdates['unit_kerja'] = $newDeptName;
+                }
+
+                $empPosQuery = EmployeePosition::whereRaw('LOWER(TRIM(jabatan)) = ?', [mb_strtolower($oldName)]);
+                if ($oldDeptName !== null && $oldDeptName !== '') {
+                    $empPosQuery->whereRaw('LOWER(TRIM(unit_kerja)) = ?', [mb_strtolower($oldDeptName)]);
+                }
+                $empPosQuery->update($empPosUpdates);
+            }
+
+            if ($oldName !== '' && Schema::hasTable('users')) {
+                $userUpdates = [];
+                if ($nameChanged) {
+                    $userUpdates['jabatan'] = $newName;
+                }
+                if ($deptChanged) {
+                    $userUpdates['unit'] = $newDeptName;
+                }
+
+                $userQuery = User::whereRaw('LOWER(TRIM(jabatan)) = ?', [mb_strtolower($oldName)]);
+                if ($oldDeptName !== null && $oldDeptName !== '') {
+                    $userQuery->whereRaw('LOWER(TRIM(unit)) = ?', [mb_strtolower($oldDeptName)]);
+                }
+                $userQuery->update($userUpdates);
+            }
+        });
+
+        Department::forgetOrganizationCaches();
 
         return back()->with('success', 'Jabatan berhasil diperbarui.');
     }

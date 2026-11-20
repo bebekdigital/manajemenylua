@@ -3,10 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\Department;
+use App\Models\EmployeePosition;
 use App\Models\OrganizationLevel;
 use App\Models\RolePermission;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 class DepartmentController extends Controller
@@ -27,7 +30,7 @@ class DepartmentController extends Controller
         ]);
 
         Department::create([
-            'name' => $validated['name'],
+            'name' => trim((string) $validated['name']),
             'unit_group' => $validated['unit_group'] ?? 'Yayasan',
             'order' => $validated['order'] ?? 0,
         ]);
@@ -50,11 +53,32 @@ class DepartmentController extends Controller
             'order' => ['nullable', 'integer', 'min:0'],
         ]);
 
-        $department->update([
-            'name' => $validated['name'],
-            'unit_group' => $validated['unit_group'] ?? ($department->unit_group ?? 'Yayasan'),
-            'order' => $validated['order'] ?? $department->order,
-        ]);
+        $oldName = trim((string) $department->name);
+        $newName = trim((string) $validated['name']);
+
+        DB::transaction(function () use ($department, $validated, $oldName, $newName): void {
+            $department->update([
+                'name' => $newName,
+                'unit_group' => $validated['unit_group'] ?? ($department->unit_group ?? 'Yayasan'),
+                'order' => $validated['order'] ?? $department->order,
+            ]);
+
+            if ($oldName === '' || $oldName === $newName) {
+                return;
+            }
+
+            if (Schema::hasTable('employee_positions')) {
+                EmployeePosition::whereRaw('LOWER(TRIM(unit_kerja)) = ?', [mb_strtolower($oldName)])
+                    ->update(['unit_kerja' => $newName]);
+            }
+
+            if (Schema::hasTable('users')) {
+                User::whereRaw('LOWER(TRIM(unit)) = ?', [mb_strtolower($oldName)])
+                    ->update(['unit' => $newName]);
+            }
+        });
+
+        Department::forgetOrganizationCaches();
 
         return back()->with('success', 'Unit berhasil diperbarui.');
     }

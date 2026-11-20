@@ -1442,11 +1442,11 @@ class EmployeeController extends Controller
     {
         return Cache::remember('school_units_list', 180, function () {
             $departments = $this->getDepartments();
-            $deptKeyed = collect($departments)->keyBy('name');
+            $deptKeyed = collect($departments)->keyBy(fn (array $dept): string => mb_strtolower(trim((string) $dept['name'])));
 
             return Schema::hasTable('school_units')
                 ? SchoolUnit::orderBy('name')->get()->map(function ($unit) use ($deptKeyed) {
-                    $dept = $deptKeyed->get($unit->name);
+                    $dept = $deptKeyed->get(mb_strtolower(trim((string) $unit->name)));
 
                     return [
                         'id' => $unit->id,
