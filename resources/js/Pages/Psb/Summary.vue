@@ -1815,7 +1815,7 @@ function exportExcel() {
                         <span class="material-symbols-outlined text-3xl text-slate-300 mb-1 block">home_work</span>
                         <p class="text-xs font-bold text-slate-700">Belum ada siswa berdomisili dari desa ini (0 Siswa)</p>
                         <p class="text-[11px] text-slate-500 mt-0.5">
-                            {{ selectedVillageModal.welfare_score >= 50 ? 'Desa tergolong sejahtera (beban P1–P4 di bawah median) dan berpotensi dijadikan target sosialisasi.' : 'Desa memiliki beban P1–P4 tinggi dan belum terjangkau.' }}
+                            {{ (selectedVillageModal.campus_ring || 4) <= 2 ? 'Desa berada dalam radius <= 10 km dari kampus dan berpotensi dijadikan target sosialisasi.' : 'Desa berada di luar radius 10 km dan belum memiliki siswa domisili.' }}
                         </p>
                     </div>
                 </div>

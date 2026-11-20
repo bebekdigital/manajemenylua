@@ -5,10 +5,14 @@ import L from 'leaflet';
 import {
     CAMPUS_RING_META,
     PSB_TIERS,
-    PSB_WELFARE_TIERS,
     SOLO_RAYA_KABUPATENS,
     normalizeWilayahKey,
 } from '@/Utils/psbMatcher';
+import {
+    getGenderBadgeClass,
+    getGenderLabel,
+    getProgramBadgeClass,
+} from '@/Utils/studentBadges';
 
 // Perbesar toleransi geser Leaflet untuk layar sentuh/mobile
 if (L.Draggable?.prototype?.options) {
@@ -62,6 +66,8 @@ let campusMarker = null;
 let activeHoverLayer = null;
 let currentHoveredKey = null;
 let singleTooltip = null;
+let isLockedByClick = false;
+let lastInteractionTime = 0;
 let desaLoadingPromise = null;
 let currentDotCandidates = [];
 
@@ -75,8 +81,10 @@ const SOLO_RAYA_KEYS = new Set(SOLO_RAYA_KABUPATENS.map((k) => normalizeWilayahK
 // State Peta
 const aggregationLevel = ref('kecamatan'); // 'kecamatan' | 'desa'
 const drillKecamatan = ref(null); // { kecamatan, kabupaten, kecKey, kabKey } | null
-const selectedDesaCard = ref(null); // { desa, kecamatan, kabupaten, schools, studentsCount, reachedCount } | null
-const hoveredInfo = ref(null);
+const hoveredRegion = ref(null);
+const showSchoolsInCard = ref(false);
+const regionStudentModal = ref(null);
+const modalSearch = ref('');
 
 const showSchoolDots = ref(false);
 const showCampusRadius = ref(true);
@@ -133,12 +141,16 @@ const geoAggregations = computed(() => {
                 zero: 0,
                 students: 0,
                 schools: [],
+                studentList: [],
             });
         }
         const kBucket = byKec.get(kKey);
         kBucket.total++;
         kBucket.schools.push(s);
         kBucket.students += s.totalStudents;
+        if (Array.isArray(s.students) && s.students.length > 0) {
+            kBucket.studentList.push(...s.students);
+        }
         if (s.tier === 'basis_utama') kBucket.basis++;
         else if (s.tier === 'potensial') kBucket.potensial++;
         else if (s.tier === 'vakum') kBucket.vakum++;
@@ -160,14 +172,25 @@ const geoAggregations = computed(() => {
                     reached: 0,
                     students: 0,
                     schools: [],
+                    studentList: [],
                 });
             }
             const dBucket = byDesa.get(dFullKey);
             dBucket.total++;
             dBucket.schools.push(s);
             dBucket.students += s.totalStudents;
+            if (Array.isArray(s.students) && s.students.length > 0) {
+                dBucket.studentList.push(...s.students);
+            }
             if (s.totalStudents > 0) dBucket.reached++;
         }
+    });
+
+    byKec.forEach((b) => {
+        b.studentList.sort((a, c) => (a.nama || '').localeCompare(c.nama || ''));
+    });
+    byDesa.forEach((b) => {
+        b.studentList.sort((a, c) => (a.nama || '').localeCompare(c.nama || ''));
     });
 
     return {
@@ -180,7 +203,7 @@ const geoAggregations = computed(() => {
     };
 });
 
-// Agregasi Domisili & Potensi Desa (Meta RWI + Kampus + Tol) per Kecamatan & per Desa
+// Agregasi Domisili & Akses Wilayah (Kampus + Tol) per Kecamatan & per Desa
 const welfareAggregations = computed(() => {
     const byKec = new Map();
     const byDesa = new Map();
@@ -200,24 +223,22 @@ const welfareAggregations = computed(() => {
                 villageCount: 0,
                 reachedVillages: 0,
                 students: 0,
-                rwiSum: 0,
-                avgRwi: 0,
                 campusSum: 0,
                 avgCampusKm: 0,
                 closestTollKm: null,
                 closestTollName: '-',
-                welfareSum: 0,
-                avgWelfare: 0,
                 villages: [],
+                studentList: [],
             });
         }
 
         const kb = byKec.get(kKey);
         kb.villageCount++;
         kb.students += v.totalStudents;
-        kb.rwiSum += Number(v.rwi || 0);
         kb.campusSum += Number(v.campus_km || 0);
-        kb.welfareSum += Number(v.welfare_score || 0);
+        if (Array.isArray(v.students) && v.students.length > 0) {
+            kb.studentList.push(...v.students);
+        }
         if (v.toll_km !== undefined && v.toll_km !== null) {
             const tKm = Number(v.toll_km);
             if (kb.closestTollKm === null || tKm < kb.closestTollKm) {
@@ -238,9 +259,8 @@ const welfareAggregations = computed(() => {
     });
 
     byKec.forEach((kb) => {
-        kb.avgWelfare = kb.villageCount > 0 ? Number((kb.welfareSum / kb.villageCount).toFixed(1)) : 0;
-        kb.avgRwi = kb.villageCount > 0 ? Number((kb.rwiSum / kb.villageCount).toFixed(2)) : 0;
         kb.avgCampusKm = kb.villageCount > 0 ? Number((kb.campusSum / kb.villageCount).toFixed(1)) : 0;
+        kb.studentList.sort((a, c) => (a.nama || '').localeCompare(c.nama || ''));
     });
 
     return {
@@ -280,12 +300,11 @@ function getKecStats(feature) {
                 villageCount: 0,
                 reachedVillages: 0,
                 students: 0,
-                avgRwi: 0,
                 avgCampusKm: 0,
                 closestTollKm: null,
                 closestTollName: '-',
-                avgWelfare: 0,
                 villages: [],
+                studentList: [],
             }
         );
     }
@@ -301,6 +320,7 @@ function getKecStats(feature) {
             zero: 0,
             students: 0,
             schools: [],
+            studentList: [],
         }
     );
 }
@@ -315,13 +335,10 @@ function getDesaStats(feature) {
                 desa: feature?.properties?.desa || '-',
                 kecamatan: feature?.properties?.kecamatan || '-',
                 kabupaten: feature?.properties?.kabupaten || '-',
-                rwi: 0,
                 campus_km: null,
                 campus_ring: 4,
                 toll_km: null,
                 toll_name: '-',
-                welfare_score: 50,
-                welfare_level: 'menengah_atas',
                 totalStudents: 0,
                 taCount: 0,
                 students: [],
@@ -339,6 +356,7 @@ function getDesaStats(feature) {
             reached: 0,
             students: 0,
             schools: [],
+            studentList: [],
         }
     );
 }
@@ -431,6 +449,7 @@ function buildSchoolPopupElement(school) {
 }
 
 function clearHover() {
+    isLockedByClick = false;
     currentHoveredKey = null;
     if (activeHoverLayer && activeHoverLayer.feature) {
         if (aggregationLevel.value === 'kecamatan') {
@@ -443,25 +462,38 @@ function clearHover() {
     if (singleTooltip && map && map.hasLayer(singleTooltip)) {
         map.removeLayer(singleTooltip);
     }
-    hoveredInfo.value = null;
+    hoveredRegion.value = null;
+    showSchoolsInCard.value = false;
 }
 
-function handleHoverFeature(type, feature, layer, latlng) {
+function selectRegionFeature(type, feature, layer, latlng = null, isClick = false) {
     const kecKey = normalizeWilayahKey(feature?.properties?.kecamatan);
     const kabKey = normalizeWilayahKey(feature?.properties?.kabupaten);
     const dKey = type === 'desa' ? normDesa(feature?.properties?.desa) : '';
     const key = type === 'desa' ? `d_${dKey}_${kecKey}_${kabKey}` : `k_${kecKey}_${kabKey}`;
 
     if (currentHoveredKey === key) {
-        if (!isMobileScreen() && latlng && singleTooltip && map && map.hasLayer(singleTooltip)) {
+        if (isClick) {
+            if (singleTooltip && map && map.hasLayer(singleTooltip)) {
+                map.removeLayer(singleTooltip);
+            }
+        } else if (!isMobileScreen() && latlng && singleTooltip && map && map.hasLayer(singleTooltip)) {
             singleTooltip.setLatLng(latlng);
         }
         return;
     }
 
-    clearHover();
+    if (activeHoverLayer && activeHoverLayer !== layer && activeHoverLayer.feature) {
+        if (aggregationLevel.value === 'kecamatan') {
+            activeHoverLayer.setStyle(kecamatanStyle(activeHoverLayer.feature));
+        } else {
+            activeHoverLayer.setStyle(desaStyle(activeHoverLayer.feature));
+        }
+    }
+
     currentHoveredKey = key;
     activeHoverLayer = layer;
+    showSchoolsInCard.value = false;
 
     layer.setStyle({
         fill: true,
@@ -474,13 +506,45 @@ function handleHoverFeature(type, feature, layer, latlng) {
     if (schoolPointsLayer && schoolPointsLayer.bringToFront) schoolPointsLayer.bringToFront();
 
     const stats = type === 'desa' ? getDesaStats(feature) : getKecStats(feature);
-    hoveredInfo.value = {
+    const isWelfare = isWelfareMode.value;
+    const studentCount = isWelfare && type === 'desa' ? (stats.totalStudents || 0) : (stats.students || 0);
+    const studentList = isWelfare && type === 'desa' ? (stats.students || []) : (stats.studentList || []);
+    const globalTotal = isWelfare
+        ? (welfareAggregations.value.totalDomicileStudents || 0)
+        : (geoAggregations.value.totalStudents || 0);
+    const percentage = globalTotal > 0 ? Math.round((studentCount / globalTotal) * 100) : 0;
+
+    hoveredRegion.value = {
         type,
-        desa: feature?.properties?.desa || null,
-        kecamatan: feature?.properties?.kecamatan || '',
-        kabupaten: feature?.properties?.kabupaten || '',
-        ...stats,
+        mode: isWelfare ? 'welfare' : 'school',
+        desa: type === 'desa' ? feature?.properties?.desa || '-' : null,
+        kecamatan: feature?.properties?.kecamatan || '-',
+        kabupaten: feature?.properties?.kabupaten || '-',
+        students: studentCount,
+        percentage,
+        studentList,
+        total: stats.total || 0,
+        reached: stats.reached || 0,
+        schools: [...(stats.schools || [])].sort(
+            (a, b) => b.totalStudents - a.totalStudents || a.nama.localeCompare(b.nama, 'id')
+        ),
+        village: isWelfare && type === 'desa' ? stats : null,
+        campus_km: stats.campus_km ?? null,
+        campus_ring: stats.campus_ring ?? 4,
+        toll_km: stats.toll_km ?? null,
+        toll_name: stats.toll_name || '-',
+        avgCampusKm: stats.avgCampusKm ?? null,
+        villageCount: stats.villageCount || 0,
+        reachedVillages: stats.reachedVillages || 0,
+        featureLayer: layer,
     };
+
+    if (isClick) {
+        if (singleTooltip && map && map.hasLayer(singleTooltip)) {
+            map.removeLayer(singleTooltip);
+        }
+        return;
+    }
 
     if (!isMobileScreen() && singleTooltip && map) {
         const pos = latlng || layer.getBounds().getCenter();
@@ -490,19 +554,12 @@ function handleHoverFeature(type, feature, layer, latlng) {
             type === 'desa'
                 ? `Kec. ${feature.properties.kecamatan}, ${feature.properties.kabupaten}`
                 : `Kab/Kota ${feature.properties.kabupaten}`;
-        const actionHint = isWelfareMode.value
-            ? (type === 'kecamatan'
-                ? 'Klik kecamatan untuk masuk ke rincian Desa'
-                : 'Klik desa untuk melihat jarak Kampus, Tol & daftar siswa')
-            : (type === 'kecamatan'
-                ? 'Klik kecamatan untuk masuk ke Desa & titik sekolah'
-                : 'Klik desa untuk melihat daftar SD/MI/PKBM');
 
-        const metricRow = isWelfareMode.value
+        const metricRow = isWelfare
             ? (type === 'desa'
                 ? `<div class="mt-1.5 pt-1 border-t border-slate-200/80 space-y-1">
                         <div class="flex items-center justify-between gap-3">
-                            <span class="font-bold text-emerald-800">${stats.totalStudents || 0} Siswa Domisili</span>
+                            <span class="font-bold text-emerald-800">${studentCount} Siswa Domisili</span>
                             <span class="text-[11px] font-bold text-sky-700">${stats.campus_km ?? '-'} km ke Kampus</span>
                         </div>
                         <div class="text-[10.5px] text-slate-500">
@@ -511,7 +568,7 @@ function handleHoverFeature(type, feature, layer, latlng) {
                    </div>`
                 : `<div class="mt-1.5 pt-1 border-t border-slate-200/80 space-y-1">
                         <div class="flex items-center justify-between gap-3">
-                            <span class="font-bold text-emerald-800">${stats.students} Siswa Domisili</span>
+                            <span class="font-bold text-emerald-800">${studentCount} Siswa Domisili</span>
                             <span class="text-[11px] font-bold text-sky-700">Rata ${stats.avgCampusKm ?? '-'} km</span>
                         </div>
                         <div class="text-[10.5px] text-slate-500">
@@ -519,7 +576,7 @@ function handleHoverFeature(type, feature, layer, latlng) {
                         </div>
                    </div>`)
             : `<div class="mt-1.5 pt-1 border-t border-slate-200/80 flex items-center justify-between gap-3">
-                    <span class="font-bold text-emerald-800">${stats.students} Siswa</span>
+                    <span class="font-bold text-emerald-800">${studentCount} Siswa</span>
                     <span class="text-[11px] font-semibold text-slate-600">${stats.reached} / ${stats.total} SD tergarap</span>
                </div>`;
 
@@ -529,12 +586,46 @@ function handleHoverFeature(type, feature, layer, latlng) {
                 <div class="font-extrabold text-slate-900 text-[13px]">${escapeHtml(titleText)}</div>
                 <div class="text-[11px] text-slate-500 font-medium">${escapeHtml(subText)}</div>
                 ${metricRow}
-                <div class="text-[10px] text-slate-400 italic mt-1">${actionHint}</div>
             </div>
         `);
         if (!map.hasLayer(singleTooltip)) {
             singleTooltip.addTo(map);
         }
+    } else if (singleTooltip && map && map.hasLayer(singleTooltip)) {
+        map.removeLayer(singleTooltip);
+    }
+}
+
+function openRegionStudentModal(region) {
+    if (!region) return;
+    regionStudentModal.value = region;
+    modalSearch.value = '';
+}
+
+function closeRegionStudentModal() {
+    regionStudentModal.value = null;
+    modalSearch.value = '';
+}
+
+const modalFilteredStudents = computed(() => {
+    const region = regionStudentModal.value;
+    if (!region) return [];
+    const list = region.studentList || [];
+    const q = modalSearch.value.trim().toLowerCase();
+    if (!q) return list;
+    return list.filter(
+        (st) =>
+            (st.nama || '').toLowerCase().includes(q) ||
+            (st.nisn || '').toLowerCase().includes(q) ||
+            (st.sekolah_asal || '').toLowerCase().includes(q) ||
+            (st.desa || '').toLowerCase().includes(q) ||
+            (st.program || '').toLowerCase().includes(q)
+    );
+});
+
+function handleKeyDown(e) {
+    if (e.key === 'Escape' && regionStudentModal.value) {
+        closeRegionStudentModal();
     }
 }
 
@@ -595,54 +686,25 @@ function buildDesaLayer() {
             onEachFeature: (feature, layer) => {
                 layer.on({
                     mouseover: (e) => {
-                        if (aggregationLevel.value !== 'desa') return;
-                        handleHoverFeature('desa', feature, layer, e.latlng);
+                        if (aggregationLevel.value !== 'desa' || isLockedByClick) return;
+                        selectRegionFeature('desa', feature, layer, e.latlng, false);
                     },
                     mousemove: (e) => {
-                        if (aggregationLevel.value !== 'desa') return;
+                        if (aggregationLevel.value !== 'desa' || isLockedByClick) return;
                         if (singleTooltip && map && map.hasLayer(singleTooltip)) {
                             singleTooltip.setLatLng(e.latlng);
                         }
                     },
                     mouseout: () => {
-                        if (aggregationLevel.value !== 'desa') return;
+                        if (aggregationLevel.value !== 'desa' || isLockedByClick) return;
                         clearHover();
                     },
                     click: (e) => {
+                        if (aggregationLevel.value !== 'desa') return;
                         if (e.originalEvent) L.DomEvent.stopPropagation(e.originalEvent);
-                        const stats = getDesaStats(feature);
-                        if (isWelfareMode.value) {
-                            selectedDesaCard.value = {
-                                mode: 'welfare',
-                                village: stats,
-                                desa: feature.properties.desa,
-                                kecamatan: feature.properties.kecamatan,
-                                kabupaten: feature.properties.kabupaten,
-                                students: stats.totalStudents || 0,
-                                welfare_score: stats.welfare_score ?? 0,
-                                rwi: stats.rwi ?? 0,
-                                campus_km: stats.campus_km ?? null,
-                                campus_ring: stats.campus_ring ?? 4,
-                                toll_km: stats.toll_km ?? null,
-                                toll_name: stats.toll_name || '-',
-                                tier: stats.tier,
-                                studentList: stats.students || [],
-                                schools: stats.schools || [],
-                            };
-                            return;
-                        }
-                        selectedDesaCard.value = {
-                            mode: 'school',
-                            desa: feature.properties.desa,
-                            kecamatan: feature.properties.kecamatan,
-                            kabupaten: feature.properties.kabupaten,
-                            total: stats.total,
-                            reached: stats.reached,
-                            students: stats.students,
-                            schools: [...stats.schools].sort(
-                                (a, b) => b.totalStudents - a.totalStudents || a.nama.localeCompare(b.nama, 'id')
-                            ),
-                        };
+                        lastInteractionTime = Date.now();
+                        isLockedByClick = true;
+                        selectRegionFeature('desa', feature, layer, e.latlng, true);
                     },
                 });
             },
@@ -935,7 +997,6 @@ async function drillIntoKecamatan(kecamatanName, kabupatenName, kecFeatureLayer 
     const kabKey = normalizeWilayahKey(kabupatenName);
 
     clearHover();
-    selectedDesaCard.value = null;
     drillKecamatan.value = {
         kecamatan: kecamatanName,
         kabupaten: kabupatenName,
@@ -954,7 +1015,6 @@ async function drillIntoKecamatan(kecamatanName, kabupatenName, kecFeatureLayer 
 
 async function backToAllKecamatan() {
     clearHover();
-    selectedDesaCard.value = null;
     drillKecamatan.value = null;
     aggregationLevel.value = 'kecamatan';
     showSchoolDots.value = false;
@@ -966,7 +1026,6 @@ async function backToAllKecamatan() {
 async function setAggregation(level) {
     if (aggregationLevel.value === level && !drillKecamatan.value) return;
     clearHover();
-    selectedDesaCard.value = null;
     if (level === 'kecamatan') {
         drillKecamatan.value = null;
         aggregationLevel.value = 'kecamatan';
@@ -1021,6 +1080,7 @@ function updateLayersAndFocus(specificKecLayer = null) {
 }
 
 function resetZoom() {
+    clearHover();
     if (!map) return;
 
     if (drillKecamatan.value && desaLayer && desaLayer.getBounds().isValid()) {
@@ -1099,26 +1159,34 @@ async function initMap() {
             onEachFeature: (feature, layer) => {
                 layer.on({
                     mouseover: (e) => {
-                        if (aggregationLevel.value !== 'kecamatan') return;
-                        handleHoverFeature('kecamatan', feature, layer, e.latlng);
+                        if (aggregationLevel.value !== 'kecamatan' || isLockedByClick) return;
+                        selectRegionFeature('kecamatan', feature, layer, e.latlng, false);
                     },
                     mousemove: (e) => {
-                        if (aggregationLevel.value !== 'kecamatan') return;
+                        if (aggregationLevel.value !== 'kecamatan' || isLockedByClick) return;
                         if (singleTooltip && map && map.hasLayer(singleTooltip)) {
                             singleTooltip.setLatLng(e.latlng);
                         }
                     },
                     mouseout: () => {
-                        if (aggregationLevel.value !== 'kecamatan') return;
+                        if (aggregationLevel.value !== 'kecamatan' || isLockedByClick) return;
                         clearHover();
                     },
                     click: (e) => {
+                        if (aggregationLevel.value !== 'kecamatan') return;
                         if (e.originalEvent) L.DomEvent.stopPropagation(e.originalEvent);
-                        drillIntoKecamatan(feature.properties.kecamatan, feature.properties.kabupaten, layer);
+                        lastInteractionTime = Date.now();
+                        isLockedByClick = true;
+                        selectRegionFeature('kecamatan', feature, layer, e.latlng, true);
                     },
                 });
             },
         }).addTo(map);
+
+        map.on('click', () => {
+            if (Date.now() - lastInteractionTime < 400) return;
+            clearHover();
+        });
 
         // Layer 2: Batas Kabupaten putus-putus
         if (kabJson) {
@@ -1195,10 +1263,12 @@ async function initMap() {
 }
 
 onMounted(() => {
+    window.addEventListener('keydown', handleKeyDown);
     initMap();
 });
 
 onBeforeUnmount(() => {
+    window.removeEventListener('keydown', handleKeyDown);
     if (map) {
         map.remove();
         map = null;
@@ -1220,7 +1290,6 @@ watch(
         visibleTiers.belum_tergarap,
     ],
     () => {
-        selectedDesaCard.value = null;
         clearHover();
         updateLayersAndFocus();
     },
@@ -1235,7 +1304,7 @@ watch(
             await drillIntoKecamatan(newKec, targetKab);
         } else {
             drillKecamatan.value = null;
-            selectedDesaCard.value = null;
+            clearHover();
             if (aggregationLevel.value === 'desa') {
                 aggregationLevel.value = 'kecamatan';
                 showSchoolDots.value = false;
@@ -1277,7 +1346,7 @@ watch(
                                 Menampilkan warna per <span class="font-bold text-slate-700">Desa / Kelurahan</span> se-Solo Raya — klik desa untuk daftar SD/MI/PKBM
                             </template>
                             <template v-else>
-                                Warna per <span class="font-bold text-slate-700">Kecamatan</span> berdasarkan siswa masuk — klik kecamatan untuk masuk ke level Desa &amp; titik SD
+                                Warna per <span class="font-bold text-slate-700">Kecamatan</span> berdasarkan siswa masuk — klik kecamatan untuk detail siswa &amp; SD
                             </template>
                         </template>
                     </p>
@@ -1490,100 +1559,142 @@ watch(
                 <span class="material-symbols-outlined text-[17px]">my_location</span>
             </button>
 
-            <!-- Floating Card Rincian Desa saat Desa Diklik -->
+            <!-- Live Status Hover/Click Card Kanan Bawah (Kecamatan & Desa, selaras Peta Domisili Stat Siswa) -->
             <div
-                v-if="selectedDesaCard"
-                class="absolute bottom-3 right-3 z-[420] w-[calc(100%-24px)] sm:w-80 bg-white/98 backdrop-blur-sm rounded-2xl border border-emerald-200 shadow-xl overflow-hidden flex flex-col max-h-[280px]"
+                v-if="hoveredRegion"
+                class="absolute bottom-3 left-3 right-3 sm:left-auto sm:right-3 sm:bottom-3 sm:w-80 sm:max-w-xs z-[500] bg-white/95 backdrop-blur-xs rounded-xl border border-slate-200/90 p-2.5 sm:p-3 shadow-lg text-xs pointer-events-auto touch-manipulation transition-all animate-in fade-in duration-150"
             >
-                <div class="px-3.5 py-2.5 bg-emerald-50/80 border-b border-emerald-100 flex items-start justify-between gap-2">
-                    <div class="min-w-0">
-                        <span class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">
-                            Desa {{ selectedDesaCard.desa }} • Kec. {{ selectedDesaCard.kecamatan }}
-                        </span>
-                        <span v-if="selectedDesaCard.mode === 'welfare'" class="text-xs font-extrabold text-slate-900">
-                            {{ selectedDesaCard.students }} Siswa Domisili • {{ selectedDesaCard.campus_km ?? '-' }} km ke Kampus
-                        </span>
-                        <span v-else class="text-xs font-extrabold text-slate-900">
-                            {{ selectedDesaCard.reached }} / {{ selectedDesaCard.total }} SD Tergarap ({{ selectedDesaCard.students }} Siswa)
-                        </span>
-                    </div>
+                <div class="flex flex-col relative">
                     <button
                         type="button"
-                        @click="selectedDesaCard = null"
-                        class="w-6 h-6 rounded-full hover:bg-emerald-100 flex items-center justify-center text-slate-500 cursor-pointer shrink-0"
+                        @click.stop="clearHover"
+                        class="absolute -top-1 -right-1 text-slate-400 hover:text-slate-700 p-1 rounded-full cursor-pointer touch-manipulation"
+                        title="Tutup info"
                     >
                         <span class="material-symbols-outlined text-[16px]">close</span>
                     </button>
-                </div>
+                    <span class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">
+                        {{ hoveredRegion.type === 'desa' ? 'Desa / Kelurahan' : 'Kecamatan' }}
+                    </span>
+                    <span class="text-[13px] font-extrabold text-slate-900 pr-6 leading-tight mt-0.5">
+                        {{ hoveredRegion.type === 'desa' ? `Desa ${hoveredRegion.desa}` : `Kec. ${hoveredRegion.kecamatan}` }}
+                    </span>
+                    <span class="text-[11px] text-slate-500 font-medium mt-0.5">
+                        {{ hoveredRegion.type === 'desa'
+                            ? `Kec. ${hoveredRegion.kecamatan} • Kab/Kota ${hoveredRegion.kabupaten}`
+                            : `Kab/Kota ${hoveredRegion.kabupaten}` }}
+                    </span>
 
-                <!-- Welfare Mode Card Body -->
-                <div v-if="selectedDesaCard.mode === 'welfare'" class="p-3 overflow-y-auto space-y-2.5 custom-bar-scrollbar">
-                    <div class="grid grid-cols-2 gap-2 text-center">
-                        <div class="p-2 rounded-xl bg-sky-50 border border-sky-200">
-                            <div class="text-[9.5px] font-bold text-sky-700">Radius Kampus</div>
-                            <div class="text-xs font-extrabold text-sky-950">{{ selectedDesaCard.campus_km ?? '-' }} km</div>
-                            <div class="text-[9.5px] text-sky-700 font-semibold">{{ CAMPUS_RING_META[selectedDesaCard.campus_ring]?.label || 'Ring ' + selectedDesaCard.campus_ring }}</div>
-                        </div>
-                        <div class="p-2 rounded-xl bg-indigo-50 border border-indigo-200">
-                            <div class="text-[9.5px] font-bold text-indigo-700">Gerbang Tol</div>
-                            <div class="text-xs font-extrabold text-indigo-950">{{ selectedDesaCard.toll_km ?? '-' }} km</div>
-                            <div class="text-[9.5px] text-indigo-700 font-semibold truncate" :title="selectedDesaCard.toll_name">{{ selectedDesaCard.toll_name }}</div>
-                        </div>
+                    <div class="mt-1.5 pt-1.5 border-t border-slate-100 flex items-center justify-between gap-2">
+                        <span class="text-xs font-bold text-slate-900">
+                            {{ hoveredRegion.students }} Siswa
+                        </span>
+                        <span
+                            v-if="hoveredRegion.mode === 'welfare'"
+                            class="text-[10.5px] font-semibold text-sky-700 bg-sky-50 px-2 py-0.5 rounded-md border border-sky-200/70"
+                        >
+                            {{ hoveredRegion.type === 'desa'
+                                ? `${hoveredRegion.campus_km ?? '-'} km ke Kampus`
+                                : `Rata ${hoveredRegion.avgCampusKm ?? '-'} km (${hoveredRegion.reachedVillages}/${hoveredRegion.villageCount} desa)` }}
+                        </span>
+                        <span
+                            v-else
+                            class="text-[10.5px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60"
+                        >
+                            {{ hoveredRegion.reached }} / {{ hoveredRegion.total }} SD • {{ hoveredRegion.percentage }}%
+                        </span>
                     </div>
 
-                    <button
-                        v-if="selectedDesaCard.village"
-                        type="button"
-                        @click="emit('select-village', selectedDesaCard.village)"
-                        class="w-full py-2 px-3 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 text-xs font-bold transition-colors cursor-pointer"
+                    <!-- Detail Gerbang Tol untuk Desa Mode Domisili & Radius -->
+                    <div
+                        v-if="hoveredRegion.mode === 'welfare' && hoveredRegion.type === 'desa'"
+                        class="mt-1.5 flex items-center justify-between gap-2 text-[10.5px] text-indigo-800 bg-indigo-50/70 px-2 py-1 rounded-lg border border-indigo-200/60"
                     >
-                        Lihat Rincian Desa &amp; Daftar Siswa ({{ selectedDesaCard.students }}) →
-                    </button>
-                </div>
+                        <span class="font-semibold truncate" :title="hoveredRegion.toll_name">Tol: {{ hoveredRegion.toll_name }}</span>
+                        <span class="font-bold shrink-0">{{ hoveredRegion.toll_km ?? '-' }} km</span>
+                    </div>
 
-                <!-- School Mode Card Body -->
-                <div v-else class="p-2.5 overflow-y-auto space-y-1.5 custom-bar-scrollbar">
-                    <p v-if="selectedDesaCard.schools.length === 0" class="text-[11px] text-slate-400 text-center py-4">
-                        Tidak ada SD/MI/PKBM terdata di desa ini pada filter aktif.
-                    </p>
+                    <!-- Tombol Lihat Detail Siswa (Tersedia di Kecamatan maupun Desa) -->
                     <button
-                        v-for="sc in selectedDesaCard.schools"
-                        :key="sc.npsn"
+                        v-if="hoveredRegion.students > 0"
                         type="button"
-                        @click="emit('select-school', sc)"
-                        class="w-full text-left p-2 rounded-xl border border-slate-200/80 hover:border-emerald-300 hover:bg-emerald-50/40 transition-all flex items-center justify-between gap-2 cursor-pointer"
+                        @click="openRegionStudentModal(hoveredRegion)"
+                        class="mt-2 w-full py-1.5 px-2.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-bold flex items-center justify-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
                     >
-                        <div class="min-w-0">
-                            <p class="text-[11.5px] font-bold text-slate-900 truncate">{{ sc.nama }}</p>
-                            <p class="text-[10px] text-slate-500">{{ sc.bentuk }} • {{ sc.status }}</p>
-                        </div>
-                        <span
-                            :class="[
-                                'px-2 py-0.5 rounded-full text-[10px] font-bold border shrink-0',
-                                PSB_TIERS[sc.tier].badgeClass,
-                            ]"
-                        >
-                            {{ sc.totalStudents }} Siswa
-                        </span>
+                        <span>Lihat {{ hoveredRegion.students }} Siswa</span>
+                        <span class="material-symbols-outlined text-[14px]">open_in_new</span>
                     </button>
+
+                    <!-- Aksi Pendukung: Buka Level Desa (saat di Kecamatan) / Daftar SD / Profil Desa -->
+                    <div class="mt-1.5 flex items-center gap-1.5 flex-wrap">
+                        <button
+                            v-if="hoveredRegion.type === 'kecamatan'"
+                            type="button"
+                            @click="drillIntoKecamatan(hoveredRegion.kecamatan, hoveredRegion.kabupaten, hoveredRegion.featureLayer)"
+                            class="flex-1 py-1 px-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10.5px] font-bold transition-colors cursor-pointer text-center"
+                        >
+                            Masuk Level Desa →
+                        </button>
+                        <button
+                            v-if="hoveredRegion.mode === 'school' && hoveredRegion.schools.length > 0"
+                            type="button"
+                            @click="showSchoolsInCard = !showSchoolsInCard"
+                            class="flex-1 py-1 px-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10.5px] font-bold transition-colors cursor-pointer text-center"
+                        >
+                            {{ showSchoolsInCard ? 'Tutup SD' : `Daftar SD (${hoveredRegion.schools.length})` }}
+                        </button>
+                        <button
+                            v-if="hoveredRegion.mode === 'welfare' && hoveredRegion.type === 'desa' && hoveredRegion.village"
+                            type="button"
+                            @click="emit('select-village', hoveredRegion.village)"
+                            class="flex-1 py-1 px-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10.5px] font-bold transition-colors cursor-pointer text-center"
+                        >
+                            Profil Desa →
+                        </button>
+                    </div>
+
+                    <!-- Daftar SD Ringkas Opsional di Dalam Card (Saat Toggle Daftar SD Diklik) -->
+                    <div
+                        v-if="showSchoolsInCard && hoveredRegion.mode === 'school' && hoveredRegion.schools.length > 0"
+                        class="mt-2 pt-2 border-t border-slate-100 max-h-36 overflow-y-auto space-y-1 custom-bar-scrollbar"
+                    >
+                        <button
+                            v-for="sc in hoveredRegion.schools"
+                            :key="sc.npsn"
+                            type="button"
+                            @click="emit('select-school', sc)"
+                            class="w-full text-left p-1.5 rounded-lg border border-slate-200/80 hover:border-emerald-300 hover:bg-emerald-50/40 transition-all flex items-center justify-between gap-2 cursor-pointer"
+                        >
+                            <div class="min-w-0">
+                                <p class="text-[11px] font-bold text-slate-900 truncate">{{ sc.nama }}</p>
+                                <p class="text-[9.5px] text-slate-500">{{ sc.bentuk }} • {{ sc.status }}</p>
+                            </div>
+                            <span
+                                :class="[
+                                    'px-1.5 py-0.5 rounded-full text-[9.5px] font-bold border shrink-0',
+                                    PSB_TIERS[sc.tier].badgeClass,
+                                ]"
+                            >
+                                {{ sc.totalStudents }}
+                            </span>
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            <!-- Floating Hint Kanan Bawah (jika tidak ada card desa terbuka) -->
+            <!-- Petunjuk Saat Belum Ada Hover/Klik -->
             <div
-                v-else-if="hoveredInfo"
-                class="sm:hidden absolute bottom-3 right-3 z-[400] bg-white/95 backdrop-blur-xs rounded-xl border border-slate-200 px-3 py-2 shadow-md text-xs pointer-events-none"
+                v-else
+                class="hidden sm:block absolute bottom-3 right-3 z-[400] max-w-xs bg-white/90 backdrop-blur-xs rounded-xl border border-slate-200/80 px-3 py-2 shadow-xs text-xs pointer-events-none"
             >
-                <div class="font-bold text-slate-900">{{ hoveredInfo.desa ? `Desa ${hoveredInfo.desa}` : `Kec. ${hoveredInfo.kecamatan}` }}</div>
-                <div v-if="isWelfareMode" class="text-[11px] text-emerald-800 font-semibold">
-                    {{ hoveredInfo.desa ? `${hoveredInfo.totalStudents || 0} Siswa • ${hoveredInfo.campus_km ?? '-'} km ke Kampus` : `${hoveredInfo.students} Siswa • Rata ${hoveredInfo.avgCampusKm ?? '-'} km` }}
-                </div>
-                <div v-else class="text-[11px] text-emerald-800 font-semibold">{{ hoveredInfo.reached }} / {{ hoveredInfo.total }} SD • {{ hoveredInfo.students }} Siswa</div>
+                <span class="text-[11px] text-slate-400 font-medium">
+                    {{ aggregationLevel === 'desa' ? 'Arahkan kursor atau klik desa untuk detail' : 'Arahkan kursor atau klik kecamatan untuk detail' }}
+                </span>
             </div>
 
             <!-- Tombol Legenda Mobile -->
             <button
-                v-if="!isLegendOpenMobile && !selectedDesaCard"
+                v-if="!isLegendOpenMobile && !hoveredRegion"
                 type="button"
                 @click="isLegendOpenMobile = true"
                 class="sm:hidden absolute bottom-3 left-3 z-[400] px-2.5 py-1.5 rounded-xl bg-white/95 backdrop-blur-xs text-slate-700 text-[11px] font-bold shadow-md border border-slate-200/80 flex items-center gap-1.5 cursor-pointer"
@@ -1597,7 +1708,7 @@ watch(
                 class="absolute bottom-3 left-3 z-[400] bg-white/95 backdrop-blur-xs rounded-xl border border-slate-200/90 p-2 sm:p-2.5 shadow-md flex-col gap-1.5 transition-all"
                 :class="[
                     isLegendOpenMobile ? 'flex' : 'hidden sm:flex',
-                    { 'hidden sm:flex': selectedDesaCard },
+                    { 'hidden sm:flex': hoveredRegion },
                 ]"
             >
                 <div>
@@ -1653,6 +1764,156 @@ watch(
                 </div>
             </div>
         </div>
+        <!-- Modal Detail Siswa per Kecamatan / Desa (Identik Peta Domisili Stat Siswa) -->
+        <Teleport to="body">
+            <div
+                v-if="regionStudentModal"
+                class="fixed inset-0 z-[999] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 overflow-y-auto"
+                @click.self="closeRegionStudentModal"
+            >
+                <div class="bg-white rounded-3xl border border-slate-200/90 shadow-2xl max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+                    <!-- Modal Header -->
+                    <div class="px-4 sm:px-6 py-4 border-b border-slate-100 flex items-start justify-between gap-3 bg-slate-50/70 shrink-0">
+                        <div class="flex items-start gap-3 min-w-0">
+                            <div class="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border shadow-2xs mt-0.5 bg-emerald-100 border-emerald-300 text-emerald-800">
+                                <span class="material-symbols-outlined text-[22px]">
+                                    {{ regionStudentModal.type === 'desa' ? 'holiday_village' : 'location_on' }}
+                                </span>
+                            </div>
+                            <div class="min-w-0">
+                                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider inline-block mb-1 bg-emerald-100 text-emerald-900">
+                                    {{ regionStudentModal.mode === 'welfare'
+                                        ? (regionStudentModal.type === 'desa' ? 'Domisili Desa / Kelurahan' : 'Domisili Kecamatan')
+                                        : (regionStudentModal.type === 'desa' ? 'Asal SD/MI Desa' : 'Asal SD/MI Kecamatan') }}
+                                </span>
+                                <h3 class="text-sm sm:text-base font-extrabold text-slate-900 break-words leading-snug">
+                                    <template v-if="regionStudentModal.type === 'desa'">
+                                        Desa {{ regionStudentModal.desa }}
+                                        <span class="text-slate-500 font-semibold text-xs sm:text-sm">
+                                            (Kec. {{ regionStudentModal.kecamatan }}, {{ regionStudentModal.kabupaten }})
+                                        </span>
+                                    </template>
+                                    <template v-else>
+                                        Kec. {{ regionStudentModal.kecamatan }}
+                                        <span class="text-slate-500 font-semibold text-xs sm:text-sm">
+                                            ({{ regionStudentModal.kabupaten }})
+                                        </span>
+                                    </template>
+                                </h3>
+                                <p class="text-[11px] text-slate-500 font-medium mt-0.5">
+                                    Total <span class="font-bold text-slate-800">{{ regionStudentModal.students }} Siswa</span>
+                                    ({{ regionStudentModal.percentage }}% dari total filter aktif)
+                                    <template v-if="regionStudentModal.mode === 'school'">
+                                        • {{ regionStudentModal.reached }} / {{ regionStudentModal.total }} SD tergarap
+                                    </template>
+                                    <template v-else-if="regionStudentModal.type === 'desa'">
+                                        • {{ regionStudentModal.campus_km ?? '-' }} km ke Kampus
+                                    </template>
+                                </p>
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            @click="closeRegionStudentModal"
+                            class="text-slate-400 hover:text-slate-700 p-1.5 rounded-xl hover:bg-slate-200/60 transition-colors cursor-pointer shrink-0"
+                            title="Tutup (ESC)"
+                        >
+                            <span class="material-symbols-outlined text-[20px]">close</span>
+                        </button>
+                    </div>
+
+                    <!-- Modal Toolbar Search -->
+                    <div class="px-4 sm:px-6 py-2.5 bg-white border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shrink-0">
+                        <div class="relative w-full sm:w-80">
+                            <span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-[16px]">search</span>
+                            <input
+                                v-model="modalSearch"
+                                type="text"
+                                placeholder="Cari nama, NISN, SD asal, atau desa..."
+                                class="w-full pl-8 pr-7 py-1.5 rounded-xl border border-slate-200 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
+                            />
+                            <button
+                                v-if="modalSearch"
+                                type="button"
+                                @click="modalSearch = ''"
+                                class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-[15px] cursor-pointer"
+                            >
+                                close
+                            </button>
+                        </div>
+                        <span class="text-[11px] font-semibold text-slate-500">
+                            Menampilkan {{ modalFilteredStudents.length }} dari {{ regionStudentModal.students }} siswa
+                        </span>
+                    </div>
+
+                    <!-- Modal Body: Daftar Siswa -->
+                    <div class="flex-1 overflow-y-auto px-4 sm:px-6 py-3 space-y-2 custom-bar-scrollbar">
+                        <div v-if="modalFilteredStudents.length > 0" class="space-y-2">
+                            <a
+                                v-for="(student, sIdx) in modalFilteredStudents"
+                                :key="student.id || sIdx"
+                                :href="`/students/${student.nisn || student.id}`"
+                                target="_blank"
+                                class="p-2.5 sm:p-3 rounded-2xl bg-slate-50/80 hover:bg-emerald-50/40 hover:border-emerald-200 border border-slate-200/80 flex items-center justify-between gap-3 transition-colors group/row"
+                                title="Buka profil siswa di tab baru"
+                            >
+                                <div class="min-w-0 flex items-center gap-2.5 flex-1">
+                                    <span class="w-6 h-6 rounded-lg bg-white border border-slate-200 text-[10.5px] font-bold text-slate-600 flex items-center justify-center shrink-0">
+                                        {{ sIdx + 1 }}
+                                    </span>
+                                    <div class="min-w-0">
+                                        <div class="text-xs sm:text-[13px] font-bold text-slate-900 group-hover/row:text-emerald-950 break-words leading-tight">
+                                            {{ student.nama }}
+                                        </div>
+                                        <div class="text-[11px] text-slate-500 font-medium mt-0.5 truncate">
+                                            <span v-if="student.unit">{{ student.unit }}</span>
+                                            <span v-if="student.ta_masuk"> • TA {{ student.ta_masuk }}</span>
+                                            <span v-if="student.sekolah_asal"> • {{ student.sekolah_asal }}</span>
+                                            <span v-if="student.desa"> • Ds. {{ student.desa }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-1.5 shrink-0">
+                                    <span
+                                        class="text-[10px] font-bold px-2 py-0.5 rounded-lg border text-center"
+                                        :class="getGenderBadgeClass(student.jk)"
+                                    >
+                                        <span class="hidden sm:inline">{{ getGenderLabel(student.jk) }}</span>
+                                        <span class="sm:hidden">{{ student.jk || '-' }}</span>
+                                    </span>
+                                    <span
+                                        v-if="student.program"
+                                        class="text-[10px] font-bold px-2 py-0.5 rounded-lg border shrink-0"
+                                        :class="getProgramBadgeClass(student.program)"
+                                    >
+                                        {{ student.program }}
+                                    </span>
+                                </div>
+                            </a>
+                        </div>
+                        <div v-else class="py-12 text-center">
+                            <span class="material-symbols-outlined text-3xl text-slate-300 mb-1 block">person_search</span>
+                            <p class="text-xs font-bold text-slate-700">Tidak ada siswa yang cocok</p>
+                            <p class="text-[11px] text-slate-400 mt-0.5">Coba kata kunci pencarian lain.</p>
+                        </div>
+                    </div>
+
+                    <!-- Modal Footer -->
+                    <div class="px-4 sm:px-6 py-3 border-t border-slate-100 bg-slate-50/70 flex items-center justify-between gap-3 shrink-0">
+                        <span class="text-[11px] text-slate-400 font-medium">
+                            Tekan <kbd class="px-1.5 py-0.5 rounded bg-white border border-slate-300 text-[10px] font-mono text-slate-600 shadow-2xs">ESC</kbd> untuk menutup
+                        </span>
+                        <button
+                            type="button"
+                            @click="closeRegionStudentModal"
+                            class="px-4 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold transition-all cursor-pointer shadow-xs"
+                        >
+                            Tutup
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
     </div>
 </template>
 
