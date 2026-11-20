@@ -1644,190 +1644,193 @@ function exportExcel() {
         </div>
 
         <!-- Modal Daftar Sekolah / Desa dari Titik Kuadran -->
-        <div
-            v-if="quadrantGroupModal"
-            @click.self="quadrantGroupModal = null"
-            class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4"
-        >
-            <div class="bg-white rounded-3xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
-                <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between gap-3">
-                    <div>
-                        <h3 class="text-sm font-bold text-slate-900">{{ quadrantGroupModal.title }}</h3>
-                        <p class="text-xs text-slate-500 mt-0.5">
-                            <template v-if="quadrantGroupModal.mode === 'welfare'">
-                                {{ (quadrantGroupModal.villages || []).length }} desa/kelurahan pada posisi ini — klik desa untuk rincian jarak Kampus, Tol &amp; siswa
-                            </template>
-                            <template v-else>
-                                {{ (quadrantGroupModal.schools || []).length }} sekolah berada pada titik posisi ini — klik sekolah untuk rincian siswa
-                            </template>
-                        </p>
+        <Teleport to="body">
+            <div
+                v-if="quadrantGroupModal"
+                @click.self="quadrantGroupModal = null"
+                class="fixed inset-0 z-[999] bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4"
+            >
+                <div class="bg-white rounded-3xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
+                    <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between gap-3">
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-900">{{ quadrantGroupModal.title }}</h3>
+                            <p class="text-xs text-slate-500 mt-0.5">
+                                <template v-if="quadrantGroupModal.mode === 'welfare'">
+                                    {{ (quadrantGroupModal.villages || []).length }} desa/kelurahan pada posisi ini — klik desa untuk rincian jarak Kampus, Tol &amp; siswa
+                                </template>
+                                <template v-else>
+                                    {{ (quadrantGroupModal.schools || []).length }} sekolah berada pada titik posisi ini — klik sekolah untuk rincian siswa
+                                </template>
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            @click="quadrantGroupModal = null"
+                            class="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-500 cursor-pointer"
+                        >
+                            <span class="material-symbols-outlined text-[20px]">close</span>
+                        </button>
                     </div>
-                    <button
-                        type="button"
-                        @click="quadrantGroupModal = null"
-                        class="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-500 cursor-pointer"
-                    >
-                        <span class="material-symbols-outlined text-[20px]">close</span>
-                    </button>
-                </div>
-                <div v-if="quadrantGroupModal.mode === 'welfare'" class="p-4 overflow-y-auto space-y-2">
-                    <button
-                        v-for="v in quadrantGroupModal.villages"
-                        :key="v.kode"
-                        type="button"
-                        @click="selectedVillageModal = v; quadrantGroupModal = null"
-                        class="w-full text-left p-3 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/40 transition-all flex items-center justify-between gap-3 cursor-pointer"
-                    >
-                        <div class="min-w-0">
-                            <p class="text-xs font-bold text-slate-900">{{ v.desa }}</p>
-                            <p class="text-[11px] text-slate-500 mt-0.5">Kec. {{ v.kecamatan }}, {{ v.kabupaten }} • Kampus {{ v.campus_km ?? '-' }} km • {{ v.toll_name }} ({{ v.toll_km ?? '-' }} km)</p>
-                        </div>
-                        <span class="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-900 text-xs font-bold shrink-0">
-                            {{ v.totalStudents }} Siswa →
-                        </span>
-                    </button>
-                </div>
-                <div v-else class="p-4 overflow-y-auto space-y-2">
-                    <button
-                        v-for="sc in quadrantGroupModal.schools"
-                        :key="sc.npsn"
-                        type="button"
-                        @click="selectedSchoolModal = sc; quadrantGroupModal = null"
-                        class="w-full text-left p-3 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/40 transition-all flex items-center justify-between gap-3 cursor-pointer"
-                    >
-                        <div class="min-w-0">
-                            <p class="text-xs font-bold text-slate-900">{{ sc.nama }}</p>
-                            <p class="text-[11px] text-slate-500 mt-0.5">NPSN {{ sc.npsn }} • Kec. {{ sc.kecamatan }}, {{ sc.kabupaten }}</p>
-                        </div>
-                        <span class="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-900 text-xs font-bold shrink-0">
-                            {{ sc.totalStudents }} Siswa →
-                        </span>
-                    </button>
+                    <div v-if="quadrantGroupModal.mode === 'welfare'" class="p-4 overflow-y-auto space-y-2">
+                        <button
+                            v-for="v in quadrantGroupModal.villages"
+                            :key="v.kode"
+                            type="button"
+                            @click="selectedVillageModal = v; quadrantGroupModal = null"
+                            class="w-full text-left p-3 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/40 transition-all flex items-center justify-between gap-3 cursor-pointer"
+                        >
+                            <div class="min-w-0">
+                                <p class="text-xs font-bold text-slate-900">{{ v.desa }}</p>
+                                <p class="text-[11px] text-slate-500 mt-0.5">Kec. {{ v.kecamatan }}, {{ v.kabupaten }} • Kampus {{ v.campus_km ?? '-' }} km • {{ v.toll_name }} ({{ v.toll_km ?? '-' }} km)</p>
+                            </div>
+                            <span class="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-900 text-xs font-bold shrink-0">
+                                {{ v.totalStudents }} Siswa →
+                            </span>
+                        </button>
+                    </div>
+                    <div v-else class="p-4 overflow-y-auto space-y-2">
+                        <button
+                            v-for="sc in quadrantGroupModal.schools"
+                            :key="sc.npsn"
+                            type="button"
+                            @click="selectedSchoolModal = sc; quadrantGroupModal = null"
+                            class="w-full text-left p-3 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/40 transition-all flex items-center justify-between gap-3 cursor-pointer"
+                        >
+                            <div class="min-w-0">
+                                <p class="text-xs font-bold text-slate-900">{{ sc.nama }}</p>
+                                <p class="text-[11px] text-slate-500 mt-0.5">NPSN {{ sc.npsn }} • Kec. {{ sc.kecamatan }}, {{ sc.kabupaten }}</p>
+                            </div>
+                            <span class="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-900 text-xs font-bold shrink-0">
+                                {{ sc.totalStudents }} Siswa →
+                            </span>
+                        </button>
+                    </div>
                 </div>
             </div>
-        </div>
+        </Teleport>
 
-        <!-- Modal Rincian Desa, Beban P1-P4, & Daftar Siswa Domisili -->
-        <div
-            v-if="selectedVillageModal"
-            @click.self="selectedVillageModal = null"
-            class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4"
-        >
-            <div class="bg-white rounded-3xl max-w-3xl w-full max-h-[88vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
-                <div class="px-5 py-4 border-b border-slate-100 flex items-start justify-between gap-3 bg-slate-50/60">
-                    <div class="min-w-0">
-                        <div class="flex items-center gap-2 flex-wrap mb-1">
-                            <span
-                                :class="[
-                                    'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold border',
-                                    PSB_WELFARE_TIERS[selectedVillageModal.tier].badgeClass,
-                                ]"
-                            >
-                                <span :class="['w-1.5 h-1.5 rounded-full', PSB_WELFARE_TIERS[selectedVillageModal.tier].dotClass]"></span>
-                                <span>{{ PSB_WELFARE_TIERS[selectedVillageModal.tier].label }}</span>
-                            </span>
-                            <span class="text-[11px] font-mono text-slate-400">{{ selectedVillageModal.kode }}</span>
+        <!-- Modal Rincian Desa & Daftar Siswa Domisili -->
+        <Teleport to="body">
+            <div
+                v-if="selectedVillageModal"
+                @click.self="selectedVillageModal = null"
+                class="fixed inset-0 z-[999] bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4"
+            >
+                <div class="bg-white rounded-3xl max-w-3xl w-full max-h-[88vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
+                    <div class="px-5 py-4 border-b border-slate-100 flex items-start justify-between gap-3 bg-slate-50/60">
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap mb-1">
+                                <span
+                                    :class="[
+                                        'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold border',
+                                        PSB_WELFARE_TIERS[selectedVillageModal.tier].badgeClass,
+                                    ]"
+                                >
+                                    <span :class="['w-1.5 h-1.5 rounded-full', PSB_WELFARE_TIERS[selectedVillageModal.tier].dotClass]"></span>
+                                    <span>{{ PSB_WELFARE_TIERS[selectedVillageModal.tier].label }}</span>
+                                </span>
+                                <span class="text-[11px] font-mono text-slate-400">{{ selectedVillageModal.kode }}</span>
+                            </div>
+                            <h3 class="text-base font-extrabold text-slate-900 leading-snug">Desa / Kel. {{ selectedVillageModal.desa }}</h3>
+                            <p class="text-xs text-slate-500 mt-0.5">
+                                Kec. {{ selectedVillageModal.kecamatan }}, {{ selectedVillageModal.kabupaten }}
+                            </p>
                         </div>
-                        <h3 class="text-base font-extrabold text-slate-900 leading-snug">Desa / Kel. {{ selectedVillageModal.desa }}</h3>
-                        <p class="text-xs text-slate-500 mt-0.5">
-                            Kec. {{ selectedVillageModal.kecamatan }}, {{ selectedVillageModal.kabupaten }}
-                        </p>
-                    </div>
-                    <button
-                        type="button"
-                        @click="selectedVillageModal = null"
-                        class="w-8 h-8 rounded-full hover:bg-slate-200/70 flex items-center justify-center text-slate-500 cursor-pointer shrink-0"
-                    >
-                        <span class="material-symbols-outlined text-[20px]">close</span>
-                    </button>
-                </div>
-
-                <div class="p-5 overflow-y-auto space-y-4">
-                    <!-- Ringkasan Indikator Wilayah (Radius Kampus, Gerbang Tol, SD) -->
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                        <div class="p-3 rounded-2xl bg-sky-50 border border-sky-200 text-center">
-                            <div class="text-[10px] font-bold text-sky-700 uppercase">Radius ke Kampus</div>
-                            <div class="text-base font-extrabold text-sky-950 mt-0.5">{{ selectedVillageModal.campus_km ?? '-' }} km</div>
-                            <div class="text-[10.5px] font-semibold text-sky-700">{{ CAMPUS_RING_META[selectedVillageModal.campus_ring]?.label || 'Ring ' + selectedVillageModal.campus_ring }}</div>
-                        </div>
-                        <div class="p-3 rounded-2xl bg-indigo-50 border border-indigo-200 text-center">
-                            <div class="text-[10px] font-bold text-indigo-700 uppercase">Gerbang Tol Terdekat</div>
-                            <div class="text-base font-extrabold text-indigo-950 mt-0.5">{{ selectedVillageModal.toll_km ?? '-' }} km</div>
-                            <div class="text-[10.5px] font-semibold text-indigo-700 truncate" :title="selectedVillageModal.toll_name">{{ selectedVillageModal.toll_name || '-' }}</div>
-                        </div>
-                        <div class="p-3 rounded-2xl bg-slate-50 border border-slate-200 text-center">
-                            <div class="text-[10px] font-bold text-slate-600 uppercase">SD/MI di Desa</div>
-                            <div class="text-base font-extrabold text-slate-900 mt-0.5">{{ selectedVillageModal.schoolsCount }} Sekolah</div>
-                            <div class="text-[10.5px] font-semibold text-slate-500">{{ selectedVillageModal.reachedSchoolsCount }} sudah tergarap</div>
-                        </div>
+                        <button
+                            type="button"
+                            @click="selectedVillageModal = null"
+                            class="w-8 h-8 rounded-full hover:bg-slate-200/70 flex items-center justify-center text-slate-500 cursor-pointer shrink-0"
+                        >
+                            <span class="material-symbols-outlined text-[20px]">close</span>
+                        </button>
                     </div>
 
-                    <!-- Ringkasan Siswa Domisili -->
-                    <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div>
-                            <div class="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider">Histori Siswa Berdomisili di Desa Ini</div>
-                            <div class="text-sm font-extrabold text-slate-900 mt-0.5">
-                                {{ selectedVillageModal.totalStudents }} Siswa dari {{ selectedVillageModal.taCount }} Tahun Ajaran • {{ selectedVillageModal.schoolsCount }} SD/MI Asal di Desa
+                    <div class="p-5 overflow-y-auto space-y-4">
+                        <!-- Ringkasan Indikator Wilayah (Radius Kampus & Gerbang Tol) -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                            <div class="p-3 rounded-2xl bg-sky-50 border border-sky-200 text-center">
+                                <div class="text-[10px] font-bold text-sky-700 uppercase">Radius ke Kampus</div>
+                                <div class="text-base font-extrabold text-sky-950 mt-0.5">{{ selectedVillageModal.campus_km ?? '-' }} km</div>
+                                <div class="text-[10.5px] font-semibold text-sky-700">{{ CAMPUS_RING_META[selectedVillageModal.campus_ring]?.label || 'Ring ' + selectedVillageModal.campus_ring }}</div>
+                            </div>
+                            <div class="p-3 rounded-2xl bg-indigo-50 border border-indigo-200 text-center">
+                                <div class="text-[10px] font-bold text-indigo-700 uppercase">Gerbang Tol Terdekat</div>
+                                <div class="text-base font-extrabold text-indigo-950 mt-0.5">{{ selectedVillageModal.toll_km ?? '-' }} km</div>
+                                <div class="text-[10.5px] font-semibold text-indigo-700 truncate" :title="selectedVillageModal.toll_name">{{ selectedVillageModal.toll_name || '-' }}</div>
                             </div>
                         </div>
-                        <div v-if="selectedVillageModal.taBreakdown.length > 0" class="flex flex-wrap gap-1.5">
-                            <span
-                                v-for="[ta, cnt] in selectedVillageModal.taBreakdown"
-                                :key="ta"
-                                class="px-2.5 py-1 rounded-xl bg-white border border-emerald-200 text-emerald-900 text-xs font-bold shadow-2xs"
-                            >
-                                {{ ta }}: {{ cnt }} siswa
-                            </span>
-                        </div>
-                    </div>
 
-                    <!-- Daftar Siswa Domisili -->
-                    <div v-if="selectedVillageModal.students.length > 0" class="space-y-2">
-                        <div class="text-xs font-bold text-slate-700 uppercase tracking-wider">Daftar Siswa Berdomisili</div>
-                        <Link
-                            v-for="(st, sIdx) in selectedVillageModal.students"
-                            :key="st.id"
-                            :href="`/students/${st.nisn}`"
-                            class="p-3 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/40 transition-all flex items-center justify-between gap-3 group"
-                        >
-                            <div class="flex items-center gap-2.5 min-w-0">
-                                <span class="w-6 h-6 rounded-lg bg-slate-100 text-slate-600 text-[11px] font-bold flex items-center justify-center shrink-0">
-                                    {{ sIdx + 1 }}
-                                </span>
-                                <div class="min-w-0">
-                                    <div class="flex items-center gap-1.5 flex-wrap">
-                                        <span class="text-xs font-bold text-slate-900 group-hover:text-emerald-950 truncate">{{ st.nama }}</span>
-                                        <span :class="['px-1.5 py-0.5 rounded border text-[10px] font-bold', getGenderBadgeClass(st.jk)]">
-                                            {{ getGenderLabel(st.jk) }}
-                                        </span>
-                                    </div>
-                                    <p class="text-[11px] text-slate-500 mt-0.5 truncate">
-                                        {{ st.unit }} • {{ st.sekolah_asal || '-' }} • Masuk {{ st.ta_masuk || '-' }}
-                                    </p>
+                        <!-- Ringkasan Siswa Domisili -->
+                        <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div>
+                                <div class="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider">Histori Siswa Berdomisili di Desa Ini</div>
+                                <div class="text-sm font-extrabold text-slate-900 mt-0.5">
+                                    {{ selectedVillageModal.totalStudents }} Siswa dari {{ selectedVillageModal.taCount }} Tahun Ajaran
                                 </div>
                             </div>
-                            <span :class="['px-2 py-0.5 rounded border text-[10px] font-bold shrink-0', getProgramBadgeClass(st.program)]">
-                                {{ st.program }}
-                            </span>
-                        </Link>
-                    </div>
-                    <div v-else class="py-8 text-center rounded-2xl bg-slate-50 border border-dashed border-slate-300">
-                        <span class="material-symbols-outlined text-3xl text-slate-300 mb-1 block">home_work</span>
-                        <p class="text-xs font-bold text-slate-700">Belum ada siswa berdomisili dari desa ini (0 Siswa)</p>
-                        <p class="text-[11px] text-slate-500 mt-0.5">
-                            {{ (selectedVillageModal.campus_ring || 4) <= 2 ? 'Desa berada dalam radius <= 10 km dari kampus dan berpotensi dijadikan target sosialisasi.' : 'Desa berada di luar radius 10 km dan belum memiliki siswa domisili.' }}
-                        </p>
+                            <div v-if="selectedVillageModal.taBreakdown.length > 0" class="flex flex-wrap gap-1.5">
+                                <span
+                                    v-for="[ta, cnt] in selectedVillageModal.taBreakdown"
+                                    :key="ta"
+                                    class="px-2.5 py-1 rounded-xl bg-white border border-emerald-200 text-emerald-900 text-xs font-bold shadow-2xs"
+                                >
+                                    {{ ta }}: {{ cnt }} siswa
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Daftar Siswa Domisili -->
+                        <div v-if="selectedVillageModal.students.length > 0" class="space-y-2">
+                            <div class="text-xs font-bold text-slate-700 uppercase tracking-wider">Daftar Siswa Berdomisili</div>
+                            <Link
+                                v-for="(st, sIdx) in selectedVillageModal.students"
+                                :key="st.id"
+                                :href="`/students/${st.nisn}`"
+                                class="p-3 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/40 transition-all flex items-start sm:items-center justify-between gap-3 group"
+                            >
+                                <div class="flex items-start gap-2.5 min-w-0">
+                                    <span class="w-6 h-6 rounded-lg bg-slate-100 text-slate-600 text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">
+                                        {{ sIdx + 1 }}
+                                    </span>
+                                    <div class="min-w-0">
+                                        <div class="flex items-center gap-1.5 flex-wrap">
+                                            <span class="text-xs font-bold text-slate-900 group-hover:text-emerald-950 break-words">{{ st.nama }}</span>
+                                            <span :class="['px-1.5 py-0.5 rounded border text-[10px] font-bold', getGenderBadgeClass(st.jk)]">
+                                                {{ getGenderLabel(st.jk) }}
+                                            </span>
+                                        </div>
+                                        <p class="text-[11px] text-slate-500 mt-0.5 break-words leading-snug">
+                                            {{ st.unit }} • Masuk {{ st.ta_masuk || '-' }}
+                                        </p>
+                                        <p v-if="st.sekolah_asal" class="text-[11px] font-semibold text-slate-700 mt-0.5 break-words leading-snug">
+                                            Asal: {{ st.sekolah_asal }}
+                                        </p>
+                                    </div>
+                                </div>
+                                <span :class="['px-2 py-0.5 rounded border text-[10px] font-bold shrink-0', getProgramBadgeClass(st.program)]">
+                                    {{ st.program }}
+                                </span>
+                            </Link>
+                        </div>
+                        <div v-else class="py-8 text-center rounded-2xl bg-slate-50 border border-dashed border-slate-300">
+                            <span class="material-symbols-outlined text-3xl text-slate-300 mb-1 block">home_work</span>
+                            <p class="text-xs font-bold text-slate-700">Belum ada siswa berdomisili dari desa ini (0 Siswa)</p>
+                            <p class="text-[11px] text-slate-500 mt-0.5">
+                                {{ (selectedVillageModal.campus_ring || 4) <= 2 ? 'Desa berada dalam radius <= 10 km dari kampus dan berpotensi dijadikan target sosialisasi.' : 'Desa berada di luar radius 10 km dan belum memiliki siswa domisili.' }}
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </Teleport>
 
         <!-- Modal Rincian Sekolah & Daftar Siswa Masuk -->
-        <div
-            v-if="selectedSchoolModal"
-            @click.self="selectedSchoolModal = null"
-            class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4"
-        >
+        <Teleport to="body">
+            <div
+                v-if="selectedSchoolModal"
+                @click.self="selectedSchoolModal = null"
+                class="fixed inset-0 z-[999] bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4"
+            >
             <div class="bg-white rounded-3xl max-w-3xl w-full max-h-[88vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
                 <div class="px-5 py-4 border-b border-slate-100 flex items-start justify-between gap-3 bg-slate-50/60">
                     <div class="min-w-0">
@@ -1929,6 +1932,7 @@ function exportExcel() {
                 </div>
             </div>
         </div>
+        </Teleport>
     </div>
 </template>
 

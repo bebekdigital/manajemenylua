@@ -90,6 +90,7 @@ const modalSearch = ref('');
 const showSchoolDots = ref(false);
 const showCampusRadius = ref(true);
 const showTollGates = ref(true);
+const isLayerDropdownOpen = ref(false);
 const visibleTiers = reactive({
     basis_utama: true,
     potensial: true,
@@ -717,7 +718,7 @@ function renderSchoolDots() {
     schoolPointsLayer.clearLayers();
     currentDotCandidates = [];
 
-    if (!showSchoolDots.value) return;
+    if (isWelfareMode.value || !showSchoolDots.value) return;
 
     // Pada level Kecamatan seluruh Solo Raya, gambar hanya sekolah sesuai filter/tier agar ringan
     // Pada level Drill-down Kecamatan, tampilkan seluruh titik SD/MI/PKBM dalam kecamatan tersebut
@@ -953,6 +954,7 @@ function renderMapLabels() {
         schoolLabelLayer.clearLayers();
 
         const shouldShowSchoolNames =
+            !isWelfareMode.value &&
             showSchoolDots.value &&
             currentDotCandidates.length > 0 &&
             (zoom >= 13 || (Boolean(drillKecamatan.value) && zoom >= 12));
@@ -1280,8 +1282,9 @@ onBeforeUnmount(() => {
 });
 
 watch(
-    () => [props.mode, props.schools, props.villages],
+    [() => props.mode, () => props.schools, () => props.villages],
     () => {
+        isLayerDropdownOpen.value = false;
         clearHover();
         updateLayersAndFocus();
     },
@@ -1369,7 +1372,7 @@ watch(
                 </div>
             </div>
 
-            <!-- Kontrol Kanan: Toggle Mode Peta, [Kecamatan | Desa], Titik SD/MI, Badge Ringkasan -->
+            <!-- Kontrol Kanan: Hanya Toolbar Mode Peta [Sekolah Asal | Domisili] + Badge Ringkasan -->
             <div class="flex items-center gap-2 self-start sm:self-auto flex-wrap">
                 <!-- Toggle Mode Peta -->
                 <div class="inline-flex items-center p-0.5 bg-slate-100 rounded-xl border border-slate-200/90 shadow-2xs">
@@ -1391,82 +1394,9 @@ watch(
                             ? 'bg-emerald-900 text-yellow-200 shadow-xs'
                             : 'text-slate-600 hover:text-slate-900'"
                     >
-                        Domisili Desa
+                        Domisili
                     </button>
                 </div>
-
-                <!-- Toggle Pilihan Wilayah: Kecamatan / Desa (Warna Kuning/Amber persis Peta Domisili) -->
-                <div class="inline-flex items-center p-0.5 bg-amber-50 rounded-xl border border-amber-200/90 shadow-2xs">
-                    <button
-                        type="button"
-                        @click="setAggregation('kecamatan')"
-                        class="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 rounded-lg text-xs transition-all cursor-pointer"
-                        :class="aggregationLevel === 'kecamatan'
-                            ? 'bg-amber-400 text-amber-950 font-bold shadow-xs'
-                            : 'text-amber-800/80 hover:text-amber-950 font-semibold'"
-                    >
-                        <span class="material-symbols-outlined text-[15px]">location_city</span>
-                        <span>Kecamatan</span>
-                    </button>
-                    <button
-                        type="button"
-                        @click="setAggregation('desa')"
-                        class="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 rounded-lg text-xs transition-all cursor-pointer"
-                        :class="aggregationLevel === 'desa'
-                            ? 'bg-amber-400 text-amber-950 font-bold shadow-xs'
-                            : 'text-amber-800/80 hover:text-amber-950 font-semibold'"
-                    >
-                        <span class="material-symbols-outlined text-[15px]">holiday_village</span>
-                        <span>Desa</span>
-                    </button>
-                </div>
-
-                <!-- Toggle Overlay Khusus Mode Desa -->
-                <template v-if="isWelfareMode">
-                    <button
-                        type="button"
-                        @click="showCampusRadius = !showCampusRadius"
-                        :class="[
-                            'inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-bold border transition-all cursor-pointer',
-                            showCampusRadius
-                                ? 'bg-sky-700 text-white border-sky-800 shadow-2xs'
-                                : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200',
-                        ]"
-                        title="Tampilkan ring radius 5 / 10 / 15 km dari Kampus"
-                    >
-                        <span class="material-symbols-outlined text-[14px]">radar</span>
-                        <span>Radius</span>
-                    </button>
-                    <button
-                        type="button"
-                        @click="showTollGates = !showTollGates"
-                        :class="[
-                            'inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-bold border transition-all cursor-pointer',
-                            showTollGates
-                                ? 'bg-indigo-700 text-yellow-200 border-indigo-800 shadow-2xs'
-                                : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200',
-                        ]"
-                        title="Tampilkan titik Gerbang Tol Solo Raya"
-                    >
-                        <span class="material-symbols-outlined text-[14px]">toll</span>
-                        <span>Gerbang Tol</span>
-                    </button>
-                </template>
-
-                <!-- Toggle Overlay Titik Sekolah -->
-                <button
-                    type="button"
-                    @click="showSchoolDots = !showSchoolDots"
-                    :class="[
-                        'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer',
-                        showSchoolDots
-                            ? 'bg-emerald-900 text-yellow-200 border-emerald-950 shadow-2xs'
-                            : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200',
-                    ]"
-                >
-                    <span class="material-symbols-outlined text-[15px]">location_on</span>
-                    <span>Titik SD/MI</span>
-                </button>
 
                 <!-- Badge Total Tercakup -->
                 <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-bold text-emerald-800">
@@ -1483,9 +1413,9 @@ watch(
             </div>
         </div>
 
-        <!-- Baris Filter Layer Titik Sekolah (Saat Titik SD/MI Aktif) -->
+        <!-- Baris Filter Layer Titik Sekolah (Hanya Mode Sekolah Asal saat Titik SD Aktif) -->
         <div
-            v-if="showSchoolDots"
+            v-if="!isWelfareMode && showSchoolDots"
             class="mb-3 p-2.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-wrap items-center justify-between gap-2"
         >
             <div class="flex items-center gap-1.5 flex-wrap">
@@ -1530,29 +1460,138 @@ watch(
 
             <div ref="mapContainerRef" class="w-full h-full z-10 psb-leaflet-bg"></div>
 
-            <!-- Breadcrumb & Back to Kecamatan (Saat Drill-Down ke Desa) -->
-            <div
-                v-if="drillKecamatan"
-                class="absolute top-3 left-3 z-[400] flex flex-wrap items-center gap-2 max-w-[calc(100%-64px)]"
-            >
-                <button
-                    type="button"
-                    @click="backToAllKecamatan"
-                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 text-xs font-bold shadow-md border border-emerald-950/30 cursor-pointer active:scale-95 transition-all"
-                >
-                    <span class="material-symbols-outlined text-[15px]">arrow_back</span>
-                    <span>Semua Kecamatan</span>
-                </button>
-                <div class="px-3 py-1.5 rounded-xl bg-white/95 backdrop-blur-xs border border-slate-200 shadow-xs text-xs font-bold text-slate-800 flex items-center gap-2">
-                    <span>Kec. {{ drillKecamatan.kecamatan }}, {{ drillKecamatan.kabupaten }}</span>
+            <!-- Kontrol Pojok Kiri Atas di Dalam Peta: [Kec. | Desa] + Overlay (Titik SD / Radius / GT) -->
+            <div class="absolute top-3 left-3 z-[410] flex items-center gap-1.5 flex-wrap max-w-[calc(100%-56px)]">
+                <!-- Tab Kecamatan / Desa Ringkas -->
+                <div class="inline-flex items-center p-0.5 bg-amber-50/95 backdrop-blur-xs rounded-xl border border-amber-200/90 shadow-md">
                     <button
                         type="button"
-                        @click="emit('select-kecamatan', drillKecamatan)"
-                        class="text-[11px] font-bold text-emerald-700 hover:text-emerald-900 underline cursor-pointer"
-                        title="Terapkan ke filter tabel di bawah"
+                        @click="setAggregation('kecamatan')"
+                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] transition-all cursor-pointer"
+                        :class="aggregationLevel === 'kecamatan'
+                            ? 'bg-amber-400 text-amber-950 font-bold shadow-2xs'
+                            : 'text-amber-800/80 hover:text-amber-950 font-semibold'"
                     >
-                        Filter Tabel ↓
+                        <span>Kec.</span>
                     </button>
+                    <button
+                        type="button"
+                        @click="setAggregation('desa')"
+                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] transition-all cursor-pointer"
+                        :class="aggregationLevel === 'desa'
+                            ? 'bg-amber-400 text-amber-950 font-bold shadow-2xs'
+                            : 'text-amber-800/80 hover:text-amber-950 font-semibold'"
+                    >
+                        <span>Desa</span>
+                    </button>
+                </div>
+
+                <!-- Desktop: Tombol Overlay Langsung Sesuai Mode -->
+                <div class="hidden sm:inline-flex items-center gap-1.5">
+                    <template v-if="!isWelfareMode">
+                        <button
+                            type="button"
+                            @click="showSchoolDots = !showSchoolDots"
+                            :class="[
+                                'inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-bold border shadow-md backdrop-blur-xs transition-all cursor-pointer',
+                                showSchoolDots
+                                    ? 'bg-emerald-900 text-yellow-200 border-emerald-950'
+                                    : 'bg-white/95 hover:bg-white text-slate-700 border-slate-200',
+                            ]"
+                        >
+                            <span class="material-symbols-outlined text-[14px]">location_on</span>
+                            <span>Titik SD</span>
+                        </button>
+                    </template>
+                    <template v-else>
+                        <button
+                            type="button"
+                            @click="showCampusRadius = !showCampusRadius"
+                            :class="[
+                                'inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-bold border shadow-md backdrop-blur-xs transition-all cursor-pointer',
+                                showCampusRadius
+                                    ? 'bg-sky-700 text-white border-sky-800'
+                                    : 'bg-white/95 hover:bg-white text-slate-700 border-slate-200',
+                            ]"
+                            title="Ring radius 5 / 10 / 15 km dari Kampus"
+                        >
+                            <span class="material-symbols-outlined text-[14px]">radar</span>
+                            <span>Radius</span>
+                        </button>
+                        <button
+                            type="button"
+                            @click="showTollGates = !showTollGates"
+                            :class="[
+                                'inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-bold border shadow-md backdrop-blur-xs transition-all cursor-pointer',
+                                showTollGates
+                                    ? 'bg-indigo-700 text-yellow-200 border-indigo-800'
+                                    : 'bg-white/95 hover:bg-white text-slate-700 border-slate-200',
+                            ]"
+                            title="Titik Gerbang Tol Solo Raya"
+                        >
+                            <span class="material-symbols-outlined text-[14px]">toll</span>
+                            <span>GT</span>
+                        </button>
+                    </template>
+                </div>
+
+                <!-- Mobile: Dropdown Layer Overlay Responsif -->
+                <div class="sm:hidden relative">
+                    <button
+                        type="button"
+                        @click="isLayerDropdownOpen = !isLayerDropdownOpen"
+                        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white/95 backdrop-blur-xs border border-slate-200 text-slate-700 text-[11px] font-bold shadow-md cursor-pointer"
+                    >
+                        <span class="material-symbols-outlined text-[14px] text-emerald-700">layers</span>
+                        <span>Layer</span>
+                        <span class="material-symbols-outlined text-[14px]">{{ isLayerDropdownOpen ? 'expand_less' : 'expand_more' }}</span>
+                    </button>
+
+                    <div
+                        v-if="isLayerDropdownOpen"
+                        class="absolute left-0 mt-1.5 w-44 rounded-xl bg-white border border-slate-200 shadow-xl p-1.5 space-y-1 z-[450]"
+                    >
+                        <template v-if="!isWelfareMode">
+                            <button
+                                type="button"
+                                @click="showSchoolDots = !showSchoolDots"
+                                class="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-colors cursor-pointer"
+                                :class="showSchoolDots ? 'bg-emerald-50 text-emerald-900' : 'text-slate-600 hover:bg-slate-50'"
+                            >
+                                <span class="flex items-center gap-1.5">
+                                    <span class="material-symbols-outlined text-[14px]">location_on</span>
+                                    <span>Titik SD</span>
+                                </span>
+                                <span class="material-symbols-outlined text-[15px]">{{ showSchoolDots ? 'check_box' : 'check_box_outline_blank' }}</span>
+                            </button>
+                        </template>
+                        <template v-else>
+                            <button
+                                type="button"
+                                @click="showCampusRadius = !showCampusRadius"
+                                class="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-colors cursor-pointer"
+                                :class="showCampusRadius ? 'bg-sky-50 text-sky-900' : 'text-slate-600 hover:bg-slate-50'"
+                            >
+                                <span class="flex items-center gap-1.5">
+                                    <span class="material-symbols-outlined text-[14px]">radar</span>
+                                    <span>Radius</span>
+                                </span>
+                                <span class="material-symbols-outlined text-[15px]">{{ showCampusRadius ? 'check_box' : 'check_box_outline_blank' }}</span>
+                            </button>
+                            <button
+                                type="button"
+                                @click="showTollGates = !showTollGates"
+                                class="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-colors cursor-pointer"
+                                :class="showTollGates ? 'bg-indigo-50 text-indigo-900' : 'text-slate-600 hover:bg-slate-50'"
+                            >
+                                <span class="flex items-center gap-1.5">
+                                    <span class="material-symbols-outlined text-[14px]">toll</span>
+                                    <span>Gerbang Tol (GT)</span>
+                                </span>
+                                <span class="material-symbols-outlined text-[15px]">{{ showTollGates ? 'check_box' : 'check_box_outline_blank' }}</span>
+                            </button>
+                        </template>
+                    </div>
                 </div>
             </div>
 
@@ -1575,137 +1614,150 @@ watch(
                 <span class="material-symbols-outlined text-[17px]">my_location</span>
             </button>
 
-            <!-- Live Status Hover/Click Card Kanan Bawah (Kecamatan & Desa, selaras Peta Domisili Stat Siswa) -->
-            <div
-                v-if="hoveredRegion"
-                class="absolute bottom-3 left-3 right-3 sm:left-auto sm:right-3 sm:bottom-3 sm:w-80 sm:max-w-xs z-[500] bg-white/95 backdrop-blur-xs rounded-xl border border-slate-200/90 p-2.5 sm:p-3 shadow-lg text-xs pointer-events-auto touch-manipulation transition-all animate-in fade-in duration-150"
-            >
-                <div class="flex flex-col relative">
-                    <button
-                        type="button"
-                        @click.stop="clearHover"
-                        class="absolute -top-1 -right-1 text-slate-400 hover:text-slate-700 p-1 rounded-full cursor-pointer touch-manipulation"
-                        title="Tutup info"
-                    >
-                        <span class="material-symbols-outlined text-[16px]">close</span>
-                    </button>
-                    <span class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">
-                        {{ hoveredRegion.type === 'desa' ? 'Desa / Kelurahan' : 'Kecamatan' }}
-                    </span>
-                    <span class="text-[13px] font-extrabold text-slate-900 pr-6 leading-tight mt-0.5">
-                        {{ hoveredRegion.type === 'desa' ? `Desa ${hoveredRegion.desa}` : `Kec. ${hoveredRegion.kecamatan}` }}
-                    </span>
-                    <span class="text-[11px] text-slate-500 font-medium mt-0.5">
-                        {{ hoveredRegion.type === 'desa'
-                            ? `Kec. ${hoveredRegion.kecamatan} • Kab/Kota ${hoveredRegion.kabupaten}`
-                            : `Kab/Kota ${hoveredRegion.kabupaten}` }}
-                    </span>
+            <!-- Pojok Kanan Bawah Stack: Tombol Kembali (saat masuk Desa) + Card Rincian / Hint -->
+            <div class="absolute bottom-3 left-3 right-3 sm:left-auto sm:right-3 sm:w-80 sm:max-w-xs z-[500] flex flex-col items-end gap-2 pointer-events-none">
+                <button
+                    v-if="drillKecamatan"
+                    type="button"
+                    @click="backToAllKecamatan"
+                    class="pointer-events-auto inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 text-xs font-bold shadow-md border border-emerald-950/30 cursor-pointer active:scale-95 transition-all"
+                >
+                    <span class="material-symbols-outlined text-[15px]">arrow_back</span>
+                    <span>Kembali</span>
+                </button>
 
-                    <div class="mt-1.5 pt-1.5 border-t border-slate-100 flex items-center justify-between gap-2">
-                        <span class="text-xs font-bold text-slate-900">
-                            {{ hoveredRegion.students }} Siswa
-                        </span>
-                        <span
-                            v-if="hoveredRegion.mode === 'welfare'"
-                            class="text-[10.5px] font-semibold text-sky-700 bg-sky-50 px-2 py-0.5 rounded-md border border-sky-200/70"
+                <!-- Live Status Hover/Click Card Kanan Bawah (Kecamatan & Desa, selaras Peta Domisili Stat Siswa) -->
+                <div
+                    v-if="hoveredRegion"
+                    class="w-full bg-white/95 backdrop-blur-xs rounded-xl border border-slate-200/90 p-2.5 sm:p-3 shadow-lg text-xs pointer-events-auto touch-manipulation transition-all animate-in fade-in duration-150"
+                >
+                    <div class="flex flex-col relative">
+                        <button
+                            type="button"
+                            @click.stop="clearHover"
+                            class="absolute -top-1 -right-1 text-slate-400 hover:text-slate-700 p-1 rounded-full cursor-pointer touch-manipulation"
+                            title="Tutup info"
                         >
+                            <span class="material-symbols-outlined text-[16px]">close</span>
+                        </button>
+                        <span class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">
+                            {{ hoveredRegion.type === 'desa' ? 'Desa / Kelurahan' : 'Kecamatan' }}
+                        </span>
+                        <span class="text-[13px] font-extrabold text-slate-900 pr-6 leading-tight mt-0.5">
+                            {{ hoveredRegion.type === 'desa' ? `Desa ${hoveredRegion.desa}` : `Kec. ${hoveredRegion.kecamatan}` }}
+                        </span>
+                        <span class="text-[11px] text-slate-500 font-medium mt-0.5">
                             {{ hoveredRegion.type === 'desa'
-                                ? `${hoveredRegion.campus_km ?? '-'} km ke Kampus`
-                                : `Rata ${hoveredRegion.avgCampusKm ?? '-'} km (${hoveredRegion.reachedVillages}/${hoveredRegion.villageCount} desa)` }}
+                                ? `Kec. ${hoveredRegion.kecamatan} • Kab/Kota ${hoveredRegion.kabupaten}`
+                                : `Kab/Kota ${hoveredRegion.kabupaten}` }}
                         </span>
-                        <span
-                            v-else
-                            class="text-[10.5px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60"
-                        >
-                            {{ hoveredRegion.reached }} / {{ hoveredRegion.total }} SD • {{ hoveredRegion.percentage }}%
-                        </span>
-                    </div>
 
-                    <!-- Detail Gerbang Tol untuk Desa Mode Domisili & Radius -->
-                    <div
-                        v-if="hoveredRegion.mode === 'welfare' && hoveredRegion.type === 'desa'"
-                        class="mt-1.5 flex items-center justify-between gap-2 text-[10.5px] text-indigo-800 bg-indigo-50/70 px-2 py-1 rounded-lg border border-indigo-200/60"
-                    >
-                        <span class="font-semibold truncate" :title="hoveredRegion.toll_name">Tol: {{ hoveredRegion.toll_name }}</span>
-                        <span class="font-bold shrink-0">{{ hoveredRegion.toll_km ?? '-' }} km</span>
-                    </div>
-
-                    <!-- Tombol Lihat Detail Siswa (Tersedia di Kecamatan maupun Desa) -->
-                    <button
-                        v-if="hoveredRegion.students > 0"
-                        type="button"
-                        @click="openRegionStudentModal(hoveredRegion)"
-                        class="mt-2 w-full py-1.5 px-2.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-bold flex items-center justify-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
-                    >
-                        <span>Lihat {{ hoveredRegion.students }} Siswa</span>
-                        <span class="material-symbols-outlined text-[14px]">open_in_new</span>
-                    </button>
-
-                    <!-- Aksi Pendukung: Buka Level Desa (saat di Kecamatan) / Daftar SD / Profil Desa -->
-                    <div class="mt-1.5 flex items-center gap-1.5 flex-wrap">
-                        <button
-                            v-if="hoveredRegion.type === 'kecamatan'"
-                            type="button"
-                            @click="drillIntoKecamatan(hoveredRegion.kecamatan, hoveredRegion.kabupaten, hoveredRegion.featureLayer)"
-                            class="flex-1 py-1 px-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10.5px] font-bold transition-colors cursor-pointer text-center"
-                        >
-                            Masuk Level Desa →
-                        </button>
-                        <button
-                            v-if="hoveredRegion.mode === 'school' && hoveredRegion.schools.length > 0"
-                            type="button"
-                            @click="showSchoolsInCard = !showSchoolsInCard"
-                            class="flex-1 py-1 px-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10.5px] font-bold transition-colors cursor-pointer text-center"
-                        >
-                            {{ showSchoolsInCard ? 'Tutup SD' : `Daftar SD (${hoveredRegion.schools.length})` }}
-                        </button>
-                        <button
-                            v-if="hoveredRegion.mode === 'welfare' && hoveredRegion.type === 'desa' && hoveredRegion.village"
-                            type="button"
-                            @click="emit('select-village', hoveredRegion.village)"
-                            class="flex-1 py-1 px-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10.5px] font-bold transition-colors cursor-pointer text-center"
-                        >
-                            Profil Desa →
-                        </button>
-                    </div>
-
-                    <!-- Daftar SD Ringkas Opsional di Dalam Card (Saat Toggle Daftar SD Diklik) -->
-                    <div
-                        v-if="showSchoolsInCard && hoveredRegion.mode === 'school' && hoveredRegion.schools.length > 0"
-                        class="mt-2 pt-2 border-t border-slate-100 max-h-36 overflow-y-auto space-y-1 custom-bar-scrollbar"
-                    >
-                        <button
-                            v-for="sc in hoveredRegion.schools"
-                            :key="sc.npsn"
-                            type="button"
-                            @click="emit('select-school', sc)"
-                            class="w-full text-left p-1.5 rounded-lg border border-slate-200/80 hover:border-emerald-300 hover:bg-emerald-50/40 transition-all flex items-center justify-between gap-2 cursor-pointer"
-                        >
-                            <div class="min-w-0">
-                                <p class="text-[11px] font-bold text-slate-900 truncate">{{ sc.nama }}</p>
-                                <p class="text-[9.5px] text-slate-500">{{ sc.bentuk }} • {{ sc.status }}</p>
-                            </div>
-                            <span
-                                :class="[
-                                    'px-1.5 py-0.5 rounded-full text-[9.5px] font-bold border shrink-0',
-                                    PSB_TIERS[sc.tier].badgeClass,
-                                ]"
-                            >
-                                {{ sc.totalStudents }}
+                        <div class="mt-1.5 pt-1.5 border-t border-slate-100 flex items-center justify-between gap-2">
+                            <span class="text-xs font-bold text-slate-900">
+                                {{ hoveredRegion.students }} Siswa
                             </span>
+                            <span
+                                v-if="hoveredRegion.mode === 'welfare'"
+                                class="text-[10.5px] font-semibold text-sky-700 bg-sky-50 px-2 py-0.5 rounded-md border border-sky-200/70"
+                            >
+                                {{ hoveredRegion.type === 'desa'
+                                    ? `${hoveredRegion.campus_km ?? '-'} km ke Kampus`
+                                    : `Rata ${hoveredRegion.avgCampusKm ?? '-'} km (${hoveredRegion.reachedVillages}/${hoveredRegion.villageCount} desa)` }}
+                            </span>
+                            <span
+                                v-else
+                                class="text-[10.5px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60"
+                            >
+                                {{ hoveredRegion.reached }} / {{ hoveredRegion.total }} SD • {{ hoveredRegion.percentage }}%
+                            </span>
+                        </div>
+
+                        <!-- Detail Gerbang Tol untuk Desa Mode Domisili -->
+                        <div
+                            v-if="hoveredRegion.mode === 'welfare' && hoveredRegion.type === 'desa'"
+                            class="mt-1.5 flex items-center justify-between gap-2 text-[10.5px] text-indigo-800 bg-indigo-50/70 px-2 py-1 rounded-lg border border-indigo-200/60"
+                        >
+                            <span class="font-semibold truncate" :title="hoveredRegion.toll_name">Tol: {{ hoveredRegion.toll_name }}</span>
+                            <span class="font-bold shrink-0">{{ hoveredRegion.toll_km ?? '-' }} km</span>
+                        </div>
+
+                        <!-- Tombol Lihat Detail Siswa (Tersedia di Kecamatan maupun Desa) -->
+                        <button
+                            v-if="hoveredRegion.students > 0"
+                            type="button"
+                            @click="openRegionStudentModal(hoveredRegion)"
+                            class="mt-2 w-full py-1.5 px-2.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-bold flex items-center justify-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
+                        >
+                            <span>Lihat {{ hoveredRegion.students }} Siswa</span>
+                            <span class="material-symbols-outlined text-[14px]">open_in_new</span>
                         </button>
+
+                        <!-- Aksi Pendukung: Buka Level Desa (saat di Kecamatan) / Daftar SD / Profil Desa -->
+                        <div class="mt-1.5 flex items-center gap-1.5 flex-wrap">
+                            <button
+                                v-if="hoveredRegion.type === 'kecamatan'"
+                                type="button"
+                                @click="drillIntoKecamatan(hoveredRegion.kecamatan, hoveredRegion.kabupaten, hoveredRegion.featureLayer)"
+                                class="flex-1 py-1 px-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10.5px] font-bold transition-colors cursor-pointer text-center"
+                            >
+                                Masuk Level Desa →
+                            </button>
+                            <button
+                                v-if="hoveredRegion.mode === 'school' && hoveredRegion.schools.length > 0"
+                                type="button"
+                                @click="showSchoolsInCard = !showSchoolsInCard"
+                                class="flex-1 py-1 px-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10.5px] font-bold transition-colors cursor-pointer text-center"
+                            >
+                                {{ showSchoolsInCard ? 'Tutup SD' : `Daftar SD (${hoveredRegion.schools.length})` }}
+                            </button>
+                            <button
+                                v-if="hoveredRegion.mode === 'welfare' && hoveredRegion.type === 'desa' && hoveredRegion.village"
+                                type="button"
+                                @click="emit('select-village', hoveredRegion.village)"
+                                class="flex-1 py-1 px-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10.5px] font-bold transition-colors cursor-pointer text-center"
+                            >
+                                Profil Desa →
+                            </button>
+                        </div>
+
+                        <!-- Daftar SD Ringkas Opsional di Dalam Card (Saat Toggle Daftar SD Diklik) -->
+                        <div
+                            v-if="showSchoolsInCard && hoveredRegion.mode === 'school' && hoveredRegion.schools.length > 0"
+                            class="mt-2 pt-2 border-t border-slate-100 max-h-36 overflow-y-auto space-y-1 custom-bar-scrollbar"
+                        >
+                            <button
+                                v-for="sc in hoveredRegion.schools"
+                                :key="sc.npsn"
+                                type="button"
+                                @click="emit('select-school', sc)"
+                                class="w-full text-left p-1.5 rounded-lg border border-slate-200/80 hover:border-emerald-300 hover:bg-emerald-50/40 transition-all flex items-center justify-between gap-2 cursor-pointer"
+                            >
+                                <div class="min-w-0">
+                                    <p class="text-[11px] font-bold text-slate-900 truncate">{{ sc.nama }}</p>
+                                    <p class="text-[9.5px] text-slate-500">{{ sc.bentuk }} • {{ sc.status }}</p>
+                                </div>
+                                <span
+                                    :class="[
+                                        'px-1.5 py-0.5 rounded-full text-[9.5px] font-bold border shrink-0',
+                                        PSB_TIERS[sc.tier].badgeClass,
+                                    ]"
+                                >
+                                    {{ sc.totalStudents }}
+                                </span>
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Petunjuk Saat Belum Ada Hover/Klik -->
-            <div
-                v-else
-                class="hidden sm:block absolute bottom-3 right-3 z-[400] max-w-xs bg-white/90 backdrop-blur-xs rounded-xl border border-slate-200/80 px-3 py-2 shadow-xs text-xs pointer-events-none"
-            >
-                <span class="text-[11px] text-slate-400 font-medium">
-                    {{ aggregationLevel === 'desa' ? 'Arahkan kursor atau klik desa untuk detail' : 'Arahkan kursor atau klik kecamatan untuk detail' }}
-                </span>
+                <!-- Petunjuk Saat Belum Ada Hover/Klik -->
+                <div
+                    v-else
+                    class="hidden sm:block bg-white/90 backdrop-blur-xs rounded-xl border border-slate-200/80 px-3 py-2 shadow-xs text-xs pointer-events-none"
+                >
+                    <span class="text-[11px] text-slate-400 font-medium">
+                        {{ aggregationLevel === 'desa' ? 'Arahkan kursor atau klik desa untuk detail' : 'Arahkan kursor atau klik kecamatan untuk detail' }}
+                    </span>
+                </div>
             </div>
 
             <!-- Tombol Legenda Mobile -->
@@ -1771,7 +1823,7 @@ watch(
                         <span class="px-1 py-0.2 rounded bg-indigo-700 text-yellow-200 text-[8px] font-black leading-tight">TOL</span>
                         <span>Gerbang Tol</span>
                     </div>
-                    <div v-if="showSchoolDots" class="flex items-center gap-1.5">
+                    <div v-if="!isWelfareMode && showSchoolDots" class="flex items-center gap-1.5">
                         <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span><span>Basis</span>
                         <span class="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block"></span><span>Potensial</span>
                         <span class="w-2.5 h-2.5 rounded-full bg-rose-600 inline-block"></span><span>Vakum</span>
@@ -1873,19 +1925,22 @@ watch(
                                 class="p-2.5 sm:p-3 rounded-2xl bg-slate-50/80 hover:bg-emerald-50/40 hover:border-emerald-200 border border-slate-200/80 flex items-center justify-between gap-3 transition-colors group/row"
                                 title="Buka profil siswa di tab baru"
                             >
-                                <div class="min-w-0 flex items-center gap-2.5 flex-1">
-                                    <span class="w-6 h-6 rounded-lg bg-white border border-slate-200 text-[10.5px] font-bold text-slate-600 flex items-center justify-center shrink-0">
+                                <div class="min-w-0 flex items-start gap-2.5 flex-1">
+                                    <span class="w-6 h-6 rounded-lg bg-white border border-slate-200 text-[10.5px] font-bold text-slate-600 flex items-center justify-center shrink-0 mt-0.5">
                                         {{ sIdx + 1 }}
                                     </span>
                                     <div class="min-w-0">
                                         <div class="text-xs sm:text-[13px] font-bold text-slate-900 group-hover/row:text-emerald-950 break-words leading-tight">
                                             {{ student.nama }}
                                         </div>
-                                        <div class="text-[11px] text-slate-500 font-medium mt-0.5 truncate">
+                                        <div class="text-[11px] text-slate-500 font-medium mt-0.5 break-words leading-snug">
                                             <span v-if="student.unit">{{ student.unit }}</span>
                                             <span v-if="student.ta_masuk"> • TA {{ student.ta_masuk }}</span>
-                                            <span v-if="student.sekolah_asal"> • {{ student.sekolah_asal }}</span>
-                                            <span v-if="student.desa"> • Ds. {{ student.desa }}</span>
+                                        </div>
+                                        <div v-if="student.sekolah_asal || student.desa" class="text-[11px] text-slate-700 font-semibold mt-0.5 break-words leading-snug">
+                                            <span v-if="student.sekolah_asal">Asal: {{ student.sekolah_asal }}</span>
+                                            <span v-if="student.sekolah_asal && student.desa"> • </span>
+                                            <span v-if="student.desa">Ds. {{ student.desa }}</span>
                                         </div>
                                     </div>
                                 </div>
