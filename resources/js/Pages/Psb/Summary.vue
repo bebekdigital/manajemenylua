@@ -1800,10 +1800,10 @@ function exportExcel() {
                                             </span>
                                         </div>
                                         <p class="text-[11px] text-slate-500 mt-0.5 break-words leading-snug">
-                                            {{ st.unit }} • Masuk {{ st.ta_masuk || '-' }}
+                                            Masuk {{ st.ta_masuk || '-' }}
                                         </p>
-                                        <p v-if="st.sekolah_asal" class="text-[11px] font-semibold text-slate-700 mt-0.5 break-words leading-snug">
-                                            Asal: {{ st.sekolah_asal }}
+                                        <p class="text-[11px] font-semibold text-slate-700 mt-0.5 break-words leading-snug">
+                                            Dusun: {{ st.dusun || '-' }}
                                         </p>
                                     </div>
                                 </div>
@@ -1907,8 +1907,11 @@ function exportExcel() {
                                             {{ st.status_registrasi }}
                                         </span>
                                     </div>
-                                    <p class="text-[11px] text-slate-500 mt-0.5 truncate">
-                                        {{ st.unit }} • {{ st.kelas !== '-' ? st.kelas : `Angk. ${st.angkatan || '-'}` }} • Masuk {{ st.ta_masuk || '-' }}
+                                    <p class="text-[11px] text-slate-500 mt-0.5 break-words leading-snug">
+                                        {{ st.kelas !== '-' ? st.kelas : `Angk. ${st.angkatan || '-'}` }} • Masuk {{ st.ta_masuk || '-' }}
+                                    </p>
+                                    <p class="text-[11px] font-semibold text-slate-700 mt-0.5 break-words leading-snug">
+                                        Asal: {{ st.sekolah_asal || selectedSchoolModal.nama }}
                                     </p>
                                 </div>
                             </div>

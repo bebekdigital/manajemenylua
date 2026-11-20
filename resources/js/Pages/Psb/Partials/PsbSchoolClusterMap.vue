@@ -65,6 +65,7 @@ let tollGatesLayer = null;
 let pointsSvgRenderer = null;
 let campusMarker = null;
 let activeHoverLayer = null;
+let activeSchoolMarker = null;
 let currentHoveredKey = null;
 let singleTooltip = null;
 let isLockedByClick = false;
@@ -444,9 +445,24 @@ function buildSchoolPopupElement(school) {
     return wrapper;
 }
 
+function resetActiveSchoolMarker() {
+    if (!activeSchoolMarker) return;
+    const sc = activeSchoolMarker._psbSchool;
+    if (sc && activeSchoolMarker.setStyle) {
+        const isZero = sc.tier === 'belum_tergarap';
+        activeSchoolMarker.setStyle({
+            color: '#ffffff',
+            weight: isZero ? 1.2 : 2,
+            radius: isZero ? (drillKecamatan.value ? 6 : 4) : (sc.tier === 'basis_utama' ? 8.5 : 7),
+        });
+    }
+    activeSchoolMarker = null;
+}
+
 function clearHover() {
     isLockedByClick = false;
     currentHoveredKey = null;
+    resetActiveSchoolMarker();
     if (activeHoverLayer && activeHoverLayer.feature) {
         if (aggregationLevel.value === 'kecamatan') {
             activeHoverLayer.setStyle(kecamatanStyle(activeHoverLayer.feature));
@@ -462,7 +478,57 @@ function clearHover() {
     showSchoolsInCard.value = false;
 }
 
+function selectSchoolPoint(school, marker) {
+    if (!school) return;
+    resetActiveSchoolMarker();
+    if (activeHoverLayer && activeHoverLayer.feature) {
+        if (aggregationLevel.value === 'kecamatan') {
+            activeHoverLayer.setStyle(kecamatanStyle(activeHoverLayer.feature));
+        } else {
+            activeHoverLayer.setStyle(desaStyle(activeHoverLayer.feature));
+        }
+        activeHoverLayer = null;
+    }
+    currentHoveredKey = null;
+    isLockedByClick = true;
+    showSchoolsInCard.value = false;
+
+    if (singleTooltip && map && map.hasLayer(singleTooltip)) {
+        map.removeLayer(singleTooltip);
+    }
+    if (marker && marker.closeTooltip) {
+        marker.closeTooltip();
+    }
+
+    if (marker && marker.setStyle) {
+        const isZero = school.tier === 'belum_tergarap';
+        const baseR = isZero ? (drillKecamatan.value ? 6 : 4) : (school.tier === 'basis_utama' ? 8.5 : 7);
+        marker.setStyle({
+            color: '#0f172a',
+            weight: 3,
+            radius: baseR + 2,
+        });
+        if (marker.bringToFront) marker.bringToFront();
+        activeSchoolMarker = marker;
+    }
+
+    const globalTotal = geoAggregations.value.totalStudents || 0;
+    const studentCount = school.totalStudents || 0;
+    hoveredRegion.value = {
+        type: 'school_point',
+        mode: 'school',
+        school,
+        desa: school.desa || null,
+        kecamatan: school.kecamatan || '-',
+        kabupaten: school.kabupaten || '-',
+        students: studentCount,
+        percentage: globalTotal > 0 ? Math.round((studentCount / globalTotal) * 100) : 0,
+        studentList: school.students || [],
+    };
+}
+
 function selectRegionFeature(type, feature, layer, latlng = null, isClick = false) {
+    resetActiveSchoolMarker();
     const kecKey = normalizeWilayahKey(feature?.properties?.kecamatan);
     const kabKey = normalizeWilayahKey(feature?.properties?.kabupaten);
     const dKey = type === 'desa' ? normDesa(feature?.properties?.desa) : '';
@@ -613,6 +679,7 @@ const modalFilteredStudents = computed(() => {
             (st.nama || '').toLowerCase().includes(q) ||
             (st.nisn || '').toLowerCase().includes(q) ||
             (st.sekolah_asal || '').toLowerCase().includes(q) ||
+            (st.dusun || '').toLowerCase().includes(q) ||
             (st.desa || '').toLowerCase().includes(q) ||
             (st.program || '').toLowerCase().includes(q)
     );
@@ -622,6 +689,84 @@ function handleKeyDown(e) {
     if (e.key === 'Escape' && regionStudentModal.value) {
         closeRegionStudentModal();
     }
+}
+
+function attachFeatureBbox(features) {
+    (features || []).forEach((f) => {
+        if (f._bbox || !f.geometry?.coordinates) return;
+        let minLng = Infinity;
+        let maxLng = -Infinity;
+        let minLat = Infinity;
+        let maxLat = -Infinity;
+        function scan(coords) {
+            if (typeof coords[0] === 'number') {
+                const cLng = coords[0];
+                const cLat = coords[1];
+                if (cLng < minLng) minLng = cLng;
+                if (cLng > maxLng) maxLng = cLng;
+                if (cLat < minLat) minLat = cLat;
+                if (cLat > maxLat) maxLat = cLat;
+            } else {
+                coords.forEach(scan);
+            }
+        }
+        scan(f.geometry.coordinates);
+        f._bbox = { minLng, maxLng, minLat, maxLat };
+    });
+}
+
+function isPointInRing(lng, lat, ring) {
+    let inside = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+        const xi = ring[i][0];
+        const yi = ring[i][1];
+        const xj = ring[j][0];
+        const yj = ring[j][1];
+        const intersect =
+            (yi > lat) !== (yj > lat) &&
+            lng < ((xj - xi) * (lat - yi)) / (yj - yi) + xi;
+        if (intersect) inside = !inside;
+    }
+    return inside;
+}
+
+function isPointInPolygonGeom(lng, lat, coordinates, type) {
+    if (type === 'Polygon') {
+        if (!isPointInRing(lng, lat, coordinates[0])) return false;
+        for (let i = 1; i < coordinates.length; i++) {
+            if (isPointInRing(lng, lat, coordinates[i])) return false;
+        }
+        return true;
+    }
+    if (type === 'MultiPolygon') {
+        for (let p = 0; p < coordinates.length; p++) {
+            if (isPointInPolygonGeom(lng, lat, coordinates[p], 'Polygon')) return true;
+        }
+    }
+    return false;
+}
+
+function findActivePolygonAtLatLng(latlng) {
+    if (!latlng) return null;
+    const targetLayer = aggregationLevel.value === 'desa' ? desaLayer : kecamatanLayer;
+    if (!targetLayer) return null;
+    const lng = latlng.lng;
+    const lat = latlng.lat;
+
+    let matched = null;
+    targetLayer.eachLayer((layer) => {
+        if (matched) return;
+        const f = layer.feature;
+        if (!f?.geometry) return;
+        const b = f._bbox;
+        if (b && (lng < b.minLng || lng > b.maxLng || lat < b.minLat || lat > b.maxLat)) {
+            return;
+        }
+        if (isPointInPolygonGeom(lng, lat, f.geometry.coordinates, f.geometry.type)) {
+            matched = { feature: f, layer };
+        }
+    });
+    return matched;
 }
 
 async function loadDesaGeoJson() {
@@ -637,6 +782,7 @@ async function loadDesaGeoJson() {
             raw.features = (raw.features || []).filter((f) =>
                 SOLO_RAYA_KEYS.has(normalizeWilayahKey(f.properties?.kabupaten))
             );
+            attachFeatureBbox(raw.features);
             desaGeoData.value = raw;
             return raw;
         } catch (err) {
@@ -661,8 +807,6 @@ function buildDesaLayer() {
         desaCanvasRenderer = null;
     }
 
-    desaCanvasRenderer = L.canvas({ padding: 0.25 });
-
     let features = desaGeoData.value.features || [];
     if (drillKecamatan.value) {
         features = features.filter(
@@ -675,10 +819,16 @@ function buildDesaLayer() {
         features = features.filter((f) => normalizeWilayahKey(f.properties?.kabupaten) === kabKey);
     }
 
+    // Saat drill-down (10-25 desa), gunakan SVG agar klik/hover 100% akurat; saat seluruh Solo Raya gunakan Canvas
+    const useSvgForDesa = Boolean(drillKecamatan.value) || features.length <= 150;
+    if (!useSvgForDesa) {
+        desaCanvasRenderer = L.canvas({ padding: 0.25 });
+    }
+
     desaLayer = L.geoJSON(
         { type: 'FeatureCollection', features },
         {
-            renderer: desaCanvasRenderer,
+            ...(useSvgForDesa ? {} : { renderer: desaCanvasRenderer }),
             style: desaStyle,
             onEachFeature: (feature, layer) => {
                 layer.on({
@@ -758,11 +908,16 @@ function renderSchoolDots() {
             fillOpacity: isZero ? 0.72 : 0.94,
         });
 
+        marker._psbSchool = school;
         marker.bindTooltip(
             `${school.nama} (${school.totalStudents} Siswa)`,
             { direction: 'top', offset: [0, -6] }
         );
-        marker.bindPopup(() => buildSchoolPopupElement(school), { maxWidth: 280 });
+        marker.on('click', (e) => {
+            if (e.originalEvent) L.DomEvent.stopPropagation(e.originalEvent);
+            lastInteractionTime = Date.now();
+            selectSchoolPoint(school, marker);
+        });
         marker.addTo(schoolPointsLayer);
     });
 
@@ -1118,6 +1273,7 @@ async function initMap() {
         kecJson.features = (kecJson.features || []).filter((f) =>
             SOLO_RAYA_KEYS.has(normalizeWilayahKey(f.properties?.kabupaten))
         );
+        attachFeatureBbox(kecJson.features);
         kecamatanGeoData.value = kecJson;
 
         let kabJson = null;
@@ -1188,8 +1344,15 @@ async function initMap() {
             },
         }).addTo(map);
 
-        map.on('click', () => {
-            if (Date.now() - lastInteractionTime < 400) return;
+        map.on('click', (e) => {
+            if (Date.now() - lastInteractionTime < 300) return;
+            const hit = findActivePolygonAtLatLng(e.latlng);
+            if (hit && hit.layer) {
+                lastInteractionTime = Date.now();
+                isLockedByClick = true;
+                selectRegionFeature(aggregationLevel.value, hit.feature, hit.layer, e.latlng, true);
+                return;
+            }
             clearHover();
         });
 
@@ -1620,15 +1783,78 @@ watch(
                     v-if="drillKecamatan"
                     type="button"
                     @click="backToAllKecamatan"
-                    class="pointer-events-auto inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 text-xs font-bold shadow-md border border-emerald-950/30 cursor-pointer active:scale-95 transition-all"
+                    :class="[
+                        'pointer-events-auto items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 text-xs font-bold shadow-md border border-emerald-950/30 cursor-pointer active:scale-95 transition-all',
+                        hoveredRegion ? 'hidden sm:inline-flex' : 'inline-flex',
+                    ]"
                 >
                     <span class="material-symbols-outlined text-[15px]">arrow_back</span>
                     <span>Kembali</span>
                 </button>
 
+                <!-- Card Detail Sekolah Asal Saat Titik Sekolah Diklik (Menggantikan Card Wilayah) -->
+                <div
+                    v-if="hoveredRegion && hoveredRegion.type === 'school_point'"
+                    class="w-full bg-white/95 backdrop-blur-xs rounded-xl border border-slate-200/90 p-2.5 sm:p-3 shadow-lg text-xs pointer-events-auto touch-manipulation transition-all animate-in fade-in duration-150"
+                >
+                    <div class="flex flex-col relative">
+                        <button
+                            type="button"
+                            @click.stop="clearHover"
+                            class="absolute -top-1 -right-1 text-slate-400 hover:text-slate-700 p-1 rounded-full cursor-pointer touch-manipulation"
+                            title="Tutup info"
+                        >
+                            <span class="material-symbols-outlined text-[16px]">close</span>
+                        </button>
+                        <span class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">
+                            Sekolah Asal • {{ hoveredRegion.school.bentuk }} ({{ hoveredRegion.school.status }})
+                        </span>
+                        <span class="text-[13px] font-extrabold text-slate-900 pr-6 leading-snug mt-0.5 break-words">
+                            {{ hoveredRegion.school.nama }}
+                        </span>
+                        <span class="text-[11px] text-slate-500 font-medium mt-0.5 break-words">
+                            NPSN {{ hoveredRegion.school.npsn }} • {{ hoveredRegion.school.desa ? `Ds. ${hoveredRegion.school.desa}, ` : '' }}Kec. {{ hoveredRegion.school.kecamatan }}
+                        </span>
+
+                        <div class="mt-1.5 pt-1.5 border-t border-slate-100 flex items-center justify-between gap-2">
+                            <span class="text-xs font-bold text-slate-900">
+                                {{ hoveredRegion.students }} Siswa <span class="text-[10.5px] font-medium text-slate-500">({{ hoveredRegion.school.taCount }} TA)</span>
+                            </span>
+                            <span
+                                :class="[
+                                    'px-2 py-0.5 rounded-full text-[10px] font-bold border shrink-0',
+                                    PSB_TIERS[hoveredRegion.school.tier].badgeClass,
+                                ]"
+                            >
+                                {{ PSB_TIERS[hoveredRegion.school.tier].label }}
+                            </span>
+                        </div>
+
+                        <button
+                            v-if="hoveredRegion.students > 0"
+                            type="button"
+                            @click="openRegionStudentModal(hoveredRegion)"
+                            class="mt-2 w-full py-1.5 px-2.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-bold flex items-center justify-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
+                        >
+                            <span>Lihat {{ hoveredRegion.students }} Siswa</span>
+                            <span class="material-symbols-outlined text-[14px]">open_in_new</span>
+                        </button>
+
+                        <div class="mt-1.5 flex items-center gap-1.5">
+                            <button
+                                type="button"
+                                @click="emit('select-school', hoveredRegion.school)"
+                                class="flex-1 py-1 px-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10.5px] font-bold transition-colors cursor-pointer text-center"
+                            >
+                                Profil &amp; Histori SD →
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Live Status Hover/Click Card Kanan Bawah (Kecamatan & Desa, selaras Peta Domisili Stat Siswa) -->
                 <div
-                    v-if="hoveredRegion"
+                    v-else-if="hoveredRegion"
                     class="w-full bg-white/95 backdrop-blur-xs rounded-xl border border-slate-200/90 p-2.5 sm:p-3 shadow-lg text-xs pointer-events-auto touch-manipulation transition-all animate-in fade-in duration-150"
                 >
                     <div class="flex flex-col relative">
@@ -1855,7 +2081,13 @@ watch(
                                         : (regionStudentModal.type === 'desa' ? 'Asal SD/MI Desa' : 'Asal SD/MI Kecamatan') }}
                                 </span>
                                 <h3 class="text-sm sm:text-base font-extrabold text-slate-900 break-words leading-snug">
-                                    <template v-if="regionStudentModal.type === 'desa'">
+                                    <template v-if="regionStudentModal.type === 'school_point'">
+                                        {{ regionStudentModal.school.nama }}
+                                        <span class="text-slate-500 font-semibold text-xs sm:text-sm">
+                                            (Kec. {{ regionStudentModal.kecamatan }}, {{ regionStudentModal.kabupaten }})
+                                        </span>
+                                    </template>
+                                    <template v-else-if="regionStudentModal.type === 'desa'">
                                         Desa {{ regionStudentModal.desa }}
                                         <span class="text-slate-500 font-semibold text-xs sm:text-sm">
                                             (Kec. {{ regionStudentModal.kecamatan }}, {{ regionStudentModal.kabupaten }})
@@ -1897,7 +2129,7 @@ watch(
                             <input
                                 v-model="modalSearch"
                                 type="text"
-                                placeholder="Cari nama, NISN, SD asal, atau desa..."
+                                :placeholder="regionStudentModal.mode === 'welfare' ? 'Cari nama, NISN, dusun, atau desa...' : 'Cari nama, NISN, atau SD asal...'"
                                 class="w-full pl-8 pr-7 py-1.5 rounded-xl border border-slate-200 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
                             />
                             <button
@@ -1933,14 +2165,21 @@ watch(
                                         <div class="text-xs sm:text-[13px] font-bold text-slate-900 group-hover/row:text-emerald-950 break-words leading-tight">
                                             {{ student.nama }}
                                         </div>
-                                        <div class="text-[11px] text-slate-500 font-medium mt-0.5 break-words leading-snug">
-                                            <span v-if="student.unit">{{ student.unit }}</span>
-                                            <span v-if="student.ta_masuk"> • TA {{ student.ta_masuk }}</span>
+                                        <div v-if="student.ta_masuk" class="text-[11px] text-slate-500 font-medium mt-0.5 break-words leading-snug">
+                                            TA {{ student.ta_masuk }}
                                         </div>
-                                        <div v-if="student.sekolah_asal || student.desa" class="text-[11px] text-slate-700 font-semibold mt-0.5 break-words leading-snug">
-                                            <span v-if="student.sekolah_asal">Asal: {{ student.sekolah_asal }}</span>
-                                            <span v-if="student.sekolah_asal && student.desa"> • </span>
-                                            <span v-if="student.desa">Ds. {{ student.desa }}</span>
+                                        <div
+                                            v-if="regionStudentModal.mode === 'school'"
+                                            class="text-[11px] text-slate-700 font-semibold mt-0.5 break-words leading-snug"
+                                        >
+                                            Asal: {{ student.sekolah_asal || '-' }}
+                                        </div>
+                                        <div
+                                            v-else
+                                            class="text-[11px] text-slate-700 font-semibold mt-0.5 break-words leading-snug"
+                                        >
+                                            Dusun: {{ student.dusun || '-' }}
+                                            <span v-if="regionStudentModal.type !== 'desa' && student.desa" class="text-slate-500 font-medium"> • Ds. {{ student.desa }}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -1996,9 +2235,11 @@ watch(
     pointer-events: none !important;
 }
 .psb-map-text-label,
-.psb-school-point-label {
+.psb-school-point-label,
+.psb-radius-label {
     background: transparent !important;
     border: none !important;
+    pointer-events: none !important;
 }
 .leaflet-custom-tooltip {
     background-color: rgba(255, 255, 255, 0.96) !important;
