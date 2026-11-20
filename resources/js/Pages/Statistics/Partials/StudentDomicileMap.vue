@@ -137,7 +137,7 @@ function normalizeKey(str) {
     let prev = '';
     while (s !== prev) {
         prev = s;
-        s = s.replace(/^(kec(amatan)?|kab(upaten)?|kota(madya)?|desa|kel(urahan)?|ds)\.?\s*/i, '');
+        s = s.replace(/^(kec(amatan)?|kab(upaten)?|kota(madya)?|desa|kel(urahan)?|ds)\.?(?=\s|\/|\.)\s*(?:\/\s*)?/i, '').trim();
     }
     s = s.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
     if (s === 'solo' || s === 'kotasolo') {
@@ -146,14 +146,14 @@ function normalizeKey(str) {
     return s;
 }
 
-// Helper perapian nama desa (menghilangkan awalan "Desa", "Ds.", "Kelurahan", dsb)
+// Helper perapian nama desa (menghilangkan awalan "Desa", "Ds.", "Kelurahan", "Desa/Kel.", dsb)
 function cleanDesaName(raw) {
     if (!raw) return '';
     let s = String(raw).trim();
     let prev = '';
     while (s !== prev) {
         prev = s;
-        s = s.replace(/^(desa|kel(urahan)?|ds)\.?\s*/i, '');
+        s = s.replace(/^(desa|kel(urahan)?|ds)\.?(?=\s|\/|\.)\s*(?:\/\s*)?/i, '').trim();
     }
     s = s.replace(/[^a-zA-Z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
     if (!s) return '';

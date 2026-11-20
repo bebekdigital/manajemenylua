@@ -75,9 +75,15 @@ const EMPTY_SCHOOL_INDICATORS = new Set([
  */
 export function normalizeWilayahKey(raw) {
     if (!raw || typeof raw !== 'string') return '';
-    return raw
-        .toLowerCase()
-        .replace(/^(kab\.?|kota|kec\.?|kecamatan|kabupaten)\s+/i, '')
+    let s = raw.trim().toLowerCase();
+    let prev = '';
+    while (s !== prev) {
+        prev = s;
+        s = s
+            .replace(/^(?:kabupaten|kecamatan|kotamadya|kota|kab|kec)\.?(?=\s|\/|\.)\s*(?:\/\s*)?/i, '')
+            .trim();
+    }
+    return s
         .replace(/\bsolo\b/g, 'surakarta')
         .replace(/[^a-z0-9]/g, '');
 }
@@ -366,10 +372,15 @@ export const CAMPUS_RING_META = {
 
 export function normalizeDesaKey(raw) {
     if (!raw || typeof raw !== 'string') return '';
-    return raw
-        .toLowerCase()
-        .replace(/^(desa|kel\.?|kelurahan|ds\.?)\s+/i, '')
-        .replace(/[^a-z0-9]/g, '');
+    let s = raw.trim().toLowerCase();
+    let prev = '';
+    while (s !== prev) {
+        prev = s;
+        s = s
+            .replace(/^(?:desa|kelurahan|kel|ds)\.?(?=\s|\/|\.)\s*(?:\/\s*)?/i, '')
+            .trim();
+    }
+    return s.replace(/[^a-z0-9]/g, '');
 }
 
 export function classifyVillageWelfareTier({ campus_ring, campus_km, totalStudents }) {

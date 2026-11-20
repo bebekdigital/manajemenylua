@@ -6,6 +6,7 @@ import {
     CAMPUS_RING_META,
     PSB_TIERS,
     SOLO_RAYA_KABUPATENS,
+    normalizeDesaKey,
     normalizeWilayahKey,
 } from '@/Utils/psbMatcher';
 import {
@@ -104,13 +105,7 @@ const isLegendOpenMobile = ref(false);
 const kecamatanGeoData = ref(null);
 const desaGeoData = ref(null);
 
-function normDesa(raw) {
-    if (!raw || typeof raw !== 'string') return '';
-    return raw
-        .toLowerCase()
-        .replace(/^(desa|ds\.?|kel\.?|kelurahan)\s+/i, '')
-        .replace(/[^a-z0-9]/g, '');
-}
+const normDesa = normalizeDesaKey;
 
 function isMobileScreen() {
     return typeof window !== 'undefined' && window.innerWidth < 640;
