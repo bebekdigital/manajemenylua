@@ -785,46 +785,45 @@ function savePermissions() {
                                 </div>
                                 <div class="text-[11px] text-on-surface-variant leading-relaxed mt-0.5" :class="isChild(item) ? 'pl-6' : ''">{{ item.description }}</div>
 
-                                <!-- 3-Point Cumulative Data Scope Slider for Modul Data Pegawai -->
+                                <!-- Compact 3-Point Cumulative Data Scope Slider for Modul Data Pegawai -->
                                 <div
                                     v-if="item.group === 'employee_detail_history'"
-                                    class="mt-3 p-3 rounded-xl bg-surface-container-low/80 border border-outline-variant/50 max-w-md"
+                                    class="mt-2 px-2.5 py-1.5 rounded-lg bg-surface-container-low/70 border border-outline-variant/50 w-full max-w-[245px]"
+                                    :title="getScopeMeta(item.data_scope).hint"
                                 >
-                                    <div class="flex items-center justify-between gap-2 mb-2">
-                                        <span class="text-[10.5px] font-bold uppercase tracking-wider text-on-surface-variant flex items-center gap-1">
-                                            <span class="material-symbols-outlined text-[14px] text-primary">tune</span>
-                                            Cakupan Akses Data Pegawai
+                                    <div class="flex items-center justify-between gap-2 mb-1">
+                                        <span class="text-[10px] font-semibold text-on-surface-variant whitespace-nowrap">
+                                            Cakupan Data
                                         </span>
-                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary/10 text-primary border border-primary/20">
+                                        <span class="text-[10px] font-bold text-primary whitespace-nowrap">
                                             {{ getScopeMeta(item.data_scope).label }}
                                         </span>
                                     </div>
 
                                     <!-- Interactive 3-Stop Track & Range Slider -->
-                                    <div class="relative px-2 py-1.5">
-                                        <div class="relative h-2 rounded-full bg-outline-variant/40">
+                                    <div class="relative px-1.5 py-1">
+                                        <div class="relative h-1.5 rounded-full bg-outline-variant/40">
                                             <div
                                                 class="absolute left-0 top-0 h-full rounded-full bg-primary transition-all duration-200"
                                                 :style="{ width: `${getScopeIndex(item.data_scope) * 50}%` }"
                                             ></div>
 
-                                            <!-- 3 Step Dots -->
                                             <button
                                                 v-for="(step, sIdx) in employeeScopeSteps"
                                                 :key="step.value"
                                                 type="button"
                                                 :disabled="isSuperadminActive"
                                                 @click="setEmployeeDataScope(item, step.value)"
-                                                class="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all cursor-pointer disabled:cursor-not-allowed z-10"
+                                                class="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3.5 h-3.5 rounded-full border flex items-center justify-center transition-all cursor-pointer disabled:cursor-not-allowed z-10"
                                                 :style="{ left: `${sIdx * 50}%` }"
                                                 :class="sIdx <= getScopeIndex(item.data_scope)
-                                                    ? 'bg-primary border-white text-white shadow-sm scale-105'
-                                                    : 'bg-surface-container-lowest border-outline-variant text-transparent hover:border-primary/60'"
-                                                :title="step.label"
+                                                    ? 'bg-primary border-white text-white shadow-2xs'
+                                                    : 'bg-surface-container-lowest border-outline-variant text-transparent'"
+                                                :title="step.hint"
                                             >
                                                 <span
                                                     v-if="sIdx <= getScopeIndex(item.data_scope)"
-                                                    class="material-symbols-outlined text-[11px] font-bold leading-none"
+                                                    class="material-symbols-outlined text-[9px] font-bold leading-none"
                                                 >check</span>
                                             </button>
                                         </div>
@@ -842,29 +841,23 @@ function savePermissions() {
                                         />
                                     </div>
 
-                                    <!-- Clickable Labels for the 3 Stops -->
-                                    <div class="grid grid-cols-3 gap-1 mt-1.5 text-[10.5px]">
+                                    <!-- Compact Clickable Labels -->
+                                    <div class="flex items-center justify-between gap-2 mt-0.5 text-[10px]">
                                         <button
                                             v-for="(step, sIdx) in employeeScopeSteps"
                                             :key="'lbl_' + step.value"
                                             type="button"
                                             :disabled="isSuperadminActive"
                                             @click="setEmployeeDataScope(item, step.value)"
-                                            class="py-0.5 px-1 rounded transition-colors cursor-pointer disabled:cursor-not-allowed"
-                                            :class="[
-                                                sIdx === 0 ? 'text-left' : (sIdx === 1 ? 'text-center' : 'text-right'),
-                                                sIdx <= getScopeIndex(item.data_scope)
-                                                    ? 'font-bold text-primary'
-                                                    : 'font-medium text-on-surface-variant hover:text-on-surface'
-                                            ]"
+                                            class="transition-colors cursor-pointer disabled:cursor-not-allowed whitespace-nowrap"
+                                            :class="sIdx <= getScopeIndex(item.data_scope)
+                                                ? 'font-bold text-primary'
+                                                : 'font-medium text-on-surface-variant hover:text-on-surface'"
+                                            :title="step.hint"
                                         >
                                             {{ step.label }}
                                         </button>
                                     </div>
-
-                                    <p class="mt-1.5 text-[10px] text-on-surface-variant leading-snug">
-                                        {{ getScopeMeta(item.data_scope).hint }}
-                                    </p>
                                 </div>
                             </td>
 
