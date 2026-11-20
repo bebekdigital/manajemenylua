@@ -175,26 +175,69 @@ class Employee extends Model
     }
 
     /**
-     * Synchronize linked non-superadmin user accounts with the active position.
+     * Capture identifying values before mutating an employee so linked user lookups remain intact.
+     *
+     * @return array{nipy: ?string, email: ?string, nama: ?string, nama_lengkap_gelar: string}
      */
-    public function syncLinkedUserPosition(): void
+    public function snapshotUserLinkIdentity(): array
+    {
+        return [
+            'nipy' => $this->nipy,
+            'email' => $this->email,
+            'nama' => $this->nama,
+            'nama_lengkap_gelar' => $this->nama_lengkap_gelar,
+        ];
+    }
+
+    /**
+     * Synchronize linked user accounts with the employee's current identity and active position.
+     *
+     * @param  array{nipy?: ?string, email?: ?string, nama?: ?string, nama_lengkap_gelar?: ?string}  $previousIdentity
+     */
+    public function syncLinkedUsers(array $previousIdentity = [], bool $syncIdentity = true): void
     {
         if (! Schema::hasTable('users')) {
             return;
         }
 
-        $activePos = $this->activePosition();
+        $nipyCandidates = array_values(array_unique(array_filter([
+            trim((string) ($this->nipy ?? '')),
+            trim((string) ($previousIdentity['nipy'] ?? '')),
+        ], fn (string $value): bool => $value !== '')));
+
+        $emailCandidates = array_values(array_unique(array_filter([
+            mb_strtolower(trim((string) ($this->email ?? ''))),
+            mb_strtolower(trim((string) ($previousIdentity['email'] ?? ''))),
+        ], fn (string $value): bool => $value !== '')));
+
+        $nameCandidates = array_values(array_unique(array_filter([
+            mb_strtolower(trim((string) ($this->nama ?? ''))),
+            mb_strtolower(trim((string) ($this->nama_lengkap_gelar ?? ''))),
+            mb_strtolower(trim((string) ($previousIdentity['nama'] ?? ''))),
+            mb_strtolower(trim((string) ($previousIdentity['nama_lengkap_gelar'] ?? ''))),
+        ], fn (string $value): bool => $value !== '')));
+
+        if ($nipyCandidates === [] && $emailCandidates === [] && $nameCandidates === []) {
+            return;
+        }
+
         $linkedUsers = User::query()
-            ->where(function ($query): void {
-                if (! empty($this->nipy)) {
-                    $query->orWhere('nipy', $this->nipy);
+            ->where(function ($query) use ($nipyCandidates, $emailCandidates, $nameCandidates): void {
+                if ($nipyCandidates !== []) {
+                    $query->orWhereIn('nipy', $nipyCandidates)
+                        ->orWhereIn('username', $nipyCandidates);
                 }
-                if (! empty($this->email)) {
-                    $query->orWhereRaw('LOWER(email) = ?', [mb_strtolower(trim((string) $this->email))]);
+                foreach ($emailCandidates as $email) {
+                    $query->orWhereRaw('LOWER(TRIM(email)) = ?', [$email]);
                 }
-                $query->orWhere('name', $this->nama);
+                foreach ($nameCandidates as $name) {
+                    $query->orWhereRaw('LOWER(TRIM(name)) = ?', [$name]);
+                }
             })
             ->get();
+
+        $activePos = $this->activePosition();
+        $cleanEmail = trim((string) ($this->email ?? ''));
 
         foreach ($linkedUsers as $linkedUser) {
             $updates = [
@@ -202,12 +245,46 @@ class Employee extends Model
                 'unit' => $activePos?->unit_kerja,
             ];
 
+            if ($syncIdentity) {
+                if (! empty(trim((string) $this->nama))) {
+                    $updates['name'] = trim((string) $this->nama);
+                }
+                $updates['nipy'] = $this->nipy;
+                $updates['jk'] = $this->jk;
+                $updates['no_wa'] = $this->no_wa;
+
+                if ($this->ttl !== '') {
+                    $updates['ttl'] = $this->ttl;
+                }
+                if (! empty($this->foto)) {
+                    $updates['foto'] = $this->foto;
+                }
+                if ($cleanEmail !== '') {
+                    $emailTaken = User::query()
+                        ->whereRaw('LOWER(TRIM(email)) = ?', [mb_strtolower($cleanEmail)])
+                        ->where('id', '!=', $linkedUser->id)
+                        ->exists();
+
+                    if (! $emailTaken) {
+                        $updates['email'] = $cleanEmail;
+                    }
+                }
+            }
+
             if ($linkedUser->role !== 'superadmin' && ! empty($activePos?->jabatan)) {
                 $updates['role'] = $activePos->jabatan;
             }
 
             $linkedUser->update($updates);
         }
+    }
+
+    /**
+     * Synchronize linked non-superadmin user accounts with the active position.
+     */
+    public function syncLinkedUserPosition(): void
+    {
+        $this->syncLinkedUsers([], false);
     }
 
     public function documents(): HasMany

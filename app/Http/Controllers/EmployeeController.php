@@ -576,6 +576,7 @@ class EmployeeController extends Controller
 
         DB::transaction(function () use ($employee, $validated, $user, $request) {
             $employee->loadMissing(['positions', 'records', 'educationHistories', 'trainingHistories']);
+            $previousIdentity = $employee->snapshotUserLinkIdentity();
 
             $employee->update(collect($validated)->only([
                 'nama', 'gelar_depan', 'gelar_belakang', 'nipy', 'nik', 'jk', 'tempat_lahir', 'tanggal_lahir', 'no_wa', 'email', 'skill',
@@ -854,6 +855,9 @@ class EmployeeController extends Controller
                     $delPermit->delete();
                 }
             }
+
+            $employee->unsetRelation('positions')->load('positions');
+            $employee->syncLinkedUsers($previousIdentity);
         });
 
         Cache::forget('staff_switcher_list_admin');

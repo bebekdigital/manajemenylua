@@ -48,13 +48,18 @@ class PortalController extends Controller
 
         $users = User::orderBy('name')->get()->map(function ($user) use ($empByNipy, $empByEmail, $empByName, $empByGelar) {
             $matchedEmp = null;
-            if (! empty($user->nipy) && isset($empByNipy[trim((string) $user->nipy)])) {
-                $matchedEmp = $empByNipy[trim((string) $user->nipy)];
-            } elseif (! empty($user->email) && isset($empByEmail[strtolower(trim((string) $user->email))])) {
-                $matchedEmp = $empByEmail[strtolower(trim((string) $user->email))];
-            } elseif (! empty($user->name)) {
+            if (! empty($user->nipy)) {
+                $matchedEmp = $empByNipy[trim((string) $user->nipy)] ?? null;
+            }
+            if (! $matchedEmp && ! empty($user->email)) {
+                $matchedEmp = $empByEmail[strtolower(trim((string) $user->email))] ?? null;
+            }
+            if (! $matchedEmp && ! empty($user->name)) {
                 $nameClean = strtolower(trim((string) $user->name));
                 $matchedEmp = $empByName[$nameClean] ?? $empByGelar[$nameClean] ?? null;
+            }
+            if (! $matchedEmp && ! empty($user->username)) {
+                $matchedEmp = $empByNipy[trim((string) $user->username)] ?? null;
             }
 
             $passDefault = $user->getDefaultPassword($matchedEmp);
@@ -62,10 +67,11 @@ class PortalController extends Controller
             $resolvedRole = $user->role === 'superadmin'
                 ? 'superadmin'
                 : ($activePos?->jabatan ?: $user->role);
+            $resolvedName = trim((string) ($matchedEmp?->nama ?: $user->name));
 
             return [
                 'id' => $user->id,
-                'name' => $user->name,
+                'name' => $resolvedName,
                 'username' => $user->username,
                 'email' => $user->email,
                 'role' => $resolvedRole,
@@ -75,7 +81,7 @@ class PortalController extends Controller
                 'has_changed_password' => $user->hasChangedDefaultPassword($matchedEmp),
                 'created_at' => $user->created_at?->toIso8601String(),
             ];
-        });
+        })->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)->values();
 
         $schoolLevels = SchoolLevel::with(['units.classes'])->orderBy('order')->get();
 

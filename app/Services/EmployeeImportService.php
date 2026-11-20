@@ -54,6 +54,8 @@ class EmployeeImportService
 
             /** @var array<string, Employee> $employeeMap [nik => Employee] */
             $employeeMap = [];
+            /** @var array<int, array{employee: Employee, previous_identity: array{nipy: ?string, email: ?string, nama: ?string, nama_lengkap_gelar: string}}> $importedEmployees */
+            $importedEmployees = [];
 
             $rowsPegawai = $sheetPegawai->toArray(null, true, true, true);
             $headerPegawai = array_shift($rowsPegawai) ?? [];
@@ -134,12 +136,21 @@ class EmployeeImportService
                 }
 
                 if ($existing) {
+                    $previousIdentity = $existing->snapshotUserLinkIdentity();
                     $existing->update($employeeData);
                     $updatedCount++;
                     $employee = $existing;
+                    $importedEmployees[$employee->id] = [
+                        'employee' => $employee,
+                        'previous_identity' => $previousIdentity,
+                    ];
                 } else {
                     $employee = Employee::create(array_merge(['nik' => empty($nik) ? null : $nik], $employeeData));
                     $createdCount++;
+                    $importedEmployees[$employee->id] = [
+                        'employee' => $employee,
+                        'previous_identity' => [],
+                    ];
                 }
 
                 if (! empty($nik)) {
@@ -288,7 +299,19 @@ class EmployeeImportService
                         $employee->positions()->create($pos);
                         $positionsCount++;
                     }
+                    if (! isset($importedEmployees[$employee->id])) {
+                        $importedEmployees[$employee->id] = [
+                            'employee' => $employee,
+                            'previous_identity' => $employee->snapshotUserLinkIdentity(),
+                        ];
+                    }
                 }
+            }
+
+            foreach ($importedEmployees as $entry) {
+                $empModel = $entry['employee'];
+                $empModel->unsetRelation('positions')->load('positions');
+                $empModel->syncLinkedUsers($entry['previous_identity']);
             }
 
             DB::commit();

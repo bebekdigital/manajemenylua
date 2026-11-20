@@ -189,6 +189,109 @@ class PortalUsersSyncTest extends TestCase
             );
     }
 
+    public function test_portal_users_displays_synced_employee_name_without_title_even_when_user_name_is_stale(): void
+    {
+        $employee = Employee::create([
+            'nama' => 'Giri Sayekto',
+            'gelar_belakang' => 'S.Pd.',
+            'nipy' => '19830604 201610 1 019',
+            'tanggal_lahir' => '1983-06-04',
+        ]);
+
+        $staleUser = User::factory()->create([
+            'name' => 'Giri Sayekto, S. Pd',
+            'username' => 'girisayekto04',
+            'nipy' => $employee->nipy,
+            'role' => 'Guru',
+            'password' => Hash::make('19830604'),
+            'must_change_password' => false,
+        ]);
+
+        $this->actingAs($this->superadmin)
+            ->get('/portal')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Portal')
+                ->where('users', function ($users) use ($staleUser): bool {
+                    $row = collect($users)->firstWhere('id', $staleUser->id);
+
+                    return $row !== null && $row['name'] === 'Giri Sayekto';
+                })
+            );
+    }
+
+    public function test_updating_employee_name_and_removing_title_syncs_linked_user_name_and_portal_list(): void
+    {
+        $empWithNipy = Employee::create([
+            'nama' => 'Giri Sayekto, S. Pd',
+            'gelar_belakang' => 'S.Pd.',
+            'nipy' => '19830604',
+            'nik' => '3313010406830001',
+            'email' => 'giri@example.com',
+        ]);
+
+        $userWithNipy = User::factory()->create([
+            'name' => 'Giri Sayekto, S. Pd',
+            'username' => 'girisayekto01',
+            'nipy' => '19830604',
+            'email' => 'giri@example.com',
+            'role' => 'Guru',
+        ]);
+
+        // User linked only by prior name (no NIPY, no email) whose title in nama is removed
+        $empNameOnly = Employee::create([
+            'nama' => 'Siti Aminah, S.Pd.',
+            'gelar_belakang' => 'S.Pd.',
+        ]);
+
+        $userNameOnly = User::factory()->create([
+            'name' => 'Siti Aminah, S.Pd.',
+            'username' => 'sitiaminah02',
+            'nipy' => null,
+            'email' => null,
+            'role' => 'Guru',
+        ]);
+
+        // Edit employee via StaffController endpoint: remove title from nama and clear gelar_belakang
+        $this->actingAs($this->superadmin)
+            ->put("/staff/{$empWithNipy->id}", [
+                'nama' => 'Giri Sayekto',
+                'gelar_depan' => null,
+                'gelar_belakang' => null,
+                'nipy' => '19830604',
+                'email' => 'giri@example.com',
+            ])
+            ->assertRedirect();
+
+        $this->actingAs($this->superadmin)
+            ->put("/staff/{$empNameOnly->id}", [
+                'nama' => 'Siti Aminah',
+                'gelar_depan' => null,
+                'gelar_belakang' => null,
+            ])
+            ->assertRedirect();
+
+        $this->assertSame('Giri Sayekto', $userWithNipy->fresh()->name);
+        $this->assertSame('Siti Aminah', $userNameOnly->fresh()->name);
+
+        $this->actingAs($this->superadmin)
+            ->get('/portal')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Portal')
+                ->where('users', function ($users) use ($userWithNipy, $userNameOnly): bool {
+                    $col = collect($users);
+                    $giriRow = $col->firstWhere('id', $userWithNipy->id);
+                    $sitiRow = $col->firstWhere('id', $userNameOnly->id);
+
+                    return $giriRow !== null
+                        && $giriRow['name'] === 'Giri Sayekto'
+                        && $sitiRow !== null
+                        && $sitiRow['name'] === 'Siti Aminah';
+                })
+            );
+    }
+
     private function createMinimalSchema(): void
     {
         Schema::dropAllTables();
@@ -276,6 +379,7 @@ class PortalUsersSyncTest extends TestCase
         Schema::create('employees', function (Blueprint $table): void {
             $table->id();
             $table->string('nipy')->nullable();
+            $table->string('nik')->nullable();
             $table->string('nama');
             $table->string('gelar_depan')->nullable();
             $table->string('gelar_belakang')->nullable();
@@ -286,6 +390,37 @@ class PortalUsersSyncTest extends TestCase
             $table->string('no_wa')->nullable();
             $table->string('foto')->nullable();
             $table->string('status_keaktifan')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('employee_records', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('employee_id')->constrained('employees')->cascadeOnDelete();
+            $table->string('jenjang_kepegawaian')->nullable();
+            $table->date('tmt_kenaikan_jenjang')->nullable();
+            $table->date('tst_kenaikan_jenjang')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('employee_education_histories', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('employee_id')->constrained('employees')->cascadeOnDelete();
+            $table->string('jenjang_pendidikan')->nullable();
+            $table->string('jurusan')->nullable();
+            $table->string('instansi_pendidikan')->nullable();
+            $table->string('tahun_lulus')->nullable();
+            $table->string('pembiayaan')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('employee_training_histories', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('employee_id')->constrained('employees')->cascadeOnDelete();
+            $table->string('bidang')->nullable();
+            $table->string('keahlian')->nullable();
+            $table->string('instansi_penyelenggara')->nullable();
+            $table->string('tahun')->nullable();
+            $table->string('pembiayaan')->nullable();
             $table->timestamps();
         });
 
