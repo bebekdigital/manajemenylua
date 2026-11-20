@@ -62,6 +62,7 @@ let areaLabelLayer = null;
 let schoolLabelLayer = null;
 let radiusCirclesLayer = null;
 let tollGatesLayer = null;
+let bordersSvgRenderer = null;
 let pointsSvgRenderer = null;
 let campusMarker = null;
 let activeHoverLayer = null;
@@ -70,6 +71,7 @@ let currentHoveredKey = null;
 let singleTooltip = null;
 let isLockedByClick = false;
 let lastInteractionTime = 0;
+let lastMarkerClickTime = 0;
 let desaLoadingPromise = null;
 let currentDotCandidates = [];
 
@@ -92,6 +94,7 @@ const showSchoolDots = ref(false);
 const showCampusRadius = ref(true);
 const showTollGates = ref(true);
 const isLayerDropdownOpen = ref(false);
+const isFullscreen = ref(false);
 const visibleTiers = reactive({
     basis_utama: true,
     potensial: true,
@@ -685,9 +688,27 @@ const modalFilteredStudents = computed(() => {
     );
 });
 
+async function toggleFullscreen(forceVal = null) {
+    const nextVal = typeof forceVal === 'boolean' ? forceVal : !isFullscreen.value;
+    if (isFullscreen.value === nextVal) return;
+    isFullscreen.value = nextVal;
+    if (typeof document !== 'undefined') {
+        document.body.style.overflow = nextVal ? 'hidden' : '';
+    }
+    await nextTick();
+    if (map) {
+        map.invalidateSize({ animate: false });
+        renderMapLabels();
+    }
+}
+
 function handleKeyDown(e) {
-    if (e.key === 'Escape' && regionStudentModal.value) {
-        closeRegionStudentModal();
+    if (e.key === 'Escape') {
+        if (regionStudentModal.value) {
+            closeRegionStudentModal();
+        } else if (isFullscreen.value) {
+            toggleFullscreen(false);
+        }
     }
 }
 
@@ -916,6 +937,7 @@ function renderSchoolDots() {
         marker.on('click', (e) => {
             if (e.originalEvent) L.DomEvent.stopPropagation(e.originalEvent);
             lastInteractionTime = Date.now();
+            lastMarkerClickTime = Date.now();
             selectSchoolPoint(school, marker);
         });
         marker.addTo(schoolPointsLayer);
@@ -939,6 +961,7 @@ function renderCampusRadiusOverlay() {
 
     rings.forEach(({ km, color, label }) => {
         L.circle(SCHOOL_COORDS, {
+            renderer: bordersSvgRenderer,
             pane: 'psbBordersPane',
             radius: km * 1000,
             color,
@@ -990,6 +1013,10 @@ function renderTollGatesOverlay() {
                 <div style="font-size:11px;color:#475569;margin-top:2px;">Ruas: ${escapeHtml(gate.corridor || '-')}</div>
             </div>
         `);
+        marker.on('click', (e) => {
+            if (e.originalEvent) L.DomEvent.stopPropagation(e.originalEvent);
+            lastMarkerClickTime = Date.now();
+        });
         marker.addTo(tollGatesLayer);
     });
 }
@@ -1345,7 +1372,7 @@ async function initMap() {
         }).addTo(map);
 
         map.on('click', (e) => {
-            if (Date.now() - lastInteractionTime < 300) return;
+            if (Date.now() - lastMarkerClickTime < 150) return;
             const hit = findActivePolygonAtLatLng(e.latlng);
             if (hit && hit.layer) {
                 lastInteractionTime = Date.now();
@@ -1357,8 +1384,10 @@ async function initMap() {
         });
 
         // Layer 2: Batas Kabupaten putus-putus
+        bordersSvgRenderer = L.svg({ pane: 'psbBordersPane', padding: 0.3 });
         if (kabJson) {
             kabupatenLayer = L.geoJSON(kabJson, {
+                renderer: bordersSvgRenderer,
                 pane: 'psbBordersPane',
                 style: {
                     fill: false,
@@ -1402,6 +1431,10 @@ async function initMap() {
                 <div style="font-size: 11px; color: #64748b; margin-top: 3px;">${SCHOOL_ADDRESS}</div>
             </div>
         `);
+        campusMarker.on('click', (e) => {
+            if (e.originalEvent) L.DomEvent.stopPropagation(e.originalEvent);
+            lastMarkerClickTime = Date.now();
+        });
 
         // Layer 4: Titik SD/MI/PKBM Overlay (SVG di psbPointsPane agar area kosong meneruskan klik ke poligon desa), Ring Kampus, Gerbang Tol & Label
         pointsSvgRenderer = L.svg({ pane: 'psbPointsPane', padding: 0.3 });
@@ -1438,6 +1471,9 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
     window.removeEventListener('keydown', handleKeyDown);
+    if (typeof document !== 'undefined') {
+        document.body.style.overflow = '';
+    }
     if (map) {
         map.remove();
         map = null;
@@ -1499,9 +1535,16 @@ watch(
 </script>
 
 <template>
-    <div class="bg-white rounded-3xl border border-slate-200/90 p-4 sm:p-6 shadow-xs overflow-hidden w-full max-w-full min-w-0">
+    <div
+        :class="[
+            'bg-white overflow-hidden transition-colors',
+            isFullscreen
+                ? 'fixed inset-0 z-[900] w-screen h-screen p-3 sm:p-5 flex flex-col'
+                : 'rounded-3xl border border-slate-200/90 p-4 sm:p-6 shadow-xs w-full max-w-full min-w-0',
+        ]"
+    >
         <!-- Header: Identik dengan Peta Domisili Stat Siswa -->
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-100">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3 sm:mb-4 pb-3 border-b border-slate-100 shrink-0">
             <div class="flex items-center gap-2">
                 <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block shrink-0"></span>
                 <div>
@@ -1573,13 +1616,29 @@ watch(
                         <span class="text-[11px] text-emerald-600 font-medium">({{ geoAggregations.totalStudents }} Siswa)</span>
                     </template>
                 </div>
+
+                <!-- Tombol Fullscreen Pop-up Peta -->
+                <button
+                    type="button"
+                    @click="toggleFullscreen()"
+                    :class="[
+                        'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer',
+                        isFullscreen
+                            ? 'bg-rose-600 hover:bg-rose-700 text-white border-rose-700 shadow-xs'
+                            : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200',
+                    ]"
+                    :title="isFullscreen ? 'Keluar layar penuh (ESC)' : 'Perbesar peta layar penuh'"
+                >
+                    <span class="material-symbols-outlined text-[16px]">{{ isFullscreen ? 'fullscreen_exit' : 'fullscreen' }}</span>
+                    <span class="hidden sm:inline">{{ isFullscreen ? 'Tutup Fullscreen' : 'Fullscreen' }}</span>
+                </button>
             </div>
         </div>
 
         <!-- Baris Filter Layer Titik Sekolah (Hanya Mode Sekolah Asal saat Titik SD Aktif) -->
         <div
             v-if="!isWelfareMode && showSchoolDots"
-            class="mb-3 p-2.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-wrap items-center justify-between gap-2"
+            class="mb-3 p-2.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-wrap items-center justify-between gap-2 shrink-0"
         >
             <div class="flex items-center gap-1.5 flex-wrap">
                 <span class="text-[10.5px] font-bold text-slate-500 uppercase tracking-wider mr-1">Filter Titik Tier:</span>
@@ -1608,7 +1667,12 @@ watch(
         </div>
 
         <!-- Container Peta (selalu render dimensi penuh agar Leaflet & fitBounds tidak 0x0) -->
-        <div class="relative w-full h-[400px] sm:h-[480px] rounded-2xl border border-slate-200/90 bg-[#f8fafc] overflow-hidden">
+        <div
+            :class="[
+                'relative w-full rounded-2xl border border-slate-200/90 bg-[#f8fafc] overflow-hidden',
+                isFullscreen ? 'flex-1 min-h-0' : 'h-[460px] sm:h-[560px] lg:h-[620px]',
+            ]"
+        >
             <!-- Loading State Overlay -->
             <div v-if="isLoading" class="absolute inset-0 bg-slate-50/95 z-[500] flex flex-col items-center justify-center gap-2">
                 <span class="material-symbols-outlined text-3xl animate-spin text-emerald-700">progress_activity</span>
@@ -2239,6 +2303,10 @@ watch(
 .psb-radius-label {
     background: transparent !important;
     border: none !important;
+    pointer-events: none !important;
+}
+.psb-leaflet-bg .leaflet-tooltip-pane,
+.psb-leaflet-bg .leaflet-custom-tooltip {
     pointer-events: none !important;
 }
 .leaflet-custom-tooltip {
