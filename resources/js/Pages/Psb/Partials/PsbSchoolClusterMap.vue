@@ -61,7 +61,7 @@ let areaLabelLayer = null;
 let schoolLabelLayer = null;
 let radiusCirclesLayer = null;
 let tollGatesLayer = null;
-let pointsCanvasRenderer = null;
+let pointsSvgRenderer = null;
 let campusMarker = null;
 let activeHoverLayer = null;
 let currentHoveredKey = null;
@@ -502,7 +502,6 @@ function selectRegionFeature(type, feature, layer, latlng = null, isClick = fals
         fillOpacity: 1,
     });
     if (layer.bringToFront) layer.bringToFront();
-    if (kabupatenLayer && kabupatenLayer.bringToFront) kabupatenLayer.bringToFront();
     if (schoolPointsLayer && schoolPointsLayer.bringToFront) schoolPointsLayer.bringToFront();
 
     const stats = type === 'desa' ? getDesaStats(feature) : getKecStats(feature);
@@ -661,10 +660,12 @@ function buildDesaLayer() {
         desaLayer.remove();
         desaLayer = null;
     }
-
-    if (!desaCanvasRenderer) {
-        desaCanvasRenderer = L.canvas({ padding: 0.25 });
+    if (desaCanvasRenderer) {
+        desaCanvasRenderer.remove();
+        desaCanvasRenderer = null;
     }
+
+    desaCanvasRenderer = L.canvas({ padding: 0.25 });
 
     let features = desaGeoData.value.features || [];
     if (drillKecamatan.value) {
@@ -751,7 +752,8 @@ function renderSchoolDots() {
         const tier = PSB_TIERS[school.tier] || PSB_TIERS.belum_tergarap;
         const isZero = school.tier === 'belum_tergarap';
         const marker = L.circleMarker([school.lat, school.lng], {
-            renderer: pointsCanvasRenderer,
+            renderer: pointsSvgRenderer,
+            pane: 'psbPointsPane',
             radius: isZero ? (drillKecamatan.value ? 6 : 4) : (school.tier === 'basis_utama' ? 8.5 : 7),
             fillColor: tier.hex,
             color: '#ffffff',
@@ -786,6 +788,7 @@ function renderCampusRadiusOverlay() {
 
     rings.forEach(({ km, color, label }) => {
         L.circle(SCHOOL_COORDS, {
+            pane: 'psbBordersPane',
             radius: km * 1000,
             color,
             weight: 1.6,
@@ -1063,10 +1066,6 @@ function updateLayersAndFocus(specificKecLayer = null) {
         }
     }
 
-    if (kabupatenLayer && kabupatenLayer.bringToFront) {
-        kabupatenLayer.bringToFront();
-    }
-
     renderSchoolDots();
     renderCampusRadiusOverlay();
     renderTollGatesOverlay();
@@ -1146,6 +1145,15 @@ async function initMap() {
 
         L.control.zoom({ position: 'topright' }).addTo(map);
 
+        // Panes terpisah agar batas kabupaten/radius/titik SD tidak memblokir hover/klik poligon desa
+        const bordersPane = map.createPane('psbBordersPane');
+        bordersPane.style.zIndex = '420';
+        bordersPane.style.pointerEvents = 'none';
+
+        const pointsPane = map.createPane('psbPointsPane');
+        pointsPane.style.zIndex = '440';
+        pointsPane.style.pointerEvents = 'none';
+
         singleTooltip = L.tooltip({
             direction: 'auto',
             className: 'leaflet-custom-tooltip',
@@ -1191,6 +1199,7 @@ async function initMap() {
         // Layer 2: Batas Kabupaten putus-putus
         if (kabJson) {
             kabupatenLayer = L.geoJSON(kabJson, {
+                pane: 'psbBordersPane',
                 style: {
                     fill: false,
                     weight: 1.8,
@@ -1234,8 +1243,8 @@ async function initMap() {
             </div>
         `);
 
-        // Layer 4: Titik SD/MI/PKBM Overlay, Ring Kampus, Gerbang Tol & Label
-        pointsCanvasRenderer = L.canvas({ padding: 0.3 });
+        // Layer 4: Titik SD/MI/PKBM Overlay (SVG di psbPointsPane agar area kosong meneruskan klik ke poligon desa), Ring Kampus, Gerbang Tol & Label
+        pointsSvgRenderer = L.svg({ pane: 'psbPointsPane', padding: 0.3 });
         radiusCirclesLayer = L.layerGroup().addTo(map);
         tollGatesLayer = L.layerGroup().addTo(map);
         schoolPointsLayer = L.layerGroup().addTo(map);
@@ -1276,22 +1285,34 @@ onBeforeUnmount(() => {
 });
 
 watch(
+    () => [props.mode, props.schools, props.villages],
+    () => {
+        clearHover();
+        updateLayersAndFocus();
+    },
+    { deep: false }
+);
+
+watch(
     () => [
-        props.mode,
-        props.schools,
-        props.villages,
-        props.tollGates,
         showSchoolDots.value,
-        showCampusRadius.value,
-        showTollGates.value,
         visibleTiers.basis_utama,
         visibleTiers.potensial,
         visibleTiers.vakum,
         visibleTiers.belum_tergarap,
     ],
     () => {
-        clearHover();
-        updateLayersAndFocus();
+        renderSchoolDots();
+        renderMapLabels();
+    },
+    { deep: false }
+);
+
+watch(
+    () => [props.tollGates, showCampusRadius.value, showTollGates.value],
+    () => {
+        renderCampusRadiusOverlay();
+        renderTollGatesOverlay();
     },
     { deep: false }
 );
@@ -1920,6 +1941,9 @@ watch(
 <style>
 .psb-leaflet-bg.leaflet-container {
     background-color: #f8fafc !important;
+}
+.psb-leaflet-bg .leaflet-pane > svg {
+    pointer-events: none !important;
 }
 .psb-map-text-label,
 .psb-school-point-label {
