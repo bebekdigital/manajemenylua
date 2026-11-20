@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { Bubble } from 'vue-chartjs';
 import {
     Chart as ChartJS,
@@ -8,18 +8,26 @@ import {
     Tooltip,
     Legend,
 } from 'chart.js';
-import { PSB_TIERS } from '@/Utils/psbMatcher';
+import { PSB_TIERS, PSB_WELFARE_TIERS } from '@/Utils/psbMatcher';
 
 ChartJS.register(LinearScale, PointElement, Tooltip, Legend);
 
 const props = defineProps({
+    mode: {
+        type: String,
+        default: 'school', // 'school' | 'welfare'
+    },
     schools: {
+        type: Array,
+        default: () => [],
+    },
+    villages: {
         type: Array,
         default: () => [],
     },
 });
 
-const emit = defineEmits(['select-tier', 'select-schools']);
+const emit = defineEmits(['update:mode', 'select-tier', 'select-schools', 'select-villages']);
 
 const chartWrapperRef = ref(null);
 const bubbleChartRef = ref(null);
@@ -37,12 +45,30 @@ let pinchStartDataMid = null;
 let pinchStartWindow = null;
 let suppressNextClick = false;
 
+const isWelfareMode = computed(() => props.mode === 'welfare');
+
 const zeroCount = computed(() =>
-    props.schools.filter((s) => s.tier === 'belum_tergarap').length
+    isWelfareMode.value
+        ? 0
+        : props.schools.filter((s) => s.tier === 'belum_tergarap').length
 );
 
 // Domain penuh grafik
 const fullBounds = computed(() => {
+    if (isWelfareMode.value) {
+        let maxY = 8;
+        props.villages.forEach((v) => {
+            if (v.totalStudents > maxY) maxY = v.totalStudents;
+        });
+        const yMax = maxY + Math.max(2, Math.ceil(maxY * 0.15));
+        return {
+            xMin: -4,
+            xMax: 105,
+            yMin: -Math.max(1.2, yMax * 0.08),
+            yMax,
+        };
+    }
+
     let maxX = 4;
     let maxY = 8;
     props.schools.forEach((s) => {
@@ -141,57 +167,150 @@ const groupedCoordinates = computed(() => {
     return out;
 });
 
-const chartData = computed(() => ({
-    datasets: [
-        {
-            label: 'Basis Utama',
-            data: groupedCoordinates.value.basis_utama,
-            backgroundColor: PSB_TIERS.basis_utama.fillRgba,
-            borderColor: PSB_TIERS.basis_utama.strokeHex,
-            borderWidth: 2,
-            hoverBorderWidth: 3,
-        },
-        {
-            label: 'Potensial',
-            data: groupedCoordinates.value.potensial,
-            backgroundColor: PSB_TIERS.potensial.fillRgba,
-            borderColor: PSB_TIERS.potensial.strokeHex,
-            borderWidth: 2,
-            hoverBorderWidth: 3,
-        },
-        {
-            label: 'Vakum',
-            data: groupedCoordinates.value.vakum,
-            backgroundColor: PSB_TIERS.vakum.fillRgba,
-            borderColor: PSB_TIERS.vakum.strokeHex,
-            borderWidth: 2,
-            hoverBorderWidth: 3,
-        },
-        {
-            label: 'Belum Tergarap (0,0)',
-            data:
-                zeroCount.value > 0
-                    ? [
-                          {
-                              x: 0,
-                              y: 0,
-                              origX: 0,
-                              origY: 0,
-                              hasOffset: false,
-                              r: 15,
-                              tier: 'belum_tergarap',
-                              count: zeroCount.value,
-                              schools: [],
-                          },
-                      ]
-                    : [],
-            backgroundColor: 'rgba(100, 116, 139, 0.25)',
-            borderColor: '#475569',
-            borderWidth: 2,
-            hoverBorderWidth: 3,
-        },
-    ],
-}));
+const groupedWelfareCoordinates = computed(() => {
+    const pointMap = new Map();
+
+    props.villages.forEach((v) => {
+        const bx = Math.round(Number(v.welfare_score || 0) / 2) * 2;
+        const by = v.totalStudents;
+        const coordKey = `${bx}_${by}`;
+        if (!pointMap.has(coordKey)) {
+            pointMap.set(coordKey, {
+                origX: bx,
+                origY: by,
+                tiers: new Map(),
+            });
+        }
+        const entry = pointMap.get(coordKey);
+        if (!entry.tiers.has(v.tier)) {
+            entry.tiers.set(v.tier, []);
+        }
+        entry.tiers.get(v.tier).push(v);
+    });
+
+    const out = {
+        sejahtera_basis: [],
+        sejahtera_potensial: [],
+        rentan_terjangkau: [],
+        rentan_minim: [],
+    };
+
+    pointMap.forEach(({ origX, origY, tiers }) => {
+        tiers.forEach((list, tierKey) => {
+            if (!out[tierKey]) return;
+            const totalStudentsSum = list.reduce((acc, v) => acc + v.totalStudents, 0);
+            const avgTotalP14 = Math.round(list.reduce((acc, v) => acc + (v.total || 0), 0) / list.length);
+            out[tierKey].push({
+                x: origX,
+                y: origY,
+                origX,
+                origY,
+                hasOffset: false,
+                r: Math.min(5 + Math.sqrt(list.length) * 2.3, 17),
+                tier: tierKey,
+                count: list.length,
+                totalStudentsSum,
+                avgTotalP14,
+                villages: [...list].sort((a, b) => b.totalStudents - a.totalStudents || b.welfare_score - a.welfare_score),
+            });
+        });
+    });
+
+    return out;
+});
+
+const chartData = computed(() => {
+    if (isWelfareMode.value) {
+        return {
+            datasets: [
+                {
+                    label: PSB_WELFARE_TIERS.sejahtera_basis.label,
+                    data: groupedWelfareCoordinates.value.sejahtera_basis,
+                    backgroundColor: PSB_WELFARE_TIERS.sejahtera_basis.fillRgba,
+                    borderColor: PSB_WELFARE_TIERS.sejahtera_basis.strokeHex,
+                    borderWidth: 2,
+                    hoverBorderWidth: 3,
+                },
+                {
+                    label: PSB_WELFARE_TIERS.sejahtera_potensial.label,
+                    data: groupedWelfareCoordinates.value.sejahtera_potensial,
+                    backgroundColor: PSB_WELFARE_TIERS.sejahtera_potensial.fillRgba,
+                    borderColor: PSB_WELFARE_TIERS.sejahtera_potensial.strokeHex,
+                    borderWidth: 2,
+                    hoverBorderWidth: 3,
+                },
+                {
+                    label: PSB_WELFARE_TIERS.rentan_terjangkau.label,
+                    data: groupedWelfareCoordinates.value.rentan_terjangkau,
+                    backgroundColor: PSB_WELFARE_TIERS.rentan_terjangkau.fillRgba,
+                    borderColor: PSB_WELFARE_TIERS.rentan_terjangkau.strokeHex,
+                    borderWidth: 2,
+                    hoverBorderWidth: 3,
+                },
+                {
+                    label: PSB_WELFARE_TIERS.rentan_minim.label,
+                    data: groupedWelfareCoordinates.value.rentan_minim,
+                    backgroundColor: PSB_WELFARE_TIERS.rentan_minim.fillRgba,
+                    borderColor: PSB_WELFARE_TIERS.rentan_minim.strokeHex,
+                    borderWidth: 1.5,
+                    hoverBorderWidth: 2.5,
+                },
+            ],
+        };
+    }
+
+    return {
+        datasets: [
+            {
+                label: 'Basis Utama',
+                data: groupedCoordinates.value.basis_utama,
+                backgroundColor: PSB_TIERS.basis_utama.fillRgba,
+                borderColor: PSB_TIERS.basis_utama.strokeHex,
+                borderWidth: 2,
+                hoverBorderWidth: 3,
+            },
+            {
+                label: 'Potensial',
+                data: groupedCoordinates.value.potensial,
+                backgroundColor: PSB_TIERS.potensial.fillRgba,
+                borderColor: PSB_TIERS.potensial.strokeHex,
+                borderWidth: 2,
+                hoverBorderWidth: 3,
+            },
+            {
+                label: 'Vakum',
+                data: groupedCoordinates.value.vakum,
+                backgroundColor: PSB_TIERS.vakum.fillRgba,
+                borderColor: PSB_TIERS.vakum.strokeHex,
+                borderWidth: 2,
+                hoverBorderWidth: 3,
+            },
+            {
+                label: 'Belum Tergarap (0,0)',
+                data:
+                    zeroCount.value > 0
+                        ? [
+                              {
+                                  x: 0,
+                                  y: 0,
+                                  origX: 0,
+                                  origY: 0,
+                                  hasOffset: false,
+                                  r: 15,
+                                  tier: 'belum_tergarap',
+                                  count: zeroCount.value,
+                                  schools: [],
+                              },
+                          ]
+                        : [],
+                backgroundColor: 'rgba(100, 116, 139, 0.25)',
+                borderColor: '#475569',
+                borderWidth: 2,
+                hoverBorderWidth: 3,
+            },
+        ],
+    };
+});
 
 // Plugin canvas: zona kuadran, garis penghubung ke titik asli untuk orbital offset, dan label (0,0) di atas agar tak tabrakan
 const quadrantPlugin = {
@@ -200,33 +319,52 @@ const quadrantPlugin = {
         const { ctx, chartArea, scales } = chart;
         if (!chartArea || !scales?.x || !scales?.y) return;
 
-        const xSplit = scales.x.getPixelForValue(2.5);
-        const ySplit = scales.y.getPixelForValue(4.5);
+        const welfareMode = isWelfareMode.value;
+        const xSplitVal = welfareMode ? 50 : 2.5;
+        const ySplitVal = welfareMode ? 2.5 : 4.5;
+
+        const xSplit = scales.x.getPixelForValue(xSplitVal);
+        const ySplit = scales.y.getPixelForValue(ySplitVal);
 
         ctx.save();
         ctx.beginPath();
         ctx.rect(chartArea.left, chartArea.top, chartArea.width, chartArea.height);
         ctx.clip();
 
-        // Highlight halus zona Basis Utama
+        // Highlight halus zona utama / potensial
         ctx.fillStyle = 'rgba(16, 185, 129, 0.045)';
-        if (xSplit < chartArea.right) {
-            ctx.fillRect(
-                Math.max(xSplit, chartArea.left),
-                chartArea.top,
-                chartArea.right - Math.max(xSplit, chartArea.left),
-                chartArea.bottom - chartArea.top
-            );
-        }
-        if (ySplit > chartArea.top) {
-            const rightEdge = Math.min(xSplit, chartArea.right);
-            if (rightEdge > chartArea.left) {
+        if (welfareMode) {
+            // Top-right: Basis Sejahtera (>= 50, >= 3 siswa)
+            const xLeft = Math.max(xSplit, chartArea.left);
+            const yBot = Math.min(ySplit, chartArea.bottom);
+            if (xLeft < chartArea.right && yBot > chartArea.top) {
+                ctx.fillRect(xLeft, chartArea.top, chartArea.right - xLeft, yBot - chartArea.top);
+            }
+            // Bottom-right: Potensial Sejahtera (>= 50, < 3 siswa)
+            ctx.fillStyle = 'rgba(245, 158, 11, 0.05)';
+            const yPotTop = Math.max(ySplit, chartArea.top);
+            if (xLeft < chartArea.right && chartArea.bottom > yPotTop) {
+                ctx.fillRect(xLeft, yPotTop, chartArea.right - xLeft, chartArea.bottom - yPotTop);
+            }
+        } else {
+            if (xSplit < chartArea.right) {
                 ctx.fillRect(
-                    chartArea.left,
+                    Math.max(xSplit, chartArea.left),
                     chartArea.top,
-                    rightEdge - chartArea.left,
-                    Math.min(ySplit, chartArea.bottom) - chartArea.top
+                    chartArea.right - Math.max(xSplit, chartArea.left),
+                    chartArea.bottom - chartArea.top
                 );
+            }
+            if (ySplit > chartArea.top) {
+                const rightEdge = Math.min(xSplit, chartArea.right);
+                if (rightEdge > chartArea.left) {
+                    ctx.fillRect(
+                        chartArea.left,
+                        chartArea.top,
+                        rightEdge - chartArea.left,
+                        Math.min(ySplit, chartArea.bottom) - chartArea.top
+                    );
+                }
             }
         }
 
@@ -303,11 +441,20 @@ const quadrantPlugin = {
         ctx.font = '700 10px Inter, system-ui, sans-serif';
         ctx.fillStyle = 'rgba(4, 120, 87, 0.65)';
         ctx.textAlign = 'right';
-        ctx.fillText('ZONA BASIS UTAMA (>= 5 Siswa / >= 3 TA)', chartArea.right - 10, chartArea.top + 16);
+        ctx.fillText(
+            welfareMode ? 'ZONA BASIS SEJAHTERA (Skor >= 50 • >= 3 Siswa)' : 'ZONA BASIS UTAMA (>= 5 Siswa / >= 3 TA)',
+            chartArea.right - 10,
+            chartArea.top + 16
+        );
+        if (welfareMode) {
+            ctx.fillStyle = 'rgba(180, 83, 9, 0.72)';
+            ctx.fillText('POTENSIAL SEJAHTERA (0-2 Siswa)', chartArea.right - 10, chartArea.bottom - 10);
+        }
 
         ctx.restore();
     },
     afterDatasetsDraw(chart) {
+        if (isWelfareMode.value) return;
         const { ctx, chartArea } = chart;
         if (!chartArea) return;
 
@@ -401,6 +548,11 @@ const chartOptions = computed(() => ({
 
         if (point.tier === 'belum_tergarap') {
             emit('select-tier', 'belum_tergarap');
+        } else if (isWelfareMode.value && point.villages && point.villages.length > 0) {
+            emit('select-villages', {
+                title: `${PSB_WELFARE_TIERS[point.tier]?.label || 'Desa'} — Skor ~${point.origX} • ${point.origY} Siswa Domisili`,
+                villages: point.villages,
+            });
         } else if (point.schools && point.schools.length > 0) {
             emit('select-schools', {
                 title: `${PSB_TIERS[point.tier]?.label || 'Sekolah'} — ${point.origX} TA, ${point.origY} Siswa`,
@@ -426,6 +578,10 @@ const chartOptions = computed(() => ({
                 title(items) {
                     const raw = items[0]?.raw;
                     if (!raw) return '';
+                    if (isWelfareMode.value) {
+                        const tLabel = PSB_WELFARE_TIERS[raw.tier]?.label || '';
+                        return `${tLabel} (Skor ~${raw.origX}/100 • ${raw.origY} Siswa)`;
+                    }
                     if (raw.tier === 'belum_tergarap') {
                         return 'Titik (0, 0) — Belum Tergarap';
                     }
@@ -435,6 +591,19 @@ const chartOptions = computed(() => ({
                 label(item) {
                     const raw = item.raw;
                     if (!raw) return '';
+                    if (isWelfareMode.value) {
+                        const lines = [
+                            `Jumlah: ${raw.count} desa/kelurahan (Rata P1-P4: ${raw.avgTotalP14.toLocaleString('id-ID')})`,
+                        ];
+                        const preview = (raw.villages || []).slice(0, 5);
+                        preview.forEach((v) => {
+                            lines.push(`• ${v.desa}, Kec. ${v.kecamatan} (P1-4: ${v.total.toLocaleString('id-ID')}, ${v.totalStudents} siswa)`);
+                        });
+                        if (raw.count > 5) {
+                            lines.push(`... dan ${raw.count - 5} desa lainnya (klik lingkaran)`);
+                        }
+                        return lines;
+                    }
                     if (raw.tier === 'belum_tergarap') {
                         return [
                             `Total: ${raw.count.toLocaleString('id-ID')} sekolah berstatus 0 siswa`,
@@ -460,7 +629,9 @@ const chartOptions = computed(() => ({
             max: activeBounds.value.xMax,
             title: {
                 display: true,
-                text: 'Konsistensi (Jumlah Tahun Ajaran Menyumbang)',
+                text: isWelfareMode.value
+                    ? 'Indeks Kesejahteraan Desa (0 = Beban P1-P4 Tinggi • 100 = Sejahtera)'
+                    : 'Konsistensi (Jumlah Tahun Ajaran Menyumbang)',
                 color: '#475569',
                 font: { size: 11, weight: '700' },
             },
@@ -468,11 +639,14 @@ const chartOptions = computed(() => ({
                 color: 'rgba(226, 232, 240, 0.7)',
             },
             ticks: {
-                stepSize: 1,
+                stepSize: isWelfareMode.value ? 10 : 1,
                 color: '#64748b',
                 font: { size: 11, weight: '600' },
                 callback(val) {
                     if (val < 0 || !Number.isInteger(val)) return '';
+                    if (isWelfareMode.value) {
+                        return val <= 100 ? `${val}` : '';
+                    }
                     return val === 0 ? '0 TA' : `${val} TA`;
                 },
             },
@@ -482,7 +656,7 @@ const chartOptions = computed(() => ({
             max: activeBounds.value.yMax,
             title: {
                 display: true,
-                text: 'Total Siswa Masuk',
+                text: isWelfareMode.value ? 'Siswa Domisili Masuk' : 'Total Siswa Masuk',
                 color: '#475569',
                 font: { size: 11, weight: '700' },
             },
@@ -506,7 +680,7 @@ const chartOptions = computed(() => ({
 // ============================================================
 function clampWindow(win) {
     const fb = fullBounds.value;
-    const minXSpan = 1.6;
+    const minXSpan = isWelfareMode.value ? 18 : 1.6;
     const minYSpan = 2.6;
 
     let xSpan = Math.max(minXSpan, Math.min(fb.xMax - fb.xMin, win.xMax - win.xMin));
@@ -548,14 +722,31 @@ function setPresetAll() {
 
 function setPresetDense() {
     const fb = fullBounds.value;
-    zoomWindow.value = clampWindow({
-        xMin: -0.55,
-        xMax: Math.min(fb.xMax, 3.35),
-        yMin: -0.7,
-        yMax: Math.min(fb.yMax, 6.2),
-    });
+    if (isWelfareMode.value) {
+        zoomWindow.value = clampWindow({
+            xMin: 46,
+            xMax: 103,
+            yMin: -0.7,
+            yMax: Math.min(fb.yMax, 6.2),
+        });
+    } else {
+        zoomWindow.value = clampWindow({
+            xMin: -0.55,
+            xMax: Math.min(fb.xMax, 3.35),
+            yMin: -0.7,
+            yMax: Math.min(fb.yMax, 6.2),
+        });
+    }
     zoomPreset.value = zoomWindow.value ? 'dense' : 'all';
 }
+
+watch(
+    () => props.mode,
+    () => {
+        zoomWindow.value = null;
+        zoomPreset.value = 'all';
+    }
+);
 
 function applyZoomFactor(factor, anchorDataX = null, anchorDataY = null) {
     const cur = activeBounds.value;
@@ -807,15 +998,44 @@ onBeforeUnmount(() => {
                 <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block mt-1.5 shrink-0"></span>
                 <div>
                     <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                        Matriks Potensi Sekolah (Konsistensi vs Total Siswa)
+                        {{ isWelfareMode ? 'Matriks Kesejahteraan Desa vs Siswa Domisili' : 'Matriks Potensi Sekolah (Konsistensi vs Total Siswa)' }}
                     </h3>
                     <p class="text-[11.5px] text-slate-500 mt-0.5">
-                        Titik kembar otomatis dipisah ke sisi berbeda; gunakan scroll / tombol <span class="font-bold text-slate-700">Zoom Area Padat</span> untuk memperbesar titik yang berdekatan.
+                        <template v-if="isWelfareMode">
+                            Menyandingkan <span class="font-bold text-slate-700">Indeks Kesejahteraan (P1–P4 Jatengprov)</span> tiap desa dengan jumlah siswa berdomisili.
+                        </template>
+                        <template v-else>
+                            Titik kembar otomatis dipisah ke sisi berbeda; gunakan scroll / tombol <span class="font-bold text-slate-700">Zoom Area Padat</span> untuk memperbesar titik yang berdekatan.
+                        </template>
                     </p>
                 </div>
             </div>
 
             <div class="flex flex-wrap items-center gap-2">
+                <!-- Toggle Mode Matriks -->
+                <div class="inline-flex items-center p-0.5 bg-slate-100 rounded-xl border border-slate-200/90">
+                    <button
+                        type="button"
+                        @click="emit('update:mode', 'school')"
+                        :class="[
+                            'px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer',
+                            !isWelfareMode ? 'bg-emerald-900 text-yellow-200 shadow-2xs' : 'text-slate-600 hover:text-slate-900',
+                        ]"
+                    >
+                        Asal Sekolah
+                    </button>
+                    <button
+                        type="button"
+                        @click="emit('update:mode', 'welfare')"
+                        :class="[
+                            'px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer',
+                            isWelfareMode ? 'bg-emerald-900 text-yellow-200 shadow-2xs' : 'text-slate-600 hover:text-slate-900',
+                        ]"
+                    >
+                        Kesejahteraan Desa
+                    </button>
+                </div>
+
                 <!-- Kontrol Zoom Cepat -->
                 <div class="inline-flex items-center p-0.5 bg-slate-100 rounded-xl border border-slate-200/90">
                     <button
@@ -859,7 +1079,23 @@ onBeforeUnmount(() => {
                 </div>
 
                 <!-- Legend Klik Cepat -->
-                <div class="flex items-center gap-1.5 flex-wrap">
+                <div v-if="isWelfareMode" class="flex items-center gap-1.5 flex-wrap">
+                    <button
+                        v-for="tierKey in ['sejahtera_basis', 'sejahtera_potensial', 'rentan_terjangkau', 'rentan_minim']"
+                        :key="tierKey"
+                        type="button"
+                        @click="emit('select-tier', tierKey)"
+                        :class="[
+                            'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border transition-all cursor-pointer hover:opacity-90 active:scale-95',
+                            PSB_WELFARE_TIERS[tierKey].badgeClass,
+                        ]"
+                        :title="PSB_WELFARE_TIERS[tierKey].description"
+                    >
+                        <span :class="['w-2 h-2 rounded-full', PSB_WELFARE_TIERS[tierKey].dotClass]"></span>
+                        <span>{{ PSB_WELFARE_TIERS[tierKey].shortLabel }}</span>
+                    </button>
+                </div>
+                <div v-else class="flex items-center gap-1.5 flex-wrap">
                     <button
                         v-for="tierKey in ['basis_utama', 'potensial', 'vakum', 'belum_tergarap']"
                         :key="tierKey"

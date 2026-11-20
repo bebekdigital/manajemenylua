@@ -7,8 +7,11 @@ import PsbQuadrantChart from './Partials/PsbQuadrantChart.vue';
 import PsbSchoolClusterMap from './Partials/PsbSchoolClusterMap.vue';
 import {
     PSB_TIERS,
+    PSB_WELFARE_TIERS,
     SOLO_RAYA_KABUPATENS,
+    WELFARE_LEVEL_META,
     matchAndClassifySchools,
+    matchAndClassifyVillages,
 } from '@/Utils/psbMatcher';
 import {
     getGenderBadgeClass,
@@ -43,6 +46,8 @@ const props = defineProps({
 // ============================================================
 const referenceSchools = ref([]);
 const datasetMeta = ref(null);
+const referenceVillages = ref([]);
+const welfareMeta = ref(null);
 const isLoadingDataset = ref(true);
 const datasetError = ref(null);
 
@@ -50,13 +55,22 @@ async function loadReferenceDataset() {
     isLoadingDataset.value = true;
     datasetError.value = null;
     try {
-        const response = await fetch('/data/solo-raya-sd-sederajat.json');
-        if (!response.ok) {
-            throw new Error(`Gagal memuat data (${response.status})`);
+        const [schoolRes, welfareRes] = await Promise.all([
+            fetch('/data/solo-raya-sd-sederajat.json'),
+            fetch('/data/solo-raya-desa-kemiskinan.json'),
+        ]);
+        if (!schoolRes.ok) {
+            throw new Error(`Gagal memuat data (${schoolRes.status})`);
         }
-        const json = await response.json();
+        const json = await schoolRes.json();
         referenceSchools.value = Array.isArray(json.schools) ? json.schools : [];
         datasetMeta.value = json.meta || null;
+
+        if (welfareRes.ok) {
+            const wJson = await welfareRes.json();
+            referenceVillages.value = Array.isArray(wJson.villages) ? wJson.villages : [];
+            welfareMeta.value = wJson.meta || null;
+        }
     } catch (err) {
         datasetError.value = err?.message || 'Tidak dapat memuat dataset sekolah Solo Raya.';
     } finally {
@@ -83,6 +97,8 @@ function handleKeyDown(e) {
     if (e.key === 'Escape') {
         if (selectedSchoolModal.value) {
             selectedSchoolModal.value = null;
+        } else if (selectedVillageModal.value) {
+            selectedVillageModal.value = null;
         } else if (quadrantGroupModal.value) {
             quadrantGroupModal.value = null;
         }
@@ -134,6 +150,9 @@ const hasSmpitStudents = computed(() =>
     props.students.some((s) => matchesUnit(s, 'SMPIT'))
 );
 
+const mappingMode = ref('school'); // 'school' | 'welfare'
+const isWelfareMode = computed(() => mappingMode.value === 'welfare');
+
 // Default ke SMPIT jika ada siswanya agar pemadanan SD/MI/PKBM langsung relevan, jika tidak gunakan Semua
 const activeUnit = ref(hasSmpitStudents.value ? 'SMPIT' : 'all');
 const selectedTa = ref('Semua');
@@ -143,11 +162,21 @@ const selectedKecamatan = ref('Semua');
 const selectedBentuk = ref('Semua'); // 'Semua' | 'SD' | 'MI' | 'PKBM'
 const selectedSchoolStatus = ref('Semua'); // 'Semua' | 'Negeri' | 'Swasta'
 
-const activeTierTab = ref('all'); // 'all' | 'basis_utama' | 'potensial' | 'vakum' | 'belum_tergarap' | 'unmatched'
+const activeTierTab = ref('all');
 const searchQuery = ref('');
-const sortBy = ref('students_desc'); // 'students_desc' | 'ta_desc' | 'name_asc' | 'zero_first'
+const sortBy = ref('students_desc');
 const currentPage = ref(1);
 const perPage = 25;
+
+watch(mappingMode, () => {
+    activeTierTab.value = 'all';
+    searchQuery.value = '';
+    sortBy.value = 'students_desc';
+    currentPage.value = 1;
+    quadrantGroupModal.value = null;
+    selectedSchoolModal.value = null;
+    selectedVillageModal.value = null;
+});
 
 watch(selectedKabupaten, () => {
     selectedKecamatan.value = 'Semua';
@@ -223,12 +252,22 @@ const matchedResult = computed(() => {
     );
 });
 
+const matchedWelfareResult = computed(() => {
+    return matchAndClassifyVillages(
+        referenceVillages.value,
+        filteredStudentsForMatching.value,
+        matchedResult.value.schools,
+        latestTaName.value
+    );
+});
+
 // Daftar Kecamatan dinamis berdasarkan Kabupaten terpilih
 const availableKecamatans = computed(() => {
     const set = new Set();
-    matchedResult.value.schools.forEach((s) => {
-        if (selectedKabupaten.value === 'Semua' || s.kabupaten === selectedKabupaten.value) {
-            if (s.kecamatan) set.add(s.kecamatan);
+    const source = isWelfareMode.value ? matchedWelfareResult.value.villages : matchedResult.value.schools;
+    source.forEach((item) => {
+        if (selectedKabupaten.value === 'Semua' || item.kabupaten === selectedKabupaten.value) {
+            if (item.kecamatan) set.add(item.kecamatan);
         }
     });
     return Array.from(set).sort((a, b) => a.localeCompare(b, 'id'));
@@ -241,6 +280,15 @@ const regionFilteredSchools = computed(() => {
         if (selectedKecamatan.value !== 'Semua' && s.kecamatan !== selectedKecamatan.value) return false;
         if (selectedBentuk.value !== 'Semua' && s.bentuk !== selectedBentuk.value) return false;
         if (selectedSchoolStatus.value !== 'Semua' && s.status !== selectedSchoolStatus.value) return false;
+        return true;
+    });
+});
+
+// Desa/Kelurahan terfilter oleh Wilayah (untuk mode Domisili & Kesejahteraan)
+const regionFilteredVillages = computed(() => {
+    return matchedWelfareResult.value.villages.filter((v) => {
+        if (selectedKabupaten.value !== 'Semua' && v.kabupaten !== selectedKabupaten.value) return false;
+        if (selectedKecamatan.value !== 'Semua' && v.kecamatan !== selectedKecamatan.value) return false;
         return true;
     });
 });
@@ -321,6 +369,69 @@ const kabupatenBreakdown = computed(() => {
     }));
 });
 
+const welfareKpiStats = computed(() => {
+    const list = regionFilteredVillages.value;
+    const total = list.length;
+    let reached = 0;
+    let sejahteraBasis = 0;
+    let sejahteraPotensial = 0;
+    let rentanTerjangkau = 0;
+    let rentanMinim = 0;
+    let matchedStudentsCount = 0;
+    let totalP14 = 0;
+
+    list.forEach((v) => {
+        if (v.totalStudents > 0) reached++;
+        if (v.tier === 'sejahtera_basis') sejahteraBasis++;
+        else if (v.tier === 'sejahtera_potensial') sejahteraPotensial++;
+        else if (v.tier === 'rentan_terjangkau') rentanTerjangkau++;
+        else rentanMinim++;
+        matchedStudentsCount += v.totalStudents;
+        totalP14 += v.total || 0;
+    });
+
+    const reachedPct = total > 0 ? Number(((reached / total) * 100).toFixed(1)) : 0;
+    const potensialPct = total > 0 ? Number(((sejahteraPotensial / total) * 100).toFixed(1)) : 0;
+
+    return {
+        total,
+        reached,
+        reachedPct,
+        sejahteraBasis,
+        sejahteraPotensial,
+        potensialPct,
+        rentanTerjangkau,
+        rentanMinim,
+        matchedStudentsCount,
+        totalP14,
+    };
+});
+
+const welfareKabupatenBreakdown = computed(() => {
+    const map = new Map();
+    SOLO_RAYA_KABUPATENS.forEach((kab) => {
+        map.set(kab, { kabupaten: kab, total: 0, reached: 0, students: 0, welfareSum: 0, totalP14: 0 });
+    });
+
+    matchedWelfareResult.value.villages.forEach((v) => {
+        const bucket = map.get(v.kabupaten);
+        if (!bucket) return;
+        bucket.total++;
+        bucket.welfareSum += Number(v.welfare_score || 0);
+        bucket.totalP14 += v.total || 0;
+        if (v.totalStudents > 0) {
+            bucket.reached++;
+            bucket.students += v.totalStudents;
+        }
+    });
+
+    return Array.from(map.values()).map((b) => ({
+        ...b,
+        pct: b.total > 0 ? Number(((b.reached / b.total) * 100).toFixed(1)) : 0,
+        avgWelfare: b.total > 0 ? Number((b.welfareSum / b.total).toFixed(1)) : 0,
+    }));
+});
+
 // Daftar sekolah di tabel berdasarkan Tab Tier + Search + Sort
 const displayedSchools = computed(() => {
     if (activeTierTab.value === 'unmatched') return [];
@@ -370,16 +481,76 @@ const displayedUnmatched = computed(() => {
     return list;
 });
 
-const totalTableItems = computed(() =>
-    activeTierTab.value === 'unmatched'
+const displayedVillages = computed(() => {
+    if (activeTierTab.value === 'unmatched') return [];
+
+    let list = regionFilteredVillages.value;
+    if (activeTierTab.value !== 'all') {
+        list = list.filter((v) => v.tier === activeTierTab.value);
+    }
+
+    const q = searchQuery.value.trim().toLowerCase();
+    if (q) {
+        list = list.filter(
+            (v) =>
+                (v.desa || '').toLowerCase().includes(q) ||
+                (v.kecamatan || '').toLowerCase().includes(q) ||
+                (v.kabupaten || '').toLowerCase().includes(q) ||
+                (v.kode || '').toLowerCase().includes(q)
+        );
+    }
+
+    const sorted = [...list];
+    if (sortBy.value === 'welfare_desc') {
+        sorted.sort((a, b) => b.welfare_score - a.welfare_score || b.totalStudents - a.totalStudents || a.desa.localeCompare(b.desa, 'id'));
+    } else if (sortBy.value === 'p14_desc') {
+        sorted.sort((a, b) => b.total - a.total || b.p12 - a.p12 || a.desa.localeCompare(b.desa, 'id'));
+    } else if (sortBy.value === 'zero_first') {
+        sorted.sort((a, b) => a.totalStudents - b.totalStudents || b.welfare_score - a.welfare_score || a.desa.localeCompare(b.desa, 'id'));
+    } else if (sortBy.value === 'name_asc') {
+        sorted.sort((a, b) => a.desa.localeCompare(b.desa, 'id'));
+    } else {
+        sorted.sort((a, b) => b.totalStudents - a.totalStudents || b.welfare_score - a.welfare_score || a.desa.localeCompare(b.desa, 'id'));
+    }
+
+    return sorted;
+});
+
+const displayedUnmatchedVillages = computed(() => {
+    const q = searchQuery.value.trim().toLowerCase();
+    let list = matchedWelfareResult.value.unmatchedGroups;
+    if (q) {
+        list = list.filter(
+            (g) =>
+                (g.desa || '').toLowerCase().includes(q) ||
+                (g.kecamatan || '').toLowerCase().includes(q) ||
+                (g.kabupaten || '').toLowerCase().includes(q)
+        );
+    }
+    return list;
+});
+
+const totalTableItems = computed(() => {
+    if (isWelfareMode.value) {
+        return activeTierTab.value === 'unmatched'
+            ? displayedUnmatchedVillages.value.length
+            : displayedVillages.value.length;
+    }
+    return activeTierTab.value === 'unmatched'
         ? displayedUnmatched.value.length
-        : displayedSchools.value.length
-);
+        : displayedSchools.value.length;
+});
 
 const totalPages = computed(() => Math.max(1, Math.ceil(totalTableItems.value / perPage)));
 
 const paginatedRows = computed(() => {
     const start = (currentPage.value - 1) * perPage;
+    if (isWelfareMode.value) {
+        if (activeTierTab.value === 'unmatched') {
+            return displayedUnmatchedVillages.value.slice(start, start + perPage);
+        }
+        return displayedVillages.value.slice(start, start + perPage);
+    }
     if (activeTierTab.value === 'unmatched') {
         return displayedUnmatched.value.slice(start, start + perPage);
     }
@@ -391,12 +562,13 @@ const paginatedRows = computed(() => {
 // ============================================================
 const tableSectionRef = ref(null);
 const selectedSchoolModal = ref(null);
+const selectedVillageModal = ref(null);
 const quadrantGroupModal = ref(null);
 
 function jumpToTier(tierKey) {
     activeTierTab.value = tierKey;
-    if (tierKey === 'belum_tergarap') {
-        sortBy.value = 'name_asc';
+    if (tierKey === 'belum_tergarap' || tierKey === 'sejahtera_potensial') {
+        sortBy.value = isWelfareMode.value ? 'zero_first' : 'name_asc';
     } else {
         sortBy.value = 'students_desc';
     }
@@ -411,7 +583,16 @@ function handleQuadrantSelectSchools(payload) {
     if (payload.schools.length === 1) {
         selectedSchoolModal.value = payload.schools[0];
     } else {
-        quadrantGroupModal.value = payload;
+        quadrantGroupModal.value = { mode: 'school', ...payload };
+    }
+}
+
+function handleQuadrantSelectVillages(payload) {
+    if (!payload?.villages || payload.villages.length === 0) return;
+    if (payload.villages.length === 1) {
+        selectedVillageModal.value = payload.villages[0];
+    } else {
+        quadrantGroupModal.value = { mode: 'welfare', ...payload };
     }
 }
 
@@ -457,7 +638,41 @@ const hasNonDefaultFilters = computed(() => {
 });
 
 function exportExcel() {
-    const rowsToExport = activeTierTab.value === 'unmatched' ? [] : displayedSchools.value;
+    if (activeTierTab.value === 'unmatched') return;
+
+    const kabSuffix = selectedKabupaten.value === 'Semua' ? 'SoloRaya' : selectedKabupaten.value;
+    const tierSuffix = activeTierTab.value === 'all' ? 'SemuaSegmen' : activeTierTab.value;
+
+    if (isWelfareMode.value) {
+        const rowsToExport = displayedVillages.value;
+        if (rowsToExport.length === 0) return;
+
+        const sheetData = rowsToExport.map((v, idx) => ({
+            No: idx + 1,
+            'Kode Wilayah': v.kode,
+            'Desa / Kelurahan': v.desa,
+            Kecamatan: v.kecamatan,
+            Kabupaten: v.kabupaten,
+            'P1 (Sangat Miskin)': v.p1,
+            'P2 (Miskin)': v.p2,
+            'P3 (Rentan Miskin)': v.p3,
+            'P4 (Menengah Bawah)': v.p4,
+            'Total Beban P1-P4': v.total,
+            'Indeks Kesejahteraan (0-100)': v.welfare_score,
+            'Segmen Wilayah': PSB_WELFARE_TIERS[v.tier]?.label || v.tier,
+            'Siswa Domisili Masuk': v.totalStudents,
+            'Konsistensi (TA)': v.taCount,
+            'Jumlah SD Asal di Desa': v.schoolsCount,
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(sheetData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Kesejahteraan Desa PSB');
+        XLSX.writeFile(wb, `PSB_Kesejahteraan_Desa_${kabSuffix}_${tierSuffix}.xlsx`);
+        return;
+    }
+
+    const rowsToExport = displayedSchools.value;
     if (rowsToExport.length === 0) return;
 
     const sheetData = rowsToExport.map((s, idx) => ({
@@ -480,8 +695,6 @@ function exportExcel() {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Ringkasan PSB');
 
-    const kabSuffix = selectedKabupaten.value === 'Semua' ? 'SoloRaya' : selectedKabupaten.value;
-    const tierSuffix = activeTierTab.value === 'all' ? 'SemuaTier' : activeTierTab.value;
     XLSX.writeFile(wb, `PSB_Sekolah_${kabSuffix}_${tierSuffix}.xlsx`);
 }
 </script>
@@ -500,7 +713,12 @@ function exportExcel() {
                     <h2 class="text-base font-bold text-slate-900 tracking-tight truncate">Pemetaan Potensi PSB</h2>
                 </div>
                 <span class="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-900 border border-emerald-200 text-[11px] font-bold shrink-0">
-                    {{ kpiStats.reached }} / {{ kpiStats.total.toLocaleString('id-ID') }}
+                    <template v-if="isWelfareMode">
+                        {{ welfareKpiStats.reached }} / {{ welfareKpiStats.total.toLocaleString('id-ID') }} Desa
+                    </template>
+                    <template v-else>
+                        {{ kpiStats.reached }} / {{ kpiStats.total.toLocaleString('id-ID') }}
+                    </template>
                 </span>
             </div>
 
@@ -510,15 +728,39 @@ function exportExcel() {
                     <h1 class="text-2xl sm:text-2xl font-extrabold text-slate-900 tracking-tight leading-tight">
                         Pemetaan Potensi PSB
                     </h1>
-                    <div class="mt-2">
+                    <div class="mt-2 flex flex-wrap items-center gap-2">
                         <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-semibold">
                             <span class="material-symbols-outlined text-[14px] text-emerald-700">verified</span>
-                            <span>Sumber : Pusdatin Kemendikdasmen</span>
+                            <span>{{ isWelfareMode ? 'Sumber : Dinas Sosial Prov. Jateng (data.jatengprov.go.id • P1–P4)' : 'Sumber : Pusdatin Kemendikdasmen' }}</span>
                         </span>
                     </div>
                 </div>
 
-                <div class="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                <div class="flex items-center gap-2 flex-wrap self-start sm:self-auto shrink-0">
+                    <!-- Toggle Global Mode Pemetaan -->
+                    <div class="inline-flex items-center p-1 bg-slate-100 rounded-xl border border-slate-200/90">
+                        <button
+                            type="button"
+                            @click="mappingMode = 'school'"
+                            class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer"
+                            :class="!isWelfareMode
+                                ? 'bg-emerald-900 text-yellow-200 shadow-2xs'
+                                : 'text-slate-600 hover:text-slate-900'"
+                        >
+                            Asal SD/MI
+                        </button>
+                        <button
+                            type="button"
+                            @click="mappingMode = 'welfare'"
+                            class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer"
+                            :class="isWelfareMode
+                                ? 'bg-emerald-900 text-yellow-200 shadow-2xs'
+                                : 'text-slate-600 hover:text-slate-900'"
+                        >
+                            Domisili &amp; Kesejahteraan
+                        </button>
+                    </div>
+
                     <button
                         v-if="hasNonDefaultFilters"
                         type="button"
@@ -531,11 +773,11 @@ function exportExcel() {
                     <button
                         type="button"
                         @click="exportExcel"
-                        :disabled="isLoadingDataset || activeTierTab === 'unmatched' || displayedSchools.length === 0"
+                        :disabled="isLoadingDataset || activeTierTab === 'unmatched' || totalTableItems === 0"
                         class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 disabled:opacity-50 text-yellow-200 text-xs font-bold shadow-xs border border-emerald-950/30 transition-all cursor-pointer active:scale-95"
                     >
                         <span class="material-symbols-outlined text-[17px]">download</span>
-                        <span>Unduh Excel ({{ activeTierTab === 'unmatched' ? 0 : displayedSchools.length }})</span>
+                        <span>Unduh Excel ({{ activeTierTab === 'unmatched' ? 0 : totalTableItems }})</span>
                     </button>
                 </div>
             </div>
@@ -662,10 +904,11 @@ function exportExcel() {
                         </select>
                     </div>
 
-                    <div>
+                    <div :class="{ 'opacity-50 pointer-events-none': isWelfareMode }">
                         <label class="block text-[10.5px] font-bold text-violet-700 uppercase tracking-wider mb-1">Bentuk Sekolah</label>
                         <select
                             v-model="selectedBentuk"
+                            :disabled="isWelfareMode"
                             :class="[
                                 'w-full rounded-xl border px-3 py-2 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-violet-500/20 cursor-pointer transition-colors',
                                 selectedBentuk !== 'Semua'
@@ -680,10 +923,11 @@ function exportExcel() {
                         </select>
                     </div>
 
-                    <div>
+                    <div :class="{ 'opacity-50 pointer-events-none': isWelfareMode }">
                         <label class="block text-[10.5px] font-bold text-amber-700 uppercase tracking-wider mb-1">Status Sekolah</label>
                         <select
                             v-model="selectedSchoolStatus"
+                            :disabled="isWelfareMode"
                             :class="[
                                 'w-full rounded-xl border px-3 py-2 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-amber-500/20 cursor-pointer transition-colors',
                                 selectedSchoolStatus !== 'Semua'
@@ -719,8 +963,81 @@ function exportExcel() {
             </div>
 
             <template v-else>
-                <!-- 4 KPI Summary Cards -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4 mb-5">
+                <!-- 4 KPI Summary Cards (Mode Domisili & Kesejahteraan) -->
+                <div v-if="isWelfareMode" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4 mb-5">
+                    <button
+                        type="button"
+                        @click="jumpToTier('all')"
+                        class="text-left p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 hover:border-slate-300 shadow-2xs flex items-center gap-3.5 transition-all cursor-pointer"
+                    >
+                        <div class="w-12 h-12 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700 shrink-0">
+                            <span class="material-symbols-outlined text-[24px]">holiday_village</span>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Desa &amp; Kelurahan</p>
+                            <p class="text-2xl font-extrabold text-slate-900 leading-tight mt-0.5">{{ welfareKpiStats.total.toLocaleString('id-ID') }}</p>
+                            <p class="text-[11px] text-slate-500 font-medium mt-0.5 truncate">
+                                Beban P1–P4: {{ welfareKpiStats.totalP14.toLocaleString('id-ID') }} jiwa
+                            </p>
+                        </div>
+                    </button>
+
+                    <div class="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs flex items-center gap-3.5">
+                        <div class="w-12 h-12 rounded-2xl bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-900 shrink-0">
+                            <span class="material-symbols-outlined text-[24px]">home_pin</span>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Desa Berdomisili Siswa</p>
+                            <div class="flex items-baseline gap-2 mt-0.5">
+                                <p class="text-2xl font-extrabold text-slate-900 leading-tight">{{ welfareKpiStats.reached.toLocaleString('id-ID') }}</p>
+                                <span class="text-xs font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">{{ welfareKpiStats.reachedPct }}%</span>
+                            </div>
+                            <p class="text-[11px] text-slate-500 font-medium mt-0.5 truncate">
+                                {{ welfareKpiStats.matchedStudentsCount.toLocaleString('id-ID') }} siswa berdomisili terpadankan
+                            </p>
+                        </div>
+                    </div>
+
+                    <button
+                        type="button"
+                        @click="jumpToTier('sejahtera_basis')"
+                        class="text-left p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 hover:border-emerald-300 shadow-2xs flex items-center gap-3.5 transition-all cursor-pointer"
+                    >
+                        <div class="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-800 shrink-0">
+                            <span class="material-symbols-outlined text-[24px]">workspace_premium</span>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Basis Sejahtera &amp; Rentan</p>
+                            <p class="text-2xl font-extrabold text-slate-900 leading-tight mt-0.5">{{ (welfareKpiStats.sejahteraBasis + welfareKpiStats.rentanTerjangkau).toLocaleString('id-ID') }}</p>
+                            <p class="text-[11px] text-slate-500 font-medium mt-0.5 truncate">
+                                {{ welfareKpiStats.sejahteraBasis }} Sejahtera • <span class="text-sky-700 font-semibold">{{ welfareKpiStats.rentanTerjangkau }} Rentan</span>
+                            </p>
+                        </div>
+                    </button>
+
+                    <button
+                        type="button"
+                        @click="jumpToTier('sejahtera_potensial')"
+                        class="text-left p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 hover:border-amber-300 shadow-2xs flex items-center gap-3.5 transition-all cursor-pointer group"
+                    >
+                        <div class="w-12 h-12 rounded-2xl bg-amber-100 border border-amber-200 flex items-center justify-center text-amber-800 group-hover:bg-amber-200 transition-colors shrink-0">
+                            <span class="material-symbols-outlined text-[24px]">travel_explore</span>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Potensial Sejahtera (0–2)</p>
+                            <div class="flex items-baseline gap-2 mt-0.5">
+                                <p class="text-2xl font-extrabold text-slate-900 leading-tight">{{ welfareKpiStats.sejahteraPotensial.toLocaleString('id-ID') }}</p>
+                                <span class="text-xs font-bold text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">{{ welfareKpiStats.potensialPct }}%</span>
+                            </div>
+                            <p class="text-[11px] text-emerald-700 font-semibold mt-0.5 truncate group-hover:underline">
+                                Klik untuk lihat target desa sejahtera →
+                            </p>
+                        </div>
+                    </button>
+                </div>
+
+                <!-- 4 KPI Summary Cards (Mode Asal SD/MI) -->
+                <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4 mb-5">
                     <!-- Card 1: Total Sekolah Referensi -->
                     <button
                         type="button"
@@ -802,13 +1119,48 @@ function exportExcel() {
                         <div class="flex items-center gap-2">
                             <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span>
                             <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                                Jangkauan per Kabupaten / Kota Solo Raya
+                                {{ isWelfareMode ? 'Jangkauan Domisili & Kesejahteraan per Kabupaten / Kota' : 'Jangkauan per Kabupaten / Kota Solo Raya' }}
                             </h3>
                         </div>
                         <span class="text-[11px] text-slate-400 font-medium hidden sm:inline">Klik kartu kabupaten untuk memfilter</span>
                     </div>
 
-                    <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
+                    <div v-if="isWelfareMode" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
+                        <button
+                            v-for="kb in welfareKabupatenBreakdown"
+                            :key="kb.kabupaten"
+                            type="button"
+                            @click="selectedKabupaten = selectedKabupaten === kb.kabupaten ? 'Semua' : kb.kabupaten"
+                            :class="[
+                                'text-left p-3 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between gap-2',
+                                selectedKabupaten === kb.kabupaten
+                                    ? 'bg-emerald-50/80 border-emerald-500 ring-2 ring-emerald-500/20 shadow-2xs'
+                                    : 'bg-slate-50/70 hover:bg-slate-100/80 border-slate-200/80',
+                            ]"
+                        >
+                            <div>
+                                <div class="text-xs font-bold text-slate-900 truncate">{{ kb.kabupaten }}</div>
+                                <div class="text-[10.5px] text-slate-500 font-medium mt-0.5">
+                                    <span class="font-extrabold text-emerald-800">{{ kb.reached }}</span> / {{ kb.total }} desa
+                                </div>
+                            </div>
+
+                            <div>
+                                <div class="w-full h-1.5 rounded-full bg-slate-200 overflow-hidden mb-1">
+                                    <div
+                                        class="h-full rounded-full bg-emerald-600 transition-all duration-500"
+                                        :style="{ width: `${Math.max(kb.pct, kb.reached > 0 ? 4 : 0)}%` }"
+                                    ></div>
+                                </div>
+                                <div class="flex items-center justify-between text-[10px] font-bold">
+                                    <span class="text-emerald-800">Skor {{ kb.avgWelfare }}</span>
+                                    <span class="text-slate-500">{{ kb.students }} siswa</span>
+                                </div>
+                            </div>
+                        </button>
+                    </div>
+
+                    <div v-else class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
                         <button
                             v-for="kb in kabupatenBreakdown"
                             :key="kb.kabupaten"
@@ -844,32 +1196,60 @@ function exportExcel() {
                     </div>
                 </div>
 
-                <!-- Diagram 1: Matriks / Kuadran Potensi dengan Penanda Titik (0,0) -->
+                <!-- Diagram 1: Matriks / Kuadran Potensi dengan Toggle Mode -->
                 <div class="mb-5">
                     <PsbQuadrantChart
+                        v-model:mode="mappingMode"
                         :schools="regionFilteredSchools"
+                        :villages="regionFilteredVillages"
                         @select-tier="jumpToTier"
                         @select-schools="handleQuadrantSelectSchools"
+                        @select-villages="handleQuadrantSelectVillages"
                     />
                 </div>
 
-                <!-- Diagram 2: Peta Wilayah Kecamatan -> Desa & Titik Sekolah Solo Raya -->
+                <!-- Diagram 2: Peta Wilayah Kecamatan -> Desa (2 Mode: Asal Sekolah vs Kesejahteraan Desa) -->
                 <div class="mb-5">
                     <PsbSchoolClusterMap
+                        v-model:mode="mappingMode"
                         :schools="regionFilteredSchools"
+                        :villages="regionFilteredVillages"
                         :selected-kabupaten="selectedKabupaten"
                         :selected-kecamatan="selectedKecamatan"
                         @select-school="selectedSchoolModal = $event"
+                        @select-village="selectedVillageModal = $event"
                         @select-kecamatan="handleSelectKecamatanFromMap"
                         @reset-kecamatan="selectedKecamatan = 'Semua'"
                     />
                 </div>
 
-                <!-- Tabel & Kartu Sandingan Sekolah -->
+                <!-- Tabel & Kartu Sandingan Sekolah / Desa Kesejahteraan -->
                 <div ref="tableSectionRef" class="bg-white rounded-3xl border border-slate-200/90 p-4 sm:p-6 shadow-xs scroll-mt-16">
                     <!-- Header Tab Tiering -->
                     <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-100">
-                        <div class="bg-slate-100 p-1 rounded-full inline-flex items-center gap-0.5 overflow-x-auto max-w-full border border-slate-200/90">
+                        <div v-if="isWelfareMode" class="bg-slate-100 p-1 rounded-full inline-flex items-center gap-0.5 overflow-x-auto max-w-full border border-slate-200/90">
+                            <button
+                                v-for="tab in [
+                                    { key: 'all', label: 'Semua Desa', count: welfareKpiStats.total, activeClass: 'bg-emerald-900 text-yellow-200 shadow-2xs' },
+                                    { key: 'sejahtera_basis', label: 'Basis Sejahtera', count: welfareKpiStats.sejahteraBasis, activeClass: PSB_WELFARE_TIERS.sejahtera_basis.activeTabClass },
+                                    { key: 'sejahtera_potensial', label: 'Potensial Sejahtera', count: welfareKpiStats.sejahteraPotensial, activeClass: PSB_WELFARE_TIERS.sejahtera_potensial.activeTabClass },
+                                    { key: 'rentan_terjangkau', label: 'Basis Rentan', count: welfareKpiStats.rentanTerjangkau, activeClass: PSB_WELFARE_TIERS.rentan_terjangkau.activeTabClass },
+                                    { key: 'rentan_minim', label: 'Rentan (0–2)', count: welfareKpiStats.rentanMinim, activeClass: PSB_WELFARE_TIERS.rentan_minim.activeTabClass },
+                                    { key: 'unmatched', label: 'Luar / Belum Terdata', count: matchedWelfareResult.unmatchedGroups.length, activeClass: 'bg-slate-800 text-white shadow-2xs' },
+                                ]"
+                                :key="tab.key"
+                                type="button"
+                                @click="activeTierTab = tab.key"
+                                :class="[
+                                    'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer shrink-0',
+                                    activeTierTab === tab.key ? tab.activeClass : 'text-slate-600 hover:text-slate-900',
+                                ]"
+                            >
+                                <span>{{ tab.label }}</span>
+                                <span class="text-[10.5px] opacity-80">({{ tab.count.toLocaleString('id-ID') }})</span>
+                            </button>
+                        </div>
+                        <div v-else class="bg-slate-100 p-1 rounded-full inline-flex items-center gap-0.5 overflow-x-auto max-w-full border border-slate-200/90">
                             <button
                                 v-for="tab in [
                                     { key: 'all', label: 'Semua', count: kpiStats.total, activeClass: 'bg-emerald-900 text-yellow-200 shadow-2xs' },
@@ -899,7 +1279,7 @@ function exportExcel() {
                                 <input
                                     v-model="searchQuery"
                                     type="text"
-                                    placeholder="Cari nama SD/MI, NPSN, desa..."
+                                    :placeholder="isWelfareMode ? 'Cari desa, kecamatan, kabupaten...' : 'Cari nama SD/MI, NPSN, desa...'"
                                     class="w-full pl-9 pr-8 py-1.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-emerald-600"
                                 />
                                 <button
@@ -913,7 +1293,18 @@ function exportExcel() {
                             </div>
 
                             <select
-                                v-if="activeTierTab !== 'unmatched'"
+                                v-if="activeTierTab !== 'unmatched' && isWelfareMode"
+                                v-model="sortBy"
+                                class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:border-emerald-600 cursor-pointer"
+                            >
+                                <option value="students_desc">Urut: Siswa Domisili Terbanyak</option>
+                                <option value="welfare_desc">Urut: Paling Sejahtera (Skor Tinggi)</option>
+                                <option value="p14_desc">Urut: Beban P1–P4 Tertinggi</option>
+                                <option value="zero_first">Urut: Siswa 0 / Minim Dulu</option>
+                                <option value="name_asc">Urut: Nama Desa (A-Z)</option>
+                            </select>
+                            <select
+                                v-else-if="activeTierTab !== 'unmatched'"
                                 v-model="sortBy"
                                 class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:border-emerald-600 cursor-pointer"
                             >
@@ -930,19 +1321,27 @@ function exportExcel() {
                         v-if="activeTierTab === 'unmatched'"
                         class="mb-4 p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-600 flex flex-col sm:flex-row sm:items-center justify-between gap-2"
                     >
-                        <span>
+                        <span v-if="isWelfareMode">
+                            Menampilkan desa/kelurahan domisili siswa yang berasal dari luar 7 Kab/Kota Solo Raya atau penamaannya belum terpadankan dengan batas wilayah Solo Raya.
+                        </span>
+                        <span v-else>
                             Menampilkan nama sekolah asal siswa yang belum cocok dengan SD/MI/PKBM Solo Raya (bisa berasal dari luar Solo Raya, TK/RA, atau perlu dilengkapi NPSN-nya).
                         </span>
                         <span class="font-bold text-slate-800 shrink-0">
-                            Siswa tanpa data sekolah asal: {{ matchedResult.unrecordedStudents.length }} siswa
+                            <template v-if="isWelfareMode">
+                                Siswa tanpa data desa domisili: {{ matchedWelfareResult.unrecordedStudents.length }} siswa
+                            </template>
+                            <template v-else>
+                                Siswa tanpa data sekolah asal: {{ matchedResult.unrecordedStudents.length }} siswa
+                            </template>
                         </span>
                     </div>
 
                     <!-- Empty State -->
                     <div v-if="paginatedRows.length === 0" class="py-12 text-center text-slate-400">
                         <span class="material-symbols-outlined text-4xl text-slate-300 mb-2 block">search_off</span>
-                        <p class="text-sm font-bold text-slate-600">Tidak ada data sekolah yang sesuai filter</p>
-                        <p class="text-xs mt-1">Ubah filter wilayah, bentuk sekolah, atau kata kunci pencarian.</p>
+                        <p class="text-sm font-bold text-slate-600">Tidak ada data {{ isWelfareMode ? 'desa' : 'sekolah' }} yang sesuai filter</p>
+                        <p class="text-xs mt-1">Ubah filter wilayah atau kata kunci pencarian.</p>
                     </div>
 
                     <!-- Tab Unmatched Content -->
@@ -954,15 +1353,137 @@ function exportExcel() {
                                 class="p-3.5 rounded-2xl border border-slate-200/90 bg-slate-50/70 flex items-center justify-between gap-3"
                             >
                                 <div class="min-w-0">
-                                    <p class="text-xs font-bold text-slate-900 break-words">{{ grp.name }}</p>
+                                    <p class="text-xs font-bold text-slate-900 break-words">{{ isWelfareMode ? `Ds. ${grp.desa}` : grp.name }}</p>
                                     <p class="text-[11px] text-slate-500 mt-0.5 truncate">
-                                        NPSN: {{ grp.npsn }} • {{ grp.kecamatan !== '-' ? `${grp.kecamatan}, ` : '' }}{{ grp.kabupaten }}
+                                        <template v-if="isWelfareMode">
+                                            {{ grp.kecamatan !== '-' ? `Kec. ${grp.kecamatan}, ` : '' }}{{ grp.kabupaten }}
+                                        </template>
+                                        <template v-else>
+                                            NPSN: {{ grp.npsn }} • {{ grp.kecamatan !== '-' ? `${grp.kecamatan}, ` : '' }}{{ grp.kabupaten }}
+                                        </template>
                                     </p>
                                 </div>
                                 <span class="px-2.5 py-1 rounded-full bg-slate-200 text-slate-800 text-xs font-bold shrink-0">
                                     {{ grp.students.length }} Siswa
                                 </span>
                             </div>
+                        </div>
+                    </template>
+
+                    <!-- Tab Desa & Kesejahteraan (Desktop Table + Mobile Cards) -->
+                    <template v-else-if="isWelfareMode">
+                        <!-- Mobile Cards -->
+                        <div class="md:hidden space-y-2.5">
+                            <div
+                                v-for="v in paginatedRows"
+                                :key="v.kode"
+                                @click="selectedVillageModal = v"
+                                class="p-3.5 rounded-2xl border border-slate-200/90 bg-slate-50/70 hover:bg-emerald-50/40 active:scale-[0.99] transition-all cursor-pointer space-y-2"
+                            >
+                                <div class="flex items-start justify-between gap-2">
+                                    <div class="min-w-0">
+                                        <p class="text-xs font-bold text-slate-900 leading-snug break-words">{{ v.desa }}</p>
+                                        <p class="text-[11px] text-slate-500 mt-0.5">
+                                            Kec. {{ v.kecamatan }}, {{ v.kabupaten }}
+                                        </p>
+                                    </div>
+                                    <span
+                                        :class="[
+                                            'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border shrink-0',
+                                            PSB_WELFARE_TIERS[v.tier].badgeClass,
+                                        ]"
+                                    >
+                                        <span :class="['w-1.5 h-1.5 rounded-full', PSB_WELFARE_TIERS[v.tier].dotClass]"></span>
+                                        <span>{{ PSB_WELFARE_TIERS[v.tier].shortLabel }}</span>
+                                    </span>
+                                </div>
+                                <div class="flex items-center justify-between pt-1.5 border-t border-slate-200/70 text-[11px]">
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="px-1.5 py-0.5 rounded bg-white border border-slate-200 font-bold text-slate-700">Skor {{ v.welfare_score }}</span>
+                                        <span class="px-1.5 py-0.5 rounded bg-white border border-slate-200 font-semibold text-slate-600">P1–P4: {{ v.total.toLocaleString('id-ID') }}</span>
+                                    </div>
+                                    <div class="font-bold text-slate-800">
+                                        {{ v.totalStudents }} Siswa <span class="text-slate-400 font-normal">({{ v.taCount }} TA)</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Desktop Table -->
+                        <div class="hidden md:block overflow-x-auto rounded-2xl border border-slate-200/90">
+                            <table class="w-full text-left border-collapse text-xs">
+                                <thead class="bg-slate-50 text-slate-600 border-b border-slate-200 uppercase text-[10.5px] font-bold tracking-wider">
+                                    <tr>
+                                        <th class="py-3 px-3.5 w-12 text-center">No</th>
+                                        <th class="py-3 px-3.5">Desa / Kelurahan</th>
+                                        <th class="py-3 px-3.5 text-center w-28">P1–P2 (Ekstrem)</th>
+                                        <th class="py-3 px-3.5 text-center w-28">Total P1–P4</th>
+                                        <th class="py-3 px-3.5 text-center w-36">Indeks Kesejahteraan</th>
+                                        <th class="py-3 px-3.5 text-center w-24">SD di Desa</th>
+                                        <th class="py-3 px-3.5 text-center w-28">Siswa Domisili</th>
+                                        <th class="py-3 px-3.5 text-center w-36">Segmen</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 bg-white">
+                                    <tr
+                                        v-for="(v, idx) in paginatedRows"
+                                        :key="v.kode"
+                                        @click="selectedVillageModal = v"
+                                        class="hover:bg-emerald-50/40 transition-colors cursor-pointer group"
+                                    >
+                                        <td class="py-3 px-3.5 text-center text-slate-400 font-medium">
+                                            {{ (currentPage - 1) * perPage + idx + 1 }}
+                                        </td>
+                                        <td class="py-3 px-3.5">
+                                            <div class="font-bold text-slate-900 group-hover:text-emerald-900">{{ v.desa }}</div>
+                                            <div class="text-[11px] text-slate-500 mt-0.5">Kec. {{ v.kecamatan }}, {{ v.kabupaten }}</div>
+                                        </td>
+                                        <td class="py-3 px-3.5 text-center font-semibold text-rose-700">
+                                            {{ v.p12.toLocaleString('id-ID') }}
+                                        </td>
+                                        <td class="py-3 px-3.5 text-center font-bold text-slate-800">
+                                            {{ v.total.toLocaleString('id-ID') }}
+                                        </td>
+                                        <td class="py-3 px-3.5 text-center">
+                                            <span
+                                                :class="[
+                                                    'inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold border',
+                                                    WELFARE_LEVEL_META[v.welfare_level]?.badgeClass || 'bg-slate-100 text-slate-700 border-slate-200',
+                                                ]"
+                                            >
+                                                {{ v.welfare_score }}/100 ({{ WELFARE_LEVEL_META[v.welfare_level]?.shortLabel || '-' }})
+                                            </span>
+                                        </td>
+                                        <td class="py-3 px-3.5 text-center font-semibold text-slate-600">
+                                            {{ v.schoolsCount }} SD
+                                        </td>
+                                        <td class="py-3 px-3.5 text-center">
+                                            <span
+                                                :class="[
+                                                    'font-extrabold text-sm',
+                                                    v.totalStudents > 0 ? 'text-emerald-800' : 'text-slate-400',
+                                                ]"
+                                            >
+                                                {{ v.totalStudents }}
+                                            </span>
+                                            <span v-if="latestTaName && v.latestTaCount > 0" class="block text-[10px] text-emerald-700 font-semibold">
+                                                +{{ v.latestTaCount }} ({{ latestTaName }})
+                                            </span>
+                                        </td>
+                                        <td class="py-3 px-3.5 text-center">
+                                            <span
+                                                :class="[
+                                                    'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border',
+                                                    PSB_WELFARE_TIERS[v.tier].badgeClass,
+                                                ]"
+                                            >
+                                                <span :class="['w-1.5 h-1.5 rounded-full', PSB_WELFARE_TIERS[v.tier].dotClass]"></span>
+                                                <span>{{ PSB_WELFARE_TIERS[v.tier].shortLabel }}</span>
+                                            </span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </template>
 
@@ -1121,7 +1642,7 @@ function exportExcel() {
             </template>
         </div>
 
-        <!-- Modal Daftar Sekolah dari Titik Kuadran (Jika >1 sekolah pada koordinat X,Y kembar) -->
+        <!-- Modal Daftar Sekolah / Desa dari Titik Kuadran -->
         <div
             v-if="quadrantGroupModal"
             @click.self="quadrantGroupModal = null"
@@ -1131,7 +1652,14 @@ function exportExcel() {
                 <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between gap-3">
                     <div>
                         <h3 class="text-sm font-bold text-slate-900">{{ quadrantGroupModal.title }}</h3>
-                        <p class="text-xs text-slate-500 mt-0.5">{{ quadrantGroupModal.schools.length }} sekolah berada pada titik posisi ini — klik sekolah untuk rincian siswa</p>
+                        <p class="text-xs text-slate-500 mt-0.5">
+                            <template v-if="quadrantGroupModal.mode === 'welfare'">
+                                {{ (quadrantGroupModal.villages || []).length }} desa/kelurahan pada posisi ini — klik desa untuk rincian P1–P4 &amp; siswa
+                            </template>
+                            <template v-else>
+                                {{ (quadrantGroupModal.schools || []).length }} sekolah berada pada titik posisi ini — klik sekolah untuk rincian siswa
+                            </template>
+                        </p>
                     </div>
                     <button
                         type="button"
@@ -1141,7 +1669,24 @@ function exportExcel() {
                         <span class="material-symbols-outlined text-[20px]">close</span>
                     </button>
                 </div>
-                <div class="p-4 overflow-y-auto space-y-2">
+                <div v-if="quadrantGroupModal.mode === 'welfare'" class="p-4 overflow-y-auto space-y-2">
+                    <button
+                        v-for="v in quadrantGroupModal.villages"
+                        :key="v.kode"
+                        type="button"
+                        @click="selectedVillageModal = v; quadrantGroupModal = null"
+                        class="w-full text-left p-3 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/40 transition-all flex items-center justify-between gap-3 cursor-pointer"
+                    >
+                        <div class="min-w-0">
+                            <p class="text-xs font-bold text-slate-900">{{ v.desa }}</p>
+                            <p class="text-[11px] text-slate-500 mt-0.5">Kec. {{ v.kecamatan }}, {{ v.kabupaten }} • Skor {{ v.welfare_score }}/100 (P1–4: {{ v.total.toLocaleString('id-ID') }})</p>
+                        </div>
+                        <span class="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-900 text-xs font-bold shrink-0">
+                            {{ v.totalStudents }} Siswa →
+                        </span>
+                    </button>
+                </div>
+                <div v-else class="p-4 overflow-y-auto space-y-2">
                     <button
                         v-for="sc in quadrantGroupModal.schools"
                         :key="sc.npsn"
@@ -1157,6 +1702,134 @@ function exportExcel() {
                             {{ sc.totalStudents }} Siswa →
                         </span>
                     </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Rincian Desa, Beban P1-P4, & Daftar Siswa Domisili -->
+        <div
+            v-if="selectedVillageModal"
+            @click.self="selectedVillageModal = null"
+            class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4"
+        >
+            <div class="bg-white rounded-3xl max-w-3xl w-full max-h-[88vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
+                <div class="px-5 py-4 border-b border-slate-100 flex items-start justify-between gap-3 bg-slate-50/60">
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-2 flex-wrap mb-1">
+                            <span
+                                :class="[
+                                    'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold border',
+                                    PSB_WELFARE_TIERS[selectedVillageModal.tier].badgeClass,
+                                ]"
+                            >
+                                <span :class="['w-1.5 h-1.5 rounded-full', PSB_WELFARE_TIERS[selectedVillageModal.tier].dotClass]"></span>
+                                <span>{{ PSB_WELFARE_TIERS[selectedVillageModal.tier].label }}</span>
+                            </span>
+                            <span
+                                :class="[
+                                    'px-2 py-0.5 rounded-md text-[11px] font-bold border',
+                                    WELFARE_LEVEL_META[selectedVillageModal.welfare_level]?.badgeClass || 'bg-slate-100 text-slate-700 border-slate-200',
+                                ]"
+                            >
+                                Indeks {{ selectedVillageModal.welfare_score }}/100
+                            </span>
+                            <span class="text-[11px] font-mono text-slate-400">{{ selectedVillageModal.kode }}</span>
+                        </div>
+                        <h3 class="text-base font-extrabold text-slate-900 leading-snug">Desa / Kel. {{ selectedVillageModal.desa }}</h3>
+                        <p class="text-xs text-slate-500 mt-0.5">
+                            Kec. {{ selectedVillageModal.kecamatan }}, {{ selectedVillageModal.kabupaten }}
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        @click="selectedVillageModal = null"
+                        class="w-8 h-8 rounded-full hover:bg-slate-200/70 flex items-center justify-center text-slate-500 cursor-pointer shrink-0"
+                    >
+                        <span class="material-symbols-outlined text-[20px]">close</span>
+                    </button>
+                </div>
+
+                <div class="p-5 overflow-y-auto space-y-4">
+                    <!-- Breakdown Kemiskinan P1-P4 Jatengprov -->
+                    <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                        <div class="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-center">
+                            <div class="text-[10px] font-bold text-rose-700 uppercase">Prioritas 1</div>
+                            <div class="text-base font-extrabold text-rose-900 mt-0.5">{{ selectedVillageModal.p1.toLocaleString('id-ID') }}</div>
+                        </div>
+                        <div class="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-center">
+                            <div class="text-[10px] font-bold text-amber-700 uppercase">Prioritas 2</div>
+                            <div class="text-base font-extrabold text-amber-900 mt-0.5">{{ selectedVillageModal.p2.toLocaleString('id-ID') }}</div>
+                        </div>
+                        <div class="p-3 rounded-2xl bg-sky-50 border border-sky-200 text-center">
+                            <div class="text-[10px] font-bold text-sky-700 uppercase">Prioritas 3</div>
+                            <div class="text-base font-extrabold text-sky-900 mt-0.5">{{ selectedVillageModal.p3.toLocaleString('id-ID') }}</div>
+                        </div>
+                        <div class="p-3 rounded-2xl bg-slate-50 border border-slate-200 text-center">
+                            <div class="text-[10px] font-bold text-slate-600 uppercase">Prioritas 4</div>
+                            <div class="text-base font-extrabold text-slate-900 mt-0.5">{{ selectedVillageModal.p4.toLocaleString('id-ID') }}</div>
+                        </div>
+                        <div class="col-span-2 sm:col-span-1 p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-center">
+                            <div class="text-[10px] font-bold text-emerald-700 uppercase">Total P1–P4</div>
+                            <div class="text-base font-extrabold text-emerald-950 mt-0.5">{{ selectedVillageModal.total.toLocaleString('id-ID') }}</div>
+                        </div>
+                    </div>
+
+                    <!-- Ringkasan Siswa Domisili -->
+                    <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                            <div class="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider">Histori Siswa Berdomisili di Desa Ini</div>
+                            <div class="text-sm font-extrabold text-slate-900 mt-0.5">
+                                {{ selectedVillageModal.totalStudents }} Siswa dari {{ selectedVillageModal.taCount }} Tahun Ajaran • {{ selectedVillageModal.schoolsCount }} SD/MI Asal di Desa
+                            </div>
+                        </div>
+                        <div v-if="selectedVillageModal.taBreakdown.length > 0" class="flex flex-wrap gap-1.5">
+                            <span
+                                v-for="[ta, cnt] in selectedVillageModal.taBreakdown"
+                                :key="ta"
+                                class="px-2.5 py-1 rounded-xl bg-white border border-emerald-200 text-emerald-900 text-xs font-bold shadow-2xs"
+                            >
+                                {{ ta }}: {{ cnt }} siswa
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Daftar Siswa Domisili -->
+                    <div v-if="selectedVillageModal.students.length > 0" class="space-y-2">
+                        <div class="text-xs font-bold text-slate-700 uppercase tracking-wider">Daftar Siswa Berdomisili</div>
+                        <Link
+                            v-for="(st, sIdx) in selectedVillageModal.students"
+                            :key="st.id"
+                            :href="`/students/${st.nisn}`"
+                            class="p-3 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/40 transition-all flex items-center justify-between gap-3 group"
+                        >
+                            <div class="flex items-center gap-2.5 min-w-0">
+                                <span class="w-6 h-6 rounded-lg bg-slate-100 text-slate-600 text-[11px] font-bold flex items-center justify-center shrink-0">
+                                    {{ sIdx + 1 }}
+                                </span>
+                                <div class="min-w-0">
+                                    <div class="flex items-center gap-1.5 flex-wrap">
+                                        <span class="text-xs font-bold text-slate-900 group-hover:text-emerald-950 truncate">{{ st.nama }}</span>
+                                        <span :class="['px-1.5 py-0.5 rounded border text-[10px] font-bold', getGenderBadgeClass(st.jk)]">
+                                            {{ getGenderLabel(st.jk) }}
+                                        </span>
+                                    </div>
+                                    <p class="text-[11px] text-slate-500 mt-0.5 truncate">
+                                        {{ st.unit }} • {{ st.sekolah_asal || '-' }} • Masuk {{ st.ta_masuk || '-' }}
+                                    </p>
+                                </div>
+                            </div>
+                            <span :class="['px-2 py-0.5 rounded border text-[10px] font-bold shrink-0', getProgramBadgeClass(st.program)]">
+                                {{ st.program }}
+                            </span>
+                        </Link>
+                    </div>
+                    <div v-else class="py-8 text-center rounded-2xl bg-slate-50 border border-dashed border-slate-300">
+                        <span class="material-symbols-outlined text-3xl text-slate-300 mb-1 block">home_work</span>
+                        <p class="text-xs font-bold text-slate-700">Belum ada siswa berdomisili dari desa ini (0 Siswa)</p>
+                        <p class="text-[11px] text-slate-500 mt-0.5">
+                            {{ selectedVillageModal.welfare_score >= 50 ? 'Desa tergolong sejahtera (beban P1–P4 di bawah median) dan berpotensi dijadikan target sosialisasi.' : 'Desa memiliki beban P1–P4 tinggi dan belum terjangkau.' }}
+                        </p>
+                    </div>
                 </div>
             </div>
         </div>

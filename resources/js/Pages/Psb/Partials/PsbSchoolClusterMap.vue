@@ -4,6 +4,7 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import {
     PSB_TIERS,
+    PSB_WELFARE_TIERS,
     SOLO_RAYA_KABUPATENS,
     normalizeWilayahKey,
 } from '@/Utils/psbMatcher';
@@ -14,7 +15,15 @@ if (L.Draggable?.prototype?.options) {
 }
 
 const props = defineProps({
+    mode: {
+        type: String,
+        default: 'school', // 'school' | 'welfare'
+    },
     schools: {
+        type: Array,
+        default: () => [],
+    },
+    villages: {
         type: Array,
         default: () => [],
     },
@@ -28,7 +37,9 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(['select-school', 'select-kecamatan', 'reset-kecamatan']);
+const emit = defineEmits(['update:mode', 'select-school', 'select-village', 'select-kecamatan', 'reset-kecamatan']);
+
+const isWelfareMode = computed(() => props.mode === 'welfare');
 
 const mapContainerRef = ref(null);
 let map = null;
@@ -160,6 +171,73 @@ const geoAggregations = computed(() => {
     };
 });
 
+// Agregasi Domisili & Kesejahteraan (P1-P4 Jatengprov) per Kecamatan & per Desa
+const welfareAggregations = computed(() => {
+    const byKec = new Map();
+    const byDesa = new Map();
+    let reachedVillages = 0;
+    let totalDomicileStudents = 0;
+
+    props.villages.forEach((v) => {
+        const kabKey = normalizeWilayahKey(v.kabupaten);
+        const kecKey = normalizeWilayahKey(v.kecamatan);
+        const dKey = normDesa(v.desa);
+
+        const kKey = `${kecKey}_${kabKey}`;
+        if (!byKec.has(kKey)) {
+            byKec.set(kKey, {
+                kecamatan: v.kecamatan,
+                kabupaten: v.kabupaten,
+                villageCount: 0,
+                reachedVillages: 0,
+                students: 0,
+                totalP14: 0,
+                p12: 0,
+                welfareSum: 0,
+                avgWelfare: 0,
+                villages: [],
+            });
+        }
+
+        const kb = byKec.get(kKey);
+        kb.villageCount++;
+        kb.students += v.totalStudents;
+        kb.totalP14 += v.total || 0;
+        kb.p12 += v.p12 || 0;
+        kb.welfareSum += Number(v.welfare_score || 0);
+        kb.villages.push(v);
+        if (v.totalStudents > 0) {
+            kb.reachedVillages++;
+            reachedVillages++;
+        }
+        totalDomicileStudents += v.totalStudents;
+
+        if (dKey) {
+            byDesa.set(`${dKey}_${kecKey}_${kabKey}`, v);
+        }
+    });
+
+    byKec.forEach((kb) => {
+        kb.avgWelfare = kb.villageCount > 0 ? Number((kb.welfareSum / kb.villageCount).toFixed(1)) : 0;
+    });
+
+    return {
+        byKec,
+        byDesa,
+        reachedVillages,
+        totalVillages: props.villages.length,
+        totalDomicileStudents,
+    };
+});
+
+function getWelfareChoroplethColor(score) {
+    const s = Number(score ?? 0);
+    if (s >= 75) return '#059669';
+    if (s >= 50) return '#6ee7b7';
+    if (s >= 25) return '#fde68a';
+    return '#fda4af';
+}
+
 // Skala Choropleth Emerald identik dengan Peta Domisili
 function getChoroplethColor(studentCount) {
     if (studentCount >= 20) return '#064e3b';
@@ -172,6 +250,21 @@ function getChoroplethColor(studentCount) {
 function getKecStats(feature) {
     const kecKey = normalizeWilayahKey(feature?.properties?.kecamatan);
     const kabKey = normalizeWilayahKey(feature?.properties?.kabupaten);
+    if (isWelfareMode.value) {
+        return (
+            welfareAggregations.value.byKec.get(`${kecKey}_${kabKey}`) || {
+                kecamatan: feature?.properties?.kecamatan || '-',
+                kabupaten: feature?.properties?.kabupaten || '-',
+                villageCount: 0,
+                reachedVillages: 0,
+                students: 0,
+                totalP14: 0,
+                p12: 0,
+                avgWelfare: 0,
+                villages: [],
+            }
+        );
+    }
     return (
         geoAggregations.value.byKec.get(`${kecKey}_${kabKey}`) || {
             kecamatan: feature?.properties?.kecamatan || '-',
@@ -192,6 +285,28 @@ function getDesaStats(feature) {
     const dKey = normDesa(feature?.properties?.desa);
     const kecKey = normalizeWilayahKey(feature?.properties?.kecamatan);
     const kabKey = normalizeWilayahKey(feature?.properties?.kabupaten);
+    if (isWelfareMode.value) {
+        return (
+            welfareAggregations.value.byDesa.get(`${dKey}_${kecKey}_${kabKey}`) || {
+                desa: feature?.properties?.desa || '-',
+                kecamatan: feature?.properties?.kecamatan || '-',
+                kabupaten: feature?.properties?.kabupaten || '-',
+                p1: 0,
+                p2: 0,
+                p3: 0,
+                p4: 0,
+                p12: 0,
+                total: 0,
+                welfare_score: 50,
+                welfare_level: 'menengah_atas',
+                totalStudents: 0,
+                taCount: 0,
+                students: [],
+                schoolsCount: 0,
+                tier: 'sejahtera_potensial',
+            }
+        );
+    }
     return (
         geoAggregations.value.byDesa.get(`${dKey}_${kecKey}_${kabKey}`) || {
             desa: feature?.properties?.desa || '-',
@@ -207,6 +322,18 @@ function getDesaStats(feature) {
 
 function kecamatanStyle(feature) {
     const stats = getKecStats(feature);
+    if (isWelfareMode.value) {
+        const hasStudents = stats.students > 0;
+        return {
+            fill: true,
+            fillColor: getWelfareChoroplethColor(stats.avgWelfare),
+            weight: hasStudents ? 1.3 : 0.85,
+            opacity: 0.9,
+            color: hasStudents ? '#065f46' : '#94a3b8',
+            dashArray: null,
+            fillOpacity: stats.villageCount > 0 ? 0.82 : 0.4,
+        };
+    }
     return {
         fill: true,
         fillColor: getChoroplethColor(stats.students),
@@ -220,6 +347,18 @@ function kecamatanStyle(feature) {
 
 function desaStyle(feature) {
     const stats = getDesaStats(feature);
+    if (isWelfareMode.value) {
+        const hasStudents = (stats.totalStudents || 0) > 0;
+        return {
+            fill: true,
+            fillColor: getWelfareChoroplethColor(stats.welfare_score),
+            weight: hasStudents ? 1.5 : 0.65,
+            opacity: 0.95,
+            color: hasStudents ? '#064e3b' : '#94a3b8',
+            dashArray: null,
+            fillOpacity: 0.82,
+        };
+    }
     return {
         fill: true,
         fillColor: getChoroplethColor(stats.students),
@@ -351,20 +490,45 @@ function handleHoverFeature(type, feature, layer, latlng) {
             type === 'desa'
                 ? `Kec. ${feature.properties.kecamatan}, ${feature.properties.kabupaten}`
                 : `Kab/Kota ${feature.properties.kabupaten}`;
-        const actionHint =
-            type === 'kecamatan'
+        const actionHint = isWelfareMode.value
+            ? (type === 'kecamatan'
+                ? 'Klik kecamatan untuk masuk ke rincian kesejahteraan Desa'
+                : 'Klik desa untuk melihat P1–P4 & siswa domisili')
+            : (type === 'kecamatan'
                 ? 'Klik kecamatan untuk masuk ke Desa & titik sekolah'
-                : 'Klik desa untuk melihat daftar SD/MI/PKBM';
+                : 'Klik desa untuk melihat daftar SD/MI/PKBM');
+
+        const metricRow = isWelfareMode.value
+            ? (type === 'desa'
+                ? `<div class="mt-1.5 pt-1 border-t border-slate-200/80 space-y-1">
+                        <div class="flex items-center justify-between gap-3">
+                            <span class="font-bold text-emerald-800">${stats.totalStudents || 0} Siswa Domisili</span>
+                            <span class="text-[11px] font-bold text-slate-700">Skor ${stats.welfare_score ?? '-'}</span>
+                        </div>
+                        <div class="text-[10.5px] text-slate-500">
+                            Total P1–P4: <strong>${(stats.total || 0).toLocaleString('id-ID')}</strong> (P1–P2: ${(stats.p12 || 0).toLocaleString('id-ID')})
+                        </div>
+                   </div>`
+                : `<div class="mt-1.5 pt-1 border-t border-slate-200/80 space-y-1">
+                        <div class="flex items-center justify-between gap-3">
+                            <span class="font-bold text-emerald-800">${stats.students} Siswa Domisili</span>
+                            <span class="text-[11px] font-bold text-slate-700">Rata Skor ${stats.avgWelfare}</span>
+                        </div>
+                        <div class="text-[10.5px] text-slate-500">
+                            ${stats.reachedVillages}/${stats.villageCount} desa • Total P1–P4: ${(stats.totalP14 || 0).toLocaleString('id-ID')}
+                        </div>
+                   </div>`)
+            : `<div class="mt-1.5 pt-1 border-t border-slate-200/80 flex items-center justify-between gap-3">
+                    <span class="font-bold text-emerald-800">${stats.students} Siswa</span>
+                    <span class="text-[11px] font-semibold text-slate-600">${stats.reached} / ${stats.total} SD tergarap</span>
+               </div>`;
 
         singleTooltip.setLatLng(pos).setContent(`
-            <div class="px-2.5 py-1.5 text-xs text-slate-800 leading-tight min-w-[190px]">
+            <div class="px-2.5 py-1.5 text-xs text-slate-800 leading-tight min-w-[200px]">
                 <div class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider mb-0.5">${headingLabel}</div>
                 <div class="font-extrabold text-slate-900 text-[13px]">${escapeHtml(titleText)}</div>
                 <div class="text-[11px] text-slate-500 font-medium">${escapeHtml(subText)}</div>
-                <div class="mt-1.5 pt-1 border-t border-slate-200/80 flex items-center justify-between gap-3">
-                    <span class="font-bold text-emerald-800">${stats.students} Siswa</span>
-                    <span class="text-[11px] font-semibold text-slate-600">${stats.reached} / ${stats.total} SD tergarap</span>
-                </div>
+                ${metricRow}
                 <div class="text-[10px] text-slate-400 italic mt-1">${actionHint}</div>
             </div>
         `);
@@ -447,7 +611,28 @@ function buildDesaLayer() {
                     click: (e) => {
                         if (e.originalEvent) L.DomEvent.stopPropagation(e.originalEvent);
                         const stats = getDesaStats(feature);
+                        if (isWelfareMode.value) {
+                            selectedDesaCard.value = {
+                                mode: 'welfare',
+                                village: stats,
+                                desa: feature.properties.desa,
+                                kecamatan: feature.properties.kecamatan,
+                                kabupaten: feature.properties.kabupaten,
+                                students: stats.totalStudents || 0,
+                                welfare_score: stats.welfare_score ?? 0,
+                                p1: stats.p1 || 0,
+                                p2: stats.p2 || 0,
+                                p3: stats.p3 || 0,
+                                p4: stats.p4 || 0,
+                                totalP14: stats.total || 0,
+                                tier: stats.tier,
+                                studentList: stats.students || [],
+                                schools: stats.schools || [],
+                            };
+                            return;
+                        }
                         selectedDesaCard.value = {
+                            mode: 'school',
                             desa: feature.properties.desa,
                             kecamatan: feature.properties.kecamatan,
                             kabupaten: feature.properties.kabupaten,
@@ -546,7 +731,7 @@ function renderMapLabels() {
                 const name = f.properties?.kecamatan;
                 if (!name || !lat || !lng || !viewBounds.contains([lat, lng])) return;
                 const stats = getKecStats(f);
-                items.push({ lat, lng, name, students: stats.students });
+                items.push({ lat, lng, name, students: stats.students || 0, welfareScore: stats.avgWelfare || 0 });
             });
 
             // Prioritaskan kecamatan dengan siswa masuk agar labelnya selalu muncul dulu
@@ -559,7 +744,7 @@ function renderMapLabels() {
                 if (crowded) return;
                 placedPts.push(pt);
 
-                const isDarkBg = item.students >= 10;
+                const isDarkBg = isWelfareMode.value ? item.welfareScore >= 75 : item.students >= 10;
                 const textColor = isDarkBg ? '#ffffff' : '#1e293b';
                 const shadow = isDarkBg
                     ? '0 1px 2px rgba(6,78,59,0.95), 0 0 3px rgba(6,78,59,0.85)'
@@ -599,7 +784,13 @@ function renderMapLabels() {
                     const name = f.properties?.desa;
                     if (!name || !lat || !lng || !viewBounds.contains([lat, lng])) return;
                     const stats = getDesaStats(f);
-                    items.push({ lat, lng, name, students: stats.students });
+                    items.push({
+                        lat,
+                        lng,
+                        name,
+                        students: isWelfareMode.value ? (stats.totalStudents || 0) : (stats.students || 0),
+                        welfareScore: stats.welfare_score ?? 0,
+                    });
                 });
 
                 items.sort((a, b) => b.students - a.students);
@@ -611,7 +802,7 @@ function renderMapLabels() {
                     if (crowded) return;
                     placedPts.push(pt);
 
-                    const isDarkBg = item.students >= 10;
+                    const isDarkBg = isWelfareMode.value ? item.welfareScore >= 75 : item.students >= 10;
                     const textColor = isDarkBg ? '#ffffff' : '#334155';
                     const shadow = isDarkBg
                         ? '0 1px 2px rgba(6,78,59,0.95), 0 0 3px rgba(6,78,59,0.85)'
@@ -942,7 +1133,9 @@ onBeforeUnmount(() => {
 
 watch(
     () => [
+        props.mode,
         props.schools,
+        props.villages,
         showSchoolDots.value,
         visibleTiers.basis_utama,
         visibleTiers.potensial,
@@ -950,6 +1143,8 @@ watch(
         visibleTiers.belum_tergarap,
     ],
     () => {
+        selectedDesaCard.value = null;
+        clearHover();
         updateLayersAndFocus();
     },
     { deep: false }
@@ -983,24 +1178,61 @@ watch(
                 <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block shrink-0"></span>
                 <div>
                     <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                        Peta Sebaran Sekolah Asal &amp; Wilayah (Solo Raya)
+                        {{ isWelfareMode ? 'Peta Domisili Siswa & Kesejahteraan Desa (Solo Raya)' : 'Peta Sebaran Sekolah Asal & Wilayah (Solo Raya)' }}
                     </h3>
                     <p class="text-[11px] text-slate-500 font-medium mt-0.5">
-                        <template v-if="drillKecamatan">
-                            Mode Desa: <span class="font-bold text-emerald-800">Kec. {{ drillKecamatan.kecamatan }} ({{ drillKecamatan.kabupaten }})</span> — klik titik sekolah atau poligon desa
-                        </template>
-                        <template v-else-if="aggregationLevel === 'desa'">
-                            Menampilkan warna per <span class="font-bold text-slate-700">Desa / Kelurahan</span> se-Solo Raya — klik desa untuk daftar SD/MI/PKBM
+                        <template v-if="isWelfareMode">
+                            <template v-if="drillKecamatan">
+                                Mode Desa: <span class="font-bold text-emerald-800">Kec. {{ drillKecamatan.kecamatan }} ({{ drillKecamatan.kabupaten }})</span> — klik desa untuk P1–P4 &amp; siswa domisili
+                            </template>
+                            <template v-else-if="aggregationLevel === 'desa'">
+                                Warna per <span class="font-bold text-slate-700">Desa / Kelurahan</span> berdasar beban kemiskinan P1–P4 (Jatengprov) — klik desa untuk rincian
+                            </template>
+                            <template v-else>
+                                Warna per <span class="font-bold text-slate-700">Kecamatan</span> berdasar indeks kesejahteraan P1–P4 — klik kecamatan untuk masuk ke Desa
+                            </template>
                         </template>
                         <template v-else>
-                            Warna per <span class="font-bold text-slate-700">Kecamatan</span> berdasarkan siswa masuk — klik kecamatan untuk masuk ke level Desa &amp; titik SD
+                            <template v-if="drillKecamatan">
+                                Mode Desa: <span class="font-bold text-emerald-800">Kec. {{ drillKecamatan.kecamatan }} ({{ drillKecamatan.kabupaten }})</span> — klik titik sekolah atau poligon desa
+                            </template>
+                            <template v-else-if="aggregationLevel === 'desa'">
+                                Menampilkan warna per <span class="font-bold text-slate-700">Desa / Kelurahan</span> se-Solo Raya — klik desa untuk daftar SD/MI/PKBM
+                            </template>
+                            <template v-else>
+                                Warna per <span class="font-bold text-slate-700">Kecamatan</span> berdasarkan siswa masuk — klik kecamatan untuk masuk ke level Desa &amp; titik SD
+                            </template>
                         </template>
                     </p>
                 </div>
             </div>
 
-            <!-- Kontrol Kanan: Toggle [Kecamatan | Desa], Titik SD/MI, Badge Ringkasan -->
+            <!-- Kontrol Kanan: Toggle Mode Peta, [Kecamatan | Desa], Titik SD/MI, Badge Ringkasan -->
             <div class="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+                <!-- Toggle Mode Peta -->
+                <div class="inline-flex items-center p-0.5 bg-slate-100 rounded-xl border border-slate-200/90 shadow-2xs">
+                    <button
+                        type="button"
+                        @click="emit('update:mode', 'school')"
+                        class="px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer"
+                        :class="!isWelfareMode
+                            ? 'bg-emerald-900 text-yellow-200 shadow-xs'
+                            : 'text-slate-600 hover:text-slate-900'"
+                    >
+                        Sekolah Asal
+                    </button>
+                    <button
+                        type="button"
+                        @click="emit('update:mode', 'welfare')"
+                        class="px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer"
+                        :class="isWelfareMode
+                            ? 'bg-emerald-900 text-yellow-200 shadow-xs'
+                            : 'text-slate-600 hover:text-slate-900'"
+                    >
+                        Kesejahteraan Desa
+                    </button>
+                </div>
+
                 <!-- Toggle Pilihan Wilayah: Kecamatan / Desa (Warna Kuning/Amber persis Peta Domisili) -->
                 <div class="inline-flex items-center p-0.5 bg-amber-50 rounded-xl border border-amber-200/90 shadow-2xs">
                     <button
@@ -1045,8 +1277,14 @@ watch(
                 <!-- Badge Total Tercakup -->
                 <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-bold text-emerald-800">
                     <span class="w-2 h-2 rounded-full bg-emerald-600"></span>
-                    <span>{{ geoAggregations.totalReachedSchools }} SD Tergarap</span>
-                    <span class="text-[11px] text-emerald-600 font-medium">({{ geoAggregations.totalStudents }} Siswa)</span>
+                    <template v-if="isWelfareMode">
+                        <span>{{ welfareAggregations.reachedVillages }} Desa Terjangkau</span>
+                        <span class="text-[11px] text-emerald-600 font-medium">({{ welfareAggregations.totalDomicileStudents }} Siswa)</span>
+                    </template>
+                    <template v-else>
+                        <span>{{ geoAggregations.totalReachedSchools }} SD Tergarap</span>
+                        <span class="text-[11px] text-emerald-600 font-medium">({{ geoAggregations.totalStudents }} Siswa)</span>
+                    </template>
                 </div>
             </div>
         </div>
@@ -1146,14 +1384,17 @@ watch(
             <!-- Floating Card Rincian Desa saat Desa Diklik -->
             <div
                 v-if="selectedDesaCard"
-                class="absolute bottom-3 right-3 z-[420] w-[calc(100%-24px)] sm:w-80 bg-white/98 backdrop-blur-sm rounded-2xl border border-emerald-200 shadow-xl overflow-hidden flex flex-col max-h-[260px]"
+                class="absolute bottom-3 right-3 z-[420] w-[calc(100%-24px)] sm:w-80 bg-white/98 backdrop-blur-sm rounded-2xl border border-emerald-200 shadow-xl overflow-hidden flex flex-col max-h-[280px]"
             >
                 <div class="px-3.5 py-2.5 bg-emerald-50/80 border-b border-emerald-100 flex items-start justify-between gap-2">
                     <div class="min-w-0">
                         <span class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">
                             Desa {{ selectedDesaCard.desa }} • Kec. {{ selectedDesaCard.kecamatan }}
                         </span>
-                        <span class="text-xs font-extrabold text-slate-900">
+                        <span v-if="selectedDesaCard.mode === 'welfare'" class="text-xs font-extrabold text-slate-900">
+                            {{ selectedDesaCard.students }} Siswa Domisili • Skor {{ selectedDesaCard.welfare_score }}/100
+                        </span>
+                        <span v-else class="text-xs font-extrabold text-slate-900">
                             {{ selectedDesaCard.reached }} / {{ selectedDesaCard.total }} SD Tergarap ({{ selectedDesaCard.students }} Siswa)
                         </span>
                     </div>
@@ -1165,7 +1406,45 @@ watch(
                         <span class="material-symbols-outlined text-[16px]">close</span>
                     </button>
                 </div>
-                <div class="p-2.5 overflow-y-auto space-y-1.5 custom-bar-scrollbar">
+
+                <!-- Welfare Mode Card Body -->
+                <div v-if="selectedDesaCard.mode === 'welfare'" class="p-3 overflow-y-auto space-y-2.5 custom-bar-scrollbar">
+                    <div class="grid grid-cols-4 gap-1.5 text-center">
+                        <div class="p-1.5 rounded-lg bg-rose-50 border border-rose-200">
+                            <div class="text-[9.5px] font-bold text-rose-700">P1</div>
+                            <div class="text-xs font-extrabold text-rose-900">{{ selectedDesaCard.p1.toLocaleString('id-ID') }}</div>
+                        </div>
+                        <div class="p-1.5 rounded-lg bg-amber-50 border border-amber-200">
+                            <div class="text-[9.5px] font-bold text-amber-700">P2</div>
+                            <div class="text-xs font-extrabold text-amber-900">{{ selectedDesaCard.p2.toLocaleString('id-ID') }}</div>
+                        </div>
+                        <div class="p-1.5 rounded-lg bg-sky-50 border border-sky-200">
+                            <div class="text-[9.5px] font-bold text-sky-700">P3</div>
+                            <div class="text-xs font-extrabold text-sky-900">{{ selectedDesaCard.p3.toLocaleString('id-ID') }}</div>
+                        </div>
+                        <div class="p-1.5 rounded-lg bg-slate-50 border border-slate-200">
+                            <div class="text-[9.5px] font-bold text-slate-600">P4</div>
+                            <div class="text-xs font-extrabold text-slate-900">{{ selectedDesaCard.p4.toLocaleString('id-ID') }}</div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between text-[11px] px-2 py-1.5 rounded-xl bg-slate-50 border border-slate-200">
+                        <span class="text-slate-600 font-semibold">Total Beban P1–P4:</span>
+                        <span class="font-extrabold text-slate-900">{{ selectedDesaCard.totalP14.toLocaleString('id-ID') }} jiwa</span>
+                    </div>
+
+                    <button
+                        v-if="selectedDesaCard.village"
+                        type="button"
+                        @click="emit('select-village', selectedDesaCard.village)"
+                        class="w-full py-2 px-3 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 text-xs font-bold transition-colors cursor-pointer"
+                    >
+                        Lihat Rincian Desa &amp; Daftar Siswa ({{ selectedDesaCard.students }}) →
+                    </button>
+                </div>
+
+                <!-- School Mode Card Body -->
+                <div v-else class="p-2.5 overflow-y-auto space-y-1.5 custom-bar-scrollbar">
                     <p v-if="selectedDesaCard.schools.length === 0" class="text-[11px] text-slate-400 text-center py-4">
                         Tidak ada SD/MI/PKBM terdata di desa ini pada filter aktif.
                     </p>
@@ -1198,7 +1477,10 @@ watch(
                 class="sm:hidden absolute bottom-3 right-3 z-[400] bg-white/95 backdrop-blur-xs rounded-xl border border-slate-200 px-3 py-2 shadow-md text-xs pointer-events-none"
             >
                 <div class="font-bold text-slate-900">{{ hoveredInfo.desa ? `Desa ${hoveredInfo.desa}` : `Kec. ${hoveredInfo.kecamatan}` }}</div>
-                <div class="text-[11px] text-emerald-800 font-semibold">{{ hoveredInfo.reached }} / {{ hoveredInfo.total }} SD • {{ hoveredInfo.students }} Siswa</div>
+                <div v-if="isWelfareMode" class="text-[11px] text-emerald-800 font-semibold">
+                    {{ hoveredInfo.desa ? `Skor ${hoveredInfo.welfare_score} • ${hoveredInfo.totalStudents || 0} Siswa` : `Rata Skor ${hoveredInfo.avgWelfare} • ${hoveredInfo.students} Siswa` }}
+                </div>
+                <div v-else class="text-[11px] text-emerald-800 font-semibold">{{ hoveredInfo.reached }} / {{ hoveredInfo.total }} SD • {{ hoveredInfo.students }} Siswa</div>
             </div>
 
             <!-- Tombol Legenda Mobile -->
@@ -1223,7 +1505,12 @@ watch(
                 <div>
                     <div class="flex items-center justify-between gap-3 mb-1">
                         <span class="text-[10px] font-bold text-slate-700 uppercase tracking-wider">
-                            {{ aggregationLevel === 'desa' ? 'Siswa Masuk per Desa' : 'Siswa Masuk per Kecamatan' }}
+                            <template v-if="isWelfareMode">
+                                {{ aggregationLevel === 'desa' ? 'Kesejahteraan P1-P4 Desa' : 'Rata-rata P1-P4 Kecamatan' }}
+                            </template>
+                            <template v-else>
+                                {{ aggregationLevel === 'desa' ? 'Siswa Masuk per Desa' : 'Siswa Masuk per Kecamatan' }}
+                            </template>
                         </span>
                         <button
                             type="button"
@@ -1233,7 +1520,13 @@ watch(
                             <span class="material-symbols-outlined text-[15px]">expand_more</span>
                         </button>
                     </div>
-                    <div class="flex items-center gap-1 text-[10px] text-slate-600 font-medium">
+                    <div v-if="isWelfareMode" class="flex items-center gap-1.5 text-[10px] text-slate-600 font-medium flex-wrap">
+                        <div class="flex items-center gap-0.5"><span class="w-3.5 h-3 rounded-xs inline-block bg-[#fda4af]"></span><span>&lt;25 (Beban Tinggi)</span></div>
+                        <div class="flex items-center gap-0.5"><span class="w-3.5 h-3 rounded-xs inline-block bg-[#fde68a]"></span><span>25-49</span></div>
+                        <div class="flex items-center gap-0.5"><span class="w-3.5 h-3 rounded-xs inline-block bg-[#6ee7b7]"></span><span>50-74</span></div>
+                        <div class="flex items-center gap-0.5"><span class="w-3.5 h-3 rounded-xs inline-block bg-[#059669]"></span><span>75+ (Sejahtera)</span></div>
+                    </div>
+                    <div v-else class="flex items-center gap-1 text-[10px] text-slate-600 font-medium">
                         <div class="flex items-center gap-0.5"><span class="w-3.5 h-3 rounded-xs border border-slate-300 inline-block bg-[#ffffff]"></span><span class="mr-1">0</span></div>
                         <div class="flex items-center gap-0.5"><span class="w-3.5 h-3 rounded-xs inline-block bg-[#6ee7b7]"></span><span class="mr-1">1-4</span></div>
                         <div class="flex items-center gap-0.5"><span class="w-3.5 h-3 rounded-xs inline-block bg-[#10b981]"></span><span class="mr-1">5-9</span></div>

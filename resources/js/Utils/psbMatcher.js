@@ -279,3 +279,264 @@ export function matchAndClassifySchools(referenceSchools, students, latestTaName
     };
 }
 
+export const PSB_WELFARE_TIERS = {
+    sejahtera_basis: {
+        key: 'sejahtera_basis',
+        label: 'Basis Sejahtera',
+        shortLabel: 'Basis Sejahtera',
+        description: 'Beban P1-P4 di bawah median (Sejahtera) & >= 3 siswa domisili',
+        badgeClass: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+        dotClass: 'bg-emerald-600',
+        activeTabClass: 'bg-emerald-900 text-yellow-200 border-emerald-950 shadow-2xs',
+        hex: '#059669',
+        fillRgba: 'rgba(5, 150, 105, 0.80)',
+        strokeHex: '#065f46',
+    },
+    sejahtera_potensial: {
+        key: 'sejahtera_potensial',
+        label: 'Potensial Sejahtera',
+        shortLabel: 'Potensial',
+        description: 'Beban P1-P4 di bawah median (Sejahtera), masih 0-2 siswa domisili',
+        badgeClass: 'bg-amber-50 text-amber-800 border-amber-200',
+        dotClass: 'bg-amber-500',
+        activeTabClass: 'bg-amber-600 text-white border-amber-700 shadow-2xs',
+        hex: '#d97706',
+        fillRgba: 'rgba(245, 158, 11, 0.80)',
+        strokeHex: '#b45309',
+    },
+    rentan_terjangkau: {
+        key: 'rentan_terjangkau',
+        label: 'Basis Rentan / Subsidi',
+        shortLabel: 'Basis Rentan',
+        description: 'Beban P1-P4 di atas median & >= 3 siswa domisili',
+        badgeClass: 'bg-sky-50 text-sky-800 border-sky-200',
+        dotClass: 'bg-sky-600',
+        activeTabClass: 'bg-sky-700 text-white border-sky-800 shadow-2xs',
+        hex: '#0284c7',
+        fillRgba: 'rgba(2, 132, 199, 0.78)',
+        strokeHex: '#0369a1',
+    },
+    rentan_minim: {
+        key: 'rentan_minim',
+        label: 'Prioritas P1-P4 (0-2)',
+        shortLabel: 'Rentan (0-2)',
+        description: 'Beban P1-P4 di atas median & 0-2 siswa domisili',
+        badgeClass: 'bg-slate-100 text-slate-700 border-slate-300',
+        dotClass: 'bg-slate-400',
+        activeTabClass: 'bg-slate-800 text-white border-slate-900 shadow-2xs',
+        hex: '#64748b',
+        fillRgba: 'rgba(100, 116, 139, 0.55)',
+        strokeHex: '#475569',
+    },
+};
+
+export const WELFARE_LEVEL_META = {
+    sejahtera_tinggi: {
+        label: 'Beban Rendah (Sejahtera)',
+        shortLabel: 'Sejahtera',
+        badgeClass: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+        hex: '#059669',
+    },
+    menengah_atas: {
+        label: 'Menengah Atas',
+        shortLabel: 'Menengah+',
+        badgeClass: 'bg-teal-50 text-teal-800 border-teal-200',
+        hex: '#34d399',
+    },
+    menengah_bawah: {
+        label: 'Menengah Bawah',
+        shortLabel: 'Menengah-',
+        badgeClass: 'bg-amber-50 text-amber-800 border-amber-200',
+        hex: '#fbbf24',
+    },
+    rentan_tinggi: {
+        label: 'Beban P1-P4 Tinggi',
+        shortLabel: 'Beban Tinggi',
+        badgeClass: 'bg-rose-50 text-rose-800 border-rose-200',
+        hex: '#f97316',
+    },
+};
+
+export function normalizeDesaKey(raw) {
+    if (!raw || typeof raw !== 'string') return '';
+    return raw
+        .toLowerCase()
+        .replace(/^(desa|kel\.?|kelurahan|ds\.?)\s+/i, '')
+        .replace(/[^a-z0-9]/g, '');
+}
+
+export function classifyVillageWelfareTier({ welfare_score, totalStudents }) {
+    const isHighWelfare = Number(welfare_score || 0) >= 50;
+    if (isHighWelfare && totalStudents >= 3) {
+        return 'sejahtera_basis';
+    }
+    if (isHighWelfare) {
+        return 'sejahtera_potensial';
+    }
+    if (totalStudents >= 3) {
+        return 'rentan_terjangkau';
+    }
+    return 'rentan_minim';
+}
+
+/**
+ * Sandingkan data referensi kesejahteraan desa Solo Raya (Jatengprov P1-P4) dengan domisili siswa masuk.
+ *
+ * @param {Array} referenceVillages - Data statis dari public/data/solo-raya-desa-kemiskinan.json
+ * @param {Array} students - Data siswa hasil filter unit / TA / status masuk
+ * @param {Array} matchedSchools - Data sekolah terpadankan (opsional, untuk menghitung SD di desa)
+ * @param {string|null} latestTaName - Nama Tahun Ajaran terbaru
+ */
+export function matchAndClassifyVillages(referenceVillages, students, matchedSchools = [], latestTaName = null) {
+    const byExact = new Map();
+    const byDesaKab = new Map();
+    const byDesaKec = new Map();
+    const buckets = new Map();
+
+    referenceVillages.forEach((v, idx) => {
+        const dKey = normalizeDesaKey(v.desa);
+        const kecKey = normalizeWilayahKey(v.kecamatan);
+        const kabKey = normalizeWilayahKey(v.kabupaten);
+
+        const entry = {
+            ...v,
+            _idx: idx,
+            _dKey: dKey,
+            _kecKey: kecKey,
+            _kabKey: kabKey,
+            matchedStudents: [],
+            schools: [],
+            reachedSchoolsCount: 0,
+        };
+
+        const exactKey = `${dKey}_${kecKey}_${kabKey}`;
+        buckets.set(v.kode || `v_${idx}`, entry);
+        byExact.set(exactKey, entry);
+
+        const dkKey = `${dKey}_${kabKey}`;
+        if (!byDesaKab.has(dkKey)) byDesaKab.set(dkKey, []);
+        byDesaKab.get(dkKey).push(entry);
+
+        const dcKey = `${dKey}_${kecKey}`;
+        if (!byDesaKec.has(dcKey)) byDesaKec.set(dcKey, []);
+        byDesaKec.get(dcKey).push(entry);
+    });
+
+    // Tautkan jumlah sekolah referensi di desa terkait
+    (matchedSchools || []).forEach((s) => {
+        const dKey = normalizeDesaKey(s.desa);
+        if (!dKey) return;
+        const kecKey = normalizeWilayahKey(s.kecamatan);
+        const kabKey = normalizeWilayahKey(s.kabupaten);
+        const target =
+            byExact.get(`${dKey}_${kecKey}_${kabKey}`) ||
+            (byDesaKab.get(`${dKey}_${kabKey}`)?.length === 1 ? byDesaKab.get(`${dKey}_${kabKey}`)[0] : null);
+        if (target) {
+            target.schools.push(s);
+            if (s.totalStudents > 0) target.reachedSchoolsCount++;
+        }
+    });
+
+    const unrecordedStudents = [];
+    const unmatchedMap = new Map();
+
+    (students || []).forEach((student) => {
+        const dKey = normalizeDesaKey(student.desa);
+        const kecKey = normalizeWilayahKey(student.kecamatan);
+        const kabKey = normalizeWilayahKey(student.kabupaten);
+
+        if (!dKey) {
+            unrecordedStudents.push(student);
+            return;
+        }
+
+        let matched = byExact.get(`${dKey}_${kecKey}_${kabKey}`) || null;
+        if (!matched && kabKey) {
+            const cands = byDesaKab.get(`${dKey}_${kabKey}`);
+            if (cands && cands.length === 1) {
+                matched = cands[0];
+            }
+        }
+        if (!matched && kecKey) {
+            const cands = byDesaKec.get(`${dKey}_${kecKey}`);
+            if (cands && cands.length === 1) {
+                matched = cands[0];
+            }
+        }
+
+        if (matched) {
+            matched.matchedStudents.push(student);
+        } else {
+            const key = `${dKey}_${kecKey}_${kabKey}`;
+            if (!unmatchedMap.has(key)) {
+                unmatchedMap.set(key, {
+                    key,
+                    desa: student.desa || '-',
+                    kecamatan: student.kecamatan || '-',
+                    kabupaten: student.kabupaten || '-',
+                    students: [],
+                });
+            }
+            unmatchedMap.get(key).students.push(student);
+        }
+    });
+
+    const villages = Array.from(buckets.values()).map((entry) => {
+        const list = entry.matchedStudents;
+        const taBreakdown = {};
+
+        list.forEach((st) => {
+            const taKey = st.ta_masuk || (st.angkatan ? `Angk. ${st.angkatan}` : 'Lainnya');
+            taBreakdown[taKey] = (taBreakdown[taKey] || 0) + 1;
+        });
+
+        const distinctTaKeys = Object.keys(taBreakdown).filter((k) => k !== 'Lainnya');
+        const taCount = distinctTaKeys.length > 0 ? distinctTaKeys.length : (list.length > 0 ? 1 : 0);
+        const totalStudents = list.length;
+        const latestTaCount = latestTaName ? (taBreakdown[latestTaName] || 0) : 0;
+
+        const tier = classifyVillageWelfareTier({
+            welfare_score: entry.welfare_score,
+            totalStudents,
+        });
+
+        const sortedTaEntries = Object.entries(taBreakdown).sort((a, b) => b[0].localeCompare(a[0]));
+
+        return {
+            kode: entry.kode,
+            desa: entry.desa,
+            kecamatan: entry.kecamatan,
+            kabupaten: entry.kabupaten,
+            lat: entry.lat,
+            lng: entry.lng,
+            p1: entry.p1,
+            p2: entry.p2,
+            p3: entry.p3,
+            p4: entry.p4,
+            p12: entry.p12,
+            total: entry.total,
+            welfare_score: entry.welfare_score,
+            welfare_level: entry.welfare_level,
+            totalStudents,
+            taCount,
+            latestTaCount,
+            taBreakdown: sortedTaEntries,
+            schoolsCount: entry.schools.length,
+            reachedSchoolsCount: entry.reachedSchoolsCount,
+            schools: entry.schools,
+            tier,
+            students: [...list].sort((a, b) => (a.nama || '').localeCompare(b.nama || '')),
+        };
+    });
+
+    const unmatchedGroups = Array.from(unmatchedMap.values()).sort(
+        (a, b) => b.students.length - a.students.length
+    );
+
+    return {
+        villages,
+        unrecordedStudents,
+        unmatchedGroups,
+    };
+}
+
