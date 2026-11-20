@@ -3,6 +3,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } 
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import {
+    CAMPUS_RING_META,
     PSB_TIERS,
     PSB_WELFARE_TIERS,
     SOLO_RAYA_KABUPATENS,
@@ -24,6 +25,10 @@ const props = defineProps({
         default: () => [],
     },
     villages: {
+        type: Array,
+        default: () => [],
+    },
+    tollGates: {
         type: Array,
         default: () => [],
     },
@@ -50,6 +55,8 @@ let kabupatenLayer = null;
 let schoolPointsLayer = null;
 let areaLabelLayer = null;
 let schoolLabelLayer = null;
+let radiusCirclesLayer = null;
+let tollGatesLayer = null;
 let pointsCanvasRenderer = null;
 let campusMarker = null;
 let activeHoverLayer = null;
@@ -72,6 +79,8 @@ const selectedDesaCard = ref(null); // { desa, kecamatan, kabupaten, schools, st
 const hoveredInfo = ref(null);
 
 const showSchoolDots = ref(false);
+const showCampusRadius = ref(true);
+const showTollGates = ref(true);
 const visibleTiers = reactive({
     basis_utama: true,
     potensial: true,
@@ -171,7 +180,7 @@ const geoAggregations = computed(() => {
     };
 });
 
-// Agregasi Domisili & Kesejahteraan (P1-P4 Jatengprov) per Kecamatan & per Desa
+// Agregasi Domisili & Potensi Desa (Meta RWI + Kampus + Tol) per Kecamatan & per Desa
 const welfareAggregations = computed(() => {
     const byKec = new Map();
     const byDesa = new Map();
@@ -191,8 +200,12 @@ const welfareAggregations = computed(() => {
                 villageCount: 0,
                 reachedVillages: 0,
                 students: 0,
-                totalP14: 0,
-                p12: 0,
+                rwiSum: 0,
+                avgRwi: 0,
+                campusSum: 0,
+                avgCampusKm: 0,
+                closestTollKm: null,
+                closestTollName: '-',
                 welfareSum: 0,
                 avgWelfare: 0,
                 villages: [],
@@ -202,9 +215,16 @@ const welfareAggregations = computed(() => {
         const kb = byKec.get(kKey);
         kb.villageCount++;
         kb.students += v.totalStudents;
-        kb.totalP14 += v.total || 0;
-        kb.p12 += v.p12 || 0;
+        kb.rwiSum += Number(v.rwi || 0);
+        kb.campusSum += Number(v.campus_km || 0);
         kb.welfareSum += Number(v.welfare_score || 0);
+        if (v.toll_km !== undefined && v.toll_km !== null) {
+            const tKm = Number(v.toll_km);
+            if (kb.closestTollKm === null || tKm < kb.closestTollKm) {
+                kb.closestTollKm = Number(tKm.toFixed(1));
+                kb.closestTollName = v.toll_name || '-';
+            }
+        }
         kb.villages.push(v);
         if (v.totalStudents > 0) {
             kb.reachedVillages++;
@@ -219,6 +239,8 @@ const welfareAggregations = computed(() => {
 
     byKec.forEach((kb) => {
         kb.avgWelfare = kb.villageCount > 0 ? Number((kb.welfareSum / kb.villageCount).toFixed(1)) : 0;
+        kb.avgRwi = kb.villageCount > 0 ? Number((kb.rwiSum / kb.villageCount).toFixed(2)) : 0;
+        kb.avgCampusKm = kb.villageCount > 0 ? Number((kb.campusSum / kb.villageCount).toFixed(1)) : 0;
     });
 
     return {
@@ -258,8 +280,10 @@ function getKecStats(feature) {
                 villageCount: 0,
                 reachedVillages: 0,
                 students: 0,
-                totalP14: 0,
-                p12: 0,
+                avgRwi: 0,
+                avgCampusKm: 0,
+                closestTollKm: null,
+                closestTollName: '-',
                 avgWelfare: 0,
                 villages: [],
             }
@@ -291,12 +315,11 @@ function getDesaStats(feature) {
                 desa: feature?.properties?.desa || '-',
                 kecamatan: feature?.properties?.kecamatan || '-',
                 kabupaten: feature?.properties?.kabupaten || '-',
-                p1: 0,
-                p2: 0,
-                p3: 0,
-                p4: 0,
-                p12: 0,
-                total: 0,
+                rwi: 0,
+                campus_km: null,
+                campus_ring: 4,
+                toll_km: null,
+                toll_name: '-',
                 welfare_score: 50,
                 welfare_level: 'menengah_atas',
                 totalStudents: 0,
@@ -503,19 +526,19 @@ function handleHoverFeature(type, feature, layer, latlng) {
                 ? `<div class="mt-1.5 pt-1 border-t border-slate-200/80 space-y-1">
                         <div class="flex items-center justify-between gap-3">
                             <span class="font-bold text-emerald-800">${stats.totalStudents || 0} Siswa Domisili</span>
-                            <span class="text-[11px] font-bold text-slate-700">Skor ${stats.welfare_score ?? '-'}</span>
+                            <span class="text-[11px] font-bold text-slate-700">Skor ${stats.welfare_score ?? '-'} (RWI ${stats.rwi !== undefined ? Number(stats.rwi).toFixed(2) : '-'})</span>
                         </div>
                         <div class="text-[10.5px] text-slate-500">
-                            Total P1–P4: <strong>${(stats.total || 0).toLocaleString('id-ID')}</strong> (P1–P2: ${(stats.p12 || 0).toLocaleString('id-ID')})
+                            Kampus <strong>${stats.campus_km ?? '-'} km</strong> • ${escapeHtml(stats.toll_name || '-')} (${stats.toll_km ?? '-'} km)
                         </div>
                    </div>`
                 : `<div class="mt-1.5 pt-1 border-t border-slate-200/80 space-y-1">
                         <div class="flex items-center justify-between gap-3">
                             <span class="font-bold text-emerald-800">${stats.students} Siswa Domisili</span>
-                            <span class="text-[11px] font-bold text-slate-700">Rata Skor ${stats.avgWelfare}</span>
+                            <span class="text-[11px] font-bold text-slate-700">Rata Skor ${stats.avgWelfare} (RWI ${stats.avgRwi ?? '-'})</span>
                         </div>
                         <div class="text-[10.5px] text-slate-500">
-                            ${stats.reachedVillages}/${stats.villageCount} desa • Total P1–P4: ${(stats.totalP14 || 0).toLocaleString('id-ID')}
+                            ${stats.reachedVillages}/${stats.villageCount} desa • Rata <strong>${stats.avgCampusKm ?? '-'} km</strong> ke Kampus
                         </div>
                    </div>`)
             : `<div class="mt-1.5 pt-1 border-t border-slate-200/80 flex items-center justify-between gap-3">
@@ -620,11 +643,11 @@ function buildDesaLayer() {
                                 kabupaten: feature.properties.kabupaten,
                                 students: stats.totalStudents || 0,
                                 welfare_score: stats.welfare_score ?? 0,
-                                p1: stats.p1 || 0,
-                                p2: stats.p2 || 0,
-                                p3: stats.p3 || 0,
-                                p4: stats.p4 || 0,
-                                totalP14: stats.total || 0,
+                                rwi: stats.rwi ?? 0,
+                                campus_km: stats.campus_km ?? null,
+                                campus_ring: stats.campus_ring ?? 4,
+                                toll_km: stats.toll_km ?? null,
+                                toll_name: stats.toll_name || '-',
                                 tier: stats.tier,
                                 studentList: stats.students || [],
                                 schools: stats.schools || [],
@@ -709,6 +732,73 @@ function renderSchoolDots() {
     if (schoolPointsLayer.bringToFront) {
         schoolPointsLayer.bringToFront();
     }
+}
+
+function renderCampusRadiusOverlay() {
+    if (!map || !radiusCirclesLayer) return;
+    radiusCirclesLayer.clearLayers();
+    if (!isWelfareMode.value || !showCampusRadius.value) return;
+
+    const rings = [
+        { km: 5, color: '#0369a1', label: 'Radius 5 km' },
+        { km: 10, color: '#0284c7', label: 'Radius 10 km' },
+        { km: 15, color: '#64748b', label: 'Radius 15 km' },
+    ];
+
+    rings.forEach(({ km, color, label }) => {
+        L.circle(SCHOOL_COORDS, {
+            radius: km * 1000,
+            color,
+            weight: 1.6,
+            dashArray: '5, 5',
+            opacity: 0.78,
+            fill: false,
+            interactive: false,
+        }).addTo(radiusCirclesLayer);
+
+        const latOffset = km / 111.32;
+        L.marker([SCHOOL_COORDS[0] + latOffset, SCHOOL_COORDS[1]], {
+            interactive: false,
+            icon: L.divIcon({
+                className: 'psb-radius-label',
+                html: `<span style="display:inline-block;padding:1px 6px;border-radius:9999px;background:rgba(255,255,255,0.92);border:1px solid ${color};color:${color};font-size:10px;font-weight:800;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,0.12);">${label}</span>`,
+                iconSize: [72, 18],
+                iconAnchor: [36, 9],
+            }),
+        }).addTo(radiusCirclesLayer);
+    });
+}
+
+function renderTollGatesOverlay() {
+    if (!map || !tollGatesLayer) return;
+    tollGatesLayer.clearLayers();
+    if (!isWelfareMode.value || !showTollGates.value || !Array.isArray(props.tollGates)) return;
+
+    props.tollGates.forEach((gate) => {
+        if (typeof gate?.lat !== 'number' || typeof gate?.lng !== 'number') return;
+        const icon = L.divIcon({
+            className: 'psb-toll-marker',
+            html: `<div style="width:22px;height:22px;border-radius:6px;background:#4338ca;color:#fef08a;border:2px solid #ffffff;box-shadow:0 2px 6px rgba(30,27,75,0.4);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:900;cursor:pointer;" title="${escapeHtml(gate.name)}">TOL</div>`,
+            iconSize: [22, 22],
+            iconAnchor: [11, 11],
+            popupAnchor: [0, -10],
+        });
+
+        const marker = L.marker([gate.lat, gate.lng], {
+            icon,
+            zIndexOffset: 900,
+            title: gate.name,
+        });
+        marker.bindTooltip(`${gate.name}`, { direction: 'top', offset: [0, -8] });
+        marker.bindPopup(`
+            <div style="padding:4px;min-width:190px;font-family:'Plus Jakarta Sans',system-ui,sans-serif;">
+                <div style="font-size:10px;font-weight:800;color:#4338ca;margin-bottom:2px;">🛣️ GERBANG TOL SOLO RAYA</div>
+                <div style="font-weight:800;font-size:12.5px;color:#0f172a;">${escapeHtml(gate.name)}</div>
+                <div style="font-size:11px;color:#475569;margin-top:2px;">Ruas: ${escapeHtml(gate.corridor || '-')}</div>
+            </div>
+        `);
+        marker.addTo(tollGatesLayer);
+    });
 }
 
 function renderMapLabels() {
@@ -942,6 +1032,8 @@ function updateLayersAndFocus(specificKecLayer = null) {
     }
 
     renderSchoolDots();
+    renderCampusRadiusOverlay();
+    renderTollGatesOverlay();
     renderMapLabels();
 
     if (specificKecLayer && specificKecLayer.getBounds().isValid()) {
@@ -1097,11 +1189,16 @@ async function initMap() {
             </div>
         `);
 
-        // Layer 4: Titik SD/MI/PKBM Overlay & Label Wilayah/Sekolah
+        // Layer 4: Titik SD/MI/PKBM Overlay, Ring Kampus, Gerbang Tol & Label
         pointsCanvasRenderer = L.canvas({ padding: 0.3 });
+        radiusCirclesLayer = L.layerGroup().addTo(map);
+        tollGatesLayer = L.layerGroup().addTo(map);
         schoolPointsLayer = L.layerGroup().addTo(map);
         areaLabelLayer = L.layerGroup().addTo(map);
         schoolLabelLayer = L.layerGroup().addTo(map);
+
+        renderCampusRadiusOverlay();
+        renderTollGatesOverlay();
 
         map.on('zoomend moveend', renderMapLabels);
 
@@ -1136,7 +1233,10 @@ watch(
         props.mode,
         props.schools,
         props.villages,
+        props.tollGates,
         showSchoolDots.value,
+        showCampusRadius.value,
+        showTollGates.value,
         visibleTiers.basis_utama,
         visibleTiers.potensial,
         visibleTiers.vakum,
@@ -1178,18 +1278,18 @@ watch(
                 <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block shrink-0"></span>
                 <div>
                     <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                        {{ isWelfareMode ? 'Peta Domisili Siswa & Kesejahteraan Desa (Solo Raya)' : 'Peta Sebaran Sekolah Asal & Wilayah (Solo Raya)' }}
+                        {{ isWelfareMode ? 'Peta Domisili, RWI, Radius Kampus & Tol (Solo Raya)' : 'Peta Sebaran Sekolah Asal & Wilayah (Solo Raya)' }}
                     </h3>
                     <p class="text-[11px] text-slate-500 font-medium mt-0.5">
                         <template v-if="isWelfareMode">
                             <template v-if="drillKecamatan">
-                                Mode Desa: <span class="font-bold text-emerald-800">Kec. {{ drillKecamatan.kecamatan }} ({{ drillKecamatan.kabupaten }})</span> — klik desa untuk P1–P4 &amp; siswa domisili
+                                Mode Desa: <span class="font-bold text-emerald-800">Kec. {{ drillKecamatan.kecamatan }} ({{ drillKecamatan.kabupaten }})</span> — klik desa untuk Meta RWI, Kampus &amp; Tol terdekat
                             </template>
                             <template v-else-if="aggregationLevel === 'desa'">
-                                Warna per <span class="font-bold text-slate-700">Desa / Kelurahan</span> berdasar beban kemiskinan P1–P4 (Jatengprov) — klik desa untuk rincian
+                                Warna per <span class="font-bold text-slate-700">Desa / Kelurahan</span> berdasar skor kesejahteraan Meta RWI — klik desa untuk rincian
                             </template>
                             <template v-else>
-                                Warna per <span class="font-bold text-slate-700">Kecamatan</span> berdasar indeks kesejahteraan P1–P4 — klik kecamatan untuk masuk ke Desa
+                                Warna per <span class="font-bold text-slate-700">Kecamatan</span> berdasar rata-rata Meta RWI + ring radius kampus &amp; gerbang tol
                             </template>
                         </template>
                         <template v-else>
@@ -1258,6 +1358,38 @@ watch(
                         <span>Desa</span>
                     </button>
                 </div>
+
+                <!-- Toggle Overlay Khusus Mode Desa -->
+                <template v-if="isWelfareMode">
+                    <button
+                        type="button"
+                        @click="showCampusRadius = !showCampusRadius"
+                        :class="[
+                            'inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-bold border transition-all cursor-pointer',
+                            showCampusRadius
+                                ? 'bg-sky-700 text-white border-sky-800 shadow-2xs'
+                                : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200',
+                        ]"
+                        title="Tampilkan ring radius 5 / 10 / 15 km dari Kampus"
+                    >
+                        <span class="material-symbols-outlined text-[14px]">radar</span>
+                        <span>Radius</span>
+                    </button>
+                    <button
+                        type="button"
+                        @click="showTollGates = !showTollGates"
+                        :class="[
+                            'inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-bold border transition-all cursor-pointer',
+                            showTollGates
+                                ? 'bg-indigo-700 text-yellow-200 border-indigo-800 shadow-2xs'
+                                : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200',
+                        ]"
+                        title="Tampilkan titik Gerbang Tol Solo Raya"
+                    >
+                        <span class="material-symbols-outlined text-[14px]">toll</span>
+                        <span>Gerbang Tol</span>
+                    </button>
+                </template>
 
                 <!-- Toggle Overlay Titik Sekolah -->
                 <button
@@ -1409,28 +1541,22 @@ watch(
 
                 <!-- Welfare Mode Card Body -->
                 <div v-if="selectedDesaCard.mode === 'welfare'" class="p-3 overflow-y-auto space-y-2.5 custom-bar-scrollbar">
-                    <div class="grid grid-cols-4 gap-1.5 text-center">
-                        <div class="p-1.5 rounded-lg bg-rose-50 border border-rose-200">
-                            <div class="text-[9.5px] font-bold text-rose-700">P1</div>
-                            <div class="text-xs font-extrabold text-rose-900">{{ selectedDesaCard.p1.toLocaleString('id-ID') }}</div>
+                    <div class="grid grid-cols-3 gap-1.5 text-center">
+                        <div class="p-2 rounded-xl bg-emerald-50 border border-emerald-200">
+                            <div class="text-[9.5px] font-bold text-emerald-700">Meta RWI</div>
+                            <div class="text-xs font-extrabold text-emerald-950">{{ Number(selectedDesaCard.rwi ?? 0).toFixed(2) }}</div>
+                            <div class="text-[9.5px] text-emerald-700 font-semibold">Skor {{ selectedDesaCard.welfare_score }}/100</div>
                         </div>
-                        <div class="p-1.5 rounded-lg bg-amber-50 border border-amber-200">
-                            <div class="text-[9.5px] font-bold text-amber-700">P2</div>
-                            <div class="text-xs font-extrabold text-amber-900">{{ selectedDesaCard.p2.toLocaleString('id-ID') }}</div>
+                        <div class="p-2 rounded-xl bg-sky-50 border border-sky-200">
+                            <div class="text-[9.5px] font-bold text-sky-700">Kampus</div>
+                            <div class="text-xs font-extrabold text-sky-950">{{ selectedDesaCard.campus_km ?? '-' }} km</div>
+                            <div class="text-[9.5px] text-sky-700 font-semibold">{{ CAMPUS_RING_META[selectedDesaCard.campus_ring]?.label || 'Ring ' + selectedDesaCard.campus_ring }}</div>
                         </div>
-                        <div class="p-1.5 rounded-lg bg-sky-50 border border-sky-200">
-                            <div class="text-[9.5px] font-bold text-sky-700">P3</div>
-                            <div class="text-xs font-extrabold text-sky-900">{{ selectedDesaCard.p3.toLocaleString('id-ID') }}</div>
+                        <div class="p-2 rounded-xl bg-indigo-50 border border-indigo-200">
+                            <div class="text-[9.5px] font-bold text-indigo-700">Gerbang Tol</div>
+                            <div class="text-xs font-extrabold text-indigo-950">{{ selectedDesaCard.toll_km ?? '-' }} km</div>
+                            <div class="text-[9.5px] text-indigo-700 font-semibold truncate" :title="selectedDesaCard.toll_name">{{ selectedDesaCard.toll_name }}</div>
                         </div>
-                        <div class="p-1.5 rounded-lg bg-slate-50 border border-slate-200">
-                            <div class="text-[9.5px] font-bold text-slate-600">P4</div>
-                            <div class="text-xs font-extrabold text-slate-900">{{ selectedDesaCard.p4.toLocaleString('id-ID') }}</div>
-                        </div>
-                    </div>
-
-                    <div class="flex items-center justify-between text-[11px] px-2 py-1.5 rounded-xl bg-slate-50 border border-slate-200">
-                        <span class="text-slate-600 font-semibold">Total Beban P1–P4:</span>
-                        <span class="font-extrabold text-slate-900">{{ selectedDesaCard.totalP14.toLocaleString('id-ID') }} jiwa</span>
                     </div>
 
                     <button
@@ -1478,7 +1604,7 @@ watch(
             >
                 <div class="font-bold text-slate-900">{{ hoveredInfo.desa ? `Desa ${hoveredInfo.desa}` : `Kec. ${hoveredInfo.kecamatan}` }}</div>
                 <div v-if="isWelfareMode" class="text-[11px] text-emerald-800 font-semibold">
-                    {{ hoveredInfo.desa ? `Skor ${hoveredInfo.welfare_score} • ${hoveredInfo.totalStudents || 0} Siswa` : `Rata Skor ${hoveredInfo.avgWelfare} • ${hoveredInfo.students} Siswa` }}
+                    {{ hoveredInfo.desa ? `Skor ${hoveredInfo.welfare_score} • ${hoveredInfo.campus_km ?? '-'} km • ${hoveredInfo.totalStudents || 0} Siswa` : `Rata Skor ${hoveredInfo.avgWelfare} • ${hoveredInfo.students} Siswa` }}
                 </div>
                 <div v-else class="text-[11px] text-emerald-800 font-semibold">{{ hoveredInfo.reached }} / {{ hoveredInfo.total }} SD • {{ hoveredInfo.students }} Siswa</div>
             </div>
@@ -1506,7 +1632,7 @@ watch(
                     <div class="flex items-center justify-between gap-3 mb-1">
                         <span class="text-[10px] font-bold text-slate-700 uppercase tracking-wider">
                             <template v-if="isWelfareMode">
-                                {{ aggregationLevel === 'desa' ? 'Kesejahteraan P1-P4 Desa' : 'Rata-rata P1-P4 Kecamatan' }}
+                                {{ aggregationLevel === 'desa' ? 'Skor Kesejahteraan (Meta RWI)' : 'Rata-rata Meta RWI Kecamatan' }}
                             </template>
                             <template v-else>
                                 {{ aggregationLevel === 'desa' ? 'Siswa Masuk per Desa' : 'Siswa Masuk per Kecamatan' }}
@@ -1521,7 +1647,7 @@ watch(
                         </button>
                     </div>
                     <div v-if="isWelfareMode" class="flex items-center gap-1.5 text-[10px] text-slate-600 font-medium flex-wrap">
-                        <div class="flex items-center gap-0.5"><span class="w-3.5 h-3 rounded-xs inline-block bg-[#fda4af]"></span><span>&lt;25 (Beban Tinggi)</span></div>
+                        <div class="flex items-center gap-0.5"><span class="w-3.5 h-3 rounded-xs inline-block bg-[#fda4af]"></span><span>&lt;25 (Rentan)</span></div>
                         <div class="flex items-center gap-0.5"><span class="w-3.5 h-3 rounded-xs inline-block bg-[#fde68a]"></span><span>25-49</span></div>
                         <div class="flex items-center gap-0.5"><span class="w-3.5 h-3 rounded-xs inline-block bg-[#6ee7b7]"></span><span>50-74</span></div>
                         <div class="flex items-center gap-0.5"><span class="w-3.5 h-3 rounded-xs inline-block bg-[#059669]"></span><span>75+ (Sejahtera)</span></div>
@@ -1543,6 +1669,14 @@ watch(
                     <div class="flex items-center gap-1">
                         <span class="w-4 border-t-2 border-dashed border-[#1e293b] inline-block"></span>
                         <span>Batas Kab</span>
+                    </div>
+                    <div v-if="isWelfareMode && showCampusRadius" class="flex items-center gap-1">
+                        <span class="w-4 border-t-2 border-dashed border-[#0284c7] inline-block"></span>
+                        <span>Radius 5/10/15 km</span>
+                    </div>
+                    <div v-if="isWelfareMode && showTollGates" class="flex items-center gap-1">
+                        <span class="px-1 py-0.2 rounded bg-indigo-700 text-yellow-200 text-[8px] font-black leading-tight">TOL</span>
+                        <span>Gerbang Tol</span>
                     </div>
                     <div v-if="showSchoolDots" class="flex items-center gap-1.5">
                         <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span><span>Basis</span>

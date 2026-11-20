@@ -284,7 +284,7 @@ export const PSB_WELFARE_TIERS = {
         key: 'sejahtera_basis',
         label: 'Basis Sejahtera',
         shortLabel: 'Basis Sejahtera',
-        description: 'Beban P1-P4 di bawah median (Sejahtera) & >= 3 siswa domisili',
+        description: 'RWI di atas median Solo Raya (Skor >= 50) & >= 3 siswa domisili',
         badgeClass: 'bg-emerald-50 text-emerald-800 border-emerald-200',
         dotClass: 'bg-emerald-600',
         activeTabClass: 'bg-emerald-900 text-yellow-200 border-emerald-950 shadow-2xs',
@@ -296,7 +296,7 @@ export const PSB_WELFARE_TIERS = {
         key: 'sejahtera_potensial',
         label: 'Potensial Sejahtera',
         shortLabel: 'Potensial',
-        description: 'Beban P1-P4 di bawah median (Sejahtera), masih 0-2 siswa domisili',
+        description: 'RWI di atas median (Skor >= 50), masih 0-2 siswa domisili',
         badgeClass: 'bg-amber-50 text-amber-800 border-amber-200',
         dotClass: 'bg-amber-500',
         activeTabClass: 'bg-amber-600 text-white border-amber-700 shadow-2xs',
@@ -306,9 +306,9 @@ export const PSB_WELFARE_TIERS = {
     },
     rentan_terjangkau: {
         key: 'rentan_terjangkau',
-        label: 'Basis Rentan / Subsidi',
+        label: 'Basis Menengah Bawah',
         shortLabel: 'Basis Rentan',
-        description: 'Beban P1-P4 di atas median & >= 3 siswa domisili',
+        description: 'RWI di bawah median (Skor < 50) & >= 3 siswa domisili',
         badgeClass: 'bg-sky-50 text-sky-800 border-sky-200',
         dotClass: 'bg-sky-600',
         activeTabClass: 'bg-sky-700 text-white border-sky-800 shadow-2xs',
@@ -318,9 +318,9 @@ export const PSB_WELFARE_TIERS = {
     },
     rentan_minim: {
         key: 'rentan_minim',
-        label: 'Prioritas P1-P4 (0-2)',
+        label: 'Menengah Bawah (0-2)',
         shortLabel: 'Rentan (0-2)',
-        description: 'Beban P1-P4 di atas median & 0-2 siswa domisili',
+        description: 'RWI di bawah median (Skor < 50) & 0-2 siswa domisili',
         badgeClass: 'bg-slate-100 text-slate-700 border-slate-300',
         dotClass: 'bg-slate-400',
         activeTabClass: 'bg-slate-800 text-white border-slate-900 shadow-2xs',
@@ -332,29 +332,36 @@ export const PSB_WELFARE_TIERS = {
 
 export const WELFARE_LEVEL_META = {
     sejahtera_tinggi: {
-        label: 'Beban Rendah (Sejahtera)',
+        label: 'Sejahtera Tinggi (RWI Q4)',
         shortLabel: 'Sejahtera',
         badgeClass: 'bg-emerald-50 text-emerald-800 border-emerald-200',
         hex: '#059669',
     },
     menengah_atas: {
-        label: 'Menengah Atas',
+        label: 'Menengah Atas (RWI Q3)',
         shortLabel: 'Menengah+',
         badgeClass: 'bg-teal-50 text-teal-800 border-teal-200',
         hex: '#34d399',
     },
     menengah_bawah: {
-        label: 'Menengah Bawah',
+        label: 'Menengah Bawah (RWI Q2)',
         shortLabel: 'Menengah-',
         badgeClass: 'bg-amber-50 text-amber-800 border-amber-200',
         hex: '#fbbf24',
     },
     rentan_tinggi: {
-        label: 'Beban P1-P4 Tinggi',
-        shortLabel: 'Beban Tinggi',
+        label: 'Ekonomi Rendah (RWI Q1)',
+        shortLabel: 'Rendah',
         badgeClass: 'bg-rose-50 text-rose-800 border-rose-200',
         hex: '#f97316',
     },
+};
+
+export const CAMPUS_RING_META = {
+    1: { label: 'Ring 1 (<= 5 km)', shortLabel: 'Ring 1', badgeClass: 'bg-emerald-50 text-emerald-800 border-emerald-200' },
+    2: { label: 'Ring 2 (5-10 km)', shortLabel: 'Ring 2', badgeClass: 'bg-sky-50 text-sky-800 border-sky-200' },
+    3: { label: 'Ring 3 (10-15 km)', shortLabel: 'Ring 3', badgeClass: 'bg-amber-50 text-amber-800 border-amber-200' },
+    4: { label: 'Ring 4 (> 15 km)', shortLabel: 'Ring 4', badgeClass: 'bg-slate-100 text-slate-700 border-slate-300' },
 };
 
 export function normalizeDesaKey(raw) {
@@ -509,12 +516,11 @@ export function matchAndClassifyVillages(referenceVillages, students, matchedSch
             kabupaten: entry.kabupaten,
             lat: entry.lat,
             lng: entry.lng,
-            p1: entry.p1,
-            p2: entry.p2,
-            p3: entry.p3,
-            p4: entry.p4,
-            p12: entry.p12,
-            total: entry.total,
+            rwi: entry.rwi ?? 0,
+            campus_km: entry.campus_km ?? 0,
+            campus_ring: entry.campus_ring ?? 4,
+            toll_km: entry.toll_km ?? 0,
+            toll_name: entry.toll_name ?? '-',
             welfare_score: entry.welfare_score,
             welfare_level: entry.welfare_level,
             totalStudents,
