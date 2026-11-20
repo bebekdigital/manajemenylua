@@ -345,18 +345,6 @@ function getDesaStats(feature) {
 
 function kecamatanStyle(feature) {
     const stats = getKecStats(feature);
-    if (isWelfareMode.value) {
-        const hasStudents = stats.students > 0;
-        return {
-            fill: true,
-            fillColor: getWelfareChoroplethColor(stats.avgWelfare),
-            weight: hasStudents ? 1.3 : 0.85,
-            opacity: 0.9,
-            color: hasStudents ? '#065f46' : '#94a3b8',
-            dashArray: null,
-            fillOpacity: stats.villageCount > 0 ? 0.82 : 0.4,
-        };
-    }
     return {
         fill: true,
         fillColor: getChoroplethColor(stats.students),
@@ -370,26 +358,15 @@ function kecamatanStyle(feature) {
 
 function desaStyle(feature) {
     const stats = getDesaStats(feature);
-    if (isWelfareMode.value) {
-        const hasStudents = (stats.totalStudents || 0) > 0;
-        return {
-            fill: true,
-            fillColor: getWelfareChoroplethColor(stats.welfare_score),
-            weight: hasStudents ? 1.5 : 0.65,
-            opacity: 0.95,
-            color: hasStudents ? '#064e3b' : '#94a3b8',
-            dashArray: null,
-            fillOpacity: 0.82,
-        };
-    }
+    const count = isWelfareMode.value ? (stats.totalStudents || 0) : (stats.students || 0);
     return {
         fill: true,
-        fillColor: getChoroplethColor(stats.students),
+        fillColor: getChoroplethColor(count),
         weight: 0.7,
         opacity: 0.9,
-        color: stats.students > 0 ? '#059669' : '#cbd5e1',
+        color: count > 0 ? '#059669' : '#cbd5e1',
         dashArray: null,
-        fillOpacity: stats.students > 0 ? 0.88 : 0.55,
+        fillOpacity: count > 0 ? 0.88 : 0.55,
     };
 }
 
@@ -515,8 +492,8 @@ function handleHoverFeature(type, feature, layer, latlng) {
                 : `Kab/Kota ${feature.properties.kabupaten}`;
         const actionHint = isWelfareMode.value
             ? (type === 'kecamatan'
-                ? 'Klik kecamatan untuk masuk ke rincian kesejahteraan Desa'
-                : 'Klik desa untuk melihat P1–P4 & siswa domisili')
+                ? 'Klik kecamatan untuk masuk ke rincian Desa'
+                : 'Klik desa untuk melihat jarak Kampus, Tol & daftar siswa')
             : (type === 'kecamatan'
                 ? 'Klik kecamatan untuk masuk ke Desa & titik sekolah'
                 : 'Klik desa untuk melihat daftar SD/MI/PKBM');
@@ -526,19 +503,19 @@ function handleHoverFeature(type, feature, layer, latlng) {
                 ? `<div class="mt-1.5 pt-1 border-t border-slate-200/80 space-y-1">
                         <div class="flex items-center justify-between gap-3">
                             <span class="font-bold text-emerald-800">${stats.totalStudents || 0} Siswa Domisili</span>
-                            <span class="text-[11px] font-bold text-slate-700">Skor ${stats.welfare_score ?? '-'} (RWI ${stats.rwi !== undefined ? Number(stats.rwi).toFixed(2) : '-'})</span>
+                            <span class="text-[11px] font-bold text-sky-700">${stats.campus_km ?? '-'} km ke Kampus</span>
                         </div>
                         <div class="text-[10.5px] text-slate-500">
-                            Kampus <strong>${stats.campus_km ?? '-'} km</strong> • ${escapeHtml(stats.toll_name || '-')} (${stats.toll_km ?? '-'} km)
+                            Tol terdekat: <strong>${escapeHtml(stats.toll_name || '-')}</strong> (${stats.toll_km ?? '-'} km)
                         </div>
                    </div>`
                 : `<div class="mt-1.5 pt-1 border-t border-slate-200/80 space-y-1">
                         <div class="flex items-center justify-between gap-3">
                             <span class="font-bold text-emerald-800">${stats.students} Siswa Domisili</span>
-                            <span class="text-[11px] font-bold text-slate-700">Rata Skor ${stats.avgWelfare} (RWI ${stats.avgRwi ?? '-'})</span>
+                            <span class="text-[11px] font-bold text-sky-700">Rata ${stats.avgCampusKm ?? '-'} km</span>
                         </div>
                         <div class="text-[10.5px] text-slate-500">
-                            ${stats.reachedVillages}/${stats.villageCount} desa • Rata <strong>${stats.avgCampusKm ?? '-'} km</strong> ke Kampus
+                            ${stats.reachedVillages} / ${stats.villageCount} desa terisi siswa
                         </div>
                    </div>`)
             : `<div class="mt-1.5 pt-1 border-t border-slate-200/80 flex items-center justify-between gap-3">
@@ -834,7 +811,7 @@ function renderMapLabels() {
                 if (crowded) return;
                 placedPts.push(pt);
 
-                const isDarkBg = isWelfareMode.value ? item.welfareScore >= 75 : item.students >= 10;
+                const isDarkBg = item.students >= 10;
                 const textColor = isDarkBg ? '#ffffff' : '#1e293b';
                 const shadow = isDarkBg
                     ? '0 1px 2px rgba(6,78,59,0.95), 0 0 3px rgba(6,78,59,0.85)'
@@ -892,7 +869,7 @@ function renderMapLabels() {
                     if (crowded) return;
                     placedPts.push(pt);
 
-                    const isDarkBg = isWelfareMode.value ? item.welfareScore >= 75 : item.students >= 10;
+                    const isDarkBg = item.students >= 10;
                     const textColor = isDarkBg ? '#ffffff' : '#334155';
                     const shadow = isDarkBg
                         ? '0 1px 2px rgba(6,78,59,0.95), 0 0 3px rgba(6,78,59,0.85)'
@@ -1278,18 +1255,18 @@ watch(
                 <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block shrink-0"></span>
                 <div>
                     <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                        {{ isWelfareMode ? 'Peta Domisili, RWI, Radius Kampus & Tol (Solo Raya)' : 'Peta Sebaran Sekolah Asal & Wilayah (Solo Raya)' }}
+                        {{ isWelfareMode ? 'Peta Domisili Siswa, Radius Kampus & Tol (Solo Raya)' : 'Peta Sebaran Sekolah Asal & Wilayah (Solo Raya)' }}
                     </h3>
                     <p class="text-[11px] text-slate-500 font-medium mt-0.5">
                         <template v-if="isWelfareMode">
                             <template v-if="drillKecamatan">
-                                Mode Desa: <span class="font-bold text-emerald-800">Kec. {{ drillKecamatan.kecamatan }} ({{ drillKecamatan.kabupaten }})</span> — klik desa untuk Meta RWI, Kampus &amp; Tol terdekat
+                                Mode Desa: <span class="font-bold text-emerald-800">Kec. {{ drillKecamatan.kecamatan }} ({{ drillKecamatan.kabupaten }})</span> — klik desa untuk Radius Kampus, Tol &amp; daftar siswa
                             </template>
                             <template v-else-if="aggregationLevel === 'desa'">
-                                Warna per <span class="font-bold text-slate-700">Desa / Kelurahan</span> berdasar skor kesejahteraan Meta RWI — klik desa untuk rincian
+                                Warna per <span class="font-bold text-slate-700">Desa / Kelurahan</span> berdasarkan jumlah siswa domisili — klik desa untuk rincian
                             </template>
                             <template v-else>
-                                Warna per <span class="font-bold text-slate-700">Kecamatan</span> berdasar rata-rata Meta RWI + ring radius kampus &amp; gerbang tol
+                                Warna per <span class="font-bold text-slate-700">Kecamatan</span> berdasarkan siswa domisili + ring radius kampus &amp; gerbang tol
                             </template>
                         </template>
                         <template v-else>
@@ -1329,7 +1306,7 @@ watch(
                             ? 'bg-emerald-900 text-yellow-200 shadow-xs'
                             : 'text-slate-600 hover:text-slate-900'"
                     >
-                        Kesejahteraan Desa
+                        Domisili Desa
                     </button>
                 </div>
 
@@ -1524,7 +1501,7 @@ watch(
                             Desa {{ selectedDesaCard.desa }} • Kec. {{ selectedDesaCard.kecamatan }}
                         </span>
                         <span v-if="selectedDesaCard.mode === 'welfare'" class="text-xs font-extrabold text-slate-900">
-                            {{ selectedDesaCard.students }} Siswa Domisili • Skor {{ selectedDesaCard.welfare_score }}/100
+                            {{ selectedDesaCard.students }} Siswa Domisili • {{ selectedDesaCard.campus_km ?? '-' }} km ke Kampus
                         </span>
                         <span v-else class="text-xs font-extrabold text-slate-900">
                             {{ selectedDesaCard.reached }} / {{ selectedDesaCard.total }} SD Tergarap ({{ selectedDesaCard.students }} Siswa)
@@ -1541,14 +1518,9 @@ watch(
 
                 <!-- Welfare Mode Card Body -->
                 <div v-if="selectedDesaCard.mode === 'welfare'" class="p-3 overflow-y-auto space-y-2.5 custom-bar-scrollbar">
-                    <div class="grid grid-cols-3 gap-1.5 text-center">
-                        <div class="p-2 rounded-xl bg-emerald-50 border border-emerald-200">
-                            <div class="text-[9.5px] font-bold text-emerald-700">Meta RWI</div>
-                            <div class="text-xs font-extrabold text-emerald-950">{{ Number(selectedDesaCard.rwi ?? 0).toFixed(2) }}</div>
-                            <div class="text-[9.5px] text-emerald-700 font-semibold">Skor {{ selectedDesaCard.welfare_score }}/100</div>
-                        </div>
+                    <div class="grid grid-cols-2 gap-2 text-center">
                         <div class="p-2 rounded-xl bg-sky-50 border border-sky-200">
-                            <div class="text-[9.5px] font-bold text-sky-700">Kampus</div>
+                            <div class="text-[9.5px] font-bold text-sky-700">Radius Kampus</div>
                             <div class="text-xs font-extrabold text-sky-950">{{ selectedDesaCard.campus_km ?? '-' }} km</div>
                             <div class="text-[9.5px] text-sky-700 font-semibold">{{ CAMPUS_RING_META[selectedDesaCard.campus_ring]?.label || 'Ring ' + selectedDesaCard.campus_ring }}</div>
                         </div>
@@ -1604,7 +1576,7 @@ watch(
             >
                 <div class="font-bold text-slate-900">{{ hoveredInfo.desa ? `Desa ${hoveredInfo.desa}` : `Kec. ${hoveredInfo.kecamatan}` }}</div>
                 <div v-if="isWelfareMode" class="text-[11px] text-emerald-800 font-semibold">
-                    {{ hoveredInfo.desa ? `Skor ${hoveredInfo.welfare_score} • ${hoveredInfo.campus_km ?? '-'} km • ${hoveredInfo.totalStudents || 0} Siswa` : `Rata Skor ${hoveredInfo.avgWelfare} • ${hoveredInfo.students} Siswa` }}
+                    {{ hoveredInfo.desa ? `${hoveredInfo.totalStudents || 0} Siswa • ${hoveredInfo.campus_km ?? '-'} km ke Kampus` : `${hoveredInfo.students} Siswa • Rata ${hoveredInfo.avgCampusKm ?? '-'} km` }}
                 </div>
                 <div v-else class="text-[11px] text-emerald-800 font-semibold">{{ hoveredInfo.reached }} / {{ hoveredInfo.total }} SD • {{ hoveredInfo.students }} Siswa</div>
             </div>
@@ -1632,7 +1604,7 @@ watch(
                     <div class="flex items-center justify-between gap-3 mb-1">
                         <span class="text-[10px] font-bold text-slate-700 uppercase tracking-wider">
                             <template v-if="isWelfareMode">
-                                {{ aggregationLevel === 'desa' ? 'Skor Kesejahteraan (Meta RWI)' : 'Rata-rata Meta RWI Kecamatan' }}
+                                {{ aggregationLevel === 'desa' ? 'Siswa Domisili per Desa' : 'Siswa Domisili per Kecamatan' }}
                             </template>
                             <template v-else>
                                 {{ aggregationLevel === 'desa' ? 'Siswa Masuk per Desa' : 'Siswa Masuk per Kecamatan' }}
@@ -1646,13 +1618,7 @@ watch(
                             <span class="material-symbols-outlined text-[15px]">expand_more</span>
                         </button>
                     </div>
-                    <div v-if="isWelfareMode" class="flex items-center gap-1.5 text-[10px] text-slate-600 font-medium flex-wrap">
-                        <div class="flex items-center gap-0.5"><span class="w-3.5 h-3 rounded-xs inline-block bg-[#fda4af]"></span><span>&lt;25 (Rentan)</span></div>
-                        <div class="flex items-center gap-0.5"><span class="w-3.5 h-3 rounded-xs inline-block bg-[#fde68a]"></span><span>25-49</span></div>
-                        <div class="flex items-center gap-0.5"><span class="w-3.5 h-3 rounded-xs inline-block bg-[#6ee7b7]"></span><span>50-74</span></div>
-                        <div class="flex items-center gap-0.5"><span class="w-3.5 h-3 rounded-xs inline-block bg-[#059669]"></span><span>75+ (Sejahtera)</span></div>
-                    </div>
-                    <div v-else class="flex items-center gap-1 text-[10px] text-slate-600 font-medium">
+                    <div class="flex items-center gap-1 text-[10px] text-slate-600 font-medium">
                         <div class="flex items-center gap-0.5"><span class="w-3.5 h-3 rounded-xs border border-slate-300 inline-block bg-[#ffffff]"></span><span class="mr-1">0</span></div>
                         <div class="flex items-center gap-0.5"><span class="w-3.5 h-3 rounded-xs inline-block bg-[#6ee7b7]"></span><span class="mr-1">1-4</span></div>
                         <div class="flex items-center gap-0.5"><span class="w-3.5 h-3 rounded-xs inline-block bg-[#10b981]"></span><span class="mr-1">5-9</span></div>

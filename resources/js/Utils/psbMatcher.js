@@ -282,9 +282,9 @@ export function matchAndClassifySchools(referenceSchools, students, latestTaName
 export const PSB_WELFARE_TIERS = {
     sejahtera_basis: {
         key: 'sejahtera_basis',
-        label: 'Basis Sejahtera',
-        shortLabel: 'Basis Sejahtera',
-        description: 'RWI di atas median Solo Raya (Skor >= 50) & >= 3 siswa domisili',
+        label: 'Basis Dekat (<= 10 km)',
+        shortLabel: 'Basis <=10km',
+        description: 'Dalam radius <= 10 km dari kampus & >= 3 siswa domisili',
         badgeClass: 'bg-emerald-50 text-emerald-800 border-emerald-200',
         dotClass: 'bg-emerald-600',
         activeTabClass: 'bg-emerald-900 text-yellow-200 border-emerald-950 shadow-2xs',
@@ -294,9 +294,9 @@ export const PSB_WELFARE_TIERS = {
     },
     sejahtera_potensial: {
         key: 'sejahtera_potensial',
-        label: 'Potensial Sejahtera',
-        shortLabel: 'Potensial',
-        description: 'RWI di atas median (Skor >= 50), masih 0-2 siswa domisili',
+        label: 'Target Dekat (<= 10 km)',
+        shortLabel: 'Target <=10km',
+        description: 'Dalam radius <= 10 km dari kampus, baru 0-2 siswa domisili',
         badgeClass: 'bg-amber-50 text-amber-800 border-amber-200',
         dotClass: 'bg-amber-500',
         activeTabClass: 'bg-amber-600 text-white border-amber-700 shadow-2xs',
@@ -306,9 +306,9 @@ export const PSB_WELFARE_TIERS = {
     },
     rentan_terjangkau: {
         key: 'rentan_terjangkau',
-        label: 'Basis Menengah Bawah',
-        shortLabel: 'Basis Rentan',
-        description: 'RWI di bawah median (Skor < 50) & >= 3 siswa domisili',
+        label: 'Basis Luar (> 10 km)',
+        shortLabel: 'Basis >10km',
+        description: 'Luar radius > 10 km dari kampus namun >= 3 siswa domisili',
         badgeClass: 'bg-sky-50 text-sky-800 border-sky-200',
         dotClass: 'bg-sky-600',
         activeTabClass: 'bg-sky-700 text-white border-sky-800 shadow-2xs',
@@ -318,9 +318,9 @@ export const PSB_WELFARE_TIERS = {
     },
     rentan_minim: {
         key: 'rentan_minim',
-        label: 'Menengah Bawah (0-2)',
-        shortLabel: 'Rentan (0-2)',
-        description: 'RWI di bawah median (Skor < 50) & 0-2 siswa domisili',
+        label: 'Luar Radius (0-2)',
+        shortLabel: 'Luar (0-2)',
+        description: 'Luar radius > 10 km & baru 0-2 siswa domisili',
         badgeClass: 'bg-slate-100 text-slate-700 border-slate-300',
         dotClass: 'bg-slate-400',
         activeTabClass: 'bg-slate-800 text-white border-slate-900 shadow-2xs',
@@ -372,12 +372,12 @@ export function normalizeDesaKey(raw) {
         .replace(/[^a-z0-9]/g, '');
 }
 
-export function classifyVillageWelfareTier({ welfare_score, totalStudents }) {
-    const isHighWelfare = Number(welfare_score || 0) >= 50;
-    if (isHighWelfare && totalStudents >= 3) {
+export function classifyVillageWelfareTier({ campus_ring, campus_km, totalStudents }) {
+    const isNearCampus = Number(campus_ring || 4) <= 2 || Number(campus_km || 999) <= 10;
+    if (isNearCampus && totalStudents >= 3) {
         return 'sejahtera_basis';
     }
-    if (isHighWelfare) {
+    if (isNearCampus) {
         return 'sejahtera_potensial';
     }
     if (totalStudents >= 3) {
@@ -503,7 +503,8 @@ export function matchAndClassifyVillages(referenceVillages, students, matchedSch
         const latestTaCount = latestTaName ? (taBreakdown[latestTaName] || 0) : 0;
 
         const tier = classifyVillageWelfareTier({
-            welfare_score: entry.welfare_score,
+            campus_ring: entry.campus_ring,
+            campus_km: entry.campus_km,
             totalStudents,
         });
 

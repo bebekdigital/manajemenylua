@@ -10,7 +10,6 @@ import {
     PSB_TIERS,
     PSB_WELFARE_TIERS,
     SOLO_RAYA_KABUPATENS,
-    WELFARE_LEVEL_META,
     matchAndClassifySchools,
     matchAndClassifyVillages,
 } from '@/Utils/psbMatcher';
@@ -506,18 +505,16 @@ const displayedVillages = computed(() => {
     }
 
     const sorted = [...list];
-    if (sortBy.value === 'welfare_desc') {
-        sorted.sort((a, b) => b.welfare_score - a.welfare_score || b.totalStudents - a.totalStudents || a.desa.localeCompare(b.desa, 'id'));
-    } else if (sortBy.value === 'campus_asc') {
+    if (sortBy.value === 'campus_asc') {
         sorted.sort((a, b) => (a.campus_km ?? 999) - (b.campus_km ?? 999) || b.totalStudents - a.totalStudents || a.desa.localeCompare(b.desa, 'id'));
     } else if (sortBy.value === 'toll_asc') {
-        sorted.sort((a, b) => (a.toll_km ?? 999) - (b.toll_km ?? 999) || b.welfare_score - a.welfare_score || a.desa.localeCompare(b.desa, 'id'));
+        sorted.sort((a, b) => (a.toll_km ?? 999) - (b.toll_km ?? 999) || (a.campus_km ?? 999) - (b.campus_km ?? 999) || a.desa.localeCompare(b.desa, 'id'));
     } else if (sortBy.value === 'zero_first') {
-        sorted.sort((a, b) => a.totalStudents - b.totalStudents || b.welfare_score - a.welfare_score || a.desa.localeCompare(b.desa, 'id'));
+        sorted.sort((a, b) => a.totalStudents - b.totalStudents || (a.campus_km ?? 999) - (b.campus_km ?? 999) || a.desa.localeCompare(b.desa, 'id'));
     } else if (sortBy.value === 'name_asc') {
         sorted.sort((a, b) => a.desa.localeCompare(b.desa, 'id'));
     } else {
-        sorted.sort((a, b) => b.totalStudents - a.totalStudents || b.welfare_score - a.welfare_score || a.desa.localeCompare(b.desa, 'id'));
+        sorted.sort((a, b) => b.totalStudents - a.totalStudents || (a.campus_km ?? 999) - (b.campus_km ?? 999) || a.desa.localeCompare(b.desa, 'id'));
     }
 
     return sorted;
@@ -660,8 +657,6 @@ function exportExcel() {
             'Desa / Kelurahan': v.desa,
             Kecamatan: v.kecamatan,
             Kabupaten: v.kabupaten,
-            'Meta RWI': v.rwi,
-            'Indeks Kesejahteraan (0-100)': v.welfare_score,
             'Jarak ke Kampus (km)': v.campus_km,
             'Ring Radius Kampus': CAMPUS_RING_META[v.campus_ring]?.label || `Ring ${v.campus_ring}`,
             'Gerbang Tol Terdekat': v.toll_name,
@@ -674,8 +669,8 @@ function exportExcel() {
 
         const ws = XLSX.utils.json_to_sheet(sheetData);
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Potensi Desa PSB');
-        XLSX.writeFile(wb, `PSB_Potensi_Desa_${kabSuffix}_${tierSuffix}.xlsx`);
+        XLSX.utils.book_append_sheet(wb, ws, 'Domisili Desa PSB');
+        XLSX.writeFile(wb, `PSB_Domisili_Desa_${kabSuffix}_${tierSuffix}.xlsx`);
         return;
     }
 
@@ -738,7 +733,7 @@ function exportExcel() {
                     <div class="mt-2 flex flex-wrap items-center gap-2">
                         <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-semibold">
                             <span class="material-symbols-outlined text-[14px] text-emerald-700">verified</span>
-                            <span>{{ isWelfareMode ? 'Sumber : Meta RWI (HDX) • Kampus & Gerbang Tol Solo Raya' : 'Sumber : Pusdatin Kemendikdasmen' }}</span>
+                            <span>{{ isWelfareMode ? 'Sumber : Peta Wilayah Solo Raya • Radius Kampus & Gerbang Tol' : 'Sumber : Pusdatin Kemendikdasmen' }}</span>
                         </span>
                     </div>
                 </div>
@@ -764,7 +759,7 @@ function exportExcel() {
                                 ? 'bg-emerald-900 text-yellow-200 shadow-2xs'
                                 : 'text-slate-600 hover:text-slate-900'"
                         >
-                            Domisili &amp; Kesejahteraan
+                            Domisili &amp; Radius
                         </button>
                     </div>
 
@@ -1014,10 +1009,10 @@ function exportExcel() {
                             <span class="material-symbols-outlined text-[24px]">workspace_premium</span>
                         </div>
                         <div class="min-w-0">
-                            <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Basis Sejahtera &amp; Rentan</p>
+                            <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Basis Dekat &amp; Luar</p>
                             <p class="text-2xl font-extrabold text-slate-900 leading-tight mt-0.5">{{ (welfareKpiStats.sejahteraBasis + welfareKpiStats.rentanTerjangkau).toLocaleString('id-ID') }}</p>
                             <p class="text-[11px] text-slate-500 font-medium mt-0.5 truncate">
-                                {{ welfareKpiStats.sejahteraBasis }} Sejahtera • <span class="text-sky-700 font-semibold">{{ welfareKpiStats.rentanTerjangkau }} Rentan</span>
+                                {{ welfareKpiStats.sejahteraBasis }} Dekat (≤10km) • <span class="text-sky-700 font-semibold">{{ welfareKpiStats.rentanTerjangkau }} Luar (&gt;10km)</span>
                             </p>
                         </div>
                     </button>
@@ -1031,13 +1026,13 @@ function exportExcel() {
                             <span class="material-symbols-outlined text-[24px]">travel_explore</span>
                         </div>
                         <div class="min-w-0">
-                            <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Potensial Sejahtera (0–2)</p>
+                            <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Target Dekat (≤10 km)</p>
                             <div class="flex items-baseline gap-2 mt-0.5">
                                 <p class="text-2xl font-extrabold text-slate-900 leading-tight">{{ welfareKpiStats.sejahteraPotensial.toLocaleString('id-ID') }}</p>
                                 <span class="text-xs font-bold text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">{{ welfareKpiStats.potensialPct }}%</span>
                             </div>
                             <p class="text-[11px] text-emerald-700 font-semibold mt-0.5 truncate group-hover:underline">
-                                Klik untuk lihat target desa sejahtera →
+                                Klik untuk lihat target desa ≤ 10 km →
                             </p>
                         </div>
                     </button>
@@ -1126,7 +1121,7 @@ function exportExcel() {
                         <div class="flex items-center gap-2">
                             <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span>
                             <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                                {{ isWelfareMode ? 'Jangkauan Domisili & Kesejahteraan per Kabupaten / Kota' : 'Jangkauan per Kabupaten / Kota Solo Raya' }}
+                                {{ isWelfareMode ? 'Jangkauan Domisili & Radius Kampus per Kabupaten / Kota' : 'Jangkauan per Kabupaten / Kota Solo Raya' }}
                             </h3>
                         </div>
                         <span class="text-[11px] text-slate-400 font-medium hidden sm:inline">Klik kartu kabupaten untuk memfilter</span>
@@ -1160,7 +1155,7 @@ function exportExcel() {
                                     ></div>
                                 </div>
                                 <div class="flex items-center justify-between text-[10px] font-bold">
-                                    <span class="text-emerald-800">Skor {{ kb.avgWelfare }}</span>
+                                    <span class="text-sky-800">Avg {{ kb.avgCampusKm }} km</span>
                                     <span class="text-slate-500">{{ kb.students }} siswa</span>
                                 </div>
                             </div>
@@ -1239,10 +1234,10 @@ function exportExcel() {
                             <button
                                 v-for="tab in [
                                     { key: 'all', label: 'Semua Desa', count: welfareKpiStats.total, activeClass: 'bg-emerald-900 text-yellow-200 shadow-2xs' },
-                                    { key: 'sejahtera_basis', label: 'Basis Sejahtera', count: welfareKpiStats.sejahteraBasis, activeClass: PSB_WELFARE_TIERS.sejahtera_basis.activeTabClass },
-                                    { key: 'sejahtera_potensial', label: 'Potensial Sejahtera', count: welfareKpiStats.sejahteraPotensial, activeClass: PSB_WELFARE_TIERS.sejahtera_potensial.activeTabClass },
-                                    { key: 'rentan_terjangkau', label: 'Basis Rentan', count: welfareKpiStats.rentanTerjangkau, activeClass: PSB_WELFARE_TIERS.rentan_terjangkau.activeTabClass },
-                                    { key: 'rentan_minim', label: 'Rentan (0–2)', count: welfareKpiStats.rentanMinim, activeClass: PSB_WELFARE_TIERS.rentan_minim.activeTabClass },
+                                    { key: 'sejahtera_basis', label: 'Basis ≤10km', count: welfareKpiStats.sejahteraBasis, activeClass: PSB_WELFARE_TIERS.sejahtera_basis.activeTabClass },
+                                    { key: 'sejahtera_potensial', label: 'Target ≤10km', count: welfareKpiStats.sejahteraPotensial, activeClass: PSB_WELFARE_TIERS.sejahtera_potensial.activeTabClass },
+                                    { key: 'rentan_terjangkau', label: 'Basis >10km', count: welfareKpiStats.rentanTerjangkau, activeClass: PSB_WELFARE_TIERS.rentan_terjangkau.activeTabClass },
+                                    { key: 'rentan_minim', label: 'Luar (0–2)', count: welfareKpiStats.rentanMinim, activeClass: PSB_WELFARE_TIERS.rentan_minim.activeTabClass },
                                     { key: 'unmatched', label: 'Luar / Belum Terdata', count: matchedWelfareResult.unmatchedGroups.length, activeClass: 'bg-slate-800 text-white shadow-2xs' },
                                 ]"
                                 :key="tab.key"
@@ -1308,7 +1303,6 @@ function exportExcel() {
                                 <option value="students_desc">Urut: Siswa Domisili Terbanyak</option>
                                 <option value="campus_asc">Urut: Terdekat ke Kampus</option>
                                 <option value="toll_asc">Urut: Terdekat Gerbang Tol</option>
-                                <option value="welfare_desc">Urut: Paling Sejahtera (RWI Tinggi)</option>
                                 <option value="zero_first">Urut: Siswa 0 / Minim Dulu</option>
                                 <option value="name_asc">Urut: Nama Desa (A-Z)</option>
                             </select>
@@ -1408,8 +1402,7 @@ function exportExcel() {
                                 </div>
                                 <div class="flex items-center justify-between pt-1.5 border-t border-slate-200/70 text-[11px] gap-1.5 flex-wrap">
                                     <div class="flex items-center gap-1 flex-wrap">
-                                        <span class="px-1.5 py-0.5 rounded bg-white border border-slate-200 font-bold text-slate-700">Skor {{ v.welfare_score }}</span>
-                                        <span class="px-1.5 py-0.5 rounded bg-sky-50 border border-sky-200 font-semibold text-sky-800">{{ v.campus_km ?? '-' }} km</span>
+                                        <span class="px-1.5 py-0.5 rounded bg-sky-50 border border-sky-200 font-semibold text-sky-800">{{ v.campus_km ?? '-' }} km Kampus</span>
                                         <span class="px-1.5 py-0.5 rounded bg-indigo-50 border border-indigo-200 font-semibold text-indigo-800">{{ v.toll_name }} ({{ v.toll_km ?? '-' }} km)</span>
                                     </div>
                                     <div class="font-bold text-slate-800 shrink-0">
@@ -1426,9 +1419,8 @@ function exportExcel() {
                                     <tr>
                                         <th class="py-3 px-3.5 w-12 text-center">No</th>
                                         <th class="py-3 px-3.5">Desa / Kelurahan</th>
-                                        <th class="py-3 px-3.5 text-center w-36">Indeks RWI</th>
-                                        <th class="py-3 px-3.5 text-center w-32">Radius Kampus</th>
-                                        <th class="py-3 px-3.5 w-40">Gerbang Tol Terdekat</th>
+                                        <th class="py-3 px-3.5 text-center w-36">Radius Kampus</th>
+                                        <th class="py-3 px-3.5 w-44">Gerbang Tol Terdekat</th>
                                         <th class="py-3 px-3.5 text-center w-24">SD di Desa</th>
                                         <th class="py-3 px-3.5 text-center w-28">Siswa Domisili</th>
                                         <th class="py-3 px-3.5 text-center w-36">Segmen</th>
@@ -1447,16 +1439,6 @@ function exportExcel() {
                                         <td class="py-3 px-3.5">
                                             <div class="font-bold text-slate-900 group-hover:text-emerald-900">{{ v.desa }}</div>
                                             <div class="text-[11px] text-slate-500 mt-0.5">Kec. {{ v.kecamatan }}, {{ v.kabupaten }}</div>
-                                        </td>
-                                        <td class="py-3 px-3.5 text-center">
-                                            <span
-                                                :class="[
-                                                    'inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold border',
-                                                    WELFARE_LEVEL_META[v.welfare_level]?.badgeClass || 'bg-slate-100 text-slate-700 border-slate-200',
-                                                ]"
-                                            >
-                                                {{ v.welfare_score }}/100 (RWI {{ Number(v.rwi ?? 0).toFixed(2) }})
-                                            </span>
                                         </td>
                                         <td class="py-3 px-3.5 text-center">
                                             <div class="font-bold text-slate-800">{{ v.campus_km ?? '-' }} km</div>
@@ -1673,7 +1655,7 @@ function exportExcel() {
                         <h3 class="text-sm font-bold text-slate-900">{{ quadrantGroupModal.title }}</h3>
                         <p class="text-xs text-slate-500 mt-0.5">
                             <template v-if="quadrantGroupModal.mode === 'welfare'">
-                                {{ (quadrantGroupModal.villages || []).length }} desa/kelurahan pada posisi ini — klik desa untuk rincian RWI, Kampus, Tol &amp; siswa
+                                {{ (quadrantGroupModal.villages || []).length }} desa/kelurahan pada posisi ini — klik desa untuk rincian jarak Kampus, Tol &amp; siswa
                             </template>
                             <template v-else>
                                 {{ (quadrantGroupModal.schools || []).length }} sekolah berada pada titik posisi ini — klik sekolah untuk rincian siswa
@@ -1698,7 +1680,7 @@ function exportExcel() {
                     >
                         <div class="min-w-0">
                             <p class="text-xs font-bold text-slate-900">{{ v.desa }}</p>
-                            <p class="text-[11px] text-slate-500 mt-0.5">Kec. {{ v.kecamatan }}, {{ v.kabupaten }} • Skor {{ v.welfare_score }}/100 (RWI {{ Number(v.rwi ?? 0).toFixed(2) }}) • {{ v.campus_km ?? '-' }} km Kampus • {{ v.toll_name }} ({{ v.toll_km ?? '-' }} km)</p>
+                            <p class="text-[11px] text-slate-500 mt-0.5">Kec. {{ v.kecamatan }}, {{ v.kabupaten }} • Kampus {{ v.campus_km ?? '-' }} km • {{ v.toll_name }} ({{ v.toll_km ?? '-' }} km)</p>
                         </div>
                         <span class="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-900 text-xs font-bold shrink-0">
                             {{ v.totalStudents }} Siswa →
@@ -1744,14 +1726,6 @@ function exportExcel() {
                                 <span :class="['w-1.5 h-1.5 rounded-full', PSB_WELFARE_TIERS[selectedVillageModal.tier].dotClass]"></span>
                                 <span>{{ PSB_WELFARE_TIERS[selectedVillageModal.tier].label }}</span>
                             </span>
-                            <span
-                                :class="[
-                                    'px-2 py-0.5 rounded-md text-[11px] font-bold border',
-                                    WELFARE_LEVEL_META[selectedVillageModal.welfare_level]?.badgeClass || 'bg-slate-100 text-slate-700 border-slate-200',
-                                ]"
-                            >
-                                Indeks {{ selectedVillageModal.welfare_score }}/100
-                            </span>
                             <span class="text-[11px] font-mono text-slate-400">{{ selectedVillageModal.kode }}</span>
                         </div>
                         <h3 class="text-base font-extrabold text-slate-900 leading-snug">Desa / Kel. {{ selectedVillageModal.desa }}</h3>
@@ -1769,13 +1743,8 @@ function exportExcel() {
                 </div>
 
                 <div class="p-5 overflow-y-auto space-y-4">
-                    <!-- Ringkasan Indikator Wilayah (Meta RWI, Radius Kampus, Gerbang Tol, SD) -->
-                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                        <div class="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-center">
-                            <div class="text-[10px] font-bold text-emerald-700 uppercase">Skor Meta RWI</div>
-                            <div class="text-base font-extrabold text-emerald-950 mt-0.5">{{ selectedVillageModal.welfare_score }}/100</div>
-                            <div class="text-[10.5px] font-semibold text-emerald-700">RWI {{ Number(selectedVillageModal.rwi ?? 0).toFixed(2) }} • {{ WELFARE_LEVEL_META[selectedVillageModal.welfare_level]?.shortLabel || '-' }}</div>
-                        </div>
+                    <!-- Ringkasan Indikator Wilayah (Radius Kampus, Gerbang Tol, SD) -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                         <div class="p-3 rounded-2xl bg-sky-50 border border-sky-200 text-center">
                             <div class="text-[10px] font-bold text-sky-700 uppercase">Radius ke Kampus</div>
                             <div class="text-base font-extrabold text-sky-950 mt-0.5">{{ selectedVillageModal.campus_km ?? '-' }} km</div>
