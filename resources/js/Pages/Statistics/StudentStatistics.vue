@@ -499,8 +499,7 @@ const selectedChartYear = ref(
 );
 const showStudentsTab = ref(false);
 const showMutasiInChart = ref(true);
-const showPrediction = ref(true);
-const showTrendLine = ref(true);
+const showTrendAnalysis = ref(false);
 const showForecastHint = ref(false);
 const studentGenderTab = ref('all'); // 'all' | 'L' | 'P'
 const studentTypeTab = ref('all'); // 'all' | 'baru' | 'mutasi'
@@ -514,6 +513,12 @@ watch(selectedYearName, (newVal) => {
     }
 });
 
+watch(showTrendAnalysis, (val) => {
+    if (!val) {
+        showForecastHint.value = false;
+    }
+});
+
 watch(
     [
         activeUnit,
@@ -521,8 +526,7 @@ watch(
         selectedSemester,
         selectedChartYear,
         showMutasiInChart,
-        showPrediction,
-        showTrendLine,
+        showTrendAnalysis,
         () => props.students,
     ],
     () => {
@@ -599,8 +603,8 @@ const enrollmentForecast = computed(() => {
     return computeEnrollmentForecast(newStudentsPerYear.value, activeYear);
 });
 
-const showForecastBar = computed(() => showPrediction.value && enrollmentForecast.value.isAvailable);
-const showForecastLine = computed(() => showTrendLine.value && enrollmentForecast.value.isAvailable);
+const showForecastBar = computed(() => showTrendAnalysis.value && enrollmentForecast.value.isAvailable);
+const showForecastLine = computed(() => showTrendAnalysis.value && enrollmentForecast.value.isAvailable);
 
 const newStudentsChartData = computed(() => {
     const list = newStudentsPerYear.value;
@@ -1158,54 +1162,6 @@ const displayedNewStudents = computed(() => {
                             </button>
                         </div>
 
-                        <!-- Toggle Garis Tren & Prediksi + Hint -->
-                        <div v-if="enrollmentForecast.isAvailable" class="inline-flex items-center gap-1.5 flex-wrap">
-                            <button
-                                type="button"
-                                @click="showTrendLine = !showTrendLine"
-                                :class="[
-                                    'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold border transition-all cursor-pointer select-none',
-                                    showTrendLine
-                                        ? (enrollmentForecast.status === 'warning'
-                                            ? 'bg-rose-50 text-rose-800 border-rose-200'
-                                            : 'bg-sky-50 text-sky-800 border-sky-200')
-                                        : 'bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200/70',
-                                ]"
-                                title="Tampilkan atau sembunyikan garis tren historis"
-                            >
-                                <span class="material-symbols-outlined text-[14px]">show_chart</span>
-                                <span>Garis Tren</span>
-                            </button>
-                            <button
-                                type="button"
-                                @click="showPrediction = !showPrediction"
-                                :class="[
-                                    'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold border transition-all cursor-pointer select-none',
-                                    showPrediction
-                                        ? 'bg-emerald-900 text-yellow-200 border-emerald-950 shadow-2xs'
-                                        : 'bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200/70',
-                                ]"
-                                title="Tampilkan atau sembunyikan proyeksi tahun ajaran berikutnya & early warning"
-                            >
-                                <span class="material-symbols-outlined text-[14px]">auto_graph</span>
-                                <span>Prediksi</span>
-                            </button>
-                            <button
-                                type="button"
-                                @click="showForecastHint = !showForecastHint"
-                                :class="[
-                                    'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold border transition-all cursor-pointer select-none',
-                                    showForecastHint
-                                        ? 'bg-indigo-100 text-indigo-900 border-indigo-300'
-                                        : 'bg-white hover:bg-slate-50 text-slate-600 border-slate-200',
-                                ]"
-                                title="Penjelasan cara membaca statistik & prediksi"
-                            >
-                                <span class="material-symbols-outlined text-[14px]">help</span>
-                                <span>Hint</span>
-                            </button>
-                        </div>
-
                         <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-900 border border-emerald-200 text-[11px] font-bold">
                             <span class="w-2 h-2 rounded-full bg-yellow-400 inline-block"></span>
                             <span>TA: {{ selectedChartYear }}</span>
@@ -1223,18 +1179,35 @@ const displayedNewStudents = computed(() => {
                     </div>
                 </div>
 
-                <div v-if="chartAcademicYears.length > 0" class="h-[240px] sm:h-[280px]">
+                <div v-if="chartAcademicYears.length > 0" class="relative h-[240px] sm:h-[280px]">
                     <Bar :key="newStudentsChartKey" :data="newStudentsChartData" :options="newStudentsChartOptions" />
+
+                    <!-- Tombol Icon Tren di Pojok Kanan Atas Container Diagram (Melebar saat aktif) -->
+                    <button
+                        v-if="enrollmentForecast.isAvailable"
+                        type="button"
+                        @click="showTrendAnalysis = !showTrendAnalysis"
+                        :class="[
+                            'absolute top-0.5 right-0.5 z-10 inline-flex items-center justify-center rounded-full border text-[11px] font-bold shadow-xs transition-all duration-200 cursor-pointer select-none',
+                            showTrendAnalysis
+                                ? 'gap-1.5 px-3 py-1.5 bg-emerald-900 text-yellow-200 border-emerald-950'
+                                : 'w-8 h-8 bg-white/95 hover:bg-slate-50 text-slate-600 border-slate-200/90',
+                        ]"
+                        :title="showTrendAnalysis ? 'Sembunyikan Garis Tren & Prediksi' : 'Tampilkan Garis Tren & Prediksi Tahun Depan'"
+                    >
+                        <span class="material-symbols-outlined text-[16px]">trending_up</span>
+                        <span v-if="showTrendAnalysis" class="whitespace-nowrap">Tren</span>
+                    </button>
                 </div>
                 <div v-else class="py-10 text-center text-slate-400 text-xs">
                     Belum ada data periode siswa baru.
                 </div>
 
-                <!-- Ringkasan Compact Early Warning & Proyeksi (Di Bawah Diagram) -->
+                <!-- Ringkasan Compact Early Warning & Proyeksi + Icon Hint di Pojok Kanan Bawah -->
                 <div
-                    v-if="showPrediction && enrollmentForecast.isAvailable"
+                    v-if="showTrendAnalysis && enrollmentForecast.isAvailable"
                     :class="[
-                        'mt-3 px-3 py-2.5 rounded-2xl border flex flex-col lg:flex-row lg:items-center justify-between gap-2.5',
+                        'mt-3 px-3 py-2.5 rounded-2xl border flex flex-col gap-2',
                         enrollmentForecast.status === 'warning'
                             ? 'bg-rose-50/70 border-rose-200/90'
                             : enrollmentForecast.status === 'growing'
@@ -1242,20 +1215,20 @@ const displayedNewStudents = computed(() => {
                                 : 'bg-slate-50/90 border-slate-200/90',
                     ]"
                 >
-                    <div class="flex items-start sm:items-center gap-2 min-w-0">
-                        <span
-                            :class="[
-                                'material-symbols-outlined text-[18px] shrink-0 mt-0.5 sm:mt-0',
-                                enrollmentForecast.status === 'warning'
-                                    ? 'text-rose-600'
-                                    : enrollmentForecast.status === 'growing'
-                                        ? 'text-emerald-700'
-                                        : 'text-sky-700',
-                            ]"
-                        >
-                            {{ enrollmentForecast.status === 'warning' ? 'warning' : (enrollmentForecast.status === 'growing' ? 'trending_up' : 'insights') }}
-                        </span>
-                        <div class="min-w-0 flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-2">
+                        <div class="flex items-center gap-2 min-w-0 flex-wrap">
+                            <span
+                                :class="[
+                                    'material-symbols-outlined text-[18px] shrink-0',
+                                    enrollmentForecast.status === 'warning'
+                                        ? 'text-rose-600'
+                                        : enrollmentForecast.status === 'growing'
+                                            ? 'text-emerald-700'
+                                            : 'text-sky-700',
+                                ]"
+                            >
+                                {{ enrollmentForecast.status === 'warning' ? 'warning' : (enrollmentForecast.status === 'growing' ? 'trending_up' : 'insights') }}
+                            </span>
                             <span
                                 :class="[
                                     'inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider border shrink-0',
@@ -1272,31 +1245,48 @@ const displayedNewStudents = computed(() => {
                                 Basis {{ enrollmentForecast.historyYearsCount }} TA → TA {{ enrollmentForecast.nextYearLabel }}
                             </span>
                         </div>
+
+                        <div class="flex items-center gap-1.5 flex-wrap text-[11px]">
+                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white border border-slate-200/90 font-bold text-slate-900">
+                                <span class="text-slate-400 font-semibold">Est. Baru:</span>
+                                <span>~{{ enrollmentForecast.siswaBaruEst }}</span>
+                            </span>
+                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white border border-slate-200/90 font-bold text-slate-900">
+                                <span class="text-slate-400 font-semibold">Rentang:</span>
+                                <span>{{ showMutasiInChart ? `${enrollmentForecast.totalLow}–${enrollmentForecast.totalHigh}` : `${enrollmentForecast.siswaBaruLow}–${enrollmentForecast.siswaBaruHigh}` }}</span>
+                            </span>
+                            <span
+                                class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white border border-slate-200/90 font-bold"
+                                :class="(enrollmentForecast.recent3DeltaPerYear ?? 0) < 0 ? 'text-rose-700' : ((enrollmentForecast.recent3DeltaPerYear ?? 0) > 0 ? 'text-emerald-700' : 'text-slate-800')"
+                            >
+                                <span class="text-slate-400 font-semibold">Laju 3 TA:</span>
+                                <span>{{ (enrollmentForecast.recent3DeltaPerYear ?? 0) > 0 ? '+' : '' }}{{ enrollmentForecast.recent3DeltaPerYear ?? 0 }}/TA</span>
+                            </span>
+                            <span
+                                v-if="showMutasiInChart"
+                                class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-50/80 border border-amber-200/90 font-bold text-amber-900"
+                            >
+                                <span class="text-amber-700 font-semibold">Total (+Mutasi ~{{ enrollmentForecast.mutasiEst }}):</span>
+                                <span>~{{ enrollmentForecast.totalEst }}</span>
+                            </span>
+                        </div>
                     </div>
 
-                    <div class="flex items-center gap-1.5 flex-wrap text-[11px]">
-                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white border border-slate-200/90 font-bold text-slate-900">
-                            <span class="text-slate-400 font-semibold">Est. Baru:</span>
-                            <span>~{{ enrollmentForecast.siswaBaruEst }}</span>
-                        </span>
-                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white border border-slate-200/90 font-bold text-slate-900">
-                            <span class="text-slate-400 font-semibold">Rentang:</span>
-                            <span>{{ showMutasiInChart ? `${enrollmentForecast.totalLow}–${enrollmentForecast.totalHigh}` : `${enrollmentForecast.siswaBaruLow}–${enrollmentForecast.siswaBaruHigh}` }}</span>
-                        </span>
-                        <span
-                            class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white border border-slate-200/90 font-bold"
-                            :class="(enrollmentForecast.recent3DeltaPerYear ?? 0) < 0 ? 'text-rose-700' : ((enrollmentForecast.recent3DeltaPerYear ?? 0) > 0 ? 'text-emerald-700' : 'text-slate-800')"
+                    <!-- Baris Bawah Kartu Prediksi: Icon Hint di Pojok Kanan Bawah -->
+                    <div class="flex items-center justify-end pt-0.5">
+                        <button
+                            type="button"
+                            @click="showForecastHint = !showForecastHint"
+                            :class="[
+                                'w-7 h-7 rounded-full inline-flex items-center justify-center border transition-colors cursor-pointer',
+                                showForecastHint
+                                    ? 'bg-indigo-100 text-indigo-900 border-indigo-300'
+                                    : 'bg-white/90 hover:bg-white text-slate-500 hover:text-indigo-700 border-slate-200/90',
+                            ]"
+                            title="Lihat penjelasan metode statistik & tren"
                         >
-                            <span class="text-slate-400 font-semibold">Laju 3 TA:</span>
-                            <span>{{ (enrollmentForecast.recent3DeltaPerYear ?? 0) > 0 ? '+' : '' }}{{ enrollmentForecast.recent3DeltaPerYear ?? 0 }}/TA</span>
-                        </span>
-                        <span
-                            v-if="showMutasiInChart"
-                            class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-50/80 border border-amber-200/90 font-bold text-amber-900"
-                        >
-                            <span class="text-amber-700 font-semibold">Total (+Mutasi ~{{ enrollmentForecast.mutasiEst }}):</span>
-                            <span>~{{ enrollmentForecast.totalEst }}</span>
-                        </span>
+                            <span class="material-symbols-outlined text-[16px]">help</span>
+                        </button>
                     </div>
                 </div>
 
