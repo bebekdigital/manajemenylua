@@ -642,23 +642,49 @@ const hasNonDefaultFilters = computed(() => {
 });
 
 function exportExcel() {
-    if (activeTierTab.value === 'unmatched') return;
+    const schoolsToExport = [...regionFilteredSchools.value].sort(
+        (a, b) => b.totalStudents - a.totalStudents || b.taCount - a.taCount || a.nama.localeCompare(b.nama, 'id')
+    );
+    const villagesToExport = [...regionFilteredVillages.value].sort(
+        (a, b) => b.totalStudents - a.totalStudents || (a.campus_km ?? 999) - (b.campus_km ?? 999) || a.desa.localeCompare(b.desa, 'id')
+    );
+
+    if (schoolsToExport.length === 0 && villagesToExport.length === 0) return;
 
     const kabSuffix = selectedKabupaten.value === 'Semua' ? 'SoloRaya' : selectedKabupaten.value;
-    const tierSuffix = activeTierTab.value === 'all' ? 'SemuaSegmen' : activeTierTab.value;
+    const unitSuffix = activeUnit.value === 'all' ? 'SemuaUnit' : activeUnit.value;
 
-    if (isWelfareMode.value) {
-        const rowsToExport = displayedVillages.value;
-        if (rowsToExport.length === 0) return;
+    const wb = XLSX.utils.book_new();
 
-        const sheetData = rowsToExport.map((v, idx) => ({
+    if (schoolsToExport.length > 0) {
+        const schoolSheetData = schoolsToExport.map((s, idx) => ({
+            No: idx + 1,
+            NPSN: s.npsn,
+            'Nama Sekolah': s.nama,
+            Bentuk: s.bentuk,
+            Status: s.status,
+            Alamat: s.alamat,
+            'Desa/Kelurahan': s.desa,
+            Kecamatan: s.kecamatan,
+            Kabupaten: s.kabupaten,
+            'Kategori Potensi': PSB_TIERS[s.tier]?.label || s.tier,
+            'Jumlah TA Menyumbang': s.taCount,
+            'Total Siswa Masuk': s.totalStudents,
+            [`Siswa TA ${latestTaName.value || 'Terbaru'}`]: s.latestTaCount,
+        }));
+        const wsSchool = XLSX.utils.json_to_sheet(schoolSheetData);
+        XLSX.utils.book_append_sheet(wb, wsSchool, 'Asal SD');
+    }
+
+    if (villagesToExport.length > 0) {
+        const villageSheetData = villagesToExport.map((v, idx) => ({
             No: idx + 1,
             'Kode Wilayah': v.kode,
             'Desa / Kelurahan': v.desa,
             Kecamatan: v.kecamatan,
             Kabupaten: v.kabupaten,
-            'Jarak ke Kampus (km)': v.campus_km,
-            'Ring Radius Kampus': CAMPUS_RING_META[v.campus_ring]?.label || `Ring ${v.campus_ring}`,
+            'Jarak ke Sekolah (km)': v.campus_km,
+            'Ring Radius Sekolah': CAMPUS_RING_META[v.campus_ring]?.label || `Ring ${v.campus_ring}`,
             'Gerbang Tol Terdekat': v.toll_name,
             'Jarak Gerbang Tol (km)': v.toll_km,
             'Segmen Wilayah': PSB_WELFARE_TIERS[v.tier]?.label || v.tier,
@@ -666,38 +692,11 @@ function exportExcel() {
             'Konsistensi (TA)': v.taCount,
             'Jumlah SD Asal di Desa': v.schoolsCount,
         }));
-
-        const ws = XLSX.utils.json_to_sheet(sheetData);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Domisili Desa PSB');
-        XLSX.writeFile(wb, `PSB_Domisili_Desa_${kabSuffix}_${tierSuffix}.xlsx`);
-        return;
+        const wsVillage = XLSX.utils.json_to_sheet(villageSheetData);
+        XLSX.utils.book_append_sheet(wb, wsVillage, 'Domisili Desa');
     }
 
-    const rowsToExport = displayedSchools.value;
-    if (rowsToExport.length === 0) return;
-
-    const sheetData = rowsToExport.map((s, idx) => ({
-        No: idx + 1,
-        NPSN: s.npsn,
-        'Nama Sekolah': s.nama,
-        Bentuk: s.bentuk,
-        Status: s.status,
-        Alamat: s.alamat,
-        'Desa/Kelurahan': s.desa,
-        Kecamatan: s.kecamatan,
-        Kabupaten: s.kabupaten,
-        'Kategori Potensi': PSB_TIERS[s.tier]?.label || s.tier,
-        'Jumlah TA Menyumbang': s.taCount,
-        'Total Siswa Masuk': s.totalStudents,
-        [`Siswa TA ${latestTaName.value || 'Terbaru'}`]: s.latestTaCount,
-    }));
-
-    const ws = XLSX.utils.json_to_sheet(sheetData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Ringkasan PSB');
-
-    XLSX.writeFile(wb, `PSB_Sekolah_${kabSuffix}_${tierSuffix}.xlsx`);
+    XLSX.writeFile(wb, `PSB_Pemetaan_${kabSuffix}_${unitSuffix}.xlsx`);
 }
 </script>
 
@@ -733,36 +732,12 @@ function exportExcel() {
                     <div class="mt-2 flex flex-wrap items-center gap-2">
                         <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-semibold">
                             <span class="material-symbols-outlined text-[14px] text-emerald-700">verified</span>
-                            <span>{{ isWelfareMode ? 'Sumber : Peta Wilayah Solo Raya • Radius Kampus & Gerbang Tol' : 'Sumber : Pusdatin Kemendikdasmen' }}</span>
+                            <span>{{ isWelfareMode ? 'Sumber : Peta Wilayah Solo Raya • Radius Sekolah & Gerbang Tol' : 'Sumber : Pusdatin Kemendikdasmen' }}</span>
                         </span>
                     </div>
                 </div>
 
                 <div class="flex items-center gap-2 flex-wrap self-start sm:self-auto shrink-0">
-                    <!-- Toggle Global Mode Pemetaan -->
-                    <div class="inline-flex items-center p-1 bg-slate-100 rounded-xl border border-slate-200/90">
-                        <button
-                            type="button"
-                            @click="mappingMode = 'school'"
-                            class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer"
-                            :class="!isWelfareMode
-                                ? 'bg-emerald-900 text-yellow-200 shadow-2xs'
-                                : 'text-slate-600 hover:text-slate-900'"
-                        >
-                            Asal SD/MI
-                        </button>
-                        <button
-                            type="button"
-                            @click="mappingMode = 'welfare'"
-                            class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer"
-                            :class="isWelfareMode
-                                ? 'bg-emerald-900 text-yellow-200 shadow-2xs'
-                                : 'text-slate-600 hover:text-slate-900'"
-                        >
-                            Domisili &amp; Radius
-                        </button>
-                    </div>
-
                     <button
                         v-if="hasNonDefaultFilters"
                         type="button"
@@ -775,11 +750,11 @@ function exportExcel() {
                     <button
                         type="button"
                         @click="exportExcel"
-                        :disabled="isLoadingDataset || activeTierTab === 'unmatched' || totalTableItems === 0"
+                        :disabled="isLoadingDataset || (regionFilteredSchools.length === 0 && regionFilteredVillages.length === 0)"
                         class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 disabled:opacity-50 text-yellow-200 text-xs font-bold shadow-xs border border-emerald-950/30 transition-all cursor-pointer active:scale-95"
                     >
                         <span class="material-symbols-outlined text-[17px]">download</span>
-                        <span>Unduh Excel ({{ activeTierTab === 'unmatched' ? 0 : totalTableItems }})</span>
+                        <span>Unduh Excel</span>
                     </button>
                 </div>
             </div>
@@ -788,20 +763,20 @@ function exportExcel() {
             <div class="bg-white rounded-3xl border border-slate-200/90 p-4 sm:p-5 shadow-xs mb-5 space-y-3.5">
                 <!-- Baris 1: Unit Tujuan & Periode -->
                 <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-                    <!-- Unit Tabs -->
+                    <!-- Unit Tabs (Hijau Muda) -->
                     <div class="flex items-center gap-2 flex-wrap">
-                        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1">Unit Tujuan:</span>
-                        <div class="bg-slate-100 p-1 rounded-full inline-flex items-center gap-0.5 border border-slate-200/90 overflow-x-auto max-w-full">
+                        <span class="text-[11px] font-bold text-emerald-700 uppercase tracking-wider mr-1">Unit Tujuan:</span>
+                        <div class="bg-emerald-50/90 p-1 rounded-full inline-flex items-center gap-0.5 border border-emerald-200/90 overflow-x-auto max-w-full">
                             <button
                                 v-for="u in unitOptions"
                                 :key="u.id"
                                 type="button"
                                 @click="activeUnit = u.id"
                                 :class="[
-                                    'px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer shrink-0',
+                                    'px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer shrink-0 border',
                                     activeUnit === u.id
-                                        ? 'bg-emerald-900 text-yellow-200 shadow-2xs'
-                                        : 'text-slate-600 hover:text-slate-900',
+                                        ? 'bg-emerald-200 text-emerald-950 border-emerald-300 shadow-2xs'
+                                        : 'border-transparent text-emerald-800/80 hover:text-emerald-950 hover:bg-emerald-100/70',
                                 ]"
                             >
                                 {{ u.label }}
@@ -811,59 +786,52 @@ function exportExcel() {
 
                     <!-- Filter TA & Status Pendaftaran (Mobile: sebaris 2 kolom dropdown; Desktop: TA dropdown + tab warna) -->
                     <div class="grid grid-cols-2 md:flex md:flex-wrap items-center gap-2 sm:gap-2.5 w-full lg:w-auto">
-                        <!-- Filter TA (Warna Indigo) -->
+                        <!-- Filter TA (Warna Hitam) -->
                         <div class="flex flex-col md:flex-row md:items-center gap-1 md:gap-1.5 min-w-0">
-                            <label class="text-[10.5px] font-bold text-indigo-700 uppercase tracking-wider shrink-0">TA Masuk</label>
+                            <label class="text-[10.5px] font-bold text-slate-900 uppercase tracking-wider shrink-0">TA Masuk</label>
                             <select
                                 v-model="selectedTa"
-                                :class="[
-                                    'w-full md:w-auto rounded-xl border px-3 py-1.5 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 cursor-pointer transition-colors',
-                                    selectedTa !== 'Semua'
-                                        ? 'bg-indigo-100/90 border-indigo-300 text-indigo-950'
-                                        : 'bg-indigo-50/80 hover:bg-indigo-100/60 border-indigo-200 text-indigo-900',
-                                ]"
+                                class="w-full md:w-auto rounded-xl border border-slate-950 bg-slate-900 hover:bg-slate-800 text-white px-3 py-1.5 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-slate-500/30 cursor-pointer transition-colors"
                             >
-                                <option value="Semua">Semua TA</option>
-                                <option v-for="ta in availableTaNames" :key="ta" :value="ta">TA {{ ta }}</option>
+                                <option value="Semua" class="bg-white text-slate-900">Semua TA</option>
+                                <option v-for="ta in availableTaNames" :key="ta" :value="ta" class="bg-white text-slate-900">TA {{ ta }}</option>
                             </select>
                         </div>
 
                         <!-- Mobile: Dropdown Semua Masuk sebaris di samping TA -->
                         <div class="flex md:hidden flex-col gap-1 min-w-0">
-                            <label class="text-[10.5px] font-bold text-teal-700 uppercase tracking-wider shrink-0">Status Masuk</label>
+                            <label class="text-[10.5px] font-bold text-emerald-700 uppercase tracking-wider shrink-0">Status Masuk</label>
                             <select
                                 v-model="registrationFilter"
                                 :class="[
-                                    'w-full rounded-xl border px-3 py-1.5 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-teal-500/20 cursor-pointer transition-colors',
+                                    'w-full rounded-xl border px-3 py-1.5 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500/20 cursor-pointer transition-colors',
                                     registrationFilter === 'mutasi'
                                         ? 'bg-amber-100/90 border-amber-300 text-amber-950'
-                                        : (registrationFilter === 'baru'
-                                            ? 'bg-emerald-100/90 border-emerald-300 text-emerald-950'
-                                            : 'bg-teal-50/80 border-teal-200 text-teal-900'),
+                                        : 'bg-emerald-100/90 border-emerald-300 text-emerald-950',
                                 ]"
                             >
-                                <option value="all">Semua Masuk</option>
-                                <option value="baru">Siswa Baru</option>
-                                <option value="mutasi">Mutasi</option>
+                                <option value="all" class="bg-white text-slate-900">Semua Masuk</option>
+                                <option value="baru" class="bg-white text-slate-900">Siswa Baru</option>
+                                <option value="mutasi" class="bg-white text-slate-900">Mutasi</option>
                             </select>
                         </div>
 
-                        <!-- Desktop: Tab Semua Masuk | Siswa Baru | Mutasi -->
-                        <div class="hidden md:inline-flex bg-teal-50/80 p-1 rounded-full items-center gap-0.5 border border-teal-200/90">
+                        <!-- Desktop: Tab Semua Masuk | Siswa Baru | Mutasi (Hijau Muda) -->
+                        <div class="hidden md:inline-flex bg-emerald-50/90 p-1 rounded-full items-center gap-0.5 border border-emerald-200/90">
                             <button
                                 v-for="opt in [
-                                    { key: 'all', label: 'Semua Masuk', activeClass: 'bg-emerald-900 text-yellow-200 shadow-2xs' },
-                                    { key: 'baru', label: 'Siswa Baru', activeClass: 'bg-emerald-600 text-white shadow-2xs' },
-                                    { key: 'mutasi', label: 'Mutasi', activeClass: 'bg-amber-600 text-white shadow-2xs' },
+                                    { key: 'all', label: 'Semua Masuk', activeClass: 'bg-emerald-200 text-emerald-950 border-emerald-300 shadow-2xs' },
+                                    { key: 'baru', label: 'Siswa Baru', activeClass: 'bg-emerald-300 text-emerald-950 border-emerald-400 shadow-2xs' },
+                                    { key: 'mutasi', label: 'Mutasi', activeClass: 'bg-amber-200 text-amber-950 border-amber-300 shadow-2xs' },
                                 ]"
                                 :key="opt.key"
                                 type="button"
                                 @click="registrationFilter = opt.key"
                                 :class="[
-                                    'px-3 py-1 rounded-full text-[11px] font-bold transition-all cursor-pointer',
+                                    'px-3 py-1 rounded-full text-[11px] font-bold transition-all cursor-pointer border',
                                     registrationFilter === opt.key
                                         ? opt.activeClass
-                                        : 'text-teal-800/80 hover:text-teal-950 hover:bg-teal-100/60',
+                                        : 'border-transparent text-emerald-800/80 hover:text-emerald-950 hover:bg-emerald-100/70',
                                 ]"
                             >
                                 {{ opt.label }}
@@ -872,17 +840,17 @@ function exportExcel() {
                     </div>
                 </div>
 
-                <!-- Baris 2: Filter Wilayah (Kabupaten, Kecamatan) + Bentuk + Status Sekolah -->
+                <!-- Baris 2: Filter Wilayah (Hijau) + Bentuk & Status Sekolah (Oranye) -->
                 <div class="pt-3 border-t border-slate-100 grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                     <div>
-                        <label class="block text-[10.5px] font-bold text-sky-700 uppercase tracking-wider mb-1">Kabupaten / Kota</label>
+                        <label class="block text-[10.5px] font-bold text-emerald-700 uppercase tracking-wider mb-1">Kabupaten / Kota</label>
                         <select
                             v-model="selectedKabupaten"
                             :class="[
-                                'w-full rounded-xl border px-3 py-2 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-sky-500/20 cursor-pointer transition-colors',
+                                'w-full rounded-xl border px-3 py-2 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500/20 cursor-pointer transition-colors',
                                 selectedKabupaten !== 'Semua'
-                                    ? 'bg-sky-100/90 border-sky-300 text-sky-950'
-                                    : 'bg-sky-50/80 hover:bg-sky-100/60 border-sky-200 text-sky-900',
+                                    ? 'bg-emerald-100/90 border-emerald-400 text-emerald-950'
+                                    : 'bg-emerald-50/90 hover:bg-emerald-100/70 border-emerald-300 text-emerald-900',
                             ]"
                         >
                             <option value="Semua">Semua Solo Raya (7 Kab/Kota)</option>
@@ -891,14 +859,14 @@ function exportExcel() {
                     </div>
 
                     <div>
-                        <label class="block text-[10.5px] font-bold text-teal-700 uppercase tracking-wider mb-1">Kecamatan</label>
+                        <label class="block text-[10.5px] font-bold text-emerald-700 uppercase tracking-wider mb-1">Kecamatan</label>
                         <select
                             v-model="selectedKecamatan"
                             :class="[
-                                'w-full rounded-xl border px-3 py-2 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-teal-500/20 cursor-pointer transition-colors',
+                                'w-full rounded-xl border px-3 py-2 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500/20 cursor-pointer transition-colors',
                                 selectedKecamatan !== 'Semua'
-                                    ? 'bg-teal-100/90 border-teal-300 text-teal-950'
-                                    : 'bg-teal-50/80 hover:bg-teal-100/60 border-teal-200 text-teal-900',
+                                    ? 'bg-emerald-100/90 border-emerald-400 text-emerald-950'
+                                    : 'bg-emerald-50/90 hover:bg-emerald-100/70 border-emerald-300 text-emerald-900',
                             ]"
                         >
                             <option value="Semua">Semua Kecamatan ({{ availableKecamatans.length }})</option>
@@ -907,15 +875,15 @@ function exportExcel() {
                     </div>
 
                     <div :class="{ 'opacity-50 pointer-events-none': isWelfareMode }">
-                        <label class="block text-[10.5px] font-bold text-violet-700 uppercase tracking-wider mb-1">Bentuk Sekolah</label>
+                        <label class="block text-[10.5px] font-bold text-orange-700 uppercase tracking-wider mb-1">Bentuk Sekolah</label>
                         <select
                             v-model="selectedBentuk"
                             :disabled="isWelfareMode"
                             :class="[
-                                'w-full rounded-xl border px-3 py-2 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-violet-500/20 cursor-pointer transition-colors',
+                                'w-full rounded-xl border px-3 py-2 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-orange-500/20 cursor-pointer transition-colors',
                                 selectedBentuk !== 'Semua'
-                                    ? 'bg-violet-100/90 border-violet-300 text-violet-950'
-                                    : 'bg-violet-50/80 hover:bg-violet-100/60 border-violet-200 text-violet-900',
+                                    ? 'bg-orange-100/90 border-orange-400 text-orange-950'
+                                    : 'bg-orange-50/90 hover:bg-orange-100/70 border-orange-300 text-orange-900',
                             ]"
                         >
                             <option value="Semua">Semua (SD, MI, PKBM)</option>
@@ -926,15 +894,15 @@ function exportExcel() {
                     </div>
 
                     <div :class="{ 'opacity-50 pointer-events-none': isWelfareMode }">
-                        <label class="block text-[10.5px] font-bold text-amber-700 uppercase tracking-wider mb-1">Status Sekolah</label>
+                        <label class="block text-[10.5px] font-bold text-orange-700 uppercase tracking-wider mb-1">Status Sekolah</label>
                         <select
                             v-model="selectedSchoolStatus"
                             :disabled="isWelfareMode"
                             :class="[
-                                'w-full rounded-xl border px-3 py-2 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-amber-500/20 cursor-pointer transition-colors',
+                                'w-full rounded-xl border px-3 py-2 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-orange-500/20 cursor-pointer transition-colors',
                                 selectedSchoolStatus !== 'Semua'
-                                    ? 'bg-amber-100/90 border-amber-300 text-amber-950'
-                                    : 'bg-amber-50/80 hover:bg-amber-100/60 border-amber-200 text-amber-900',
+                                    ? 'bg-orange-100/90 border-orange-400 text-orange-950'
+                                    : 'bg-orange-50/90 hover:bg-orange-100/70 border-orange-300 text-orange-900',
                             ]"
                         >
                             <option value="Semua">Semua Status (Negeri &amp; Swasta)</option>
@@ -1121,7 +1089,7 @@ function exportExcel() {
                         <div class="flex items-center gap-2">
                             <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span>
                             <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                                {{ isWelfareMode ? 'Jangkauan Domisili & Radius Kampus per Kabupaten / Kota' : 'Jangkauan per Kabupaten / Kota Solo Raya' }}
+                                {{ isWelfareMode ? 'Jangkauan Domisili & Radius Sekolah per Kabupaten / Kota' : 'Jangkauan per Kabupaten / Kota Solo Raya' }}
                             </h3>
                         </div>
                         <span class="text-[11px] text-slate-400 font-medium hidden sm:inline">Klik kartu kabupaten untuk memfilter</span>
@@ -1301,7 +1269,7 @@ function exportExcel() {
                                 class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:border-emerald-600 cursor-pointer"
                             >
                                 <option value="students_desc">Urut: Siswa Domisili Terbanyak</option>
-                                <option value="campus_asc">Urut: Terdekat ke Kampus</option>
+                                <option value="campus_asc">Urut: Terdekat ke Sekolah</option>
                                 <option value="toll_asc">Urut: Terdekat Gerbang Tol</option>
                                 <option value="zero_first">Urut: Siswa 0 / Minim Dulu</option>
                                 <option value="name_asc">Urut: Nama Desa (A-Z)</option>
@@ -1402,7 +1370,7 @@ function exportExcel() {
                                 </div>
                                 <div class="flex items-center justify-between pt-1.5 border-t border-slate-200/70 text-[11px] gap-1.5 flex-wrap">
                                     <div class="flex items-center gap-1 flex-wrap">
-                                        <span class="px-1.5 py-0.5 rounded bg-sky-50 border border-sky-200 font-semibold text-sky-800">{{ v.campus_km ?? '-' }} km Kampus</span>
+                                        <span class="px-1.5 py-0.5 rounded bg-sky-50 border border-sky-200 font-semibold text-sky-800">{{ v.campus_km ?? '-' }} km Sekolah</span>
                                         <span class="px-1.5 py-0.5 rounded bg-indigo-50 border border-indigo-200 font-semibold text-indigo-800">{{ v.toll_name }} ({{ v.toll_km ?? '-' }} km)</span>
                                     </div>
                                     <div class="font-bold text-slate-800 shrink-0">
@@ -1419,7 +1387,7 @@ function exportExcel() {
                                     <tr>
                                         <th class="py-3 px-3.5 w-12 text-center">No</th>
                                         <th class="py-3 px-3.5">Desa / Kelurahan</th>
-                                        <th class="py-3 px-3.5 text-center w-36">Radius Kampus</th>
+                                        <th class="py-3 px-3.5 text-center w-36">Radius Sekolah</th>
                                         <th class="py-3 px-3.5 w-44">Gerbang Tol Terdekat</th>
                                         <th class="py-3 px-3.5 text-center w-24">SD di Desa</th>
                                         <th class="py-3 px-3.5 text-center w-28">Siswa Domisili</th>
@@ -1656,7 +1624,7 @@ function exportExcel() {
                             <h3 class="text-sm font-bold text-slate-900">{{ quadrantGroupModal.title }}</h3>
                             <p class="text-xs text-slate-500 mt-0.5">
                                 <template v-if="quadrantGroupModal.mode === 'welfare'">
-                                    {{ (quadrantGroupModal.villages || []).length }} desa/kelurahan pada posisi ini — klik desa untuk rincian jarak Kampus, Tol &amp; siswa
+                                    {{ (quadrantGroupModal.villages || []).length }} desa/kelurahan pada posisi ini — klik desa untuk rincian jarak Sekolah, Tol &amp; siswa
                                 </template>
                                 <template v-else>
                                     {{ (quadrantGroupModal.schools || []).length }} sekolah berada pada titik posisi ini — klik sekolah untuk rincian siswa
@@ -1681,7 +1649,7 @@ function exportExcel() {
                         >
                             <div class="min-w-0">
                                 <p class="text-xs font-bold text-slate-900">{{ v.desa }}</p>
-                                <p class="text-[11px] text-slate-500 mt-0.5">Kec. {{ v.kecamatan }}, {{ v.kabupaten }} • Kampus {{ v.campus_km ?? '-' }} km • {{ v.toll_name }} ({{ v.toll_km ?? '-' }} km)</p>
+                                <p class="text-[11px] text-slate-500 mt-0.5">Kec. {{ v.kecamatan }}, {{ v.kabupaten }} • Sekolah {{ v.campus_km ?? '-' }} km • {{ v.toll_name }} ({{ v.toll_km ?? '-' }} km)</p>
                             </div>
                             <span class="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-900 text-xs font-bold shrink-0">
                                 {{ v.totalStudents }} Siswa →
@@ -1746,10 +1714,10 @@ function exportExcel() {
                     </div>
 
                     <div class="p-5 overflow-y-auto space-y-4">
-                        <!-- Ringkasan Indikator Wilayah (Radius Kampus & Gerbang Tol) -->
+                        <!-- Ringkasan Indikator Wilayah (Radius Sekolah & Gerbang Tol) -->
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                             <div class="p-3 rounded-2xl bg-sky-50 border border-sky-200 text-center">
-                                <div class="text-[10px] font-bold text-sky-700 uppercase">Radius ke Kampus</div>
+                                <div class="text-[10px] font-bold text-sky-700 uppercase">Radius ke Sekolah</div>
                                 <div class="text-base font-extrabold text-sky-950 mt-0.5">{{ selectedVillageModal.campus_km ?? '-' }} km</div>
                                 <div class="text-[10.5px] font-semibold text-sky-700">{{ CAMPUS_RING_META[selectedVillageModal.campus_ring]?.label || 'Ring ' + selectedVillageModal.campus_ring }}</div>
                             </div>
@@ -1816,7 +1784,7 @@ function exportExcel() {
                             <span class="material-symbols-outlined text-3xl text-slate-300 mb-1 block">home_work</span>
                             <p class="text-xs font-bold text-slate-700">Belum ada siswa berdomisili dari desa ini (0 Siswa)</p>
                             <p class="text-[11px] text-slate-500 mt-0.5">
-                                {{ (selectedVillageModal.campus_ring || 4) <= 2 ? 'Desa berada dalam radius <= 10 km dari kampus dan berpotensi dijadikan target sosialisasi.' : 'Desa berada di luar radius 10 km dan belum memiliki siswa domisili.' }}
+                                {{ (selectedVillageModal.campus_ring || 4) <= 2 ? 'Desa berada dalam radius <= 10 km dari sekolah dan berpotensi dijadikan target sosialisasi.' : 'Desa berada di luar radius 10 km dan belum memiliki siswa domisili.' }}
                             </p>
                         </div>
                     </div>

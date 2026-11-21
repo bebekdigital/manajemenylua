@@ -624,7 +624,7 @@ function selectRegionFeature(type, feature, layer, latlng = null, isClick = fals
                 ? `<div class="mt-1.5 pt-1 border-t border-slate-200/80 space-y-1">
                         <div class="flex items-center justify-between gap-3">
                             <span class="font-bold text-emerald-800">${studentCount} Siswa Domisili</span>
-                            <span class="text-[11px] font-bold text-sky-700">${stats.campus_km ?? '-'} km ke Kampus</span>
+                            <span class="text-[11px] font-bold text-sky-700">${stats.campus_km ?? '-'} km ke Sekolah</span>
                         </div>
                         <div class="text-[10.5px] text-slate-500">
                             Tol terdekat: <strong>${escapeHtml(stats.toll_name || '-')}</strong> (${stats.toll_km ?? '-'} km)
@@ -1426,7 +1426,7 @@ async function initMap() {
 
         campusMarker.bindPopup(`
             <div style="padding: 4px; min-width: 210px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif;">
-                <div style="font-size: 10.5px; font-weight: 800; color: #be123c; margin-bottom: 3px;">📍 LOKASI KAMPUS SEKOLAH</div>
+                <div style="font-size: 10.5px; font-weight: 800; color: #be123c; margin-bottom: 3px;">📍 LOKASI SEKOLAH</div>
                 <div style="font-weight: 800; font-size: 12px; color: #0f172a;">${SCHOOL_NAME}</div>
                 <div style="font-size: 11px; color: #64748b; margin-top: 3px;">${SCHOOL_ADDRESS}</div>
             </div>
@@ -1549,18 +1549,18 @@ watch(
                 <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block shrink-0"></span>
                 <div>
                     <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                        {{ isWelfareMode ? 'Peta Domisili Siswa, Radius Kampus & Tol (Solo Raya)' : 'Peta Sebaran Sekolah Asal & Wilayah (Solo Raya)' }}
+                        {{ isWelfareMode ? 'Peta Domisili Siswa, Radius Sekolah & Tol (Solo Raya)' : 'Peta Sebaran Sekolah Asal & Wilayah (Solo Raya)' }}
                     </h3>
                     <p class="text-[11px] text-slate-500 font-medium mt-0.5">
                         <template v-if="isWelfareMode">
                             <template v-if="drillKecamatan">
-                                Mode Desa: <span class="font-bold text-emerald-800">Kec. {{ drillKecamatan.kecamatan }} ({{ drillKecamatan.kabupaten }})</span> — klik desa untuk Radius Kampus, Tol &amp; daftar siswa
+                                Mode Desa: <span class="font-bold text-emerald-800">Kec. {{ drillKecamatan.kecamatan }} ({{ drillKecamatan.kabupaten }})</span> — klik desa untuk Radius Sekolah, Tol &amp; daftar siswa
                             </template>
                             <template v-else-if="aggregationLevel === 'desa'">
                                 Warna per <span class="font-bold text-slate-700">Desa / Kelurahan</span> berdasarkan jumlah siswa domisili — klik desa untuk rincian
                             </template>
                             <template v-else>
-                                Warna per <span class="font-bold text-slate-700">Kecamatan</span> berdasarkan siswa domisili + ring radius kampus &amp; gerbang tol
+                                Warna per <span class="font-bold text-slate-700">Kecamatan</span> berdasarkan siswa domisili + ring radius sekolah &amp; gerbang tol
                             </template>
                         </template>
                         <template v-else>
@@ -1635,20 +1635,20 @@ watch(
             </div>
         </div>
 
-        <!-- Baris Filter Layer Titik Sekolah (Hanya Mode Sekolah Asal saat Titik SD Aktif) -->
+        <!-- Baris Filter Layer Titik Sekolah (Hanya Mode Sekolah Asal saat Titik SD Aktif, 1 Baris) -->
         <div
             v-if="!isWelfareMode && showSchoolDots"
-            class="mb-3 p-2.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-wrap items-center justify-between gap-2 shrink-0"
+            class="mb-3 px-2.5 py-2 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between gap-2 shrink-0 overflow-x-auto no-scrollbar"
         >
-            <div class="flex items-center gap-1.5 flex-wrap">
-                <span class="text-[10.5px] font-bold text-slate-500 uppercase tracking-wider mr-1">Filter Titik Tier:</span>
+            <div class="flex items-center gap-1.5 flex-nowrap shrink-0">
+                <span class="text-[10.5px] font-bold text-slate-500 uppercase tracking-wider mr-0.5 shrink-0 whitespace-nowrap">Filter Titik Tier:</span>
                 <button
                     v-for="tierKey in ['basis_utama', 'potensial', 'vakum', 'belum_tergarap']"
                     :key="tierKey"
                     type="button"
                     @click="visibleTiers[tierKey] = !visibleTiers[tierKey]"
                     :class="[
-                        'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border transition-all cursor-pointer select-none',
+                        'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border transition-all cursor-pointer select-none shrink-0 whitespace-nowrap',
                         visibleTiers[tierKey]
                             ? PSB_TIERS[tierKey].badgeClass
                             : 'bg-white text-slate-400 border-slate-200 line-through opacity-70',
@@ -1656,14 +1656,14 @@ watch(
                 >
                     <span
                         :class="[
-                            'w-2 h-2 rounded-full',
+                            'w-2 h-2 rounded-full shrink-0',
                             visibleTiers[tierKey] ? PSB_TIERS[tierKey].dotClass : 'bg-slate-300',
                         ]"
                     ></span>
                     <span>{{ PSB_TIERS[tierKey].shortLabel }}</span>
                 </button>
             </div>
-            <span class="text-[11px] text-slate-500 font-medium">Klik titik mana pun untuk melihat profil &amp; siswa sekolahnya</span>
+            <span class="hidden xl:inline text-[11px] text-slate-500 font-medium shrink-0 whitespace-nowrap">Klik titik mana pun untuk melihat profil &amp; siswa sekolahnya</span>
         </div>
 
         <!-- Container Peta (selalu render dimensi penuh agar Leaflet & fitBounds tidak 0x0) -->
@@ -1740,7 +1740,7 @@ watch(
                                     ? 'bg-sky-700 text-white border-sky-800'
                                     : 'bg-white/95 hover:bg-white text-slate-700 border-slate-200',
                             ]"
-                            title="Ring radius 5 / 10 / 15 km dari Kampus"
+                            title="Ring radius 5 / 10 / 15 km dari Sekolah"
                         >
                             <span class="material-symbols-outlined text-[14px]">radar</span>
                             <span>Radius</span>
@@ -1951,7 +1951,7 @@ watch(
                                 class="text-[10.5px] font-semibold text-sky-700 bg-sky-50 px-2 py-0.5 rounded-md border border-sky-200/70"
                             >
                                 {{ hoveredRegion.type === 'desa'
-                                    ? `${hoveredRegion.campus_km ?? '-'} km ke Kampus`
+                                    ? `${hoveredRegion.campus_km ?? '-'} km ke Sekolah`
                                     : `Rata ${hoveredRegion.avgCampusKm ?? '-'} km (${hoveredRegion.reachedVillages}/${hoveredRegion.villageCount} desa)` }}
                             </span>
                             <span
@@ -2099,7 +2099,7 @@ watch(
                 <div class="pt-1.5 border-t border-slate-200/70 flex items-center gap-2.5 text-[10px] text-slate-600 font-medium flex-wrap">
                     <div class="flex items-center gap-1">
                         <span class="w-3 h-3 rounded-full bg-rose-600 border border-white inline-block"></span>
-                        <span class="font-bold text-rose-700">Kampus</span>
+                        <span class="font-bold text-rose-700">Sekolah</span>
                     </div>
                     <div class="flex items-center gap-1">
                         <span class="w-4 border-t-2 border-dashed border-[#1e293b] inline-block"></span>
@@ -2171,7 +2171,7 @@ watch(
                                         • {{ regionStudentModal.reached }} / {{ regionStudentModal.total }} SD tergarap
                                     </template>
                                     <template v-else-if="regionStudentModal.type === 'desa'">
-                                        • {{ regionStudentModal.campus_km ?? '-' }} km ke Kampus
+                                        • {{ regionStudentModal.campus_km ?? '-' }} km ke Sekolah
                                     </template>
                                 </p>
                             </div>

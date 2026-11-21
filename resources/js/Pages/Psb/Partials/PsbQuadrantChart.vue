@@ -460,7 +460,7 @@ const quadrantPlugin = {
                 ctx.fillStyle = 'rgba(180, 83, 9, 0.72)';
                 ctx.fillText('POTENSIAL SEJAHTERA (0-2 Siswa)', chartArea.right - 10, chartArea.bottom - 10);
             } else {
-                const zoneLabel = axis === 'campus' ? 'RING DEKAT KAMPUS (<= 10 km)' : 'AKSES TOL DEKAT (<= 5 km)';
+                const zoneLabel = axis === 'campus' ? 'RING DEKAT SEKOLAH (<= 10 km)' : 'AKSES TOL DEKAT (<= 5 km)';
                 ctx.fillStyle = 'rgba(4, 120, 87, 0.65)';
                 ctx.textAlign = 'left';
                 ctx.fillText(`${zoneLabel} • BASIS (>= 3 Siswa)`, chartArea.left + 10, chartArea.top + 16);
@@ -607,7 +607,7 @@ const chartOptions = computed(() => ({
                     if (isWelfareMode.value) {
                         const tLabel = PSB_WELFARE_TIERS[raw.tier]?.label || '';
                         if (welfareXAxis.value === 'toll') return `${tLabel} (Tol ~${raw.origX} km • ${raw.origY} Siswa)`;
-                        return `${tLabel} (Kampus ~${raw.origX} km • ${raw.origY} Siswa)`;
+                        return `${tLabel} (Sekolah ~${raw.origX} km • ${raw.origY} Siswa)`;
                     }
                     if (raw.tier === 'belum_tergarap') {
                         return 'Titik (0, 0) — Belum Tergarap';
@@ -620,11 +620,11 @@ const chartOptions = computed(() => ({
                     if (!raw) return '';
                     if (isWelfareMode.value) {
                         const lines = [
-                            `Jumlah: ${raw.count} desa/kelurahan (Rata Kampus ${raw.avgCampusKm} km | Tol ${raw.avgTollKm} km)`,
+                            `Jumlah: ${raw.count} desa/kelurahan (Rata Sekolah ${raw.avgCampusKm} km | Tol ${raw.avgTollKm} km)`,
                         ];
                         const preview = (raw.villages || []).slice(0, 5);
                         preview.forEach((v) => {
-                            lines.push(`• ${v.desa}, ${v.kecamatan} (Kampus ${v.campus_km} km, ${v.toll_name} ${v.toll_km} km)`);
+                            lines.push(`• ${v.desa}, ${v.kecamatan} (Sekolah ${v.campus_km} km, ${v.toll_name} ${v.toll_km} km)`);
                         });
                         if (raw.count > 5) {
                             lines.push(`... dan ${raw.count - 5} desa lainnya (klik lingkaran)`);
@@ -659,7 +659,7 @@ const chartOptions = computed(() => ({
                 text: isWelfareMode.value
                     ? (welfareXAxis.value === 'toll'
                         ? 'Jarak ke Gerbang Tol Terdekat (km — Kiri = Paling Dekat Tol)'
-                        : 'Radius Jarak dari Kampus (km — Kiri = Paling Dekat Kampus)')
+                        : 'Radius Jarak dari Sekolah (km — Kiri = Paling Dekat Sekolah)')
                     : 'Konsistensi (Jumlah Tahun Ajaran Menyumbang)',
                 color: '#475569',
                 font: { size: 11, weight: '700' },
@@ -1036,11 +1036,11 @@ onBeforeUnmount(() => {
                 <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block mt-1.5 shrink-0"></span>
                 <div>
                     <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                        {{ isWelfareMode ? 'Matriks Akses Wilayah (Radius Kampus & Tol vs Siswa Domisili)' : 'Matriks Potensi Sekolah (Konsistensi vs Total Siswa)' }}
+                        {{ isWelfareMode ? 'Matriks Akses Wilayah (Radius Sekolah & Tol vs Siswa Domisili)' : 'Matriks Potensi Sekolah (Konsistensi vs Total Siswa)' }}
                     </h3>
                     <p class="text-[11.5px] text-slate-500 mt-0.5">
                         <template v-if="isWelfareMode">
-                            Menyandingkan <span class="font-bold text-slate-700">Radius Jarak Kampus &amp; Gerbang Tol</span> tiap desa dengan jumlah siswa berdomisili.
+                            Menyandingkan <span class="font-bold text-slate-700">Radius Jarak Sekolah &amp; Gerbang Tol</span> tiap desa dengan jumlah siswa berdomisili.
                         </template>
                         <template v-else>
                             Titik kembar otomatis dipisah ke sisi berbeda; gunakan scroll / tombol <span class="font-bold text-slate-700">Zoom Area Padat</span> untuk memperbesar titik yang berdekatan.
@@ -1058,7 +1058,7 @@ onBeforeUnmount(() => {
                 >
                     <button
                         v-for="opt in [
-                            { key: 'campus', label: 'Radius Kampus' },
+                            { key: 'campus', label: 'Radius Sekolah' },
                             { key: 'toll', label: 'Jarak Tol' },
                         ]"
                         :key="opt.key"
@@ -1138,40 +1138,6 @@ onBeforeUnmount(() => {
                         −
                     </button>
                 </div>
-
-                <!-- Legend Klik Cepat -->
-                <div v-if="isWelfareMode" class="flex items-center gap-1.5 flex-wrap">
-                    <button
-                        v-for="tierKey in ['sejahtera_basis', 'sejahtera_potensial', 'rentan_terjangkau', 'rentan_minim']"
-                        :key="tierKey"
-                        type="button"
-                        @click="emit('select-tier', tierKey)"
-                        :class="[
-                            'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border transition-all cursor-pointer hover:opacity-90 active:scale-95',
-                            PSB_WELFARE_TIERS[tierKey].badgeClass,
-                        ]"
-                        :title="PSB_WELFARE_TIERS[tierKey].description"
-                    >
-                        <span :class="['w-2 h-2 rounded-full', PSB_WELFARE_TIERS[tierKey].dotClass]"></span>
-                        <span>{{ PSB_WELFARE_TIERS[tierKey].shortLabel }}</span>
-                    </button>
-                </div>
-                <div v-else class="flex items-center gap-1.5 flex-wrap">
-                    <button
-                        v-for="tierKey in ['basis_utama', 'potensial', 'vakum', 'belum_tergarap']"
-                        :key="tierKey"
-                        type="button"
-                        @click="emit('select-tier', tierKey)"
-                        :class="[
-                            'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border transition-all cursor-pointer hover:opacity-90 active:scale-95',
-                            PSB_TIERS[tierKey].badgeClass,
-                        ]"
-                        :title="PSB_TIERS[tierKey].description"
-                    >
-                        <span :class="['w-2 h-2 rounded-full', PSB_TIERS[tierKey].dotClass]"></span>
-                        <span>{{ PSB_TIERS[tierKey].shortLabel }}</span>
-                    </button>
-                </div>
             </div>
         </div>
 
@@ -1201,6 +1167,42 @@ onBeforeUnmount(() => {
                     Reset
                 </button>
             </div>
+        </div>
+
+        <!-- Badge Legend Klik Cepat (Di Bawah Diagram) -->
+        <div class="mt-3 pt-3 border-t border-slate-100 flex items-center justify-center sm:justify-start gap-1.5 flex-wrap">
+            <template v-if="isWelfareMode">
+                <button
+                    v-for="tierKey in ['sejahtera_basis', 'sejahtera_potensial', 'rentan_terjangkau', 'rentan_minim']"
+                    :key="tierKey"
+                    type="button"
+                    @click="emit('select-tier', tierKey)"
+                    :class="[
+                        'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border transition-all cursor-pointer hover:opacity-90 active:scale-95',
+                        PSB_WELFARE_TIERS[tierKey].badgeClass,
+                    ]"
+                    :title="PSB_WELFARE_TIERS[tierKey].description"
+                >
+                    <span :class="['w-2 h-2 rounded-full', PSB_WELFARE_TIERS[tierKey].dotClass]"></span>
+                    <span>{{ PSB_WELFARE_TIERS[tierKey].shortLabel }}</span>
+                </button>
+            </template>
+            <template v-else>
+                <button
+                    v-for="tierKey in ['basis_utama', 'potensial', 'vakum', 'belum_tergarap']"
+                    :key="tierKey"
+                    type="button"
+                    @click="emit('select-tier', tierKey)"
+                    :class="[
+                        'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border transition-all cursor-pointer hover:opacity-90 active:scale-95',
+                        PSB_TIERS[tierKey].badgeClass,
+                    ]"
+                    :title="PSB_TIERS[tierKey].description"
+                >
+                    <span :class="['w-2 h-2 rounded-full', PSB_TIERS[tierKey].dotClass]"></span>
+                    <span>{{ PSB_TIERS[tierKey].shortLabel }}</span>
+                </button>
+            </template>
         </div>
     </div>
 </template>
