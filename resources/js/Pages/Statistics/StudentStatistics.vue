@@ -723,11 +723,22 @@ const newStudentsChartData = computed(() => {
     };
 });
 
-const newStudentsChartOptions = computed(() => ({
+const newStudentsChartOptions = computed(() => {
+    const f = enrollmentForecast.value;
+    const activeHigh = showMutasiInChart.value ? f.totalHigh : f.siswaBaruHigh;
+    const maxHistorical = newStudentsPerYear.value.reduce((m, item) => {
+        const val = showMutasiInChart.value ? item.total : item.siswaBaru;
+        return Math.max(m, Number(val) || 0);
+    }, 0);
+    const ySuggestedMax = showForecastBar.value
+        ? Math.ceil(Math.max(maxHistorical, activeHigh) * 1.16)
+        : undefined;
+
+    return {
     responsive: true,
     maintainAspectRatio: false,
     layout: {
-        padding: { top: 28 },
+        padding: { top: 32 },
     },
     onHover: (event, chartElement) => {
         const canvas = event?.native?.target;
@@ -804,6 +815,7 @@ const newStudentsChartOptions = computed(() => ({
         datalabels: {
             display: (ctx) => {
                 if (ctx.dataset?.type === 'line') return false;
+                if (showForecastBar.value && ctx.dataIndex === chartAcademicYears.value.length) return false;
                 const targetBarIndex = showMutasiInChart.value ? 1 : 0;
                 return ctx.datasetIndex === targetBarIndex;
             },
@@ -851,6 +863,7 @@ const newStudentsChartOptions = computed(() => ({
         },
         y: {
             stacked: true,
+            suggestedMax: ySuggestedMax,
             title: {
                 display: true,
                 text: 'Jumlah Siswa Masuk',
@@ -877,7 +890,104 @@ const newStudentsChartOptions = computed(() => ({
         duration: 600,
         easing: 'easeOutQuart',
     },
-}));
+    };
+});
+
+const forecastRangePlugin = {
+    id: 'forecastRangeErrorBar',
+    afterDatasetsDraw(chart) {
+        if (!showForecastBar.value) return;
+
+        const f = enrollmentForecast.value;
+        if (!f.isAvailable) return;
+
+        const estIdx = chartAcademicYears.value.length;
+        const barDatasetIdx = showMutasiInChart.value ? 1 : 0;
+        const meta = chart.getDatasetMeta(barDatasetIdx);
+        const barEl = meta?.data?.[estIdx];
+        const yScale = chart.scales?.y;
+        if (!barEl || !yScale) return;
+
+        const lowVal = showMutasiInChart.value ? f.totalLow : f.siswaBaruLow;
+        const highVal = showMutasiInChart.value ? f.totalHigh : f.siswaBaruHigh;
+        const estVal = showMutasiInChart.value ? f.totalEst : f.siswaBaruEst;
+
+        const x = barEl.x;
+        const yHigh = yScale.getPixelForValue(highVal);
+        const yLow = yScale.getPixelForValue(lowVal);
+        const yEst = yScale.getPixelForValue(estVal);
+        const strokeColor = f.status === 'warning' ? '#be123c' : '#047857';
+
+        const { ctx } = chart;
+        ctx.save();
+
+        // Garis vertikal rentang perkiraan (low s.d. high) beserta cap horizontal atas & bawah
+        ctx.strokeStyle = strokeColor;
+        ctx.lineWidth = 2;
+        ctx.setLineDash([]);
+
+        ctx.beginPath();
+        ctx.moveTo(x, yHigh);
+        ctx.lineTo(x, yLow);
+        ctx.moveTo(x - 6, yHigh);
+        ctx.lineTo(x + 6, yHigh);
+        ctx.moveTo(x - 6, yLow);
+        ctx.lineTo(x + 6, yLow);
+        ctx.stroke();
+
+        // Titik pusat estimasi
+        ctx.fillStyle = strokeColor;
+        ctx.beginPath();
+        ctx.arc(x, yEst, 3, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.textAlign = 'center';
+        const hasRoomForSplitLabels =
+            yEst - yHigh >= 16 && yLow - yEst >= 16 && yLow + 14 <= yScale.bottom;
+
+        if (hasRoomForSplitLabels) {
+            // Label batas atas & bawah
+            ctx.font = "700 10px 'Plus Jakarta Sans', 'Inter', sans-serif";
+            ctx.fillStyle = '#475569';
+            ctx.textBaseline = 'bottom';
+            ctx.fillText(String(highVal), x, yHigh - 3);
+
+            ctx.textBaseline = 'top';
+            ctx.fillText(String(lowVal), x, yLow + 3);
+
+            // Pil nilai estimasi di titik tengah
+            const estText = `~${estVal}`;
+            ctx.font = "800 11px 'Plus Jakarta Sans', 'Inter', sans-serif";
+            const textW = ctx.measureText(estText).width;
+            const pillW = textW + 10;
+            const pillH = 16;
+
+            ctx.fillStyle = '#ffffff';
+            ctx.strokeStyle = strokeColor;
+            ctx.lineWidth = 1.25;
+            ctx.beginPath();
+            if (typeof ctx.roundRect === 'function') {
+                ctx.roundRect(x - pillW / 2, yEst - pillH / 2, pillW, pillH, 6);
+            } else {
+                ctx.rect(x - pillW / 2, yEst - pillH / 2, pillW, pillH);
+            }
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = strokeColor;
+            ctx.textBaseline = 'middle';
+            ctx.fillText(estText, x, yEst + 0.5);
+        } else {
+            // Mode ringkas jika rentang sempit secara piksel
+            ctx.font = "800 11px 'Plus Jakarta Sans', 'Inter', sans-serif";
+            ctx.fillStyle = strokeColor;
+            ctx.textBaseline = 'bottom';
+            ctx.fillText(`~${estVal} (${lowVal}–${highVal})`, x, yHigh - 4);
+        }
+
+        ctx.restore();
+    },
+};
 
 // Siswa baru yang masuk dalam Tahun Ajaran yang sedang dipilih pada grafik
 const studentsInSelectedChartYear = computed(() => {
@@ -1180,7 +1290,12 @@ const displayedNewStudents = computed(() => {
                 </div>
 
                 <div v-if="chartAcademicYears.length > 0" class="relative h-[240px] sm:h-[280px]">
-                    <Bar :key="newStudentsChartKey" :data="newStudentsChartData" :options="newStudentsChartOptions" />
+                    <Bar
+                        :key="newStudentsChartKey"
+                        :data="newStudentsChartData"
+                        :options="newStudentsChartOptions"
+                        :plugins="[forecastRangePlugin]"
+                    />
 
                     <!-- Tombol Icon Tren di Pojok Kanan Atas Container Diagram (Melebar saat aktif) -->
                     <button
