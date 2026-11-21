@@ -785,10 +785,10 @@ function exportExcel() {
             <div class="bg-white rounded-3xl border border-slate-200/90 p-4 sm:p-5 shadow-xs mb-5 space-y-3.5">
                 <!-- Baris 1: Unit Tujuan & Periode -->
                 <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-                    <!-- Unit Tabs (Hijau Muda) -->
+                    <!-- Unit Tabs (Pil Aktif Hijau Muda, Container Netral) -->
                     <div class="flex items-center gap-2 flex-wrap">
-                        <span class="text-[11px] font-bold text-emerald-700 uppercase tracking-wider mr-1">Unit Tujuan:</span>
-                        <div class="bg-emerald-50/90 p-1 rounded-full inline-flex items-center gap-0.5 border border-emerald-200/90 overflow-x-auto max-w-full">
+                        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1">Unit Tujuan:</span>
+                        <div class="bg-slate-100 p-1 rounded-full inline-flex items-center gap-0.5 border border-slate-200/90 overflow-x-auto max-w-full">
                             <button
                                 v-for="u in unitOptions"
                                 :key="u.id"
@@ -798,7 +798,7 @@ function exportExcel() {
                                     'px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer shrink-0 border',
                                     activeUnit === u.id
                                         ? 'bg-emerald-200 text-emerald-950 border-emerald-300 shadow-2xs'
-                                        : 'border-transparent text-emerald-800/80 hover:text-emerald-950 hover:bg-emerald-100/70',
+                                        : 'border-transparent text-slate-600 hover:text-slate-900',
                                 ]"
                             >
                                 {{ u.label }}
@@ -822,7 +822,7 @@ function exportExcel() {
 
                         <!-- Mobile: Dropdown Semua Masuk sebaris di samping TA -->
                         <div class="flex md:hidden flex-col gap-1 min-w-0">
-                            <label class="text-[10.5px] font-bold text-emerald-700 uppercase tracking-wider shrink-0">Status Masuk</label>
+                            <label class="text-[10.5px] font-bold text-slate-500 uppercase tracking-wider shrink-0">Status Masuk</label>
                             <select
                                 v-model="registrationFilter"
                                 :class="[
@@ -838,13 +838,13 @@ function exportExcel() {
                             </select>
                         </div>
 
-                        <!-- Desktop: Tab Semua Masuk | Siswa Baru | Mutasi (Hijau Muda) -->
-                        <div class="hidden md:inline-flex bg-emerald-50/90 p-1 rounded-full items-center gap-0.5 border border-emerald-200/90">
+                        <!-- Desktop: Tab Semua Masuk | Siswa Baru | Mutasi (Pil Semua Masuk Hijau Muda, Container Netral) -->
+                        <div class="hidden md:inline-flex bg-slate-100 p-1 rounded-full items-center gap-0.5 border border-slate-200/90">
                             <button
                                 v-for="opt in [
                                     { key: 'all', label: 'Semua Masuk', activeClass: 'bg-emerald-200 text-emerald-950 border-emerald-300 shadow-2xs' },
-                                    { key: 'baru', label: 'Siswa Baru', activeClass: 'bg-emerald-300 text-emerald-950 border-emerald-400 shadow-2xs' },
-                                    { key: 'mutasi', label: 'Mutasi', activeClass: 'bg-amber-200 text-amber-950 border-amber-300 shadow-2xs' },
+                                    { key: 'baru', label: 'Siswa Baru', activeClass: 'bg-emerald-600 text-white border-emerald-700 shadow-2xs' },
+                                    { key: 'mutasi', label: 'Mutasi', activeClass: 'bg-amber-600 text-white border-amber-700 shadow-2xs' },
                                 ]"
                                 :key="opt.key"
                                 type="button"
@@ -853,7 +853,7 @@ function exportExcel() {
                                     'px-3 py-1 rounded-full text-[11px] font-bold transition-all cursor-pointer border',
                                     registrationFilter === opt.key
                                         ? opt.activeClass
-                                        : 'border-transparent text-emerald-800/80 hover:text-emerald-950 hover:bg-emerald-100/70',
+                                        : 'border-transparent text-slate-600 hover:text-slate-900',
                                 ]"
                             >
                                 {{ opt.label }}
