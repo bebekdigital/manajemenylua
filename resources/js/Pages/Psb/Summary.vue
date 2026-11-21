@@ -1,10 +1,11 @@
 <script setup>
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head } from '@inertiajs/vue3';
 import * as XLSX from 'xlsx';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PsbQuadrantChart from './Partials/PsbQuadrantChart.vue';
 import PsbSchoolClusterMap from './Partials/PsbSchoolClusterMap.vue';
+import PsbStudentRowCard from './Partials/PsbStudentRowCard.vue';
 import {
     CAMPUS_RING_META,
     PSB_TIERS,
@@ -13,14 +14,6 @@ import {
     matchAndClassifySchools,
     matchAndClassifyVillages,
 } from '@/Utils/psbMatcher';
-import {
-    getGenderBadgeClass,
-    getGenderLabel,
-    getProgramBadgeClass,
-    getRegistrationTypeBadgeClass,
-    getStatusKeaktifanBadgeClass,
-    getStatusKeaktifanDotClass,
-} from '@/Utils/studentBadges';
 
 defineOptions({
     layout: AppLayout,
@@ -1746,7 +1739,7 @@ function exportExcel() {
 
                     <div class="p-5 overflow-y-auto space-y-4">
                         <!-- Ringkasan Indikator Wilayah (Radius Sekolah & Gerbang Tol) -->
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <div class="grid grid-cols-2 gap-2.5">
                             <div class="p-3 rounded-2xl bg-sky-50 border border-sky-200 text-center">
                                 <div class="text-[10px] font-bold text-sky-700 uppercase">Radius ke Sekolah</div>
                                 <div class="text-base font-extrabold text-sky-950 mt-0.5">{{ selectedVillageModal.campus_km ?? '-' }} km</div>
@@ -1781,35 +1774,13 @@ function exportExcel() {
                         <!-- Daftar Siswa Domisili -->
                         <div v-if="selectedVillageModal.students.length > 0" class="space-y-2">
                             <div class="text-xs font-bold text-slate-700 uppercase tracking-wider">Daftar Siswa Berdomisili</div>
-                            <Link
+                            <PsbStudentRowCard
                                 v-for="(st, sIdx) in selectedVillageModal.students"
                                 :key="st.id"
-                                :href="`/students/${st.nisn}`"
-                                class="p-3 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/40 transition-all flex items-start sm:items-center justify-between gap-3 group"
-                            >
-                                <div class="flex items-start gap-2.5 min-w-0">
-                                    <span class="w-6 h-6 rounded-lg bg-slate-100 text-slate-600 text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">
-                                        {{ sIdx + 1 }}
-                                    </span>
-                                    <div class="min-w-0">
-                                        <div class="flex items-center gap-1.5 flex-wrap">
-                                            <span class="text-xs font-bold text-slate-900 group-hover:text-emerald-950 break-words">{{ st.nama }}</span>
-                                            <span :class="['px-1.5 py-0.5 rounded border text-[10px] font-bold', getGenderBadgeClass(st.jk)]">
-                                                {{ getGenderLabel(st.jk) }}
-                                            </span>
-                                        </div>
-                                        <p class="text-[11px] text-slate-500 mt-0.5 break-words leading-snug">
-                                            Masuk {{ st.ta_masuk || '-' }}
-                                        </p>
-                                        <p class="text-[11px] font-semibold text-slate-700 mt-0.5 break-words leading-snug">
-                                            Dusun: {{ st.dusun || '-' }}
-                                        </p>
-                                    </div>
-                                </div>
-                                <span :class="['px-2 py-0.5 rounded border text-[10px] font-bold shrink-0', getProgramBadgeClass(st.program)]">
-                                    {{ st.program }}
-                                </span>
-                            </Link>
+                                :student="st"
+                                :index="sIdx"
+                                mode="welfare"
+                            />
                         </div>
                         <div v-else class="py-8 text-center rounded-2xl bg-slate-50 border border-dashed border-slate-300">
                             <span class="material-symbols-outlined text-3xl text-slate-300 mb-1 block">home_work</span>
@@ -1886,44 +1857,14 @@ function exportExcel() {
                     <!-- Daftar Siswa Asal Sekolah Tersebut -->
                     <div v-if="selectedSchoolModal.students.length > 0" class="space-y-2">
                         <div class="text-xs font-bold text-slate-700 uppercase tracking-wider">Daftar Siswa Masuk</div>
-                        <Link
+                        <PsbStudentRowCard
                             v-for="(st, sIdx) in selectedSchoolModal.students"
                             :key="st.id"
-                            :href="`/students/${st.nisn}`"
-                            class="p-3 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/40 transition-all flex items-center justify-between gap-3 group"
-                        >
-                            <div class="flex items-center gap-2.5 min-w-0">
-                                <span class="w-6 h-6 rounded-lg bg-slate-100 text-slate-600 text-[11px] font-bold flex items-center justify-center shrink-0">
-                                    {{ sIdx + 1 }}
-                                </span>
-                                <div class="min-w-0">
-                                    <div class="flex items-center gap-1.5 flex-wrap">
-                                        <span class="text-xs font-bold text-slate-900 group-hover:text-emerald-950 truncate">{{ st.nama }}</span>
-                                        <span :class="['px-1.5 py-0.5 rounded border text-[10px] font-bold', getGenderBadgeClass(st.jk)]">
-                                            {{ getGenderLabel(st.jk) }}
-                                        </span>
-                                        <span :class="['px-1.5 py-0.5 rounded border text-[10px] font-bold', getRegistrationTypeBadgeClass(st.status_registrasi)]">
-                                            {{ st.status_registrasi }}
-                                        </span>
-                                    </div>
-                                    <p class="text-[11px] text-slate-500 mt-0.5 break-words leading-snug">
-                                        {{ st.kelas !== '-' ? st.kelas : `Angk. ${st.angkatan || '-'}` }} • Masuk {{ st.ta_masuk || '-' }}
-                                    </p>
-                                    <p class="text-[11px] font-semibold text-slate-700 mt-0.5 break-words leading-snug">
-                                        Asal: {{ st.sekolah_asal || selectedSchoolModal.nama }}
-                                    </p>
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-2 shrink-0">
-                                <span :class="['px-2 py-0.5 rounded border text-[10px] font-bold', getProgramBadgeClass(st.program)]">
-                                    {{ st.program }}
-                                </span>
-                                <span :class="['inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-bold', getStatusKeaktifanBadgeClass(st)]">
-                                    <span :class="['w-1.5 h-1.5 rounded-full', getStatusKeaktifanDotClass(st)]"></span>
-                                    <span>{{ st.status_keaktifan }}</span>
-                                </span>
-                            </div>
-                        </Link>
+                            :student="st"
+                            :index="sIdx"
+                            mode="school"
+                            :fallback-school-name="selectedSchoolModal.nama"
+                        />
                     </div>
 
                     <div v-else class="py-8 text-center rounded-2xl bg-slate-50 border border-dashed border-slate-300">
@@ -1994,49 +1935,14 @@ function exportExcel() {
                             <div class="text-xs font-bold text-slate-700 uppercase tracking-wider">
                                 {{ unmatchedGroupModal.mode === 'welfare' ? 'Daftar Siswa Berdomisili' : 'Daftar Siswa Masuk' }}
                             </div>
-                            <Link
+                            <PsbStudentRowCard
                                 v-for="(st, sIdx) in unmatchedGroupModal.students"
                                 :key="st.id"
-                                :href="`/students/${st.nisn}`"
-                                class="p-3 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/40 transition-all flex items-start sm:items-center justify-between gap-3 group"
-                            >
-                                <div class="flex items-start gap-2.5 min-w-0">
-                                    <span class="w-6 h-6 rounded-lg bg-slate-100 text-slate-600 text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">
-                                        {{ sIdx + 1 }}
-                                    </span>
-                                    <div class="min-w-0">
-                                        <div class="flex items-center gap-1.5 flex-wrap">
-                                            <span class="text-xs font-bold text-slate-900 group-hover:text-emerald-950 break-words">{{ st.nama }}</span>
-                                            <span :class="['px-1.5 py-0.5 rounded border text-[10px] font-bold', getGenderBadgeClass(st.jk)]">
-                                                {{ getGenderLabel(st.jk) }}
-                                            </span>
-                                            <span :class="['px-1.5 py-0.5 rounded border text-[10px] font-bold', getRegistrationTypeBadgeClass(st.status_registrasi)]">
-                                                {{ st.status_registrasi }}
-                                            </span>
-                                        </div>
-                                        <p class="text-[11px] text-slate-500 mt-0.5 break-words leading-snug">
-                                            {{ st.kelas !== '-' ? st.kelas : `Angk. ${st.angkatan || '-'}` }} • Masuk {{ st.ta_masuk || '-' }}
-                                        </p>
-                                        <p class="text-[11px] font-semibold text-slate-700 mt-0.5 break-words leading-snug">
-                                            <template v-if="unmatchedGroupModal.mode === 'welfare'">
-                                                Dusun: {{ st.dusun || '-' }}
-                                            </template>
-                                            <template v-else>
-                                                Asal: {{ st.sekolah_asal || unmatchedGroupModal.title }}
-                                            </template>
-                                        </p>
-                                    </div>
-                                </div>
-                                <div class="flex items-center gap-2 shrink-0 flex-wrap justify-end">
-                                    <span :class="['px-2 py-0.5 rounded border text-[10px] font-bold', getProgramBadgeClass(st.program)]">
-                                        {{ st.program }}
-                                    </span>
-                                    <span :class="['inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-bold', getStatusKeaktifanBadgeClass(st)]">
-                                        <span :class="['w-1.5 h-1.5 rounded-full', getStatusKeaktifanDotClass(st)]"></span>
-                                        <span>{{ st.status_keaktifan }}</span>
-                                    </span>
-                                </div>
-                            </Link>
+                                :student="st"
+                                :index="sIdx"
+                                :mode="unmatchedGroupModal.mode"
+                                :fallback-school-name="unmatchedGroupModal.title"
+                            />
                         </div>
                     </div>
                 </div>

@@ -9,11 +9,7 @@ import {
     normalizeDesaKey,
     normalizeWilayahKey,
 } from '@/Utils/psbMatcher';
-import {
-    getGenderBadgeClass,
-    getGenderLabel,
-    getProgramBadgeClass,
-} from '@/Utils/studentBadges';
+import PsbStudentRowCard from './PsbStudentRowCard.vue';
 
 // Perbesar toleransi geser Leaflet untuk layar sentuh/mobile
 if (L.Draggable?.prototype?.options) {
@@ -2213,57 +2209,14 @@ watch(
                     <!-- Modal Body: Daftar Siswa -->
                     <div class="flex-1 overflow-y-auto px-4 sm:px-6 py-3 space-y-2 custom-bar-scrollbar">
                         <div v-if="modalFilteredStudents.length > 0" class="space-y-2">
-                            <a
+                            <PsbStudentRowCard
                                 v-for="(student, sIdx) in modalFilteredStudents"
                                 :key="student.id || sIdx"
-                                :href="`/students/${student.nisn || student.id}`"
-                                target="_blank"
-                                class="p-2.5 sm:p-3 rounded-2xl bg-slate-50/80 hover:bg-emerald-50/40 hover:border-emerald-200 border border-slate-200/80 flex items-center justify-between gap-3 transition-colors group/row"
-                                title="Buka profil siswa di tab baru"
-                            >
-                                <div class="min-w-0 flex items-start gap-2.5 flex-1">
-                                    <span class="w-6 h-6 rounded-lg bg-white border border-slate-200 text-[10.5px] font-bold text-slate-600 flex items-center justify-center shrink-0 mt-0.5">
-                                        {{ sIdx + 1 }}
-                                    </span>
-                                    <div class="min-w-0">
-                                        <div class="text-xs sm:text-[13px] font-bold text-slate-900 group-hover/row:text-emerald-950 break-words leading-tight">
-                                            {{ student.nama }}
-                                        </div>
-                                        <div v-if="student.ta_masuk" class="text-[11px] text-slate-500 font-medium mt-0.5 break-words leading-snug">
-                                            TA {{ student.ta_masuk }}
-                                        </div>
-                                        <div
-                                            v-if="regionStudentModal.mode === 'school'"
-                                            class="text-[11px] text-slate-700 font-semibold mt-0.5 break-words leading-snug"
-                                        >
-                                            Asal: {{ student.sekolah_asal || '-' }}
-                                        </div>
-                                        <div
-                                            v-else
-                                            class="text-[11px] text-slate-700 font-semibold mt-0.5 break-words leading-snug"
-                                        >
-                                            Dusun: {{ student.dusun || '-' }}
-                                            <span v-if="regionStudentModal.type !== 'desa' && student.desa" class="text-slate-500 font-medium"> • Ds. {{ student.desa }}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="flex items-center gap-1.5 shrink-0">
-                                    <span
-                                        class="text-[10px] font-bold px-2 py-0.5 rounded-lg border text-center"
-                                        :class="getGenderBadgeClass(student.jk)"
-                                    >
-                                        <span class="hidden sm:inline">{{ getGenderLabel(student.jk) }}</span>
-                                        <span class="sm:hidden">{{ student.jk || '-' }}</span>
-                                    </span>
-                                    <span
-                                        v-if="student.program"
-                                        class="text-[10px] font-bold px-2 py-0.5 rounded-lg border shrink-0"
-                                        :class="getProgramBadgeClass(student.program)"
-                                    >
-                                        {{ student.program }}
-                                    </span>
-                                </div>
-                            </a>
+                                :student="student"
+                                :index="sIdx"
+                                :mode="regionStudentModal.mode"
+                                :fallback-school-name="regionStudentModal.school?.nama || ''"
+                            />
                         </div>
                         <div v-else class="py-12 text-center">
                             <span class="material-symbols-outlined text-3xl text-slate-300 mb-1 block">person_search</span>
