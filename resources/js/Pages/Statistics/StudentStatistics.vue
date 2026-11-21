@@ -1190,8 +1190,8 @@ const displayedNewStudents = computed(() => {
                         :class="[
                             'absolute top-0.5 right-0.5 z-10 inline-flex items-center justify-center rounded-full border text-[11px] font-bold shadow-xs transition-all duration-200 cursor-pointer select-none',
                             showTrendAnalysis
-                                ? 'gap-1.5 px-3 py-1.5 bg-emerald-900 text-yellow-200 border-emerald-950'
-                                : 'w-8 h-8 bg-white/95 hover:bg-slate-50 text-slate-600 border-slate-200/90',
+                                ? 'gap-1.5 px-3 py-1.5 bg-yellow-400 hover:bg-yellow-500 text-slate-950 border-yellow-500 shadow-sm'
+                                : 'w-8 h-8 bg-yellow-300 hover:bg-yellow-400 text-amber-950 border-yellow-400',
                         ]"
                         :title="showTrendAnalysis ? 'Sembunyikan Garis Tren & Prediksi' : 'Tampilkan Garis Tren & Prediksi Tahun Depan'"
                     >
