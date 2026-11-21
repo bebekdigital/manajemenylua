@@ -101,6 +101,8 @@ function handleKeyDown(e) {
             selectedSchoolModal.value = null;
         } else if (selectedVillageModal.value) {
             selectedVillageModal.value = null;
+        } else if (unmatchedGroupModal.value) {
+            unmatchedGroupModal.value = null;
         } else if (quadrantGroupModal.value) {
             quadrantGroupModal.value = null;
         }
@@ -178,6 +180,7 @@ watch(mappingMode, () => {
     quadrantGroupModal.value = null;
     selectedSchoolModal.value = null;
     selectedVillageModal.value = null;
+    unmatchedGroupModal.value = null;
 });
 
 watch(selectedKabupaten, () => {
@@ -567,7 +570,33 @@ const paginatedRows = computed(() => {
 const tableSectionRef = ref(null);
 const selectedSchoolModal = ref(null);
 const selectedVillageModal = ref(null);
+const unmatchedGroupModal = ref(null);
 const quadrantGroupModal = ref(null);
+
+function openUnmatchedModal(grp) {
+    if (!grp) return;
+    const list = [...(grp.students || [])].sort((a, b) => (a.nama || '').localeCompare(b.nama || '', 'id'));
+    const taBreakdownMap = {};
+    list.forEach((st) => {
+        const taKey = st.ta_masuk || (st.angkatan ? `Angk. ${st.angkatan}` : 'Lainnya');
+        taBreakdownMap[taKey] = (taBreakdownMap[taKey] || 0) + 1;
+    });
+    const taBreakdown = Object.entries(taBreakdownMap).sort((a, b) => b[0].localeCompare(a[0]));
+    const distinctTaKeys = Object.keys(taBreakdownMap).filter((k) => k !== 'Lainnya');
+    const taCount = distinctTaKeys.length > 0 ? distinctTaKeys.length : (list.length > 0 ? 1 : 0);
+
+    unmatchedGroupModal.value = {
+        mode: isWelfareMode.value ? 'welfare' : 'school',
+        title: isWelfareMode.value ? `Ds. ${grp.desa}` : grp.name,
+        npsn: grp.npsn || '-',
+        kecamatan: grp.kecamatan || '-',
+        kabupaten: grp.kabupaten || '-',
+        totalStudents: list.length,
+        taCount,
+        taBreakdown,
+        students: list,
+    };
+}
 
 function jumpToTier(tierKey) {
     activeTierTab.value = tierKey;
@@ -1318,13 +1347,15 @@ function exportExcel() {
                     <!-- Tab Unmatched Content -->
                     <template v-else-if="activeTierTab === 'unmatched'">
                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-                            <div
+                            <button
                                 v-for="grp in paginatedRows"
                                 :key="grp.key"
-                                class="p-3.5 rounded-2xl border border-slate-200/90 bg-slate-50/70 flex items-center justify-between gap-3"
+                                type="button"
+                                @click="openUnmatchedModal(grp)"
+                                class="w-full text-left p-3.5 rounded-2xl border border-slate-200/90 bg-slate-50/70 hover:border-emerald-300 hover:bg-emerald-50/40 active:scale-[0.99] transition-all cursor-pointer flex items-center justify-between gap-3 group"
                             >
                                 <div class="min-w-0">
-                                    <p class="text-xs font-bold text-slate-900 break-words">{{ isWelfareMode ? `Ds. ${grp.desa}` : grp.name }}</p>
+                                    <p class="text-xs font-bold text-slate-900 group-hover:text-emerald-950 break-words">{{ isWelfareMode ? `Ds. ${grp.desa}` : grp.name }}</p>
                                     <p class="text-[11px] text-slate-500 mt-0.5 truncate">
                                         <template v-if="isWelfareMode">
                                             {{ grp.kecamatan !== '-' ? `Kec. ${grp.kecamatan}, ` : '' }}{{ grp.kabupaten }}
@@ -1334,10 +1365,10 @@ function exportExcel() {
                                         </template>
                                     </p>
                                 </div>
-                                <span class="px-2.5 py-1 rounded-full bg-slate-200 text-slate-800 text-xs font-bold shrink-0">
-                                    {{ grp.students.length }} Siswa
+                                <span class="px-2.5 py-1 rounded-full bg-slate-200 group-hover:bg-emerald-100 text-slate-800 group-hover:text-emerald-900 text-xs font-bold shrink-0 transition-colors">
+                                    {{ grp.students.length }} Siswa →
                                 </span>
-                            </div>
+                            </button>
                         </div>
                     </template>
 
@@ -1903,6 +1934,113 @@ function exportExcel() {
                 </div>
             </div>
         </div>
+        </Teleport>
+
+        <!-- Modal Rincian Data Luar / Belum Terdata & Daftar Siswa -->
+        <Teleport to="body">
+            <div
+                v-if="unmatchedGroupModal"
+                @click.self="unmatchedGroupModal = null"
+                class="fixed inset-0 z-[999] bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4"
+            >
+                <div class="bg-white rounded-3xl max-w-3xl w-full max-h-[88vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
+                    <div class="px-5 py-4 border-b border-slate-100 flex items-start justify-between gap-3 bg-slate-50/60">
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap mb-1">
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold border bg-slate-100 text-slate-700 border-slate-300">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
+                                    <span>Luar / Belum Terdata</span>
+                                </span>
+                                <span v-if="unmatchedGroupModal.mode === 'school' && unmatchedGroupModal.npsn && unmatchedGroupModal.npsn !== '-'" class="text-[11px] font-mono text-slate-400">
+                                    NPSN {{ unmatchedGroupModal.npsn }}
+                                </span>
+                            </div>
+                            <h3 class="text-base font-extrabold text-slate-900 leading-snug break-words">{{ unmatchedGroupModal.title }}</h3>
+                            <p class="text-xs text-slate-500 mt-0.5">
+                                {{ unmatchedGroupModal.kecamatan !== '-' ? `Kec. ${unmatchedGroupModal.kecamatan}, ` : '' }}{{ unmatchedGroupModal.kabupaten }}
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            @click="unmatchedGroupModal = null"
+                            class="w-8 h-8 rounded-full hover:bg-slate-200/70 flex items-center justify-center text-slate-500 cursor-pointer shrink-0"
+                        >
+                            <span class="material-symbols-outlined text-[20px]">close</span>
+                        </button>
+                    </div>
+
+                    <div class="p-5 overflow-y-auto space-y-4">
+                        <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div>
+                                <div class="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider">
+                                    {{ unmatchedGroupModal.mode === 'welfare' ? 'Histori Siswa Berdomisili' : 'Histori Kontribusi Siswa' }}
+                                </div>
+                                <div class="text-sm font-extrabold text-slate-900 mt-0.5">
+                                    {{ unmatchedGroupModal.totalStudents }} Siswa dari {{ unmatchedGroupModal.taCount }} Tahun Ajaran
+                                </div>
+                            </div>
+                            <div v-if="unmatchedGroupModal.taBreakdown.length > 0" class="flex flex-wrap gap-1.5">
+                                <span
+                                    v-for="[ta, cnt] in unmatchedGroupModal.taBreakdown"
+                                    :key="ta"
+                                    class="px-2.5 py-1 rounded-xl bg-white border border-emerald-200 text-emerald-900 text-xs font-bold shadow-2xs"
+                                >
+                                    {{ ta }}: {{ cnt }} siswa
+                                </span>
+                            </div>
+                        </div>
+
+                        <div v-if="unmatchedGroupModal.students.length > 0" class="space-y-2">
+                            <div class="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                                {{ unmatchedGroupModal.mode === 'welfare' ? 'Daftar Siswa Berdomisili' : 'Daftar Siswa Masuk' }}
+                            </div>
+                            <Link
+                                v-for="(st, sIdx) in unmatchedGroupModal.students"
+                                :key="st.id"
+                                :href="`/students/${st.nisn}`"
+                                class="p-3 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/40 transition-all flex items-start sm:items-center justify-between gap-3 group"
+                            >
+                                <div class="flex items-start gap-2.5 min-w-0">
+                                    <span class="w-6 h-6 rounded-lg bg-slate-100 text-slate-600 text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">
+                                        {{ sIdx + 1 }}
+                                    </span>
+                                    <div class="min-w-0">
+                                        <div class="flex items-center gap-1.5 flex-wrap">
+                                            <span class="text-xs font-bold text-slate-900 group-hover:text-emerald-950 break-words">{{ st.nama }}</span>
+                                            <span :class="['px-1.5 py-0.5 rounded border text-[10px] font-bold', getGenderBadgeClass(st.jk)]">
+                                                {{ getGenderLabel(st.jk) }}
+                                            </span>
+                                            <span :class="['px-1.5 py-0.5 rounded border text-[10px] font-bold', getRegistrationTypeBadgeClass(st.status_registrasi)]">
+                                                {{ st.status_registrasi }}
+                                            </span>
+                                        </div>
+                                        <p class="text-[11px] text-slate-500 mt-0.5 break-words leading-snug">
+                                            {{ st.kelas !== '-' ? st.kelas : `Angk. ${st.angkatan || '-'}` }} • Masuk {{ st.ta_masuk || '-' }}
+                                        </p>
+                                        <p class="text-[11px] font-semibold text-slate-700 mt-0.5 break-words leading-snug">
+                                            <template v-if="unmatchedGroupModal.mode === 'welfare'">
+                                                Dusun: {{ st.dusun || '-' }}
+                                            </template>
+                                            <template v-else>
+                                                Asal: {{ st.sekolah_asal || unmatchedGroupModal.title }}
+                                            </template>
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                                    <span :class="['px-2 py-0.5 rounded border text-[10px] font-bold', getProgramBadgeClass(st.program)]">
+                                        {{ st.program }}
+                                    </span>
+                                    <span :class="['inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-bold', getStatusKeaktifanBadgeClass(st)]">
+                                        <span :class="['w-1.5 h-1.5 rounded-full', getStatusKeaktifanDotClass(st)]"></span>
+                                        <span>{{ st.status_keaktifan }}</span>
+                                    </span>
+                                </div>
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </Teleport>
     </div>
 </template>

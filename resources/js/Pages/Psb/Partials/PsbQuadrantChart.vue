@@ -1043,17 +1043,41 @@ onBeforeUnmount(() => {
                             Menyandingkan <span class="font-bold text-slate-700">Radius Jarak Sekolah &amp; Gerbang Tol</span> tiap desa dengan jumlah siswa berdomisili.
                         </template>
                         <template v-else>
-                            Titik kembar otomatis dipisah ke sisi berbeda; gunakan scroll / tombol <span class="font-bold text-slate-700">Zoom Area Padat</span> untuk memperbesar titik yang berdekatan.
+                            Titik kembar otomatis dipisah ke sisi berbeda; gunakan scroll atau tombol <span class="font-bold text-slate-700">+ / −</span> di kanan diagram untuk memperbesar titik yang berdekatan.
                         </template>
                     </p>
                 </div>
             </div>
 
-            <div class="flex flex-wrap items-center gap-2">
-                <!-- Toggle Sumbu X Khusus Mode Desa -->
+            <div class="flex items-center gap-1.5 flex-nowrap overflow-x-auto no-scrollbar w-full sm:w-auto">
+                <!-- Toggle Mode Matriks -->
+                <div class="inline-flex items-center p-0.5 bg-slate-100 rounded-xl border border-slate-200/90 shrink-0">
+                    <button
+                        type="button"
+                        @click="emit('update:mode', 'school')"
+                        :class="[
+                            'px-2 sm:px-2.5 py-1 rounded-lg text-[10.5px] sm:text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap',
+                            !isWelfareMode ? 'bg-emerald-900 text-yellow-200 shadow-2xs' : 'text-slate-600 hover:text-slate-900',
+                        ]"
+                    >
+                        Asal Sekolah
+                    </button>
+                    <button
+                        type="button"
+                        @click="emit('update:mode', 'welfare')"
+                        :class="[
+                            'px-2 sm:px-2.5 py-1 rounded-lg text-[10.5px] sm:text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap',
+                            isWelfareMode ? 'bg-emerald-900 text-yellow-200 shadow-2xs' : 'text-slate-600 hover:text-slate-900',
+                        ]"
+                    >
+                        Domisili
+                    </button>
+                </div>
+
+                <!-- Toggle Sumbu X Khusus Mode Domisili -->
                 <div
                     v-if="isWelfareMode"
-                    class="inline-flex items-center p-0.5 bg-amber-50/90 rounded-xl border border-amber-200/80"
+                    class="inline-flex items-center p-0.5 bg-amber-50/90 rounded-xl border border-amber-200/80 shrink-0"
                     title="Pilih indikator jarak pembanding Sumbu X"
                 >
                     <button
@@ -1065,77 +1089,11 @@ onBeforeUnmount(() => {
                         type="button"
                         @click="welfareXAxis = opt.key"
                         :class="[
-                            'px-2 py-1 rounded-lg text-[10.5px] font-bold transition-all cursor-pointer',
+                            'px-2 sm:px-2.5 py-1 rounded-lg text-[10.5px] sm:text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap',
                             welfareXAxis === opt.key ? 'bg-amber-900 text-amber-50 shadow-2xs' : 'text-amber-900/70 hover:text-amber-950',
                         ]"
                     >
                         {{ opt.label }}
-                    </button>
-                </div>
-
-                <!-- Toggle Mode Matriks -->
-                <div class="inline-flex items-center p-0.5 bg-slate-100 rounded-xl border border-slate-200/90">
-                    <button
-                        type="button"
-                        @click="emit('update:mode', 'school')"
-                        :class="[
-                            'px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer',
-                            !isWelfareMode ? 'bg-emerald-900 text-yellow-200 shadow-2xs' : 'text-slate-600 hover:text-slate-900',
-                        ]"
-                    >
-                        Asal Sekolah
-                    </button>
-                    <button
-                        type="button"
-                        @click="emit('update:mode', 'welfare')"
-                        :class="[
-                            'px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer',
-                            isWelfareMode ? 'bg-emerald-900 text-yellow-200 shadow-2xs' : 'text-slate-600 hover:text-slate-900',
-                        ]"
-                    >
-                        Domisili Desa
-                    </button>
-                </div>
-
-                <!-- Kontrol Zoom Cepat -->
-                <div class="inline-flex items-center p-0.5 bg-slate-100 rounded-xl border border-slate-200/90">
-                    <button
-                        type="button"
-                        @click="setPresetAll"
-                        :class="[
-                            'px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer',
-                            zoomPreset === 'all' ? 'bg-white text-emerald-950 shadow-2xs' : 'text-slate-500 hover:text-slate-800',
-                        ]"
-                    >
-                        Semua Area
-                    </button>
-                    <button
-                        type="button"
-                        @click="setPresetDense"
-                        :class="[
-                            'px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer',
-                            zoomPreset === 'dense' ? 'bg-emerald-900 text-yellow-200 shadow-2xs' : 'text-slate-600 hover:text-slate-900',
-                        ]"
-                        title="Perbesar area 0–3 TA & 0–6 Siswa yang paling padat"
-                    >
-                        Zoom Area Padat
-                    </button>
-                    <button
-                        type="button"
-                        @click="applyZoomFactor(0.72)"
-                        class="px-2 py-1 rounded-lg text-xs font-extrabold text-slate-700 hover:bg-white cursor-pointer"
-                        title="Perbesar (+)"
-                    >
-                        +
-                    </button>
-                    <button
-                        type="button"
-                        @click="applyZoomFactor(1.35)"
-                        :disabled="!isZoomed"
-                        class="px-2 py-1 rounded-lg text-xs font-extrabold text-slate-700 hover:bg-white disabled:opacity-35 cursor-pointer"
-                        title="Perkecil (−)"
-                    >
-                        −
                     </button>
                 </div>
             </div>
@@ -1153,6 +1111,31 @@ onBeforeUnmount(() => {
             @pointerleave="handlePointerUp"
         >
             <Bubble ref="bubbleChartRef" :data="chartData" :options="chartOptions" :plugins="[quadrantPlugin]" />
+
+            <!-- Kontrol Zoom (+) dan (−) di Sebelah Kanan Dalam Container Diagram -->
+            <div
+                class="absolute top-2.5 right-2.5 z-10 flex flex-col bg-white/95 backdrop-blur-xs rounded-xl border border-slate-200/90 shadow-sm overflow-hidden"
+                @pointerdown.stop
+                @wheel.stop
+            >
+                <button
+                    type="button"
+                    @click.stop="applyZoomFactor(0.72)"
+                    class="w-8 h-8 flex items-center justify-center text-sm font-extrabold text-slate-700 hover:bg-slate-100 active:bg-slate-200 transition-colors cursor-pointer border-b border-slate-200/80"
+                    title="Perbesar (+)"
+                >
+                    +
+                </button>
+                <button
+                    type="button"
+                    @click.stop="applyZoomFactor(1.35)"
+                    :disabled="!isZoomed"
+                    class="w-8 h-8 flex items-center justify-center text-sm font-extrabold text-slate-700 hover:bg-slate-100 active:bg-slate-200 disabled:opacity-35 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                    title="Perkecil (−)"
+                >
+                    −
+                </button>
+            </div>
 
             <div
                 v-if="isZoomed"
