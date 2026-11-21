@@ -339,4 +339,40 @@ class StudentDetailEditTest extends TestCase
             'program' => 'Boarding',
         ]);
     }
+
+    public function test_can_update_student_address_data(): void
+    {
+        $student = Student::firstOrFail();
+
+        $response = $this->actingAs($this->user)->put("/students/{$student->id}", [
+            '_tab' => 'alamat',
+            'jalan' => 'Jl. Slamet Riyadi No. 45',
+            'rt' => '003',
+            'rw' => '007',
+            'dusun' => 'Nglarangan',
+            'desa' => 'Pandeyan',
+            'kecamatan' => 'Ngemplak',
+            'kabupaten' => 'Kabupaten Boyolali',
+            'provinsi' => 'Jawa Tengah',
+            'jenis_tinggal' => 'Bersama Orang Tua',
+            'alat_transportasi' => 'Jemputan Sekolah',
+            'jarak_rumah' => '4.2 km',
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        $student->refresh();
+        $this->assertSame('Jl. Slamet Riyadi No. 45', $student->jalan);
+        $this->assertSame('003', $student->rt);
+        $this->assertSame('007', $student->rw);
+        $this->assertSame('Nglarangan', $student->dusun);
+        $this->assertSame('Pandeyan', $student->desa);
+        $this->assertSame('Ngemplak', $student->kecamatan);
+        $this->assertSame('Kabupaten Boyolali', $student->kabupaten);
+        $this->assertSame('Jawa Tengah', $student->provinsi);
+        $this->assertSame('Bersama Orang Tua', $student->jenis_tinggal);
+        $this->assertSame('Jemputan Sekolah', $student->alat_transportasi);
+        $this->assertSame('4.2 km', $student->jarak_rumah);
+    }
 }

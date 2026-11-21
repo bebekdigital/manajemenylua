@@ -3,6 +3,7 @@ import { ref, reactive, computed, onMounted, onUnmounted, nextTick, provide, wat
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import TabIdentitas from './Students/Tabs/TabIdentitas.vue';
+import TabAlamat from './Students/Tabs/TabAlamat.vue';
 import TabRegistrasi from './Students/Tabs/TabRegistrasi.vue';
 import {
     getGenderBadgeClass,
@@ -250,17 +251,6 @@ const tabs = [
     { id: 'registrasi', label: 'Registrasi', icon: 'how_to_reg' },
     { id: 'kesejahteraan', label: 'Kesejahteraan', icon: 'volunteer_activism' },
 ];
-
-function getAlamatLengkap(s) {
-    if (!s) return '-';
-    let alamat = s.jalan ? s.jalan : '';
-    if (s.rt && s.rw) alamat += `, RT ${s.rt} / RW ${s.rw}`;
-    else if (s.rt) alamat += `, RT ${s.rt}`;
-    else if (s.rw) alamat += `, RW ${s.rw}`;
-    return [alamat, s.dusun, s.desa, s.kecamatan, s.kabupaten, s.provinsi]
-        .filter(Boolean)
-        .join(', ');
-}
 
 function hitungUsia(tanggalLahir) {
     if (!tanggalLahir) return '-';
@@ -536,66 +526,12 @@ onUnmounted(() => {
                 />
 
                 <!-- TAB: Alamat -->
-                <div v-if="activeTab === 'alamat'" class="space-y-6">
-                    <div>
-                        <div class="flex items-center gap-2 mb-4 pb-2 border-b border-slate-100">
-                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span>
-                            <h4 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Data Tempat Tinggal Siswa</h4>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-                            <div class="md:col-span-2">
-                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Alamat Lengkap</label>
-                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ getAlamatLengkap(student) }}</p>
-                            </div>
-                            <div>
-                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Jalan</label>
-                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.jalan || '-' }}</p>
-                            </div>
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">RT</label>
-                                    <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.rt || '-' }}</p>
-                                </div>
-                                <div>
-                                    <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">RW</label>
-                                    <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.rw || '-' }}</p>
-                                </div>
-                            </div>
-                            <div>
-                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Dusun</label>
-                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.dusun || '-' }}</p>
-                            </div>
-                            <div>
-                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Desa / Kelurahan</label>
-                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.desa || '-' }}</p>
-                            </div>
-                            <div>
-                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Kecamatan</label>
-                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.kecamatan || '-' }}</p>
-                            </div>
-                            <div>
-                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Kabupaten / Kota</label>
-                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.kabupaten || '-' }}</p>
-                            </div>
-                            <div>
-                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Provinsi</label>
-                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.provinsi || '-' }}</p>
-                            </div>
-                            <div>
-                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Jenis Tinggal</label>
-                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.jenis_tinggal || '-' }}</p>
-                            </div>
-                            <div>
-                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Alat Transportasi</label>
-                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.alat_transportasi || '-' }}</p>
-                            </div>
-                            <div>
-                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Jarak Rumah ke Sekolah</label>
-                                <p class="text-xs sm:text-sm font-semibold text-slate-900 mt-1">{{ student.jarak_rumah || '-' }}</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <TabAlamat
+                    v-if="activeTab === 'alamat'"
+                    :student="student"
+                    :can-edit="canEdit"
+                    @editing-change="(val) => isEditing = val"
+                />
 
                 <!-- TAB: Keluarga -->
                 <div v-if="activeTab === 'keluarga'" class="space-y-6">

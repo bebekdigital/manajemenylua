@@ -686,6 +686,39 @@ class StudentController extends Controller
             return redirect()->back()->with('success', "Data registrasi siswa '{$student->nama}' berhasil diperbarui.");
         }
 
+        // Handle Tab Alamat
+        if ($request->input('_tab') === 'alamat') {
+            $validated = $request->validate([
+                'jalan' => ['nullable', 'string', 'max:255'],
+                'rt' => ['nullable', 'string', 'max:10'],
+                'rw' => ['nullable', 'string', 'max:10'],
+                'dusun' => ['nullable', 'string', 'max:100'],
+                'desa' => ['nullable', 'string', 'max:100'],
+                'kecamatan' => ['nullable', 'string', 'max:100'],
+                'kabupaten' => ['nullable', 'string', 'max:100'],
+                'provinsi' => ['nullable', 'string', 'max:100'],
+                'jenis_tinggal' => ['nullable', 'string', 'max:100'],
+                'alat_transportasi' => ['nullable', 'string', 'max:100'],
+                'jarak_rumah' => ['nullable', 'string', 'max:50'],
+            ]);
+
+            $student->update([
+                'jalan' => $validated['jalan'] ?? null,
+                'rt' => $validated['rt'] ?? null,
+                'rw' => $validated['rw'] ?? null,
+                'dusun' => $validated['dusun'] ?? null,
+                'desa' => $validated['desa'] ?? null,
+                'kecamatan' => $validated['kecamatan'] ?? null,
+                'kabupaten' => $validated['kabupaten'] ?? null,
+                'provinsi' => $validated['provinsi'] ?? null,
+                'jenis_tinggal' => $validated['jenis_tinggal'] ?? null,
+                'alat_transportasi' => $validated['alat_transportasi'] ?? null,
+                'jarak_rumah' => $validated['jarak_rumah'] ?? null,
+            ]);
+
+            return redirect()->back()->with('success', "Data alamat siswa '{$student->nama}' berhasil diperbarui.");
+        }
+
         $validated = $request->validate([
             'nama' => ['required', 'string', 'max:255'],
             'nisn' => ['required', 'string', 'max:20', Rule::unique('students', 'nisn')->ignore($student->id)],
