@@ -11,19 +11,34 @@ import {
     getProgramBadgeClass,
     getRegistrationTypeBadgeClass,
 } from '@/Utils/studentBadges';
+import { computeEnrollmentForecast } from '@/Utils/enrollmentForecast';
 import { Bar } from 'vue-chartjs';
 import {
     Chart as ChartJS,
     CategoryScale,
     LinearScale,
     BarElement,
+    LineController,
+    LineElement,
+    PointElement,
     Title,
     Tooltip,
     Legend,
 } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ChartDataLabels);
+ChartJS.register(
+    CategoryScale,
+    LinearScale,
+    BarElement,
+    LineController,
+    LineElement,
+    PointElement,
+    Title,
+    Tooltip,
+    Legend,
+    ChartDataLabels
+);
 
 defineOptions({
     layout: AppLayout,
@@ -483,6 +498,10 @@ const selectedChartYear = ref(
         : (props.currentAcademicYear?.name || (props.availableAcademicYears?.[0] ?? '2026/2027'))
 );
 const showStudentsTab = ref(false);
+const showMutasiInChart = ref(true);
+const showPrediction = ref(true);
+const showTrendLine = ref(true);
+const showForecastHint = ref(false);
 const studentGenderTab = ref('all'); // 'all' | 'L' | 'P'
 const studentTypeTab = ref('all'); // 'all' | 'baru' | 'mutasi'
 const studentSearchQuery = ref('');
@@ -495,9 +514,21 @@ watch(selectedYearName, (newVal) => {
     }
 });
 
-watch([activeUnit, selectedYearName, selectedSemester, selectedChartYear, () => props.students], () => {
-    newStudentsChartKey.value++;
-});
+watch(
+    [
+        activeUnit,
+        selectedYearName,
+        selectedSemester,
+        selectedChartYear,
+        showMutasiInChart,
+        showPrediction,
+        showTrendLine,
+        () => props.students,
+    ],
+    () => {
+        newStudentsChartKey.value++;
+    }
+);
 
 const chartStudentsSource = computed(() => {
     return (props.allStudents && props.allStudents.length > 0) ? props.allStudents : (props.students || []);
@@ -563,49 +594,128 @@ const newStudentsPerYear = computed(() => {
     });
 });
 
+const enrollmentForecast = computed(() => {
+    const activeYear = props.currentAcademicYear?.name || null;
+    return computeEnrollmentForecast(newStudentsPerYear.value, activeYear);
+});
+
+const showForecastBar = computed(() => showPrediction.value && enrollmentForecast.value.isAvailable);
+const showForecastLine = computed(() => showTrendLine.value && enrollmentForecast.value.isAvailable);
+
 const newStudentsChartData = computed(() => {
     const list = newStudentsPerYear.value;
+    const forecast = enrollmentForecast.value;
     const isHighlighted = (yr) => !isAllTime.value && yr === selectedChartYear.value;
+
+    const labels = list.map((item) => item.year);
+    const siswaBaruData = list.map((item) => item.siswaBaru);
+    const mutasiData = list.map((item) => item.mutasiMasuk);
+
+    const siswaBaruBg = list.map((item) => (isHighlighted(item.year) ? '#047857' : '#10b981'));
+    const siswaBaruHover = list.map((item) => (isHighlighted(item.year) ? '#065f46' : '#059669'));
+    const siswaBaruBorderWidth = list.map((item) => (isHighlighted(item.year) ? 2 : 0));
+    const siswaBaruBorderColor = list.map(() => '#064e3b');
+    const siswaBaruRadius = list.map((item) =>
+        showMutasiInChart.value && item.mutasiMasuk > 0
+            ? { topLeft: 0, topRight: 0, bottomLeft: 6, bottomRight: 6 }
+            : { topLeft: 6, topRight: 6, bottomLeft: 6, bottomRight: 6 }
+    );
+
+    const mutasiBg = list.map((item) => (isHighlighted(item.year) ? '#d97706' : '#f59e0b'));
+    const mutasiHover = list.map((item) => (isHighlighted(item.year) ? '#b45309' : '#d97706'));
+    const mutasiBorderWidth = list.map((item) => (isHighlighted(item.year) ? 2 : 0));
+    const mutasiBorderColor = list.map(() => '#92400e');
+
+    if (showForecastBar.value) {
+        labels.push(`${forecast.nextYearLabel} (Est.)`);
+        siswaBaruData.push(forecast.siswaBaruEst);
+        mutasiData.push(forecast.mutasiEst);
+
+        siswaBaruBg.push(forecast.status === 'warning' ? 'rgba(225, 29, 72, 0.20)' : 'rgba(16, 185, 129, 0.28)');
+        siswaBaruHover.push(forecast.status === 'warning' ? 'rgba(225, 29, 72, 0.30)' : 'rgba(16, 185, 129, 0.38)');
+        siswaBaruBorderWidth.push(2);
+        siswaBaruBorderColor.push(forecast.status === 'warning' ? '#be123c' : '#059669');
+        siswaBaruRadius.push(
+            showMutasiInChart.value && forecast.mutasiEst > 0
+                ? { topLeft: 0, topRight: 0, bottomLeft: 6, bottomRight: 6 }
+                : { topLeft: 6, topRight: 6, bottomLeft: 6, bottomRight: 6 }
+        );
+
+        mutasiBg.push('rgba(245, 158, 11, 0.25)');
+        mutasiHover.push('rgba(245, 158, 11, 0.36)');
+        mutasiBorderWidth.push(2);
+        mutasiBorderColor.push('#d97706');
+    }
+
+    const datasets = [
+        {
+            type: 'bar',
+            label: 'Siswa Baru',
+            data: siswaBaruData,
+            backgroundColor: siswaBaruBg,
+            hoverBackgroundColor: siswaBaruHover,
+            borderWidth: siswaBaruBorderWidth,
+            borderColor: siswaBaruBorderColor,
+            borderRadius: siswaBaruRadius,
+            borderSkipped: false,
+            maxBarThickness: 48,
+            stack: 'masuk',
+            order: 2,
+        },
+    ];
+
+    if (showMutasiInChart.value) {
+        datasets.push({
+            type: 'bar',
+            label: 'Mutasi Masuk',
+            data: mutasiData,
+            backgroundColor: mutasiBg,
+            hoverBackgroundColor: mutasiHover,
+            borderWidth: mutasiBorderWidth,
+            borderColor: mutasiBorderColor,
+            borderRadius: { topLeft: 6, topRight: 6, bottomLeft: 0, bottomRight: 0 },
+            borderSkipped: false,
+            maxBarThickness: 48,
+            stack: 'masuk',
+            order: 2,
+        });
+    }
+
+    if (showForecastLine.value) {
+        const trendData = list.map((item) =>
+            showMutasiInChart.value
+                ? (forecast.trendByYearWithMutasi[item.year] ?? null)
+                : (forecast.trendByYearSiswaBaru[item.year] ?? null)
+        );
+        if (showForecastBar.value) {
+            trendData.push(showMutasiInChart.value ? forecast.totalEst : forecast.siswaBaruEst);
+        }
+
+        const lineColor =
+            forecast.status === 'warning' ? '#e11d48' : forecast.status === 'growing' ? '#047857' : '#0284c7';
+
+        datasets.push({
+            type: 'line',
+            label: 'Garis Tren (3 TA Terakhir)',
+            data: trendData,
+            borderColor: lineColor,
+            backgroundColor: lineColor,
+            borderWidth: 2.5,
+            borderDash: [6, 5],
+            pointRadius: 3.5,
+            pointHoverRadius: 5.5,
+            pointBackgroundColor: '#ffffff',
+            pointBorderColor: lineColor,
+            pointBorderWidth: 2,
+            tension: 0.15,
+            fill: false,
+            order: 1,
+        });
+    }
+
     return {
-        labels: list.map(item => item.year),
-        datasets: [
-            {
-                label: 'Siswa Baru',
-                data: list.map(item => item.siswaBaru),
-                backgroundColor: list.map(item =>
-                    isHighlighted(item.year) ? '#047857' : '#10b981'
-                ),
-                hoverBackgroundColor: list.map(item =>
-                    isHighlighted(item.year) ? '#065f46' : '#059669'
-                ),
-                borderWidth: list.map(item => (isHighlighted(item.year) ? 2 : 0)),
-                borderColor: '#064e3b',
-                borderRadius: list.map(item =>
-                    item.mutasiMasuk > 0
-                        ? { topLeft: 0, topRight: 0, bottomLeft: 6, bottomRight: 6 }
-                        : { topLeft: 6, topRight: 6, bottomLeft: 6, bottomRight: 6 }
-                ),
-                borderSkipped: false,
-                maxBarThickness: 48,
-                stack: 'masuk',
-            },
-            {
-                label: 'Mutasi Masuk',
-                data: list.map(item => item.mutasiMasuk),
-                backgroundColor: list.map(item =>
-                    isHighlighted(item.year) ? '#d97706' : '#f59e0b'
-                ),
-                hoverBackgroundColor: list.map(item =>
-                    isHighlighted(item.year) ? '#b45309' : '#d97706'
-                ),
-                borderWidth: list.map(item => (isHighlighted(item.year) ? 2 : 0)),
-                borderColor: '#92400e',
-                borderRadius: { topLeft: 6, topRight: 6, bottomLeft: 0, bottomRight: 0 },
-                borderSkipped: false,
-                maxBarThickness: 48,
-                stack: 'masuk',
-            },
-        ],
+        labels,
+        datasets,
     };
 });
 
@@ -618,12 +728,17 @@ const newStudentsChartOptions = computed(() => ({
     onHover: (event, chartElement) => {
         const canvas = event?.native?.target;
         if (canvas) {
-            canvas.style.cursor = chartElement && chartElement.length > 0 ? 'pointer' : 'default';
+            const idx = chartElement?.[0]?.index;
+            const isClickableBar = chartElement && chartElement.length > 0 && idx < chartAcademicYears.value.length;
+            canvas.style.cursor = isClickableBar ? 'pointer' : 'default';
         }
     },
     onClick: (event, elements) => {
         if (elements && elements.length > 0) {
             const index = elements[0].index;
+            if (index >= chartAcademicYears.value.length) {
+                return;
+            }
             const clickedYear = chartAcademicYears.value[index];
             if (clickedYear) {
                 selectedYearName.value = clickedYear;
@@ -654,29 +769,58 @@ const newStudentsChartOptions = computed(() => ({
             mode: 'index',
             intersect: false,
             callbacks: {
-                title: (items) => `Tahun Ajaran ${items[0].label}`,
-                label: (item) => ` ${item.dataset.label}: ${item.raw} Siswa`,
+                title: (items) => {
+                    const idx = items[0]?.dataIndex ?? 0;
+                    if (showForecastBar.value && idx === chartAcademicYears.value.length) {
+                        return `Proyeksi TA ${enrollmentForecast.value.nextYearLabel}`;
+                    }
+                    return `Tahun Ajaran ${items[0].label}`;
+                },
+                label: (item) => {
+                    if (item.dataset?.type === 'line') {
+                        return ` ${item.dataset.label}: ~${item.raw} Siswa`;
+                    }
+                    const prefix = showForecastBar.value && item.dataIndex === chartAcademicYears.value.length ? 'Est. ' : '';
+                    return ` ${prefix}${item.dataset.label}: ${item.raw} Siswa`;
+                },
                 afterBody: (items) => {
-                    const total = items.reduce((sum, it) => sum + (Number(it.raw) || 0), 0);
+                    const barItems = items.filter((it) => it.dataset?.type !== 'line');
+                    const total = barItems.reduce((sum, it) => sum + (Number(it.raw) || 0), 0);
+                    const idx = items[0]?.dataIndex ?? 0;
+                    if (showForecastBar.value && idx === chartAcademicYears.value.length) {
+                        const f = enrollmentForecast.value;
+                        const low = showMutasiInChart.value ? f.totalLow : f.siswaBaruLow;
+                        const high = showMutasiInChart.value ? f.totalHigh : f.siswaBaruHigh;
+                        return [` Estimasi Total: ~${total} Siswa`, ` Rentang Perkiraan: ${low}–${high} Siswa`];
+                    }
                     return ` Total Masuk: ${total} Siswa`;
                 },
             },
         },
         datalabels: {
             display: (ctx) => {
-                // Tampilkan total hanya pada dataset index 1 (Mutasi Masuk) agar hanya ada 1 angka total di atas batang bertumpuk
-                return ctx.datasetIndex === 1;
+                if (ctx.dataset?.type === 'line') return false;
+                const targetBarIndex = showMutasiInChart.value ? 1 : 0;
+                return ctx.datasetIndex === targetBarIndex;
             },
             anchor: 'end',
             align: 'top',
             formatter: (value, ctx) => {
                 const dataIndex = ctx.dataIndex;
-                const ds0 = Number(ctx.chart.data.datasets[0]?.data[dataIndex]) || 0;
-                const ds1 = Number(ctx.chart.data.datasets[1]?.data[dataIndex]) || 0;
-                const total = ds0 + ds1;
-                return total > 0 ? total : '';
+                const datasets = ctx.chart.data.datasets || [];
+                const total = datasets.reduce((sum, ds) => {
+                    if (ds.type === 'line') return sum;
+                    return sum + (Number(ds.data?.[dataIndex]) || 0);
+                }, 0);
+                if (total <= 0) return '';
+                const isEst = showForecastBar.value && dataIndex === chartAcademicYears.value.length;
+                return isEst ? `~${total}` : total;
             },
             color: (ctx) => {
+                const isEst = showForecastBar.value && ctx.dataIndex === chartAcademicYears.value.length;
+                if (isEst) {
+                    return enrollmentForecast.value.status === 'warning' ? '#be123c' : '#047857';
+                }
                 const year = chartAcademicYears.value[ctx.dataIndex];
                 return year === selectedChartYear.value ? '#047857' : '#334155';
             },
@@ -988,17 +1132,78 @@ const displayedNewStudents = computed(() => {
                             Jumlah Siswa Masuk per Tahun Ajaran ({{ activeUnitLabel }})
                         </h3>
                     </div>
-                    <div class="flex items-center gap-3 text-xs font-semibold text-slate-500 flex-wrap">
-                        <!-- Legend Stacked: Siswa Baru & Mutasi Masuk -->
-                        <div class="flex items-center gap-2.5">
-                            <div class="flex items-center gap-1.5">
-                                <span class="w-3 h-3 rounded-sm bg-emerald-600 inline-block shadow-2xs"></span>
-                                <span class="text-slate-600 font-medium text-[11px]">Siswa Baru</span>
-                            </div>
-                            <div class="flex items-center gap-1.5">
-                                <span class="w-3 h-3 rounded-sm bg-amber-500 inline-block shadow-2xs"></span>
-                                <span class="text-slate-600 font-medium text-[11px]">Mutasi Masuk</span>
-                            </div>
+                    <div class="flex items-center gap-2 text-xs font-semibold text-slate-500 flex-wrap">
+                        <!-- Toggle Legend: Siswa Baru & Mutasi Masuk -->
+                        <div class="inline-flex items-center gap-1.5 flex-wrap">
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-900 text-[11px] font-bold">
+                                <span class="w-2.5 h-2.5 rounded-xs bg-emerald-600 inline-block"></span>
+                                <span>Siswa Baru</span>
+                            </span>
+                            <button
+                                type="button"
+                                @click="showMutasiInChart = !showMutasiInChart"
+                                :class="[
+                                    'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border transition-all cursor-pointer select-none',
+                                    showMutasiInChart
+                                        ? 'bg-amber-50 text-amber-900 border-amber-200 hover:bg-amber-100/70'
+                                        : 'bg-slate-100 text-slate-400 border-slate-200 line-through opacity-75',
+                                ]"
+                                title="Klik untuk menampilkan/menyembunyikan data Mutasi Masuk pada grafik"
+                            >
+                                <span
+                                    class="w-2.5 h-2.5 rounded-xs inline-block"
+                                    :class="showMutasiInChart ? 'bg-amber-500' : 'bg-slate-300'"
+                                ></span>
+                                <span>Mutasi Masuk</span>
+                            </button>
+                        </div>
+
+                        <!-- Toggle Garis Tren & Prediksi + Hint -->
+                        <div v-if="enrollmentForecast.isAvailable" class="inline-flex items-center gap-1.5 flex-wrap">
+                            <button
+                                type="button"
+                                @click="showTrendLine = !showTrendLine"
+                                :class="[
+                                    'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold border transition-all cursor-pointer select-none',
+                                    showTrendLine
+                                        ? (enrollmentForecast.status === 'warning'
+                                            ? 'bg-rose-50 text-rose-800 border-rose-200'
+                                            : 'bg-sky-50 text-sky-800 border-sky-200')
+                                        : 'bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200/70',
+                                ]"
+                                title="Tampilkan atau sembunyikan garis tren historis"
+                            >
+                                <span class="material-symbols-outlined text-[14px]">show_chart</span>
+                                <span>Garis Tren</span>
+                            </button>
+                            <button
+                                type="button"
+                                @click="showPrediction = !showPrediction"
+                                :class="[
+                                    'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold border transition-all cursor-pointer select-none',
+                                    showPrediction
+                                        ? 'bg-emerald-900 text-yellow-200 border-emerald-950 shadow-2xs'
+                                        : 'bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200/70',
+                                ]"
+                                title="Tampilkan atau sembunyikan proyeksi tahun ajaran berikutnya & early warning"
+                            >
+                                <span class="material-symbols-outlined text-[14px]">auto_graph</span>
+                                <span>Prediksi</span>
+                            </button>
+                            <button
+                                type="button"
+                                @click="showForecastHint = !showForecastHint"
+                                :class="[
+                                    'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold border transition-all cursor-pointer select-none',
+                                    showForecastHint
+                                        ? 'bg-indigo-100 text-indigo-900 border-indigo-300'
+                                        : 'bg-white hover:bg-slate-50 text-slate-600 border-slate-200',
+                                ]"
+                                title="Penjelasan cara membaca statistik & prediksi"
+                            >
+                                <span class="material-symbols-outlined text-[14px]">help</span>
+                                <span>Hint</span>
+                            </button>
                         </div>
 
                         <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-900 border border-emerald-200 text-[11px] font-bold">
@@ -1015,6 +1220,151 @@ const displayedNewStudents = computed(() => {
                             <span class="material-symbols-outlined text-[15px]">{{ showStudentsTab ? 'expand_less' : 'group' }}</span>
                             <span>{{ showStudentsTab ? 'Tutup Daftar' : `Nama Siswa (${chartYearCounts.total})` }}</span>
                         </button>
+                    </div>
+                </div>
+
+                <!-- Box Penjelasan Bahasa Mudah (Hint) -->
+                <div
+                    v-if="showForecastHint && enrollmentForecast.isAvailable"
+                    class="mb-4 p-4 rounded-2xl bg-indigo-50/70 border border-indigo-200/80 text-xs text-slate-700 space-y-2.5"
+                >
+                    <div class="flex items-start justify-between gap-2">
+                        <div class="flex items-center gap-2 font-extrabold text-indigo-950">
+                            <span class="material-symbols-outlined text-[18px] text-indigo-700">lightbulb</span>
+                            <span>Cara Membaca Statistik &amp; Prediksi Ini</span>
+                        </div>
+                        <button
+                            type="button"
+                            @click="showForecastHint = false"
+                            class="text-slate-400 hover:text-slate-700 cursor-pointer"
+                            title="Tutup penjelasan"
+                        >
+                            <span class="material-symbols-outlined text-[17px]">close</span>
+                        </button>
+                    </div>
+                    <ul class="space-y-1.5 pl-1 text-[11.5px] leading-relaxed">
+                        <li>
+                            <strong class="text-slate-900">• Estimasi Tahun Depan:</strong>
+                            Perkiraan jumlah <strong>Siswa Baru</strong> TA {{ enrollmentForecast.nextYearLabel }} jika pola PSB berjalan seperti saat ini. Hitungannya memberi <strong>porsi bobot lebih besar ke 3 TA terakhir</strong>, lalu sedikit diredam agar proyeksi tidak terlalu ekstrem.
+                        </li>
+                        <li>
+                            <strong class="text-slate-900">• Kenapa ada Garis Tren?</strong>
+                            Garis putus-putus menunjukkan arah pergerakan data terbaru (naik, mendatar, atau turun). Jika <strong>turun 2–3 tahun beruntun</strong>, sistem memunculkan tanda <strong>Early Warning</strong> sebagai pengingat dini untuk memperkuat promosi/PSB.
+                        </li>
+                        <li>
+                            <strong class="text-slate-900">• Rentang Perkiraan (Bawah – Atas):</strong>
+                            Karena penerimaan siswa tiap tahun bisa naik–turun, angka prediksi lebih aman dibaca sebagai <strong>kisaran</strong> (batas konservatif hingga batas optimis).
+                        </li>
+                        <li>
+                            <strong class="text-slate-900">• Kenapa Mutasi Masuk Dipisah?</strong>
+                            Siswa pindahan bersifat tidak menentu. Saat toggle <strong>Mutasi Masuk</strong> aktif, estimasinya dihitung terpisah memakai <strong>nilai tengah (median)</strong> historis mutasi supaya tidak merusak pembacaan tren murni PSB <strong>Siswa Baru</strong>.
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Ringkasan Early Warning & Proyeksi Tahun Depan -->
+                <div
+                    v-if="showPrediction && enrollmentForecast.isAvailable"
+                    :class="[
+                        'mb-4 p-3.5 sm:p-4 rounded-2xl border space-y-3',
+                        enrollmentForecast.status === 'warning'
+                            ? 'bg-rose-50/70 border-rose-200/90'
+                            : enrollmentForecast.status === 'growing'
+                                ? 'bg-emerald-50/70 border-emerald-200/90'
+                                : 'bg-slate-50/90 border-slate-200/90',
+                    ]"
+                >
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div class="flex items-start gap-2.5">
+                            <span
+                                :class="[
+                                    'material-symbols-outlined text-[20px] shrink-0 mt-0.5',
+                                    enrollmentForecast.status === 'warning'
+                                        ? 'text-rose-600'
+                                        : enrollmentForecast.status === 'growing'
+                                            ? 'text-emerald-700'
+                                            : 'text-sky-700',
+                                ]"
+                            >
+                                {{ enrollmentForecast.status === 'warning' ? 'warning' : (enrollmentForecast.status === 'growing' ? 'trending_up' : 'insights') }}
+                            </span>
+                            <div>
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <span
+                                        :class="[
+                                            'inline-flex items-center px-2 py-0.5 rounded-full text-[10.5px] font-extrabold uppercase tracking-wider border',
+                                            enrollmentForecast.status === 'warning'
+                                                ? 'bg-rose-100 text-rose-800 border-rose-300'
+                                                : enrollmentForecast.status === 'growing'
+                                                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                                    : 'bg-sky-100 text-sky-800 border-sky-300',
+                                        ]"
+                                    >
+                                        {{ enrollmentForecast.statusLabel }}
+                                    </span>
+                                    <span class="text-[11px] font-semibold text-slate-500">
+                                        Basis {{ enrollmentForecast.historyYearsCount }} TA historis → TA {{ enrollmentForecast.nextYearLabel }}
+                                    </span>
+                                </div>
+                                <p class="text-xs text-slate-700 font-medium mt-1 leading-relaxed">
+                                    {{ enrollmentForecast.headline }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div
+                        :class="[
+                            'grid gap-2.5',
+                            showMutasiInChart ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-1 sm:grid-cols-3',
+                        ]"
+                    >
+                        <div class="p-2.5 sm:p-3 rounded-xl bg-white/90 border border-slate-200/80">
+                            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Est. Siswa Baru {{ enrollmentForecast.nextYearLabel }}</div>
+                            <div class="text-base sm:text-lg font-extrabold text-slate-900 mt-0.5">
+                                ~{{ enrollmentForecast.siswaBaruEst }} Siswa
+                            </div>
+                            <div class="text-[10.5px] text-slate-500 font-medium">
+                                TA aktif: {{ enrollmentForecast.referenceCurrentSiswaBaru }} siswa baru
+                            </div>
+                        </div>
+
+                        <div class="p-2.5 sm:p-3 rounded-xl bg-white/90 border border-slate-200/80">
+                            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Rentang Perkiraan</div>
+                            <div class="text-base sm:text-lg font-extrabold text-slate-900 mt-0.5">
+                                {{ showMutasiInChart ? `${enrollmentForecast.totalLow}–${enrollmentForecast.totalHigh}` : `${enrollmentForecast.siswaBaruLow}–${enrollmentForecast.siswaBaruHigh}` }} Siswa
+                            </div>
+                            <div class="text-[10.5px] text-slate-500 font-medium">
+                                Konservatif s.d. optimis
+                            </div>
+                        </div>
+
+                        <div class="p-2.5 sm:p-3 rounded-xl bg-white/90 border border-slate-200/80">
+                            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Laju 3 TA Terakhir</div>
+                            <div
+                                :class="[
+                                    'text-base sm:text-lg font-extrabold mt-0.5',
+                                    (enrollmentForecast.recent3DeltaPerYear ?? 0) < 0
+                                        ? 'text-rose-700'
+                                        : ((enrollmentForecast.recent3DeltaPerYear ?? 0) > 0 ? 'text-emerald-700' : 'text-slate-900'),
+                                ]"
+                            >
+                                {{ (enrollmentForecast.recent3DeltaPerYear ?? 0) > 0 ? '+' : '' }}{{ enrollmentForecast.recent3DeltaPerYear ?? 0 }} / TA
+                            </div>
+                            <div class="text-[10.5px] text-slate-500 font-medium">
+                                Rata-rata perubahan siswa baru
+                            </div>
+                        </div>
+
+                        <div v-if="showMutasiInChart" class="p-2.5 sm:p-3 rounded-xl bg-white/90 border border-slate-200/80">
+                            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Est. Mutasi &amp; Total</div>
+                            <div class="text-base sm:text-lg font-extrabold text-amber-800 mt-0.5">
+                                ~{{ enrollmentForecast.totalEst }} Total
+                            </div>
+                            <div class="text-[10.5px] text-slate-500 font-medium">
+                                Termasuk ~{{ enrollmentForecast.mutasiEst }} mutasi (median)
+                            </div>
+                        </div>
                     </div>
                 </div>
 
