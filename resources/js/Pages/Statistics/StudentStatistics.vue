@@ -1223,50 +1223,18 @@ const displayedNewStudents = computed(() => {
                     </div>
                 </div>
 
-                <!-- Box Penjelasan Bahasa Mudah (Hint) -->
-                <div
-                    v-if="showForecastHint && enrollmentForecast.isAvailable"
-                    class="mb-4 p-4 rounded-2xl bg-indigo-50/70 border border-indigo-200/80 text-xs text-slate-700 space-y-2.5"
-                >
-                    <div class="flex items-start justify-between gap-2">
-                        <div class="flex items-center gap-2 font-extrabold text-indigo-950">
-                            <span class="material-symbols-outlined text-[18px] text-indigo-700">lightbulb</span>
-                            <span>Cara Membaca Statistik &amp; Prediksi Ini</span>
-                        </div>
-                        <button
-                            type="button"
-                            @click="showForecastHint = false"
-                            class="text-slate-400 hover:text-slate-700 cursor-pointer"
-                            title="Tutup penjelasan"
-                        >
-                            <span class="material-symbols-outlined text-[17px]">close</span>
-                        </button>
-                    </div>
-                    <ul class="space-y-1.5 pl-1 text-[11.5px] leading-relaxed">
-                        <li>
-                            <strong class="text-slate-900">• Estimasi Tahun Depan:</strong>
-                            Perkiraan jumlah <strong>Siswa Baru</strong> TA {{ enrollmentForecast.nextYearLabel }} jika pola PSB berjalan seperti saat ini. Hitungannya memberi <strong>porsi bobot lebih besar ke 3 TA terakhir</strong>, lalu sedikit diredam agar proyeksi tidak terlalu ekstrem.
-                        </li>
-                        <li>
-                            <strong class="text-slate-900">• Kenapa ada Garis Tren?</strong>
-                            Garis putus-putus menunjukkan arah pergerakan data terbaru (naik, mendatar, atau turun). Jika <strong>turun 2–3 tahun beruntun</strong>, sistem memunculkan tanda <strong>Early Warning</strong> sebagai pengingat dini untuk memperkuat promosi/PSB.
-                        </li>
-                        <li>
-                            <strong class="text-slate-900">• Rentang Perkiraan (Bawah – Atas):</strong>
-                            Karena penerimaan siswa tiap tahun bisa naik–turun, angka prediksi lebih aman dibaca sebagai <strong>kisaran</strong> (batas konservatif hingga batas optimis).
-                        </li>
-                        <li>
-                            <strong class="text-slate-900">• Kenapa Mutasi Masuk Dipisah?</strong>
-                            Siswa pindahan bersifat tidak menentu. Saat toggle <strong>Mutasi Masuk</strong> aktif, estimasinya dihitung terpisah memakai <strong>nilai tengah (median)</strong> historis mutasi supaya tidak merusak pembacaan tren murni PSB <strong>Siswa Baru</strong>.
-                        </li>
-                    </ul>
+                <div v-if="chartAcademicYears.length > 0" class="h-[240px] sm:h-[280px]">
+                    <Bar :key="newStudentsChartKey" :data="newStudentsChartData" :options="newStudentsChartOptions" />
+                </div>
+                <div v-else class="py-10 text-center text-slate-400 text-xs">
+                    Belum ada data periode siswa baru.
                 </div>
 
-                <!-- Ringkasan Early Warning & Proyeksi Tahun Depan -->
+                <!-- Ringkasan Compact Early Warning & Proyeksi (Di Bawah Diagram) -->
                 <div
                     v-if="showPrediction && enrollmentForecast.isAvailable"
                     :class="[
-                        'mb-4 p-3.5 sm:p-4 rounded-2xl border space-y-3',
+                        'mt-3 px-3 py-2.5 rounded-2xl border flex flex-col lg:flex-row lg:items-center justify-between gap-2.5',
                         enrollmentForecast.status === 'warning'
                             ? 'bg-rose-50/70 border-rose-200/90'
                             : enrollmentForecast.status === 'growing'
@@ -1274,105 +1242,101 @@ const displayedNewStudents = computed(() => {
                                 : 'bg-slate-50/90 border-slate-200/90',
                     ]"
                 >
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                        <div class="flex items-start gap-2.5">
+                    <div class="flex items-start sm:items-center gap-2 min-w-0">
+                        <span
+                            :class="[
+                                'material-symbols-outlined text-[18px] shrink-0 mt-0.5 sm:mt-0',
+                                enrollmentForecast.status === 'warning'
+                                    ? 'text-rose-600'
+                                    : enrollmentForecast.status === 'growing'
+                                        ? 'text-emerald-700'
+                                        : 'text-sky-700',
+                            ]"
+                        >
+                            {{ enrollmentForecast.status === 'warning' ? 'warning' : (enrollmentForecast.status === 'growing' ? 'trending_up' : 'insights') }}
+                        </span>
+                        <div class="min-w-0 flex flex-wrap items-center gap-x-2 gap-y-1">
                             <span
                                 :class="[
-                                    'material-symbols-outlined text-[20px] shrink-0 mt-0.5',
+                                    'inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider border shrink-0',
                                     enrollmentForecast.status === 'warning'
-                                        ? 'text-rose-600'
+                                        ? 'bg-rose-100 text-rose-800 border-rose-300'
                                         : enrollmentForecast.status === 'growing'
-                                            ? 'text-emerald-700'
-                                            : 'text-sky-700',
+                                            ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                            : 'bg-sky-100 text-sky-800 border-sky-300',
                                 ]"
                             >
-                                {{ enrollmentForecast.status === 'warning' ? 'warning' : (enrollmentForecast.status === 'growing' ? 'trending_up' : 'insights') }}
+                                {{ enrollmentForecast.statusLabel }}
                             </span>
-                            <div>
-                                <div class="flex items-center gap-2 flex-wrap">
-                                    <span
-                                        :class="[
-                                            'inline-flex items-center px-2 py-0.5 rounded-full text-[10.5px] font-extrabold uppercase tracking-wider border',
-                                            enrollmentForecast.status === 'warning'
-                                                ? 'bg-rose-100 text-rose-800 border-rose-300'
-                                                : enrollmentForecast.status === 'growing'
-                                                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                                                    : 'bg-sky-100 text-sky-800 border-sky-300',
-                                        ]"
-                                    >
-                                        {{ enrollmentForecast.statusLabel }}
-                                    </span>
-                                    <span class="text-[11px] font-semibold text-slate-500">
-                                        Basis {{ enrollmentForecast.historyYearsCount }} TA historis → TA {{ enrollmentForecast.nextYearLabel }}
-                                    </span>
-                                </div>
-                                <p class="text-xs text-slate-700 font-medium mt-1 leading-relaxed">
-                                    {{ enrollmentForecast.headline }}
-                                </p>
-                            </div>
+                            <span class="text-[11px] font-semibold text-slate-600">
+                                Basis {{ enrollmentForecast.historyYearsCount }} TA → TA {{ enrollmentForecast.nextYearLabel }}
+                            </span>
                         </div>
                     </div>
 
-                    <div
-                        :class="[
-                            'grid gap-2.5',
-                            showMutasiInChart ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-1 sm:grid-cols-3',
-                        ]"
-                    >
-                        <div class="p-2.5 sm:p-3 rounded-xl bg-white/90 border border-slate-200/80">
-                            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Est. Siswa Baru {{ enrollmentForecast.nextYearLabel }}</div>
-                            <div class="text-base sm:text-lg font-extrabold text-slate-900 mt-0.5">
-                                ~{{ enrollmentForecast.siswaBaruEst }} Siswa
-                            </div>
-                            <div class="text-[10.5px] text-slate-500 font-medium">
-                                TA aktif: {{ enrollmentForecast.referenceCurrentSiswaBaru }} siswa baru
-                            </div>
-                        </div>
-
-                        <div class="p-2.5 sm:p-3 rounded-xl bg-white/90 border border-slate-200/80">
-                            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Rentang Perkiraan</div>
-                            <div class="text-base sm:text-lg font-extrabold text-slate-900 mt-0.5">
-                                {{ showMutasiInChart ? `${enrollmentForecast.totalLow}–${enrollmentForecast.totalHigh}` : `${enrollmentForecast.siswaBaruLow}–${enrollmentForecast.siswaBaruHigh}` }} Siswa
-                            </div>
-                            <div class="text-[10.5px] text-slate-500 font-medium">
-                                Konservatif s.d. optimis
-                            </div>
-                        </div>
-
-                        <div class="p-2.5 sm:p-3 rounded-xl bg-white/90 border border-slate-200/80">
-                            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Laju 3 TA Terakhir</div>
-                            <div
-                                :class="[
-                                    'text-base sm:text-lg font-extrabold mt-0.5',
-                                    (enrollmentForecast.recent3DeltaPerYear ?? 0) < 0
-                                        ? 'text-rose-700'
-                                        : ((enrollmentForecast.recent3DeltaPerYear ?? 0) > 0 ? 'text-emerald-700' : 'text-slate-900'),
-                                ]"
-                            >
-                                {{ (enrollmentForecast.recent3DeltaPerYear ?? 0) > 0 ? '+' : '' }}{{ enrollmentForecast.recent3DeltaPerYear ?? 0 }} / TA
-                            </div>
-                            <div class="text-[10.5px] text-slate-500 font-medium">
-                                Rata-rata perubahan siswa baru
-                            </div>
-                        </div>
-
-                        <div v-if="showMutasiInChart" class="p-2.5 sm:p-3 rounded-xl bg-white/90 border border-slate-200/80">
-                            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Est. Mutasi &amp; Total</div>
-                            <div class="text-base sm:text-lg font-extrabold text-amber-800 mt-0.5">
-                                ~{{ enrollmentForecast.totalEst }} Total
-                            </div>
-                            <div class="text-[10.5px] text-slate-500 font-medium">
-                                Termasuk ~{{ enrollmentForecast.mutasiEst }} mutasi (median)
-                            </div>
-                        </div>
+                    <div class="flex items-center gap-1.5 flex-wrap text-[11px]">
+                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white border border-slate-200/90 font-bold text-slate-900">
+                            <span class="text-slate-400 font-semibold">Est. Baru:</span>
+                            <span>~{{ enrollmentForecast.siswaBaruEst }}</span>
+                        </span>
+                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white border border-slate-200/90 font-bold text-slate-900">
+                            <span class="text-slate-400 font-semibold">Rentang:</span>
+                            <span>{{ showMutasiInChart ? `${enrollmentForecast.totalLow}–${enrollmentForecast.totalHigh}` : `${enrollmentForecast.siswaBaruLow}–${enrollmentForecast.siswaBaruHigh}` }}</span>
+                        </span>
+                        <span
+                            class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white border border-slate-200/90 font-bold"
+                            :class="(enrollmentForecast.recent3DeltaPerYear ?? 0) < 0 ? 'text-rose-700' : ((enrollmentForecast.recent3DeltaPerYear ?? 0) > 0 ? 'text-emerald-700' : 'text-slate-800')"
+                        >
+                            <span class="text-slate-400 font-semibold">Laju 3 TA:</span>
+                            <span>{{ (enrollmentForecast.recent3DeltaPerYear ?? 0) > 0 ? '+' : '' }}{{ enrollmentForecast.recent3DeltaPerYear ?? 0 }}/TA</span>
+                        </span>
+                        <span
+                            v-if="showMutasiInChart"
+                            class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-50/80 border border-amber-200/90 font-bold text-amber-900"
+                        >
+                            <span class="text-amber-700 font-semibold">Total (+Mutasi ~{{ enrollmentForecast.mutasiEst }}):</span>
+                            <span>~{{ enrollmentForecast.totalEst }}</span>
+                        </span>
                     </div>
                 </div>
 
-                <div v-if="chartAcademicYears.length > 0" class="h-[240px] sm:h-[280px]">
-                    <Bar :key="newStudentsChartKey" :data="newStudentsChartData" :options="newStudentsChartOptions" />
-                </div>
-                <div v-else class="py-10 text-center text-slate-400 text-xs">
-                    Belum ada data periode siswa baru.
+                <!-- Box Penjelasan Metode Statistik (Compact & Mudah Dipahami) -->
+                <div
+                    v-if="showForecastHint && enrollmentForecast.isAvailable"
+                    class="mt-2.5 p-3 sm:p-3.5 rounded-2xl bg-indigo-50/70 border border-indigo-200/80 text-xs text-slate-700 space-y-1.5"
+                >
+                    <div class="flex items-center justify-between gap-2">
+                        <div class="flex items-center gap-1.5 font-extrabold text-indigo-950 text-[11.5px]">
+                            <span class="material-symbols-outlined text-[16px] text-indigo-700">lightbulb</span>
+                            <span>Metode Statistik yang Digunakan</span>
+                        </div>
+                        <button
+                            type="button"
+                            @click="showForecastHint = false"
+                            class="text-slate-400 hover:text-slate-700 cursor-pointer"
+                            title="Tutup penjelasan"
+                        >
+                            <span class="material-symbols-outlined text-[16px]">close</span>
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-1 text-[11px] leading-snug">
+                        <p>
+                            <strong class="text-slate-900">1. Weighted Damped Trend (Siswa Baru):</strong>
+                            Regresi berbobot yang mengutamakan <strong>3 TA terakhir</strong> agar penurunan/kenaikan terbaru terbaca, lalu diredam (×0,78) supaya angka estimasi tidak ekstrem.
+                        </p>
+                        <p>
+                            <strong class="text-slate-900">2. Weighted RMSE (Rentang):</strong>
+                            Mengukur naik–turun historis untuk membentuk kisaran batas bawah (konservatif) hingga batas atas (optimis).
+                        </p>
+                        <p>
+                            <strong class="text-slate-900">3. Median Historis (Mutasi Masuk):</strong>
+                            Mengambil nilai tengah mutasi dari TA penuh sebelumnya agar lonjakan acak tidak merusak tren reguler.
+                        </p>
+                        <p>
+                            <strong class="text-slate-900">4. Early Warning:</strong>
+                            Otomatis muncul jika siswa baru turun <strong>≥ 2 TA berturut-turut</strong> atau laju tren bernilai negatif.
+                        </p>
+                    </div>
                 </div>
 
                 <!-- Petunjuk interaktif klik batang -->
