@@ -62,6 +62,7 @@ export const SOLO_RAYA_KABUPATENS = [
     'Wonogiri',
     'Klaten',
     'Boyolali',
+    'Grobogan',
 ];
 
 const EMPTY_SCHOOL_INDICATORS = new Set([

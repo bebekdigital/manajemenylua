@@ -1291,7 +1291,7 @@ async function initMap() {
             fetch('/data/solo-raya-kabupaten.geojson'),
         ]);
 
-        if (!kecRes.ok) throw new Error('Gagal memuat peta kecamatan Solo Raya.');
+        if (!kecRes.ok) throw new Error('Gagal memuat peta kecamatan Solo Raya & Grobogan.');
         const kecJson = await kecRes.json();
         kecJson.features = (kecJson.features || []).filter((f) =>
             SOLO_RAYA_KEYS.has(normalizeWilayahKey(f.properties?.kabupaten))
@@ -1448,7 +1448,7 @@ async function initMap() {
         // Preload desa GeoJSON di background agar klik kecamatan langsung instan
         loadDesaGeoJson();
     } catch (err) {
-        loadError.value = err?.message || 'Gagal memuat peta wilayah Solo Raya.';
+        loadError.value = err?.message || 'Gagal memuat peta wilayah Solo Raya & Grobogan.';
     } finally {
         isLoading.value = false;
         await nextTick();
@@ -1545,7 +1545,7 @@ watch(
                 <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block shrink-0"></span>
                 <div>
                     <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                        {{ isWelfareMode ? 'Peta Domisili Siswa, Radius Sekolah & Tol (Solo Raya)' : 'Peta Sebaran Sekolah Asal & Wilayah (Solo Raya)' }}
+                        {{ isWelfareMode ? 'Peta Domisili Siswa, Radius Sekolah & Tol (Solo Raya & Grobogan)' : 'Peta Sebaran Sekolah Asal & Wilayah (Solo Raya & Grobogan)' }}
                     </h3>
                     <p class="text-[11px] text-slate-500 font-medium mt-0.5">
                         <template v-if="isWelfareMode">
@@ -1564,7 +1564,7 @@ watch(
                                 Mode Desa: <span class="font-bold text-emerald-800">Kec. {{ drillKecamatan.kecamatan }} ({{ drillKecamatan.kabupaten }})</span> — klik titik sekolah atau poligon desa
                             </template>
                             <template v-else-if="aggregationLevel === 'desa'">
-                                Menampilkan warna per <span class="font-bold text-slate-700">Desa / Kelurahan</span> se-Solo Raya — klik desa untuk daftar SD/MI/PKBM
+                                Menampilkan warna per <span class="font-bold text-slate-700">Desa / Kelurahan</span> se-Solo Raya &amp; Grobogan — klik desa untuk daftar SD/MI/PKBM
                             </template>
                             <template v-else>
                                 Warna per <span class="font-bold text-slate-700">Kecamatan</span> berdasarkan siswa masuk — klik kecamatan untuk detail siswa &amp; SD
@@ -1672,7 +1672,7 @@ watch(
             <!-- Loading State Overlay -->
             <div v-if="isLoading" class="absolute inset-0 bg-slate-50/95 z-[500] flex flex-col items-center justify-center gap-2">
                 <span class="material-symbols-outlined text-3xl animate-spin text-emerald-700">progress_activity</span>
-                <span class="text-xs font-semibold text-slate-500">Memuat peta kecamatan Solo Raya...</span>
+                <span class="text-xs font-semibold text-slate-500">Memuat peta kecamatan Solo Raya &amp; Grobogan...</span>
             </div>
 
             <!-- Error State Overlay -->

@@ -673,7 +673,7 @@ function exportExcel() {
 
     if (schoolsToExport.length === 0 && villagesToExport.length === 0) return;
 
-    const kabSuffix = selectedKabupaten.value === 'Semua' ? 'SoloRaya' : selectedKabupaten.value;
+    const kabSuffix = selectedKabupaten.value === 'Semua' ? 'SoloRaya_Grobogan' : selectedKabupaten.value;
     const unitSuffix = activeUnit.value === 'all' ? 'SemuaUnit' : activeUnit.value;
 
     const wb = XLSX.utils.book_new();
@@ -754,7 +754,7 @@ function exportExcel() {
                     <div class="mt-2 flex flex-wrap items-center gap-2">
                         <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-semibold">
                             <span class="material-symbols-outlined text-[14px] text-emerald-700">verified</span>
-                            <span>{{ isWelfareMode ? 'Sumber : Peta Wilayah Solo Raya • Radius Sekolah & Gerbang Tol' : 'Sumber : Pusdatin Kemendikdasmen' }}</span>
+                            <span>{{ isWelfareMode ? 'Sumber : Peta Wilayah Solo Raya & Grobogan • Radius Sekolah & Gerbang Tol' : 'Sumber : Pusdatin Kemendikdasmen' }}</span>
                         </span>
                     </div>
                 </div>
@@ -875,7 +875,7 @@ function exportExcel() {
                                     : 'bg-emerald-50/90 hover:bg-emerald-100/70 border-emerald-300 text-emerald-900',
                             ]"
                         >
-                            <option value="Semua">Semua Solo Raya (7 Kab/Kota)</option>
+                            <option value="Semua">Semua Solo Raya &amp; Grobogan (8 Kab/Kota)</option>
                             <option v-for="kab in SOLO_RAYA_KABUPATENS" :key="kab" :value="kab">{{ kab === 'Surakarta' ? 'Kota Surakarta' : `Kab. ${kab}` }}</option>
                         </select>
                     </div>
@@ -1111,13 +1111,13 @@ function exportExcel() {
                         <div class="flex items-center gap-2">
                             <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span>
                             <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                                {{ isWelfareMode ? 'Jangkauan Domisili & Radius Sekolah per Kabupaten / Kota' : 'Jangkauan per Kabupaten / Kota Solo Raya' }}
+                                {{ isWelfareMode ? 'Jangkauan Domisili & Radius Sekolah per Kabupaten / Kota' : 'Jangkauan per Kabupaten / Kota (Solo Raya & Grobogan)' }}
                             </h3>
                         </div>
                         <span class="text-[11px] text-slate-400 font-medium hidden sm:inline">Klik kartu kabupaten untuk memfilter</span>
                     </div>
 
-                    <div v-if="isWelfareMode" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
+                    <div v-if="isWelfareMode" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-8 gap-2.5">
                         <button
                             v-for="kb in welfareKabupatenBreakdown"
                             :key="kb.kabupaten"
@@ -1152,7 +1152,7 @@ function exportExcel() {
                         </button>
                     </div>
 
-                    <div v-else class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
+                    <div v-else class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-8 gap-2.5">
                         <button
                             v-for="kb in kabupatenBreakdown"
                             :key="kb.kabupaten"
@@ -1315,10 +1315,10 @@ function exportExcel() {
                         class="mb-4 p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-600 flex flex-col sm:flex-row sm:items-center justify-between gap-2"
                     >
                         <span v-if="isWelfareMode">
-                            Menampilkan desa/kelurahan domisili siswa yang berasal dari luar 7 Kab/Kota Solo Raya atau penamaannya belum terpadankan dengan batas wilayah Solo Raya.
+                            Menampilkan desa/kelurahan domisili siswa yang berasal dari luar Solo Raya &amp; Kab. Grobogan atau penamaannya belum terpadankan dengan batas wilayah peta.
                         </span>
                         <span v-else>
-                            Menampilkan nama sekolah asal siswa yang belum cocok dengan SD/MI/PKBM Solo Raya (bisa berasal dari luar Solo Raya, TK/RA, atau perlu dilengkapi NPSN-nya).
+                            Menampilkan nama sekolah asal siswa yang belum cocok dengan SD/MI/PKBM Solo Raya &amp; Kab. Grobogan (bisa berasal dari luar wilayah cakupan, TK/RA, atau perlu dilengkapi NPSN-nya).
                         </span>
                         <span class="font-bold text-slate-800 shrink-0">
                             <template v-if="isWelfareMode">
