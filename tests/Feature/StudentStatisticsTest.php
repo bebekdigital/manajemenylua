@@ -29,6 +29,8 @@ class StudentStatisticsTest extends TestCase
             ->component('Statistics/StudentStatistics')
             ->has('students')
             ->where('students.0.sekolah_asal', fn ($val) => true)
+            ->where('students.0.dusun', fn ($val) => true)
+            ->where('students.0.ta_masuk', fn ($val) => true)
             ->has('studentsPerClass')
             ->has('selectedAcademicYear')
             ->where('selectedAcademicYear.semester', 'Semua')

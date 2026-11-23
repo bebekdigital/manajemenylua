@@ -2,12 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import {
-    getGenderBadgeClass,
-    getGenderLabel,
-    getStatusKeaktifanBadgeClass,
-    getStatusKeaktifanDotClass,
-} from '@/Utils/studentBadges';
+import PsbStudentRowCard from '@/Pages/Psb/Partials/PsbStudentRowCard.vue';
 
 // Perbesar toleransi geser Leaflet untuk layar sentuh/mobile
 if (L.Draggable?.prototype?.options) {
@@ -44,6 +39,8 @@ let desaGeojsonLayer = null;
 let desaCanvasRenderer = null;
 let desaLoadingPromise = null;
 let kabupatenLayer = null;
+let bordersSvgRenderer = null;
+let areaLabelLayer = null;
 let schoolMarker = null;
 let activeHoverLayer = null;
 let currentHoveredDesaKey = null;
@@ -57,8 +54,10 @@ const SCHOOL_COORDS = [-7.4989289, 110.822498];
 const SCHOOL_NAME = 'PPTQ & SMPIT TQ Ulil Albab Karanganyar';
 const SCHOOL_ADDRESS = 'Sidorejo, Selokaton, Kec. Gondangrejo, Kab. Karanganyar';
 
-// Level Agregasi: 'kecamatan' atau 'desa'
+// Level Agregasi: 'kecamatan' atau 'desa' & Drill-down Kecamatan
 const aggregationLevel = ref('kecamatan');
+const drillKecamatan = ref(null); // { kecamatan, kabupaten, kecKey, kabKey } | null
+const isFullscreen = ref(false);
 
 // Filter status keaktifan internal peta: 'all' | 'aktif' | 'lulus' | 'tidak_aktif'
 const statusFilter = ref(props.isAllTime ? 'all' : 'aktif');
@@ -462,29 +461,39 @@ function openDesaModal(item) {
     });
 }
 
+async function toggleFullscreen(forceVal = null) {
+    const nextVal = typeof forceVal === 'boolean' ? forceVal : !isFullscreen.value;
+    if (isFullscreen.value === nextVal) return;
+    isFullscreen.value = nextVal;
+    if (typeof document !== 'undefined') {
+        document.body.style.overflow = nextVal ? 'hidden' : '';
+    }
+    await nextTick();
+    if (map) {
+        map.invalidateSize({ animate: false });
+        renderMapLabels();
+    }
+}
+
 function handleKeyDown(e) {
     if (e.key === 'Escape') {
         if (selectedKecamatanModal.value) {
             closeKecamatanModal();
-        }
-        if (showOutsideModal.value) {
+        } else if (showOutsideModal.value) {
             showOutsideModal.value = false;
+        } else if (isFullscreen.value) {
+            toggleFullscreen(false);
         }
     }
 }
 
-function isStudentActive(student) {
-    if (!student) return false;
-    const status = (student.status_keaktifan || student.student_status || '').toLowerCase();
-    return !status.includes('tidak') && status !== 'dropout' && status !== 'mutasi_keluar' && status !== 'lulus';
-}
-
-function getStudentStatusLabel(student) {
-    if (!student) return 'Tidak Aktif';
-    if (student.status_keaktifan) {
-        return student.status_keaktifan;
-    }
-    return isStudentActive(student) ? 'Aktif' : 'Tidak Aktif';
+function escapeHtml(str) {
+    return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
 }
 
 // Siswa yang difilter di dalam modal pencarian pop-up
@@ -497,9 +506,10 @@ const modalFilteredStudents = computed(() => {
     return students.filter(s => {
         const nama = (s.nama || '').toLowerCase();
         const nisn = (s.nisn || '').toLowerCase();
+        const dusun = (s.dusun || '').toLowerCase();
         const desa = (s.desa || '').toLowerCase();
         const kelas = (s.kelas || '').toLowerCase();
-        return nama.includes(q) || nisn.includes(q) || desa.includes(q) || kelas.includes(q);
+        return nama.includes(q) || nisn.includes(q) || dusun.includes(q) || desa.includes(q) || kelas.includes(q);
     });
 });
 
@@ -600,6 +610,7 @@ function selectFeature(feature, layer, latlng = null, isClick = false) {
         count,
         percentage: pct,
         students,
+        featureLayer: layer,
     };
 
     if (isClick) {
@@ -749,51 +760,86 @@ function clearHover() {
     hoveredDesa.value = null;
 }
 
-function initDesaLayer() {
+function attachFeatureBbox(features) {
+    (features || []).forEach(f => {
+        if (f._bbox || !f.geometry?.coordinates) return;
+        let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
+        function scan(coords) {
+            if (typeof coords[0] === 'number') {
+                const cLng = coords[0], cLat = coords[1];
+                if (cLng < minLng) minLng = cLng;
+                if (cLng > maxLng) maxLng = cLng;
+                if (cLat < minLat) minLat = cLat;
+                if (cLat > maxLat) maxLat = cLat;
+            } else {
+                coords.forEach(scan);
+            }
+        }
+        scan(f.geometry.coordinates);
+        f._bbox = { minLng, maxLng, minLat, maxLat };
+    });
+}
+
+function buildDesaLayer() {
     if (!map || !desaGeojsonData.value) return;
     if (desaGeojsonLayer) {
         desaGeojsonLayer.remove();
         desaGeojsonLayer = null;
     }
+    if (desaCanvasRenderer) {
+        desaCanvasRenderer.remove();
+        desaCanvasRenderer = null;
+    }
 
-    if (!desaCanvasRenderer) {
+    let features = desaGeojsonData.value.features || [];
+    if (drillKecamatan.value) {
+        features = features.filter(
+            (f) =>
+                normalizeKey(f.properties?.kecamatan) === drillKecamatan.value.kecKey &&
+                normalizeKey(f.properties?.kabupaten) === drillKecamatan.value.kabKey
+        );
+    }
+
+    // Saat drill-down ke 1 kecamatan (10-25 desa), gunakan SVG agar hover/klik 100% akurat
+    const useSvgForDesa = Boolean(drillKecamatan.value) || features.length <= 150;
+    if (!useSvgForDesa) {
         desaCanvasRenderer = L.canvas({ padding: 0.25 });
     }
 
-    desaGeojsonLayer = L.geoJSON(desaGeojsonData.value, {
-        renderer: desaCanvasRenderer,
-        style: desaFeatureStyle,
-        onEachFeature: (feature, layer) => {
-            layer.on({
-                mouseover: (e) => {
-                    if (aggregationLevel.value !== 'desa') return;
-                    if (isLockedByClick) return;
-                    selectDesaFeature(feature, layer, e.latlng, false);
-                },
-                mousemove: (e) => {
-                    if (aggregationLevel.value !== 'desa') return;
-                    if (isLockedByClick) return;
-                    if (singleTooltip && map && map.hasLayer(singleTooltip)) {
-                        singleTooltip.setLatLng(e.latlng);
-                    }
-                },
-                mouseout: (e) => {
-                    if (aggregationLevel.value !== 'desa') return;
-                    if (isLockedByClick) return;
-                    clearHover();
-                },
-                click: (e) => {
-                    if (aggregationLevel.value !== 'desa') return;
-                    if (e.originalEvent) {
-                        L.DomEvent.stopPropagation(e.originalEvent);
-                    }
-                    lastInteractionTime = Date.now();
-                    isLockedByClick = true;
-                    selectDesaFeature(feature, layer, e.latlng, true);
-                },
-            });
-        },
-    });
+    desaGeojsonLayer = L.geoJSON(
+        { type: 'FeatureCollection', features },
+        {
+            ...(useSvgForDesa ? {} : { renderer: desaCanvasRenderer }),
+            style: desaFeatureStyle,
+            onEachFeature: (feature, layer) => {
+                layer.on({
+                    mouseover: (e) => {
+                        if (aggregationLevel.value !== 'desa' || isLockedByClick) return;
+                        selectDesaFeature(feature, layer, e.latlng, false);
+                    },
+                    mousemove: (e) => {
+                        if (aggregationLevel.value !== 'desa' || isLockedByClick) return;
+                        if (singleTooltip && map && map.hasLayer(singleTooltip)) {
+                            singleTooltip.setLatLng(e.latlng);
+                        }
+                    },
+                    mouseout: () => {
+                        if (aggregationLevel.value !== 'desa' || isLockedByClick) return;
+                        clearHover();
+                    },
+                    click: (e) => {
+                        if (aggregationLevel.value !== 'desa') return;
+                        if (e.originalEvent) {
+                            L.DomEvent.stopPropagation(e.originalEvent);
+                        }
+                        lastInteractionTime = Date.now();
+                        isLockedByClick = true;
+                        selectDesaFeature(feature, layer, e.latlng, true);
+                    },
+                });
+            },
+        }
+    );
 
     if (aggregationLevel.value === 'desa') {
         if (geojsonLayer && map.hasLayer(geojsonLayer)) {
@@ -807,18 +853,21 @@ function initDesaLayer() {
 }
 
 async function loadDesaGeoJson() {
-    if (desaGeojsonData.value) return;
+    if (desaGeojsonData.value) return desaGeojsonData.value;
     if (desaLoadingPromise) return desaLoadingPromise;
 
     isDesaLoading.value = true;
     desaLoadingPromise = (async () => {
         try {
-            const res = await fetch('/data/solo-raya-desa.geojson');
+            const res = await fetch('/data/solo-raya-desa.geojson?v=20261123grobogan');
             if (!res.ok) throw new Error('Gagal memuat batas desa');
-            desaGeojsonData.value = await res.json();
-            initDesaLayer();
+            const raw = await res.json();
+            attachFeatureBbox(raw.features);
+            desaGeojsonData.value = raw;
+            return raw;
         } catch (err) {
             console.error('Error loading desa geojson:', err);
+            return null;
         } finally {
             isDesaLoading.value = false;
             desaLoadingPromise = null;
@@ -827,15 +876,107 @@ async function loadDesaGeoJson() {
     return desaLoadingPromise;
 }
 
-function updateMapLayers() {
+function renderMapLabels() {
+    if (!map || !areaLabelLayer) return;
+
+    areaLabelLayer.clearLayers();
+    const zoom = map.getZoom();
+    const viewBounds = map.getBounds().pad(0.08);
+
+    if (aggregationLevel.value === 'kecamatan' && geojsonData.value?.features) {
+        const minGapPx = zoom >= 11 ? 26 : (zoom >= 10 ? 34 : 44);
+        const items = [];
+
+        geojsonData.value.features.forEach((f) => {
+            const lat = Number(f.properties?.lat);
+            const lng = Number(f.properties?.lng);
+            const name = f.properties?.kecamatan;
+            if (!name || !lat || !lng || !viewBounds.contains([lat, lng])) return;
+            items.push({ lat, lng, name, count: getFeatureCount(f) });
+        });
+
+        items.sort((a, b) => b.count - a.count);
+
+        const placedPts = [];
+        items.forEach((item) => {
+            const pt = map.latLngToContainerPoint([item.lat, item.lng]);
+            const crowded = placedPts.some((p) => Math.hypot(pt.x - p.x, pt.y - p.y) < minGapPx);
+            if (crowded) return;
+            placedPts.push(pt);
+
+            const isDarkBg = item.count >= 10;
+            const textColor = isDarkBg ? '#ffffff' : '#1e293b';
+            const shadow = isDarkBg
+                ? '0 1px 2px rgba(6,78,59,0.95), 0 0 3px rgba(6,78,59,0.85)'
+                : '0 0 3px rgba(255,255,255,0.95), 0 0 4px rgba(255,255,255,0.95)';
+            const fontSize = zoom >= 11 ? '10px' : '9px';
+
+            L.marker([item.lat, item.lng], {
+                interactive: false,
+                icon: L.divIcon({
+                    className: 'domicile-map-text-label',
+                    iconSize: [0, 0],
+                    html: `<div style="display:inline-block; width:max-content; transform:translate(-50%,-50%); white-space:nowrap; font-size:${fontSize}; font-weight:700; color:${textColor}; text-shadow:${shadow}; pointer-events:none; letter-spacing:0.01em;">${escapeHtml(item.name)}</div>`,
+                }),
+            }).addTo(areaLabelLayer);
+        });
+    } else if (aggregationLevel.value === 'desa' && desaGeojsonData.value?.features) {
+        const shouldRenderDesa = Boolean(drillKecamatan.value) || zoom >= 12;
+        if (!shouldRenderDesa) return;
+
+        const minGapPx = zoom >= 13 ? 24 : 36;
+        let features = desaGeojsonData.value.features;
+        if (drillKecamatan.value) {
+            features = features.filter(
+                (f) =>
+                    normalizeKey(f.properties?.kecamatan) === drillKecamatan.value.kecKey &&
+                    normalizeKey(f.properties?.kabupaten) === drillKecamatan.value.kabKey
+            );
+        }
+
+        const items = [];
+        features.forEach((f) => {
+            const lat = Number(f.properties?.lat);
+            const lng = Number(f.properties?.lng);
+            const name = f.properties?.desa;
+            if (!name || !lat || !lng || !viewBounds.contains([lat, lng])) return;
+            items.push({ lat, lng, name, count: getDesaFeatureCount(f) });
+        });
+
+        items.sort((a, b) => b.count - a.count);
+
+        const placedPts = [];
+        items.forEach((item) => {
+            const pt = map.latLngToContainerPoint([item.lat, item.lng]);
+            const crowded = placedPts.some((p) => Math.hypot(pt.x - p.x, pt.y - p.y) < minGapPx);
+            if (crowded) return;
+            placedPts.push(pt);
+
+            const isDarkBg = item.count >= 10;
+            const textColor = isDarkBg ? '#ffffff' : '#334155';
+            const shadow = isDarkBg
+                ? '0 1px 2px rgba(6,78,59,0.95), 0 0 3px rgba(6,78,59,0.85)'
+                : '0 0 3px rgba(255,255,255,0.98), 0 0 4px rgba(255,255,255,0.98)';
+
+            L.marker([item.lat, item.lng], {
+                interactive: false,
+                icon: L.divIcon({
+                    className: 'domicile-map-text-label',
+                    iconSize: [0, 0],
+                    html: `<div style="display:inline-block; width:max-content; transform:translate(-50%,-50%); white-space:nowrap; font-size:9.5px; font-weight:700; color:${textColor}; text-shadow:${shadow}; pointer-events:none;">${escapeHtml(item.name)}</div>`,
+                }),
+            }).addTo(areaLabelLayer);
+        });
+    }
+}
+
+function updateMapLayers(specificKecLayer = null) {
     if (!map) return;
 
     if (aggregationLevel.value === 'kecamatan') {
-        // Sembunyikan layer desa
         if (desaGeojsonLayer && map.hasLayer(desaGeojsonLayer)) {
             map.removeLayer(desaGeojsonLayer);
         }
-        // Kembalikan style choropleth poligon kecamatan
         if (geojsonLayer) {
             if (!map.hasLayer(geojsonLayer)) {
                 geojsonLayer.addTo(map);
@@ -845,43 +986,86 @@ function updateMapLayers() {
             });
         }
     } else {
-        // Mode Per Desa:
-        // Sembunyikan layer kecamatan agar tidak tumpang tindih dan tidak membebani browser
         if (geojsonLayer && map.hasLayer(geojsonLayer)) {
             map.removeLayer(geojsonLayer);
         }
-        if (desaGeojsonLayer) {
-            if (!map.hasLayer(desaGeojsonLayer)) {
-                desaGeojsonLayer.addTo(map);
-            }
-            desaGeojsonLayer.eachLayer(layer => {
-                layer.setStyle(desaFeatureStyle(layer.feature));
-            });
+        if (desaGeojsonData.value) {
+            buildDesaLayer();
         } else if (!isDesaLoading.value) {
-            loadDesaGeoJson();
+            loadDesaGeoJson().then(() => {
+                if (aggregationLevel.value === 'desa') {
+                    buildDesaLayer();
+                    renderMapLabels();
+                }
+            });
         }
     }
 
     if (kabupatenLayer && kabupatenLayer.bringToFront) {
         kabupatenLayer.bringToFront();
     }
+
+    renderMapLabels();
+
+    if (specificKecLayer && specificKecLayer.getBounds && specificKecLayer.getBounds().isValid()) {
+        map.fitBounds(specificKecLayer.getBounds(), { padding: [24, 24], animate: true });
+    } else if (drillKecamatan.value && desaGeojsonLayer && desaGeojsonLayer.getBounds().isValid()) {
+        map.fitBounds(desaGeojsonLayer.getBounds(), { padding: [24, 24], animate: true });
+    }
+}
+
+async function drillIntoKecamatan(kecamatanName, kabupatenName, kecFeatureLayer = null) {
+    const kecKey = normalizeKey(kecamatanName);
+    const kabKey = normalizeKey(kabupatenName);
+
+    clearHover();
+    drillKecamatan.value = {
+        kecamatan: kecamatanName,
+        kabupaten: kabupatenName,
+        kecKey,
+        kabKey,
+    };
+    aggregationLevel.value = 'desa';
+
+    if (!desaGeojsonData.value) {
+        await loadDesaGeoJson();
+    }
+
+    updateMapLayers(kecFeatureLayer);
+}
+
+function backToAllKecamatan() {
+    clearHover();
+    drillKecamatan.value = null;
+    aggregationLevel.value = 'kecamatan';
+    updateMapLayers();
+    resetZoom();
 }
 
 async function setAggregation(level) {
-    if (aggregationLevel.value === level) return;
-    aggregationLevel.value = level;
+    if (aggregationLevel.value === level && !drillKecamatan.value) return;
     clearHover();
-
-    if (level === 'desa' && !desaGeojsonData.value) {
-        await loadDesaGeoJson();
+    if (level === 'kecamatan') {
+        drillKecamatan.value = null;
+        aggregationLevel.value = 'kecamatan';
+    } else {
+        aggregationLevel.value = 'desa';
+        if (!desaGeojsonData.value) {
+            await loadDesaGeoJson();
+        }
     }
     updateMapLayers();
 }
 
 function resetZoom() {
     clearHover();
-    if (map && geojsonLayer) {
-        map.fitBounds(geojsonLayer.getBounds(), { padding: [24, 24] });
+    if (!map) return;
+    if (drillKecamatan.value && desaGeojsonLayer && desaGeojsonLayer.getBounds().isValid()) {
+        map.fitBounds(desaGeojsonLayer.getBounds(), { padding: [24, 24], animate: true });
+        return;
+    }
+    if (geojsonLayer && geojsonLayer.getBounds().isValid()) {
+        map.fitBounds(geojsonLayer.getBounds(), { padding: [20, 20], animate: true });
     }
 }
 
@@ -955,26 +1139,26 @@ function isPointInPolygonGeom(lng, lat, coordinates, type) {
 }
 
 function findFeatureAndLayerAtLatLng(latlng) {
-    if (!geojsonData.value?.features || !geojsonLayer || !latlng) return null;
+    if (!latlng) return null;
+    const targetLayer = aggregationLevel.value === 'desa' ? desaGeojsonLayer : geojsonLayer;
+    if (!targetLayer) return null;
     const lng = latlng.lng;
     const lat = latlng.lat;
 
-    for (const f of geojsonData.value.features) {
+    let matched = null;
+    targetLayer.eachLayer(layer => {
+        if (matched) return;
+        const f = layer.feature;
+        if (!f?.geometry) return;
         const b = f._bbox;
         if (b && (lng < b.minLng || lng > b.maxLng || lat < b.minLat || lat > b.maxLat)) {
-            continue;
+            return;
         }
         if (isPointInPolygonGeom(lng, lat, f.geometry.coordinates, f.geometry.type)) {
-            let matchedLayer = null;
-            geojsonLayer.eachLayer(l => {
-                if (l.feature === f || (l.feature?.properties?.kode && l.feature.properties.kode === f.properties.kode)) {
-                    matchedLayer = l;
-                }
-            });
-            return { feature: f, layer: matchedLayer };
+            matched = { feature: f, layer };
         }
-    }
-    return null;
+    });
+    return matched;
 }
 
 async function loadGeoJsonAndInitMap() {
@@ -982,39 +1166,20 @@ async function loadGeoJsonAndInitMap() {
         isLoading.value = true;
         loadError.value = null;
 
-        const response = await fetch('/data/solo-raya-kecamatan.geojson');
+        const [response, kabResponse] = await Promise.all([
+            fetch('/data/solo-raya-kecamatan.geojson?v=20261123grobogan'),
+            fetch('/data/solo-raya-kabupaten.geojson?v=20261123grobogan').catch(() => null),
+        ]);
         if (!response.ok) {
             throw new Error(`Gagal memuat data batas kecamatan (status ${response.status})`);
         }
         const data = await response.json();
-
-        data.features.forEach(f => {
-            let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
-            function scan(coords) {
-                if (typeof coords[0] === 'number') {
-                    const cLng = coords[0], cLat = coords[1];
-                    if (cLng < minLng) minLng = cLng;
-                    if (cLng > maxLng) maxLng = cLng;
-                    if (cLat < minLat) minLat = cLat;
-                    if (cLat > maxLat) maxLat = cLat;
-                } else {
-                    coords.forEach(scan);
-                }
-            }
-            scan(f.geometry.coordinates);
-            f._bbox = { minLng, maxLng, minLat, maxLat };
-        });
-
+        attachFeatureBbox(data.features);
         geojsonData.value = data;
 
         let kabData = null;
-        try {
-            const kabResponse = await fetch('/data/solo-raya-kabupaten.geojson');
-            if (kabResponse.ok) {
-                kabData = await kabResponse.json();
-            }
-        } catch (e) {
-            console.warn('Gagal memuat batas kabupaten:', e);
+        if (kabResponse && kabResponse.ok) {
+            kabData = await kabResponse.json();
         }
 
         await nextTick();
@@ -1024,12 +1189,16 @@ async function loadGeoJsonAndInitMap() {
             zoomControl: false,
             attributionControl: false,
             minZoom: 8,
-            maxZoom: 15,
+            maxZoom: 16,
             scrollWheelZoom: true,
             tapTolerance: 25,
         });
 
         L.control.zoom({ position: 'topright' }).addTo(map);
+
+        const bordersPane = map.createPane('domicileBordersPane');
+        bordersPane.style.zIndex = '420';
+        bordersPane.style.pointerEvents = 'none';
 
         singleTooltip = L.tooltip({
             direction: 'auto',
@@ -1044,20 +1213,17 @@ async function loadGeoJsonAndInitMap() {
             onEachFeature: (feature, layer) => {
                 layer.on({
                     mouseover: (e) => {
-                        if (aggregationLevel.value !== 'kecamatan') return;
-                        if (isLockedByClick) return;
+                        if (aggregationLevel.value !== 'kecamatan' || isLockedByClick) return;
                         selectFeature(feature, layer, e.latlng, false);
                     },
                     mousemove: (e) => {
-                        if (aggregationLevel.value !== 'kecamatan') return;
-                        if (isLockedByClick) return;
+                        if (aggregationLevel.value !== 'kecamatan' || isLockedByClick) return;
                         if (singleTooltip && map && map.hasLayer(singleTooltip)) {
                             singleTooltip.setLatLng(e.latlng);
                         }
                     },
-                    mouseout: (e) => {
-                        if (aggregationLevel.value !== 'kecamatan') return;
-                        if (isLockedByClick) return;
+                    mouseout: () => {
+                        if (aggregationLevel.value !== 'kecamatan' || isLockedByClick) return;
                         clearHover();
                     },
                     click: (e) => {
@@ -1074,23 +1240,28 @@ async function loadGeoJsonAndInitMap() {
         }).addTo(map);
 
         map.on('click', (e) => {
-            if (Date.now() - lastInteractionTime < 400) return;
-            if (aggregationLevel.value === 'kecamatan') {
-                const result = findFeatureAndLayerAtLatLng(e.latlng);
-                if (result && result.layer) {
-                    lastInteractionTime = Date.now();
-                    isLockedByClick = true;
+            if (Date.now() - lastInteractionTime < 150) return;
+            const result = findFeatureAndLayerAtLatLng(e.latlng);
+            if (result && result.layer) {
+                lastInteractionTime = Date.now();
+                isLockedByClick = true;
+                if (aggregationLevel.value === 'desa') {
+                    selectDesaFeature(result.feature, result.layer, e.latlng, true);
+                } else {
                     selectFeature(result.feature, result.layer, e.latlng, true);
-                    return;
                 }
+                return;
             }
             isLockedByClick = false;
             clearHover();
         });
 
         // Layer 2: Batas Kabupaten Putus-putus
+        bordersSvgRenderer = L.svg({ pane: 'domicileBordersPane', padding: 0.3 });
         if (kabData) {
             kabupatenLayer = L.geoJSON(kabData, {
+                renderer: bordersSvgRenderer,
+                pane: 'domicileBordersPane',
                 style: {
                     fill: false,
                     weight: 1.8,
@@ -1157,15 +1328,21 @@ async function loadGeoJsonAndInitMap() {
             schoolMarker.openPopup();
         });
 
-        map.fitBounds(geojsonLayer.getBounds(), { padding: [24, 24] });
-        updateMapLayers();
+        areaLabelLayer = L.layerGroup().addTo(map);
+        map.on('zoomend moveend', renderMapLabels);
 
-        // Muat data desa di background agar langsung siap ketika user klik "Per Desa"
+        // Muat data desa di background agar klik kecamatan langsung instan
         loadDesaGeoJson();
     } catch (err) {
         loadError.value = err.message || 'Gagal memuat peta';
     } finally {
         isLoading.value = false;
+        await nextTick();
+        if (map) {
+            map.invalidateSize();
+            resetZoom();
+            renderMapLabels();
+        }
     }
 }
 
@@ -1182,6 +1359,7 @@ watch(activeView, (newVal) => {
     if (newVal === 'peta' && map) {
         nextTick(() => {
             map.invalidateSize();
+            renderMapLabels();
         });
     }
 });
@@ -1193,7 +1371,14 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
     window.removeEventListener('keydown', handleKeyDown);
+    if (typeof document !== 'undefined') {
+        document.body.style.overflow = '';
+    }
     clearHover();
+    if (areaLabelLayer) {
+        areaLabelLayer.remove();
+        areaLabelLayer = null;
+    }
     if (desaGeojsonLayer) {
         desaGeojsonLayer.remove();
         desaGeojsonLayer = null;
@@ -1222,86 +1407,65 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <div class="bg-white rounded-3xl border border-slate-200/90 p-4 sm:p-6 shadow-xs mb-5 overflow-hidden w-full max-w-full min-w-0">
-        <!-- Header: Judul, Tab Switcher [Peta | Bar] + [Kec | Desa] (Satu Baris), & Ringkasan Siswa -->
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-100">
+    <div
+        :class="[
+            'bg-white overflow-hidden transition-colors',
+            isFullscreen
+                ? 'fixed inset-0 z-[900] w-screen h-screen p-3 sm:p-5 flex flex-col'
+                : 'rounded-3xl border border-slate-200/90 p-4 sm:p-6 shadow-xs mb-5 w-full max-w-full min-w-0',
+        ]"
+    >
+        <!-- Header: Judul, Tab Switcher [Peta | Bar] + Badge Ringkasan + Fullscreen -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3 sm:mb-4 pb-3 border-b border-slate-100 shrink-0">
             <div class="flex items-center gap-2">
                 <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block shrink-0"></span>
                 <div>
                     <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                        Sebaran Domisili Siswa
+                        Sebaran Domisili Siswa (Solo Raya &amp; Grobogan)
                     </h3>
-                    <p class="text-[11px] text-slate-400 font-medium mt-0.5">
-                        Berdasarkan <span class="font-bold text-slate-600">{{ aggregationLevel === 'desa' ? 'Desa / Kelurahan' : 'Kecamatan' }}</span> domisili {{ statusLabelText }} — {{ unit }} ({{ isAllTime ? 'Semua TA / All Time' : `TA ${academicYear}` }})
+                    <p class="text-[11px] text-slate-500 font-medium mt-0.5">
+                        <template v-if="drillKecamatan && activeView === 'peta'">
+                            Mode Desa: <span class="font-bold text-emerald-800">Kec. {{ drillKecamatan.kecamatan }} ({{ drillKecamatan.kabupaten }})</span> — {{ statusLabelText }} • {{ unit }}
+                        </template>
+                        <template v-else>
+                            Berdasarkan <span class="font-bold text-slate-700">{{ aggregationLevel === 'desa' ? 'Desa / Kelurahan' : 'Kecamatan' }}</span> domisili {{ statusLabelText }} — {{ unit }} ({{ isAllTime ? 'Semua TA / All Time' : `TA ${academicYear}` }})
+                        </template>
                     </p>
                 </div>
             </div>
 
-            <!-- Bagian Kanan: Baris Tab Switcher [Peta|Bar] + [Kec|Desa] & Badge Ringkasan -->
+            <!-- Bagian Kanan: Tab Switcher [Peta|Bar], Badge Ringkasan, Luar Wilayah & Fullscreen -->
             <div class="flex items-center gap-2 self-start sm:self-auto shrink-0 flex-wrap">
-                <!-- Grup Tab: Peta/Bar dan Kec/Desa selalu 1 baris (flex-nowrap) -->
-                <div class="inline-flex items-center gap-1.5 sm:gap-2 flex-nowrap shrink-0">
-                    <!-- 1. Toggle Pilihan Tampilan: Peta / Bar -->
-                    <div class="inline-flex items-center p-0.5 bg-slate-100/90 rounded-xl border border-slate-200/90 shadow-2xs">
-                        <button
-                            type="button"
-                            @click="activeView = 'peta'"
-                            class="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 rounded-lg text-xs transition-all cursor-pointer"
-                            :class="activeView === 'peta'
-                                ? 'bg-white text-emerald-900 font-bold shadow-xs'
-                                : 'text-slate-500 hover:text-slate-800 font-semibold'"
-                            title="Tampilan Peta"
-                        >
-                            <span class="material-symbols-outlined text-[15px]">map</span>
-                            <span>Peta</span>
-                        </button>
-                        <button
-                            type="button"
-                            @click="activeView = 'bar'"
-                            class="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 rounded-lg text-xs transition-all cursor-pointer"
-                            :class="activeView === 'bar'
-                                ? 'bg-white text-emerald-900 font-bold shadow-xs'
-                                : 'text-slate-500 hover:text-slate-800 font-semibold'"
-                            title="Tampilan Grafik Bar"
-                        >
-                            <span class="material-symbols-outlined text-[15px]">bar_chart</span>
-                            <span>Bar</span>
-                        </button>
-                    </div>
-
-                    <!-- 2. Toggle Pilihan Wilayah: Kecamatan / Desa (Di samping kanan Peta / Bar, Warna Kuning) -->
-                    <div class="inline-flex items-center p-0.5 bg-amber-50 rounded-xl border border-amber-200/90 shadow-2xs">
-                        <button
-                            type="button"
-                            @click="setAggregation('kecamatan')"
-                            class="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 rounded-lg text-xs transition-all cursor-pointer"
-                            :class="aggregationLevel === 'kecamatan'
-                                ? 'bg-amber-400 text-amber-950 font-bold shadow-xs'
-                                : 'text-amber-800/80 hover:text-amber-950 font-semibold'"
-                            title="Berdasarkan Kecamatan"
-                        >
-                            <span class="material-symbols-outlined text-[15px]">location_city</span>
-                            <span class="sm:hidden">Kec</span>
-                            <span class="hidden sm:inline">Kecamatan</span>
-                        </button>
-                        <button
-                            type="button"
-                            @click="setAggregation('desa')"
-                            class="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 rounded-lg text-xs transition-all cursor-pointer"
-                            :class="aggregationLevel === 'desa'
-                                ? 'bg-amber-400 text-amber-950 font-bold shadow-xs'
-                                : 'text-amber-800/80 hover:text-amber-950 font-semibold'"
-                            title="Berdasarkan Desa / Kelurahan"
-                        >
-                            <span class="material-symbols-outlined text-[15px]">holiday_village</span>
-                            <span class="sm:hidden">Desa</span>
-                            <span class="hidden sm:inline">Desa</span>
-                        </button>
-                    </div>
+                <!-- Toggle Pilihan Tampilan: Peta / Bar -->
+                <div class="inline-flex items-center p-0.5 bg-slate-100/90 rounded-xl border border-slate-200/90 shadow-2xs">
+                    <button
+                        type="button"
+                        @click="activeView = 'peta'"
+                        class="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 rounded-lg text-xs transition-all cursor-pointer"
+                        :class="activeView === 'peta'
+                            ? 'bg-white text-emerald-900 font-bold shadow-xs'
+                            : 'text-slate-500 hover:text-slate-800 font-semibold'"
+                        title="Tampilan Peta"
+                    >
+                        <span class="material-symbols-outlined text-[15px]">map</span>
+                        <span>Peta</span>
+                    </button>
+                    <button
+                        type="button"
+                        @click="activeView = 'bar'"
+                        class="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 rounded-lg text-xs transition-all cursor-pointer"
+                        :class="activeView === 'bar'
+                            ? 'bg-white text-emerald-900 font-bold shadow-xs'
+                            : 'text-slate-500 hover:text-slate-800 font-semibold'"
+                        title="Tampilan Grafik Bar"
+                    >
+                        <span class="material-symbols-outlined text-[15px]">bar_chart</span>
+                        <span>Bar</span>
+                    </button>
                 </div>
 
                 <!-- Badge Total Tercakup -->
-                <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-bold text-emerald-800 shadow-2xs">
+                <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-bold text-emerald-800 shadow-2xs">
                     <span class="w-2 h-2 rounded-full bg-emerald-600"></span>
                     <span>{{ distribution.coverageTotal }} Siswa</span>
                     <span class="text-[11px] text-emerald-600 font-medium">
@@ -1321,11 +1485,28 @@ onBeforeUnmount(() => {
                     <span>Luar Wilayah: {{ distribution.outsideTotal }}</span>
                     <span class="material-symbols-outlined text-[14px]">info</span>
                 </button>
+
+                <!-- Tombol Fullscreen Peta -->
+                <button
+                    v-if="activeView === 'peta'"
+                    type="button"
+                    @click="toggleFullscreen()"
+                    :class="[
+                        'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer',
+                        isFullscreen
+                            ? 'bg-rose-600 hover:bg-rose-700 text-white border-rose-700 shadow-xs'
+                            : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200',
+                    ]"
+                    :title="isFullscreen ? 'Keluar layar penuh (ESC)' : 'Perbesar peta layar penuh'"
+                >
+                    <span class="material-symbols-outlined text-[16px]">{{ isFullscreen ? 'fullscreen_exit' : 'fullscreen' }}</span>
+                    <span class="hidden sm:inline">{{ isFullscreen ? 'Tutup Fullscreen' : 'Fullscreen' }}</span>
+                </button>
             </div>
         </div>
 
         <!-- Baris Filter Status Siswa pada Peta Domisili -->
-        <div class="flex flex-wrap items-center justify-between gap-2 mb-3.5">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-3.5 shrink-0">
             <div class="inline-flex items-center p-1 bg-slate-100 rounded-full border border-slate-200/90 overflow-x-auto max-w-full">
                 <button
                     v-for="tab in [
@@ -1352,22 +1533,52 @@ onBeforeUnmount(() => {
                     <span class="text-[10.5px] opacity-80">({{ tab.count }})</span>
                 </button>
             </div>
+
+            <!-- Switcher Kec / Desa untuk Mode Bar -->
+            <div v-if="activeView === 'bar'" class="inline-flex items-center p-0.5 bg-amber-50 rounded-xl border border-amber-200/90 shadow-2xs">
+                <button
+                    type="button"
+                    @click="setAggregation('kecamatan')"
+                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] transition-all cursor-pointer"
+                    :class="aggregationLevel === 'kecamatan'
+                        ? 'bg-amber-400 text-amber-950 font-bold shadow-2xs'
+                        : 'text-amber-800/80 hover:text-amber-950 font-semibold'"
+                >
+                    <span>Kec.</span>
+                </button>
+                <button
+                    type="button"
+                    @click="setAggregation('desa')"
+                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] transition-all cursor-pointer"
+                    :class="aggregationLevel === 'desa'
+                        ? 'bg-amber-400 text-amber-950 font-bold shadow-2xs'
+                        : 'text-amber-800/80 hover:text-amber-950 font-semibold'"
+                >
+                    <span>Desa</span>
+                </button>
+            </div>
         </div>
 
         <!-- ============================================================ -->
-        <!-- VIEW 1: TAMPILAN PETA VEKTOR                                 -->
+        <!-- VIEW 1: TAMPILAN PETA VEKTOR (Selaras Pemetaan PSB Domisili) -->
         <!-- ============================================================ -->
-        <div v-show="activeView === 'peta'" class="relative w-full h-[380px] sm:h-[460px] rounded-2xl border border-slate-200/90 overflow-hidden bg-slate-50">
+        <div
+            v-show="activeView === 'peta'"
+            :class="[
+                'relative w-full rounded-2xl border border-slate-200/90 bg-[#f8fafc] overflow-hidden',
+                isFullscreen ? 'flex-1 min-h-0' : 'h-[460px] sm:h-[560px] lg:h-[620px]',
+            ]"
+        >
             <!-- Loading State -->
-            <div v-if="isLoading || isDesaLoading" class="absolute inset-0 bg-slate-50/90 z-20 flex flex-col items-center justify-center gap-2">
-                <span class="material-symbols-outlined text-3xl text-emerald-600 animate-spin">progress_activity</span>
+            <div v-if="isLoading || isDesaLoading" class="absolute inset-0 bg-slate-50/90 z-[500] flex flex-col items-center justify-center gap-2">
+                <span class="material-symbols-outlined text-3xl text-emerald-700 animate-spin">progress_activity</span>
                 <span class="text-xs font-semibold text-slate-500">
                     {{ isDesaLoading ? 'Memuat batas wilayah desa/kelurahan Solo Raya & Grobogan...' : 'Memuat batas wilayah Solo Raya & Grobogan...' }}
                 </span>
             </div>
 
             <!-- Error State -->
-            <div v-else-if="loadError" class="absolute inset-0 bg-white z-20 flex flex-col items-center justify-center p-4 text-center">
+            <div v-else-if="loadError" class="absolute inset-0 bg-white z-[500] flex flex-col items-center justify-center p-4 text-center">
                 <span class="material-symbols-outlined text-3xl text-rose-500 mb-1">map</span>
                 <span class="text-xs font-bold text-slate-800">Gagal Memuat Peta</span>
                 <p class="text-[11px] text-slate-500 mt-1 max-w-xs">{{ loadError }}</p>
@@ -1381,120 +1592,166 @@ onBeforeUnmount(() => {
             </div>
 
             <!-- Leaflet Container -->
-            <div ref="mapContainer" class="w-full h-full z-10"></div>
+            <div ref="mapContainer" class="w-full h-full z-10 domicile-leaflet-bg"></div>
 
-            <!-- Floating Controls di Kiri Atas Peta: Reset Zoom -->
-            <div class="absolute top-3 left-3 z-[400]">
-                <button
-                    type="button"
-                    @click="resetZoom"
-                    class="px-2.5 py-1.5 rounded-xl bg-white/95 hover:bg-white text-slate-700 text-xs font-bold shadow-md border border-slate-200/80 transition-all flex items-center gap-1 cursor-pointer"
-                    title="Kembalikan zoom ke seluruh wilayah"
-                >
-                    <span class="material-symbols-outlined text-[15px]">crop_free</span>
-                    <span class="hidden sm:inline">Reset Zoom</span>
-                </button>
-            </div>
-
-            <!-- Live Status Hover/Touch Bar: Mode Desa -->
-            <div
-                v-if="hoveredDesa"
-                class="absolute bottom-3 left-3 right-3 sm:left-auto sm:right-3 sm:bottom-3 sm:max-w-xs z-[500] bg-white/95 backdrop-blur-xs rounded-xl border border-slate-200/90 p-2.5 sm:p-3 shadow-lg text-xs pointer-events-auto touch-manipulation transition-all animate-in fade-in duration-150"
-            >
-                <div class="flex flex-col relative">
+            <!-- Kontrol Pojok Kiri Atas di Dalam Peta: [Kec. | Desa] -->
+            <div class="absolute top-3 left-3 z-[410] flex items-center gap-1.5 flex-wrap max-w-[calc(100%-56px)]">
+                <div class="inline-flex items-center p-0.5 bg-amber-50/95 backdrop-blur-xs rounded-xl border border-amber-200/90 shadow-md">
                     <button
                         type="button"
-                        @click.stop="clearHover"
-                        class="absolute -top-1 -right-1 text-slate-400 hover:text-slate-700 p-1 rounded-full cursor-pointer touch-manipulation"
-                        title="Tutup info"
+                        @click="setAggregation('kecamatan')"
+                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] transition-all cursor-pointer"
+                        :class="aggregationLevel === 'kecamatan'
+                            ? 'bg-amber-400 text-amber-950 font-bold shadow-2xs'
+                            : 'text-amber-800/80 hover:text-amber-950 font-semibold'"
                     >
-                        <span class="material-symbols-outlined text-[16px]">close</span>
+                        <span>Kec.</span>
                     </button>
-                    <span class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Desa / Kelurahan</span>
-                    <span class="text-[13px] font-extrabold text-slate-900 pr-6 leading-tight mt-0.5">Desa {{ hoveredDesa.desa }}</span>
-                    <span class="text-[11px] text-slate-500 font-medium mt-0.5">Kec. {{ hoveredDesa.kecamatan }} • Kab/Kota {{ hoveredDesa.kabupaten }}</span>
-                    <div class="mt-1.5 pt-1.5 border-t border-slate-100 flex items-center justify-between gap-2">
-                        <span class="text-xs font-bold text-slate-900">
-                            {{ hoveredDesa.count }} Siswa
-                        </span>
-                        <span class="text-[10.5px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60">
-                            {{ hoveredDesa.percentage }}% dari total
-                        </span>
-                    </div>
                     <button
-                        v-if="hoveredDesa.count > 0"
                         type="button"
-                        @click="openDesaModal(hoveredDesa)"
-                        class="mt-2 w-full py-1.5 px-2.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-bold flex items-center justify-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
+                        @click="setAggregation('desa')"
+                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] transition-all cursor-pointer"
+                        :class="aggregationLevel === 'desa'
+                            ? 'bg-amber-400 text-amber-950 font-bold shadow-2xs'
+                            : 'text-amber-800/80 hover:text-amber-950 font-semibold'"
                     >
-                        <span>Lihat {{ hoveredDesa.count }} Siswa</span>
-                        <span class="material-symbols-outlined text-[14px]">open_in_new</span>
+                        <span>Desa</span>
                     </button>
                 </div>
             </div>
 
-            <!-- Live Status Hover/Touch Bar: Mode Kecamatan -->
-            <div
-                v-else-if="hoveredFeature"
-                class="absolute bottom-3 left-3 right-3 sm:left-auto sm:right-3 sm:bottom-3 sm:max-w-xs z-[500] bg-white/95 backdrop-blur-xs rounded-xl border border-slate-200/90 p-2.5 sm:p-3 shadow-lg text-xs pointer-events-auto touch-manipulation transition-all animate-in fade-in duration-150"
-            >
-                <div class="flex flex-col relative">
-                    <button
-                        type="button"
-                        @click.stop="clearHover"
-                        class="absolute -top-1 -right-1 text-slate-400 hover:text-slate-700 p-1 rounded-full cursor-pointer touch-manipulation"
-                        title="Tutup info"
-                    >
-                        <span class="material-symbols-outlined text-[16px]">close</span>
-                    </button>
-                    <span class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Kecamatan</span>
-                    <span class="text-[13px] font-extrabold text-slate-900 pr-6 leading-tight mt-0.5">Kec. {{ hoveredFeature.kecamatan }}</span>
-                    <span class="text-[11px] text-slate-500 font-medium mt-0.5">Kab/Kota {{ hoveredFeature.kabupaten }}</span>
-                    <div class="mt-1.5 pt-1.5 border-t border-slate-100 flex items-center justify-between gap-2">
-                        <span class="text-xs font-bold text-slate-900">
-                            {{ hoveredFeature.count }} Siswa
-                        </span>
-                        <span class="text-[10.5px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60">
-                            {{ hoveredFeature.percentage }}% dari total
-                        </span>
-                    </div>
-                    <button
-                        v-if="hoveredFeature.count > 0"
-                        type="button"
-                        @click="openFeatureModal(hoveredFeature)"
-                        class="mt-2 w-full py-1.5 px-2.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-bold flex items-center justify-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
-                    >
-                        <span>Lihat {{ hoveredFeature.count }} Siswa</span>
-                        <span class="material-symbols-outlined text-[14px]">open_in_new</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Petunjuk Saat Belum Ada Hover -->
-            <div
-                v-else
-                class="hidden sm:block absolute bottom-3 right-3 z-[400] max-w-xs bg-white/90 backdrop-blur-xs rounded-xl border border-slate-200/80 px-3 py-2 shadow-xs text-xs pointer-events-none"
-            >
-                <span class="text-[11px] text-slate-400 font-medium">
-                    {{ aggregationLevel === 'desa' ? 'Arahkan kursor atau sentuh desa untuk detail' : 'Arahkan kursor atau sentuh kecamatan untuk detail' }}
-                </span>
-            </div>
-
-            <!-- Tombol Buka Legenda khusus Mobile (saat legenda disembunyikan) -->
+            <!-- Tombol Reset Zoom di Bawah Kontrol Zoom Leaflet -->
             <button
-                v-if="!isLegendOpenMobile"
+                type="button"
+                @click="resetZoom"
+                class="absolute top-[74px] right-2.5 z-[400] w-8 h-8 rounded-lg bg-white/95 hover:bg-white border border-slate-300 shadow-xs flex items-center justify-center text-slate-700 cursor-pointer"
+                title="Reset posisi zoom peta"
+            >
+                <span class="material-symbols-outlined text-[17px]">my_location</span>
+            </button>
+
+            <!-- Pojok Kanan Bawah Stack: Tombol Kembali (saat masuk Desa) + Card Rincian / Hint -->
+            <div class="absolute bottom-3 left-3 right-3 sm:left-auto sm:right-3 sm:w-80 sm:max-w-xs z-[500] flex flex-col items-end gap-2 pointer-events-none">
+                <button
+                    v-if="drillKecamatan"
+                    type="button"
+                    @click="backToAllKecamatan"
+                    :class="[
+                        'pointer-events-auto items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 text-xs font-bold shadow-md border border-emerald-950/30 cursor-pointer active:scale-95 transition-all',
+                        (hoveredFeature || hoveredDesa) ? 'hidden sm:inline-flex' : 'inline-flex',
+                    ]"
+                >
+                    <span class="material-symbols-outlined text-[15px]">arrow_back</span>
+                    <span>Kembali</span>
+                </button>
+
+                <!-- Live Status Hover/Click Card: Mode Desa -->
+                <div
+                    v-if="hoveredDesa"
+                    class="w-full bg-white/95 backdrop-blur-xs rounded-xl border border-slate-200/90 p-2.5 sm:p-3 shadow-lg text-xs pointer-events-auto touch-manipulation transition-all animate-in fade-in duration-150"
+                >
+                    <div class="flex flex-col relative">
+                        <button
+                            type="button"
+                            @click.stop="clearHover"
+                            class="absolute -top-1 -right-1 text-slate-400 hover:text-slate-700 p-1 rounded-full cursor-pointer touch-manipulation"
+                            title="Tutup info"
+                        >
+                            <span class="material-symbols-outlined text-[16px]">close</span>
+                        </button>
+                        <span class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Desa / Kelurahan</span>
+                        <span class="text-[13px] font-extrabold text-slate-900 pr-6 leading-tight mt-0.5">Desa {{ hoveredDesa.desa }}</span>
+                        <span class="text-[11px] text-slate-500 font-medium mt-0.5">Kec. {{ hoveredDesa.kecamatan }} • Kab/Kota {{ hoveredDesa.kabupaten }}</span>
+                        <div class="mt-1.5 pt-1.5 border-t border-slate-100 flex items-center justify-between gap-2">
+                            <span class="text-xs font-bold text-slate-900">
+                                {{ hoveredDesa.count }} Siswa
+                            </span>
+                            <span class="text-[10.5px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60">
+                                {{ hoveredDesa.percentage }}% dari total
+                            </span>
+                        </div>
+                        <button
+                            v-if="hoveredDesa.count > 0"
+                            type="button"
+                            @click="openDesaModal(hoveredDesa)"
+                            class="mt-2 w-full py-1.5 px-2.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-bold flex items-center justify-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
+                        >
+                            <span>Lihat {{ hoveredDesa.count }} Siswa</span>
+                            <span class="material-symbols-outlined text-[14px]">open_in_new</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Live Status Hover/Click Card: Mode Kecamatan -->
+                <div
+                    v-else-if="hoveredFeature"
+                    class="w-full bg-white/95 backdrop-blur-xs rounded-xl border border-slate-200/90 p-2.5 sm:p-3 shadow-lg text-xs pointer-events-auto touch-manipulation transition-all animate-in fade-in duration-150"
+                >
+                    <div class="flex flex-col relative">
+                        <button
+                            type="button"
+                            @click.stop="clearHover"
+                            class="absolute -top-1 -right-1 text-slate-400 hover:text-slate-700 p-1 rounded-full cursor-pointer touch-manipulation"
+                            title="Tutup info"
+                        >
+                            <span class="material-symbols-outlined text-[16px]">close</span>
+                        </button>
+                        <span class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Kecamatan</span>
+                        <span class="text-[13px] font-extrabold text-slate-900 pr-6 leading-tight mt-0.5">Kec. {{ hoveredFeature.kecamatan }}</span>
+                        <span class="text-[11px] text-slate-500 font-medium mt-0.5">Kab/Kota {{ hoveredFeature.kabupaten }}</span>
+                        <div class="mt-1.5 pt-1.5 border-t border-slate-100 flex items-center justify-between gap-2">
+                            <span class="text-xs font-bold text-slate-900">
+                                {{ hoveredFeature.count }} Siswa
+                            </span>
+                            <span class="text-[10.5px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60">
+                                {{ hoveredFeature.percentage }}% dari total
+                            </span>
+                        </div>
+                        <button
+                            v-if="hoveredFeature.count > 0"
+                            type="button"
+                            @click="openFeatureModal(hoveredFeature)"
+                            class="mt-2 w-full py-1.5 px-2.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-bold flex items-center justify-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
+                        >
+                            <span>Lihat {{ hoveredFeature.count }} Siswa</span>
+                            <span class="material-symbols-outlined text-[14px]">open_in_new</span>
+                        </button>
+                        <div class="mt-1.5 flex items-center gap-1.5 flex-wrap">
+                            <button
+                                type="button"
+                                @click="drillIntoKecamatan(hoveredFeature.kecamatan, hoveredFeature.kabupaten, hoveredFeature.featureLayer)"
+                                class="flex-1 py-1 px-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10.5px] font-bold transition-colors cursor-pointer text-center"
+                            >
+                                Masuk Level Desa →
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Petunjuk Saat Belum Ada Hover/Klik -->
+                <div
+                    v-else
+                    class="hidden sm:block bg-white/90 backdrop-blur-xs rounded-xl border border-slate-200/80 px-3 py-2 shadow-xs text-xs pointer-events-none"
+                >
+                    <span class="text-[11px] text-slate-400 font-medium">
+                        {{ aggregationLevel === 'desa' ? 'Arahkan kursor atau klik desa untuk detail' : 'Arahkan kursor atau klik kecamatan untuk detail' }}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Tombol Buka Legenda khusus Mobile -->
+            <button
+                v-if="!isLegendOpenMobile && !hoveredFeature && !hoveredDesa"
                 type="button"
                 @click="isLegendOpenMobile = true"
                 class="sm:hidden absolute bottom-3 left-3 z-[400] px-2.5 py-1.5 rounded-xl bg-white/95 backdrop-blur-xs text-slate-700 text-[11px] font-bold shadow-md border border-slate-200/80 flex items-center gap-1.5 cursor-pointer touch-manipulation transition-all"
-                :class="{ 'hidden': hoveredFeature || hoveredDesa }"
                 title="Tampilkan legenda peta"
             >
                 <span class="material-symbols-outlined text-[15px] text-emerald-700">palette</span>
                 <span>Legenda</span>
-                <span class="material-symbols-outlined text-[14px] text-slate-400">expand_less</span>
             </button>
 
-            <!-- Floating Legend di Kiri Bawah -->
+            <!-- Floating Legend Kiri Bawah (identik Pemetaan PSB Domisili tanpa Radius & Tol) -->
             <div
                 class="absolute bottom-3 left-3 z-[400] bg-white/95 backdrop-blur-xs rounded-xl border border-slate-200/90 p-2 sm:p-2.5 shadow-md flex-col gap-1.5 transition-all"
                 :class="[
@@ -1505,9 +1762,8 @@ onBeforeUnmount(() => {
                 <div>
                     <div class="flex items-center justify-between gap-3 mb-1">
                         <span class="text-[10px] font-bold text-slate-700 uppercase tracking-wider">
-                            {{ aggregationLevel === 'desa' ? 'Siswa per Desa' : 'Siswa per Kecamatan' }}
+                            {{ aggregationLevel === 'desa' ? 'Siswa Domisili per Desa' : 'Siswa Domisili per Kecamatan' }}
                         </span>
-                        <!-- Tombol Sembunyikan khusus Mobile -->
                         <button
                             type="button"
                             @click="isLegendOpenMobile = false"
@@ -1518,46 +1774,29 @@ onBeforeUnmount(() => {
                         </button>
                     </div>
                     <div class="flex items-center gap-1 text-[10px] text-slate-600 font-medium">
-                        <div class="flex items-center gap-0.5">
-                            <span class="w-3.5 h-3 rounded-xs border border-slate-300 inline-block bg-[#ffffff]"></span>
-                            <span class="mr-1">0</span>
-                        </div>
-                        <div class="flex items-center gap-0.5">
-                            <span class="w-3.5 h-3 rounded-xs inline-block bg-[#6ee7b7]"></span>
-                            <span class="mr-1">1-4</span>
-                        </div>
-                        <div class="flex items-center gap-0.5">
-                            <span class="w-3.5 h-3 rounded-xs inline-block bg-[#10b981]"></span>
-                            <span class="mr-1">5-9</span>
-                        </div>
-                        <div class="flex items-center gap-0.5">
-                            <span class="w-3.5 h-3 rounded-xs inline-block bg-[#047857]"></span>
-                            <span class="mr-1">10-19</span>
-                        </div>
-                        <div class="flex items-center gap-0.5">
-                            <span class="w-3.5 h-3 rounded-xs inline-block bg-[#064e3b]"></span>
-                            <span>20+</span>
-                        </div>
+                        <div class="flex items-center gap-0.5"><span class="w-3.5 h-3 rounded-xs border border-slate-300 inline-block bg-[#ffffff]"></span><span class="mr-1">0</span></div>
+                        <div class="flex items-center gap-0.5"><span class="w-3.5 h-3 rounded-xs inline-block bg-[#6ee7b7]"></span><span class="mr-1">1-4</span></div>
+                        <div class="flex items-center gap-0.5"><span class="w-3.5 h-3 rounded-xs inline-block bg-[#10b981]"></span><span class="mr-1">5-9</span></div>
+                        <div class="flex items-center gap-0.5"><span class="w-3.5 h-3 rounded-xs inline-block bg-[#047857]"></span><span class="mr-1">10-19</span></div>
+                        <div class="flex items-center gap-0.5"><span class="w-3.5 h-3 rounded-xs inline-block bg-[#064e3b]"></span><span>20+</span></div>
                     </div>
                 </div>
 
                 <!-- Legenda Batas Wilayah & Titik Sekolah -->
-                <div class="pt-1.5 border-t border-slate-200/70 flex items-center gap-2.5 sm:gap-3 text-[10px] text-slate-600 font-medium flex-wrap">
-                    <div class="flex items-center gap-1.5" title="Lokasi Kampus Sekolah">
-                        <span class="w-3.5 h-3.5 rounded-full bg-rose-600 border border-white shadow-2xs flex items-center justify-center text-white shrink-0">
-                            <span class="material-symbols-outlined text-[10px] leading-none">school</span>
-                        </span>
-                        <span class="font-bold text-rose-700">Lokasi Sekolah</span>
+                <div class="pt-1.5 border-t border-slate-200/70 flex items-center gap-2.5 text-[10px] text-slate-600 font-medium flex-wrap">
+                    <div class="flex items-center gap-1" title="Lokasi Kampus Sekolah">
+                        <span class="w-3 h-3 rounded-full bg-rose-600 border border-white inline-block"></span>
+                        <span class="font-bold text-rose-700">Sekolah</span>
                     </div>
-                    <div class="flex items-center gap-1.5" title="Garis putus-putus batas kabupaten">
+                    <div class="flex items-center gap-1" title="Garis putus-putus batas kabupaten">
                         <span class="w-4 border-t-2 border-dashed border-[#1e293b] inline-block"></span>
-                        <span class="font-bold text-slate-800">Batas Kabupaten</span>
+                        <span>Batas Kab</span>
                     </div>
-                    <div v-if="aggregationLevel === 'kecamatan'" class="flex items-center gap-1.5" title="Garis batas kecamatan">
+                    <div v-if="aggregationLevel === 'kecamatan'" class="flex items-center gap-1" title="Garis batas kecamatan">
                         <span class="w-4 h-[1.5px] bg-[#94a3b8] inline-block"></span>
-                        <span>Batas Kecamatan</span>
+                        <span>Batas Kec</span>
                     </div>
-                    <div v-if="aggregationLevel === 'desa'" class="flex items-center gap-1.5" title="Garis batas desa">
+                    <div v-if="aggregationLevel === 'desa'" class="flex items-center gap-1" title="Garis batas desa">
                         <span class="w-4 h-[1.5px] bg-[#cbd5e1] inline-block"></span>
                         <span>Batas Desa</span>
                     </div>
@@ -1883,7 +2122,7 @@ onBeforeUnmount(() => {
                         <input
                             v-model="modalSearch"
                             type="text"
-                            placeholder="Cari nama, NISN, atau kelas..."
+                            placeholder="Cari nama, NISN, dusun, atau desa..."
                             class="w-full pl-8 pr-7 py-1.5 rounded-xl border border-slate-200 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
                         />
                         <button
@@ -1901,63 +2140,19 @@ onBeforeUnmount(() => {
                     </span>
                 </div>
 
-                <!-- Modal Body: Daftar Siswa (Scrollable) -->
+                <!-- Modal Body: Daftar Siswa (Identik Pemetaan PSB - Domisili) -->
                 <div class="flex-1 overflow-y-auto px-4 sm:px-6 py-3 space-y-2 custom-bar-scrollbar">
                     <div
                         v-if="modalFilteredStudents.length > 0"
                         class="space-y-2"
                     >
-                        <a
+                        <PsbStudentRowCard
                             v-for="(student, sIdx) in modalFilteredStudents"
                             :key="student.id || sIdx"
-                            :href="student.id ? `/students/${student.id}` : '#'"
-                            target="_blank"
-                            class="p-2.5 sm:p-3 rounded-2xl bg-slate-50/80 hover:bg-emerald-50/40 hover:border-emerald-200 border border-slate-200/80 flex items-center justify-between gap-3 transition-colors group/row"
-                            title="Buka profil siswa di tab baru"
-                        >
-                            <!-- Nomor & Nama Siswa -->
-                            <div class="min-w-0 flex items-center gap-2.5 flex-1">
-                                <span class="w-6 h-6 rounded-lg bg-white border border-slate-200 text-[10.5px] font-bold text-slate-600 flex items-center justify-center shrink-0">
-                                    {{ sIdx + 1 }}
-                                </span>
-
-                                <div class="min-w-0">
-                                    <div class="text-xs sm:text-[13px] font-bold text-slate-900 group-hover/row:text-emerald-950 break-words leading-tight">
-                                        {{ student.nama }}
-                                    </div>
-                                    <div v-if="student.desa || student.kelas || student.angkatan" class="text-[11px] text-slate-500 font-medium mt-0.5">
-                                        <span v-if="student.desa">Desa {{ student.desa }}</span>
-                                        <span v-if="student.desa && (student.kelas || student.angkatan)"> • </span>
-                                        <span v-if="student.kelas && student.kelas !== '-'">Kelas {{ student.kelas }}</span>
-                                        <span v-if="student.kelas && student.kelas !== '-' && student.angkatan"> • </span>
-                                        <span v-if="student.angkatan">Angkatan {{ student.angkatan }}</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- JK & Status Keaktifan -->
-                            <div class="flex items-center gap-2 shrink-0">
-                                <span
-                                    class="text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-lg border text-center min-w-[24px]"
-                                    :class="getGenderBadgeClass(student.jk)"
-                                    :title="getGenderLabel(student.jk)"
-                                >
-                                    <span class="hidden sm:inline">{{ getGenderLabel(student.jk) }}</span>
-                                    <span class="sm:hidden">{{ student.jk || '-' }}</span>
-                                </span>
-
-                                <span
-                                    class="text-[10px] sm:text-[11px] font-bold px-2.5 py-0.5 rounded-lg border flex items-center gap-1.5"
-                                    :class="getStatusKeaktifanBadgeClass(student)"
-                                >
-                                    <span
-                                        class="w-1.5 h-1.5 rounded-full"
-                                        :class="getStatusKeaktifanDotClass(student)"
-                                    ></span>
-                                    <span>{{ getStudentStatusLabel(student) }}</span>
-                                </span>
-                            </div>
-                        </a>
+                            :student="student"
+                            :index="sIdx"
+                            mode="welfare"
+                        />
                     </div>
 
                     <!-- Empty Search Inside Modal -->
@@ -2004,6 +2199,19 @@ onBeforeUnmount(() => {
 .bar-progress-animate {
     transform-origin: left;
     animation: barGrow 0.75s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Styling peta latar & label wilayah (selaras Pemetaan PSB) */
+.domicile-leaflet-bg.leaflet-container {
+    background-color: #f8fafc !important;
+}
+.domicile-leaflet-bg .leaflet-pane > svg {
+    pointer-events: none !important;
+}
+.domicile-map-text-label {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
 }
 
 /* Styling tooltip peta */

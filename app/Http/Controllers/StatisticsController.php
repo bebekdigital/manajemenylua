@@ -218,6 +218,15 @@ class StatisticsController extends Controller
                 $displayStatusKeaktifan = $lulusBelumTerjadi ? 'Aktif' : ($student->status_keaktifan ?: ($normalizedStatus === 'aktif' ? 'Aktif' : 'Tidak Aktif'));
                 $keteranganTidakAktif = $lulusBelumTerjadi ? null : ($recordKet ?: $student->keterangan_tidak_aktif);
 
+                $tanggalDiterima = $student->tanggal_diterima;
+                $taMasuk = null;
+                if ($tanggalDiterima) {
+                    $entryYear = $tanggalDiterima->month >= 7
+                        ? $tanggalDiterima->year
+                        : ($tanggalDiterima->year - 1);
+                    $taMasuk = $entryYear.'/'.($entryYear + 1);
+                }
+
                 return [
                     'id' => $student->id,
                     'nama' => $student->nama,
@@ -235,8 +244,10 @@ class StatisticsController extends Controller
                     'program' => $record?->program ?: ($student->getAttribute('program') ?: 'Umum'),
                     'kelas' => $record?->classroom?->name ?? ($record?->tingkat ? "Kelas {$record->tingkat}" : '-'),
                     'status_registrasi' => $student->status_registrasi ?: 'Siswa Baru',
-                    'tanggal_diterima' => $student->tanggal_diterima ? $student->tanggal_diterima->format('Y-m-d') : null,
+                    'tanggal_diterima' => $tanggalDiterima ? $tanggalDiterima->format('Y-m-d') : null,
+                    'ta_masuk' => $taMasuk,
                     'sekolah_asal' => $student->sekolah_asal,
+                    'dusun' => $student->dusun,
                     'kecamatan' => $student->kecamatan,
                     'kabupaten' => $student->kabupaten,
                     'provinsi' => $student->provinsi,
