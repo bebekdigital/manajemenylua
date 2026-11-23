@@ -154,6 +154,7 @@ const isWelfareMode = computed(() => mappingMode.value === 'welfare');
 // Default ke SMPIT jika ada siswanya agar pemadanan SD/MI/PKBM langsung relevan, jika tidak gunakan Semua
 const activeUnit = ref(hasSmpitStudents.value ? 'SMPIT' : 'all');
 const selectedTa = ref('Semua');
+const statusKeaktifanFilter = ref('all'); // 'all' | 'aktif' | 'lulus' | 'tidak_aktif'
 const registrationFilter = ref('all'); // 'all' | 'baru' | 'mutasi'
 const selectedKabupaten = ref('Semua');
 const selectedKecamatan = ref('Semua');
@@ -186,6 +187,7 @@ watch(
     [
         activeUnit,
         selectedTa,
+        statusKeaktifanFilter,
         registrationFilter,
         selectedKecamatan,
         selectedBentuk,
@@ -222,7 +224,14 @@ const latestTaName = computed(() => {
     return props.currentAcademicYearName || availableTaNames.value[0] || null;
 });
 
-const filteredStudentsForMatching = computed(() => {
+function getStudentStatusCategory(student) {
+    const raw = (student?.status_keaktifan || 'Aktif').toLowerCase().trim();
+    if (raw === 'lulus') return 'lulus';
+    if (raw.includes('tidak') || raw === 'dropout' || raw === 'mutasi_keluar') return 'tidak_aktif';
+    return 'aktif';
+}
+
+const studentsBeforeStatusFilter = computed(() => {
     return props.students.filter((s) => {
         if (!matchesUnit(s, activeUnit.value)) return false;
 
@@ -239,6 +248,79 @@ const filteredStudentsForMatching = computed(() => {
         return true;
     });
 });
+
+const statusCounts = computed(() => {
+    let aktif = 0;
+    let lulus = 0;
+    let tidak_aktif = 0;
+    studentsBeforeStatusFilter.value.forEach((s) => {
+        const cat = getStudentStatusCategory(s);
+        if (cat === 'aktif') aktif++;
+        else if (cat === 'lulus') lulus++;
+        else tidak_aktif++;
+    });
+
+    return {
+        all: studentsBeforeStatusFilter.value.length,
+        aktif,
+        lulus,
+        tidak_aktif,
+    };
+});
+
+const statusKeaktifanLabelText = computed(() => {
+    if (statusKeaktifanFilter.value === 'aktif') return 'siswa aktif';
+    if (statusKeaktifanFilter.value === 'lulus') return 'siswa lulus (alumni)';
+    if (statusKeaktifanFilter.value === 'tidak_aktif') return 'siswa tidak aktif';
+    return 'seluruh siswa (Aktif, Lulus & Non-Aktif)';
+});
+
+const filteredStudentsForMatching = computed(() => {
+    if (statusKeaktifanFilter.value === 'all') {
+        return studentsBeforeStatusFilter.value;
+    }
+    return studentsBeforeStatusFilter.value.filter(
+        (s) => getStudentStatusCategory(s) === statusKeaktifanFilter.value
+    );
+});
+
+const filterContext = computed(() => {
+    const unitLabel = activeUnit.value === 'all' ? 'Semua Unit' : activeUnit.value;
+    const taLabel = selectedTa.value === 'Semua' ? 'Semua TA' : `TA ${selectedTa.value}`;
+    const registrationLabel =
+        registrationFilter.value === 'baru'
+            ? 'Siswa Baru'
+            : registrationFilter.value === 'mutasi'
+              ? 'Mutasi'
+              : 'Semua Masuk';
+
+    const subParts = [];
+    if (selectedKecamatan.value !== 'Semua') {
+        subParts.push(`Kec. ${selectedKecamatan.value}`);
+    } else if (selectedKabupaten.value !== 'Semua') {
+        subParts.push(selectedKabupaten.value === 'Surakarta' ? 'Kota Surakarta' : `Kab. ${selectedKabupaten.value}`);
+    }
+    if (!isWelfareMode.value) {
+        if (selectedBentuk.value !== 'Semua') subParts.push(selectedBentuk.value);
+        if (selectedSchoolStatus.value !== 'Semua') subParts.push(selectedSchoolStatus.value);
+    }
+
+    return {
+        totalStudents: filteredStudentsForMatching.value.length,
+        statusKeaktifan: statusKeaktifanFilter.value,
+        statusLabelText: statusKeaktifanLabelText.value,
+        unitLabel,
+        taLabel,
+        registrationLabel,
+        hasSubFilter: subParts.length > 0,
+        subFilterLabel: subParts.join(' • '),
+    };
+});
+
+function formatPercent(part, total) {
+    if (!total || total <= 0 || !part || part <= 0) return 0;
+    return Number(((part / total) * 100).toFixed(1));
+}
 
 // ============================================================
 // Pencocokan & Klasifikasi Data Referensi vs Siswa Baru
@@ -665,6 +747,7 @@ async function handleSelectKecamatanFromMap(payload) {
 function resetFilters() {
     activeUnit.value = hasSmpitStudents.value ? 'SMPIT' : 'all';
     selectedTa.value = 'Semua';
+    statusKeaktifanFilter.value = 'all';
     registrationFilter.value = 'all';
     selectedKabupaten.value = 'Semua';
     selectedKecamatan.value = 'Semua';
@@ -681,6 +764,7 @@ const hasNonDefaultFilters = computed(() => {
     return (
         activeUnit.value !== defaultUnit ||
         selectedTa.value !== 'Semua' ||
+        statusKeaktifanFilter.value !== 'all' ||
         registrationFilter.value !== 'all' ||
         selectedKabupaten.value !== 'Semua' ||
         selectedKecamatan.value !== 'Semua' ||
@@ -834,8 +918,8 @@ function exportExcel() {
                         </div>
                     </div>
 
-                    <!-- Filter TA & Status Pendaftaran (Mobile: sebaris 2 kolom dropdown; Desktop: TA dropdown + tab warna) -->
-                    <div class="grid grid-cols-2 md:flex md:flex-wrap items-center gap-2 sm:gap-2.5 w-full lg:w-auto">
+                    <!-- Filter TA, Status Keaktifan & Status Pendaftaran -->
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:flex md:flex-wrap items-center gap-2 sm:gap-2.5 w-full lg:w-auto">
                         <!-- Filter TA (Warna Hitam) -->
                         <div class="flex flex-col md:flex-row md:items-center gap-1 md:gap-1.5 min-w-0">
                             <label class="text-[10.5px] font-bold text-slate-900 uppercase tracking-wider shrink-0">TA Masuk</label>
@@ -848,8 +932,27 @@ function exportExcel() {
                             </select>
                         </div>
 
+                        <!-- Filter Status Keaktifan -->
+                        <div class="flex flex-col md:flex-row md:items-center gap-1 md:gap-1.5 min-w-0">
+                            <label class="text-[10.5px] font-bold text-slate-500 uppercase tracking-wider shrink-0">Keaktifan</label>
+                            <select
+                                v-model="statusKeaktifanFilter"
+                                :class="[
+                                    'w-full md:w-auto rounded-xl border px-3 py-1.5 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500/20 cursor-pointer transition-colors',
+                                    statusKeaktifanFilter !== 'all'
+                                        ? 'bg-emerald-100/90 border-emerald-400 text-emerald-950'
+                                        : 'bg-slate-100 border-slate-200 text-slate-800 hover:bg-slate-200/70',
+                                ]"
+                            >
+                                <option value="all" class="bg-white text-slate-900">Semua Status ({{ statusCounts.all }})</option>
+                                <option value="aktif" class="bg-white text-slate-900">Siswa Aktif ({{ statusCounts.aktif }})</option>
+                                <option value="lulus" class="bg-white text-slate-900">Lulus / Alumni ({{ statusCounts.lulus }})</option>
+                                <option value="tidak_aktif" class="bg-white text-slate-900">Tidak Aktif ({{ statusCounts.tidak_aktif }})</option>
+                            </select>
+                        </div>
+
                         <!-- Mobile: Dropdown Semua Masuk sebaris di samping TA -->
-                        <div class="flex md:hidden flex-col gap-1 min-w-0">
+                        <div class="flex md:hidden flex-col gap-1 min-w-0 col-span-2 sm:col-span-1">
                             <label class="text-[10.5px] font-bold text-slate-500 uppercase tracking-wider shrink-0">Status Masuk</label>
                             <select
                                 v-model="registrationFilter"
@@ -960,6 +1063,20 @@ function exportExcel() {
                             <option value="Swasta">Swasta</option>
                         </select>
                     </div>
+                </div>
+
+                <!-- Baris 3: Ringkasan Populasi Siswa yang Sedang Dibaca (Basis Persentase) -->
+                <div class="pt-2.5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 border border-slate-200 font-bold text-slate-800">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                            Membaca {{ filterContext.totalStudents.toLocaleString('id-ID') }} {{ filterContext.statusLabelText }}
+                        </span>
+                        <span>• {{ filterContext.unitLabel }} • {{ filterContext.taLabel }} • {{ filterContext.registrationLabel }}</span>
+                    </div>
+                    <span v-if="statusKeaktifanFilter === 'all'" class="text-[10.5px] text-slate-400 font-medium">
+                        Rincian: {{ statusCounts.aktif }} Aktif • {{ statusCounts.lulus }} Lulus • {{ statusCounts.tidak_aktif }} Tidak Aktif
+                    </span>
                 </div>
             </div>
 
@@ -1237,6 +1354,8 @@ function exportExcel() {
                         :toll-gates="tollGates"
                         :selected-kabupaten="selectedKabupaten"
                         :selected-kecamatan="selectedKecamatan"
+                        :total-filtered-students="filteredStudentsForMatching.length"
+                        :filter-context="filterContext"
                         @select-school="selectedSchoolModal = $event"
                         @select-village="selectedVillageModal = $event"
                         @select-kecamatan="handleSelectKecamatanFromMap"
@@ -1794,6 +1913,12 @@ function exportExcel() {
                                 <div class="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider">Histori Siswa Berdomisili di Desa Ini</div>
                                 <div class="text-sm font-extrabold text-slate-900 mt-0.5">
                                     {{ selectedVillageModal.totalStudents }} Siswa dari {{ selectedVillageModal.taCount }} Tahun Ajaran
+                                    <span class="text-xs font-semibold text-emerald-700">
+                                        ({{ formatPercent(selectedVillageModal.totalStudents, filterContext.totalStudents) }}% dari {{ filterContext.totalStudents.toLocaleString('id-ID') }} {{ filterContext.statusLabelText }})
+                                    </span>
+                                </div>
+                                <div class="text-[10.5px] text-slate-400 font-medium mt-0.5">
+                                    Filter aktif: {{ filterContext.unitLabel }} • {{ filterContext.taLabel }} • {{ filterContext.registrationLabel }}
                                 </div>
                             </div>
                             <div v-if="selectedVillageModal.taBreakdown.length > 0" class="flex flex-wrap gap-1.5">
@@ -1877,6 +2002,12 @@ function exportExcel() {
                             <div class="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider">Histori Kontribusi Siswa</div>
                             <div class="text-sm font-extrabold text-slate-900 mt-0.5">
                                 {{ selectedSchoolModal.totalStudents }} Siswa dari {{ selectedSchoolModal.taCount }} Tahun Ajaran
+                                <span class="text-xs font-semibold text-emerald-700">
+                                    ({{ formatPercent(selectedSchoolModal.totalStudents, filterContext.totalStudents) }}% dari {{ filterContext.totalStudents.toLocaleString('id-ID') }} {{ filterContext.statusLabelText }})
+                                </span>
+                            </div>
+                            <div class="text-[10.5px] text-slate-400 font-medium mt-0.5">
+                                Filter aktif: {{ filterContext.unitLabel }} • {{ filterContext.taLabel }} • {{ filterContext.registrationLabel }}
                             </div>
                         </div>
                         <div v-if="selectedSchoolModal.taBreakdown.length > 0" class="flex flex-wrap gap-1.5">
@@ -1954,6 +2085,12 @@ function exportExcel() {
                                 </div>
                                 <div class="text-sm font-extrabold text-slate-900 mt-0.5">
                                     {{ unmatchedGroupModal.totalStudents }} Siswa dari {{ unmatchedGroupModal.taCount }} Tahun Ajaran
+                                    <span class="text-xs font-semibold text-emerald-700">
+                                        ({{ formatPercent(unmatchedGroupModal.totalStudents, filterContext.totalStudents) }}% dari {{ filterContext.totalStudents.toLocaleString('id-ID') }} {{ filterContext.statusLabelText }})
+                                    </span>
+                                </div>
+                                <div class="text-[10.5px] text-slate-400 font-medium mt-0.5">
+                                    Filter aktif: {{ filterContext.unitLabel }} • {{ filterContext.taLabel }} • {{ filterContext.registrationLabel }}
                                 </div>
                             </div>
                             <div v-if="unmatchedGroupModal.taBreakdown.length > 0" class="flex flex-wrap gap-1.5">

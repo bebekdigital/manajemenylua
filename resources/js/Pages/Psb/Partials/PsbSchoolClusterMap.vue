@@ -41,6 +41,14 @@ const props = defineProps({
         type: String,
         default: 'Semua',
     },
+    totalFilteredStudents: {
+        type: Number,
+        default: 0,
+    },
+    filterContext: {
+        type: Object,
+        default: null,
+    },
 });
 
 const emit = defineEmits(['update:mode', 'select-school', 'select-village', 'select-kecamatan', 'reset-kecamatan']);
@@ -477,6 +485,37 @@ function clearHover() {
     showSchoolsInCard.value = false;
 }
 
+const effectiveFilterContext = computed(() => {
+    return (
+        props.filterContext || {
+            totalStudents: isWelfareMode.value
+                ? welfareAggregations.value.totalDomicileStudents || 0
+                : geoAggregations.value.totalStudents || 0,
+            statusKeaktifan: 'all',
+            statusLabelText: 'seluruh siswa (Aktif, Lulus & Non-Aktif)',
+            unitLabel: 'Semua Unit',
+            taLabel: 'Semua TA',
+            registrationLabel: 'Semua Masuk',
+            hasSubFilter: false,
+            subFilterLabel: '',
+        }
+    );
+});
+
+function formatPercent(part, total) {
+    if (!total || total <= 0 || !part || part <= 0) return 0;
+    return Number(((part / total) * 100).toFixed(1));
+}
+
+function getBasisTotalStudents(isWelfare = isWelfareMode.value) {
+    if (props.totalFilteredStudents > 0) {
+        return props.totalFilteredStudents;
+    }
+    return isWelfare
+        ? (welfareAggregations.value.totalDomicileStudents || 0)
+        : (geoAggregations.value.totalStudents || 0);
+}
+
 function selectSchoolPoint(school, marker) {
     if (!school) return;
     resetActiveSchoolMarker();
@@ -511,7 +550,8 @@ function selectSchoolPoint(school, marker) {
         activeSchoolMarker = marker;
     }
 
-    const globalTotal = geoAggregations.value.totalStudents || 0;
+    const basisTotal = getBasisTotalStudents(false);
+    const subFilterTotal = geoAggregations.value.totalStudents || 0;
     const studentCount = school.totalStudents || 0;
     hoveredRegion.value = {
         type: 'school_point',
@@ -521,7 +561,10 @@ function selectSchoolPoint(school, marker) {
         kecamatan: school.kecamatan || '-',
         kabupaten: school.kabupaten || '-',
         students: studentCount,
-        percentage: globalTotal > 0 ? Math.round((studentCount / globalTotal) * 100) : 0,
+        percentage: formatPercent(studentCount, basisTotal),
+        basisTotal,
+        subFilterTotal,
+        subFilterPercentage: formatPercent(studentCount, subFilterTotal),
         studentList: school.students || [],
     };
 }
@@ -569,10 +612,12 @@ function selectRegionFeature(type, feature, layer, latlng = null, isClick = fals
     const isWelfare = isWelfareMode.value;
     const studentCount = isWelfare && type === 'desa' ? (stats.totalStudents || 0) : (stats.students || 0);
     const studentList = isWelfare && type === 'desa' ? (stats.students || []) : (stats.studentList || []);
-    const globalTotal = isWelfare
+    const basisTotal = getBasisTotalStudents(isWelfare);
+    const subFilterTotal = isWelfare
         ? (welfareAggregations.value.totalDomicileStudents || 0)
         : (geoAggregations.value.totalStudents || 0);
-    const percentage = globalTotal > 0 ? Math.round((studentCount / globalTotal) * 100) : 0;
+    const percentage = formatPercent(studentCount, basisTotal);
+    const subFilterPercentage = formatPercent(studentCount, subFilterTotal);
 
     hoveredRegion.value = {
         type,
@@ -582,6 +627,9 @@ function selectRegionFeature(type, feature, layer, latlng = null, isClick = fals
         kabupaten: feature?.properties?.kabupaten || '-',
         students: studentCount,
         percentage,
+        basisTotal,
+        subFilterTotal,
+        subFilterPercentage,
         studentList,
         total: stats.total || 0,
         reached: stats.reached || 0,
@@ -1508,9 +1556,10 @@ onBeforeUnmount(() => {
 });
 
 watch(
-    [() => props.mode, () => props.schools, () => props.villages],
+    [() => props.mode, () => props.schools, () => props.villages, () => props.totalFilteredStudents],
     () => {
         isLayerDropdownOpen.value = false;
+        regionStudentModal.value = null;
         clearHover();
         updateLayersAndFocus();
     },
@@ -1909,7 +1958,8 @@ watch(
 
                         <div class="mt-1.5 pt-1.5 border-t border-slate-100 flex items-center justify-between gap-2">
                             <span class="text-xs font-bold text-slate-900">
-                                {{ hoveredRegion.students }} Siswa <span class="text-[10.5px] font-medium text-slate-500">({{ hoveredRegion.school.taCount }} TA)</span>
+                                {{ hoveredRegion.students }} Siswa
+                                <span class="text-[10.5px] font-medium text-slate-500">({{ hoveredRegion.percentage }}% • {{ hoveredRegion.school.taCount }} TA)</span>
                             </span>
                             <span
                                 :class="[
@@ -1972,6 +2022,9 @@ watch(
                         <div class="mt-1.5 pt-1.5 border-t border-slate-100 flex items-center justify-between gap-2">
                             <span class="text-xs font-bold text-slate-900">
                                 {{ hoveredRegion.students }} Siswa
+                                <span v-if="hoveredRegion.mode === 'welfare'" class="text-[10.5px] font-semibold text-emerald-700">
+                                    • {{ hoveredRegion.percentage }}%
+                                </span>
                             </span>
                             <span
                                 v-if="hoveredRegion.mode === 'welfare'"
@@ -2191,15 +2244,24 @@ watch(
                                         </span>
                                     </template>
                                 </h3>
-                                <p class="text-[11px] text-slate-500 font-medium mt-0.5">
+                                <p class="text-[11px] text-slate-500 font-medium mt-0.5 leading-relaxed">
                                     Total <span class="font-bold text-slate-800">{{ regionStudentModal.students }} Siswa</span>
-                                    ({{ regionStudentModal.percentage }}% dari total filter aktif)
-                                    <template v-if="regionStudentModal.mode === 'school'">
+                                    ({{ regionStudentModal.percentage }}% dari {{ (regionStudentModal.basisTotal ?? effectiveFilterContext.totalStudents).toLocaleString('id-ID') }} {{ effectiveFilterContext.statusLabelText }})
+                                    <template v-if="effectiveFilterContext.hasSubFilter && regionStudentModal.subFilterTotal > 0">
+                                        • <span class="font-semibold text-emerald-700">{{ regionStudentModal.subFilterPercentage }}% dalam filter {{ effectiveFilterContext.subFilterLabel }} ({{ regionStudentModal.subFilterTotal }} terpadankan)</span>
+                                    </template>
+                                    <template v-if="regionStudentModal.mode === 'school' && regionStudentModal.type !== 'school_point'">
                                         • {{ regionStudentModal.reached }} / {{ regionStudentModal.total }} SD tergarap
                                     </template>
-                                    <template v-else-if="regionStudentModal.type === 'desa'">
+                                    <template v-else-if="regionStudentModal.mode === 'school' && regionStudentModal.type === 'school_point'">
+                                        • NPSN {{ regionStudentModal.school?.npsn }} ({{ regionStudentModal.school?.taCount }} TA)
+                                    </template>
+                                    <template v-else-if="regionStudentModal.mode === 'welfare' && regionStudentModal.type === 'desa'">
                                         • {{ regionStudentModal.campus_km ?? '-' }} km ke Sekolah
                                     </template>
+                                </p>
+                                <p class="text-[10.5px] text-slate-400 font-medium mt-0.5">
+                                    Filter aktif: {{ effectiveFilterContext.unitLabel }} • {{ effectiveFilterContext.taLabel }} • {{ effectiveFilterContext.registrationLabel }}
                                 </p>
                             </div>
                         </div>
