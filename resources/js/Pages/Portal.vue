@@ -991,8 +991,8 @@ onUnmounted(() => {
                 <!-- 1. TAHUN AJARAN SECTION -->
                 <div class="bg-white rounded-3xl border border-slate-200/90 p-4 sm:p-7 shadow-xs">
                     <!-- Section Header -->
-                    <div class="flex items-center justify-between gap-3 pb-3 mb-4 border-b border-slate-100 flex-wrap">
-                        <div class="min-w-0 flex-1">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 mb-4 border-b border-slate-100">
+                        <div class="min-w-0">
                             <div class="flex items-center gap-2 flex-wrap">
                                 <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block shrink-0"></span>
                                 <h4 class="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider">
@@ -1011,7 +1011,7 @@ onUnmounted(() => {
                             v-if="canCreateAcademic"
                             type="button"
                             @click="openCreateModal"
-                            class="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-bold text-xs sm:text-sm shadow-xs border border-emerald-950/30 transition-all cursor-pointer active:scale-95"
+                            class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-bold text-xs sm:text-sm shadow-xs border border-emerald-950/30 transition-all cursor-pointer active:scale-95 self-start sm:self-auto shrink-0"
                             title="Tambah Tahun Ajaran Baru"
                         >
                             <span class="material-symbols-outlined text-[16px] sm:text-[18px]">add</span>
@@ -1178,8 +1178,8 @@ onUnmounted(() => {
                 <!-- 2. JENJANG & UNIT SEKOLAH SECTION -->
                 <div class="bg-white rounded-3xl border border-slate-200/90 p-4 sm:p-7 shadow-xs">
                     <!-- Section Header -->
-                    <div class="flex items-center justify-between gap-3 pb-3 mb-4 border-b border-slate-100 flex-wrap">
-                        <div class="min-w-0 flex-1">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 mb-4 border-b border-slate-100">
+                        <div class="min-w-0">
                             <div class="flex items-center gap-2 flex-wrap">
                                 <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block shrink-0"></span>
                                 <h4 class="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider">
@@ -1198,7 +1198,7 @@ onUnmounted(() => {
                             v-if="canCreateAcademic"
                             type="button"
                             @click="openLevelCreateModal"
-                            class="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-bold text-xs sm:text-sm shadow-xs border border-emerald-950/30 transition-all cursor-pointer active:scale-95"
+                            class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-bold text-xs sm:text-sm shadow-xs border border-emerald-950/30 transition-all cursor-pointer active:scale-95 self-start sm:self-auto shrink-0"
                             title="Tambah Jenjang Pendidikan Baru"
                         >
                             <span class="material-symbols-outlined text-[16px] sm:text-[18px]">add</span>
@@ -1517,8 +1517,8 @@ onUnmounted(() => {
             <div v-show="activeTab === 'pengguna'" class="space-y-6">
                 <div v-if="$page.props.auth?.user?.role === 'superadmin'" class="bg-white rounded-3xl border border-slate-200/90 p-4 sm:p-7 shadow-xs">
                     <!-- Section Header -->
-                    <div class="flex items-center justify-between gap-3 pb-3 mb-4 border-b border-slate-100 flex-wrap">
-                        <div class="min-w-0 flex-1">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 mb-4 border-b border-slate-100">
+                        <div class="min-w-0">
                             <div class="flex items-center gap-2 flex-wrap">
                                 <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block shrink-0"></span>
                                 <h4 class="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider">
@@ -1533,11 +1533,11 @@ onUnmounted(() => {
                             </p>
                         </div>
 
-                        <div class="flex items-center gap-2">
+                        <div class="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto shrink-0">
                             <button
                                 type="button"
                                 @click="openGenerateUserModal"
-                                class="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs sm:text-sm shadow-2xs border border-slate-300 transition-all cursor-pointer active:scale-95"
+                                class="inline-flex items-center justify-center gap-1.5 px-3 py-2 sm:px-3.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs sm:text-sm shadow-2xs border border-slate-300 transition-all cursor-pointer active:scale-95"
                                 title="Buat akun massal dari data pegawai yang belum punya akun"
                             >
                                 <span class="material-symbols-outlined text-[16px] sm:text-[18px]">auto_mode</span>
@@ -1546,7 +1546,7 @@ onUnmounted(() => {
                             <button
                                 type="button"
                                 @click="openUserCreateModal"
-                                class="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-bold text-xs sm:text-sm shadow-xs border border-emerald-950/30 transition-all cursor-pointer active:scale-95"
+                                class="inline-flex items-center justify-center gap-1.5 px-3 py-2 sm:px-3.5 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-yellow-200 font-bold text-xs sm:text-sm shadow-xs border border-emerald-950/30 transition-all cursor-pointer active:scale-95"
                                 title="Tambah Akun Pengguna Baru"
                             >
                                 <span class="material-symbols-outlined text-[16px] sm:text-[18px]">person_add</span>
