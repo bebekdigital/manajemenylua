@@ -48,10 +48,11 @@ const datasetError = ref(null);
 async function loadReferenceDataset() {
     isLoadingDataset.value = true;
     datasetError.value = null;
+    const cacheBust = '20261123grobogan';
     try {
         const [schoolRes, welfareRes] = await Promise.all([
-            fetch('/data/solo-raya-sd-sederajat.json'),
-            fetch('/data/solo-raya-desa-potensi.json'),
+            fetch(`/data/solo-raya-sd-sederajat.json?v=${cacheBust}`),
+            fetch(`/data/solo-raya-desa-potensi.json?v=${cacheBust}`),
         ]);
         if (!schoolRes.ok) {
             throw new Error(`Gagal memuat data (${schoolRes.status})`);

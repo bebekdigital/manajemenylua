@@ -78,6 +78,11 @@
     Header set Cache-Control "max-age=31536000, public, immutable"
 </FilesMatch>
 
+# Ensure static GeoJSON / reference JSON datasets always revalidate
+<FilesMatch "\.(json|geojson)$">
+    Header set Cache-Control "no-cache, must-revalidate"
+</FilesMatch>
+
 # Never cache Service Worker or root manifest
 <Files "sw.js">
     Header set Cache-Control "no-cache, no-store, must-revalidate, max-age=0"

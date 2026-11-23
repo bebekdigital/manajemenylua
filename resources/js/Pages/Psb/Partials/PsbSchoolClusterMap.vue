@@ -793,7 +793,7 @@ async function loadDesaGeoJson() {
     isDesaLoading.value = true;
     desaLoadingPromise = (async () => {
         try {
-            const res = await fetch('/data/solo-raya-desa.geojson');
+            const res = await fetch('/data/solo-raya-desa.geojson?v=20261123grobogan');
             if (!res.ok) throw new Error('Gagal memuat batas desa');
             const raw = await res.json();
             raw.features = (raw.features || []).filter((f) =>
@@ -1287,8 +1287,8 @@ async function initMap() {
         loadError.value = null;
 
         const [kecRes, kabRes] = await Promise.all([
-            fetch('/data/solo-raya-kecamatan.geojson'),
-            fetch('/data/solo-raya-kabupaten.geojson'),
+            fetch('/data/solo-raya-kecamatan.geojson?v=20261123grobogan'),
+            fetch('/data/solo-raya-kabupaten.geojson?v=20261123grobogan'),
         ]);
 
         if (!kecRes.ok) throw new Error('Gagal memuat peta kecamatan Solo Raya & Grobogan.');
