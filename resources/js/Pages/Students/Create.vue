@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, computed, onMounted, onUnmounted, nextTick, inject } from 'vue';
+import { ref, reactive, computed, watch, onMounted, onUnmounted, nextTick, inject } from 'vue';
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 
@@ -19,6 +19,10 @@ const props = defineProps({
     allPrograms: {
         type: Array,
         default: () => ['Umum', 'Fullday', 'Tahfidz'],
+    },
+    unitConfigurations: {
+        type: Array,
+        default: () => [],
     },
     allClasses: {
         type: Array,
@@ -84,6 +88,7 @@ const form = useForm({
     unit_pesantren: '',
     program: 'Umum',
     jenjang: props.allLevels?.[0] || 'SD',
+    angkatan: '',
     tingkat: '',
     classroom_id: '',
     kelas: '',
@@ -174,20 +179,94 @@ const pesantrenUnitOptions = computed(() => {
     return list;
 });
 
-// Pilihan Program Pendidikan
+// Konfigurasi Unit Sekolah Formal dari Tab Akademik (Jenjang & Program)
+const selectedFormalUnitConfig = computed(() => {
+    if (!form.unit || !Array.isArray(props.unitConfigurations) || props.unitConfigurations.length === 0) {
+        return null;
+    }
+    const target = String(form.unit).trim().toLowerCase();
+    return props.unitConfigurations.find(
+        (u) => String(u.name || '').trim().toLowerCase() === target
+    ) || null;
+});
+
+// Pilihan Jenjang otomatis mengikuti Unit Sekolah Formal dari Tab Akademik
+const levelOptions = computed(() => {
+    const unitLevels = (selectedFormalUnitConfig.value?.levels || []).filter((l) => l && String(l).trim());
+    if (unitLevels.length > 0) {
+        return Array.from(new Set(unitLevels));
+    }
+    if (props.allLevels && props.allLevels.length > 0) {
+        return props.allLevels;
+    }
+    return ['SD', 'SMP', 'SMA'];
+});
+
+// Pilihan Program Pendidikan otomatis mengikuti program yang tersedia di Unit terpilih
 const programOptions = computed(() => {
     const set = new Set();
-    (props.allPrograms || []).forEach(p => {
-        if (p && typeof p === 'string' && p.trim()) set.add(p.trim());
-    });
+    const unitPrograms = selectedFormalUnitConfig.value?.programs || [];
+    if (unitPrograms.length > 0) {
+        unitPrograms.forEach((p) => {
+            const name = typeof p === 'string' ? p : p?.name;
+            if (name && typeof name === 'string' && name.trim()) {
+                set.add(name.trim());
+            }
+        });
+    } else {
+        (props.allPrograms || []).forEach((p) => {
+            if (p && typeof p === 'string' && p.trim()) {
+                set.add(p.trim());
+            }
+        });
+    }
+
     if (set.size === 0) {
         set.add('Fullday');
         set.add('Boarding');
         set.add('Umum');
     }
-    if (form.program) set.add(form.program);
     return Array.from(set);
 });
+
+function syncAcademicByFormalUnit() {
+    // 1. Jenjang otomatis mengikuti Unit Sekolah Formal dari Tab Akademik
+    const levels = levelOptions.value;
+    if (levels.length > 0) {
+        form.jenjang = levels[0];
+    }
+
+    // 2. Program otomatis mengikuti program yang tersedia pada Unit terpilih
+    const availablePrograms = programOptions.value;
+    if (availablePrograms.length > 0 && !availablePrograms.includes(form.program)) {
+        if (form.unit_pesantren) {
+            const boardingMatch = availablePrograms.find((p) => p.toLowerCase().includes('boarding'));
+            form.program = boardingMatch || availablePrograms[0];
+        } else {
+            const nonBoardingMatch = availablePrograms.find((p) => !p.toLowerCase().includes('boarding'));
+            form.program = nonBoardingMatch || availablePrograms[0];
+        }
+    }
+
+    onProgramChange();
+
+    // 3. Reset kelas/rombel jika tidak sesuai unit baru
+    if (form.classroom_id) {
+        const stillValid = filteredClasses.value.some((c) => String(c.id) === String(form.classroom_id));
+        if (!stillValid) {
+            form.classroom_id = '';
+            form.kelas = '';
+        }
+    }
+}
+
+watch(
+    () => form.unit,
+    () => {
+        syncAcademicByFormalUnit();
+    },
+    { immediate: true }
+);
 
 function onPesantrenUnitChange() {
     if (form.unit_pesantren) {
@@ -665,7 +744,7 @@ onUnmounted(() => {
                                 <p class="text-[11px] text-slate-500 mt-1">Otomatis terisi jika program beririsan dengan PPTQ.</p>
                             </div>
 
-                            <!-- 4. Jenjang -->
+                            <!-- 4. Jenjang (otomatis mengikuti Unit Sekolah Formal sesuai Tab Akademik) -->
                             <div>
                                 <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
                                     Jenjang
@@ -674,11 +753,31 @@ onUnmounted(() => {
                                     v-model="form.jenjang"
                                     class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200/90 text-xs sm:text-sm font-semibold text-slate-900 bg-white shadow-2xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all cursor-pointer"
                                 >
-                                    <option v-for="lvl in allLevels" :key="lvl" :value="lvl">{{ lvl }}</option>
+                                    <option v-for="lvl in levelOptions" :key="lvl" :value="lvl">{{ lvl }}</option>
+                                    <option v-if="form.jenjang && !levelOptions.includes(form.jenjang)" :value="form.jenjang">{{ form.jenjang }}</option>
                                 </select>
+                                <p class="text-[11px] text-slate-500 mt-1">Otomatis mengikuti Unit Sekolah Formal (Tab Akademik).</p>
                             </div>
 
-                            <!-- 5. Tingkat / Tingkatan Kelas -->
+                            <!-- 5. Angkatan -->
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+                                    Angkatan
+                                </label>
+                                <input
+                                    id="field-angkatan"
+                                    v-model="form.angkatan"
+                                    type="text"
+                                    maxlength="50"
+                                    placeholder="cth. 8, 9, 10"
+                                    class="w-full px-3.5 py-2.5 rounded-xl border text-xs sm:text-sm font-semibold text-slate-900 placeholder-slate-400 bg-white shadow-2xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                                    :class="form.errors.angkatan ? 'border-rose-400 bg-rose-50/20' : 'border-slate-200/90'"
+                                />
+                                <p v-if="form.errors.angkatan" class="text-rose-500 text-[11px] font-medium mt-1">{{ form.errors.angkatan }}</p>
+                                <p v-else class="text-[11px] text-slate-500 mt-1">Kosongkan untuk otomatis dari tanggal diterima.</p>
+                            </div>
+
+                            <!-- 6. Tingkat / Tingkatan Kelas -->
                             <div>
                                 <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
                                     Tingkat (1 - 12)

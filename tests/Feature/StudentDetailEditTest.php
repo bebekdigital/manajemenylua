@@ -3,6 +3,9 @@
 namespace Tests\Feature;
 
 use App\Models\AcademicYear;
+use App\Models\SchoolLevel;
+use App\Models\SchoolProgram;
+use App\Models\SchoolUnit;
 use App\Models\Student;
 use App\Models\StudentAcademicRecord;
 use App\Models\User;
@@ -445,5 +448,50 @@ class StudentDetailEditTest extends TestCase
             ->where('student.riwayat_keaktifan.1.academic_year', '2022/2023')
             ->where('student.riwayat_keaktifan.1.tingkat', 7)
         );
+    }
+
+    public function test_create_page_passes_unit_configurations_and_store_persists_explicit_angkatan(): void
+    {
+        $level = SchoolLevel::firstOrCreate(['name' => 'SMP'], ['order' => 2]);
+        $unit = SchoolUnit::firstOrCreate(['name' => 'SMP IT Tahfidzul Quran Ulil Albab Karanganyar']);
+        $unit->levels()->syncWithoutDetaching([$level->id]);
+
+        $program = SchoolProgram::firstOrCreate(['name' => 'Fullday SMP']);
+        $unit->programs()->syncWithoutDetaching([$program->id => ['school_level_id' => $level->id]]);
+
+        $createResponse = $this->actingAs($this->user)->get('/students/create');
+        $createResponse->assertStatus(200);
+        $createResponse->assertInertia(fn (Assert $page) => $page
+            ->component('Students/Create')
+            ->has('unitConfigurations')
+            ->where('unitConfigurations', function ($configs) use ($unit) {
+                $matched = collect($configs)->firstWhere('name', $unit->name);
+
+                return $matched !== null
+                    && in_array('SMP', $matched['levels'], true)
+                    && collect($matched['programs'])->contains(fn ($p) => $p['name'] === 'Fullday SMP');
+            })
+        );
+
+        $uniqueNisn = '0088776610';
+        $storeResponse = $this->actingAs($this->user)->post('/students', [
+            'nama' => 'Siswa Dengan Angkatan Eksplisit',
+            'nisn' => $uniqueNisn,
+            'jk' => 'L',
+            'tempat_lahir' => 'Karanganyar',
+            'tanggal_lahir' => '2013-02-10',
+            'unit' => $unit->name,
+            'program' => 'Fullday SMP',
+            'jenjang' => 'SMP',
+            'angkatan' => '10',
+            'tingkat' => '7',
+        ]);
+
+        $storeResponse->assertRedirect(route('students.show', ['nisn' => $uniqueNisn]));
+        $this->assertDatabaseHas('students', [
+            'nisn' => $uniqueNisn,
+            'angkatan' => '10',
+            'jenjang' => 'SMP',
+        ]);
     }
 }

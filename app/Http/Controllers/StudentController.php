@@ -202,11 +202,26 @@ class StudentController extends Controller
         }
 
         $activeYear = AcademicYear::current();
+        $unitModels = SchoolUnit::with([
+            'levels' => fn ($q) => $q->orderBy('order')->orderBy('name'),
+            'programs' => fn ($q) => $q->orderBy('name'),
+        ])->orderBy('name')->get();
+
+        $unitConfigurations = $unitModels->map(fn (SchoolUnit $u) => [
+            'id' => $u->id,
+            'name' => $u->name,
+            'levels' => $u->levels->pluck('name')->values()->toArray(),
+            'programs' => $u->programs->map(fn (SchoolProgram $p) => [
+                'name' => $p->name,
+                'school_level_id' => $p->pivot->school_level_id ?? null,
+            ])->values()->toArray(),
+        ])->toArray();
 
         return Inertia::render('Students/Create', [
-            'allUnits' => SchoolUnit::orderBy('name')->pluck('name')->toArray(),
-            'allLevels' => SchoolLevel::orderBy('name')->pluck('name')->toArray(),
+            'allUnits' => $unitModels->pluck('name')->toArray(),
+            'allLevels' => SchoolLevel::orderBy('order')->orderBy('name')->pluck('name')->toArray(),
             'allPrograms' => SchoolProgram::orderBy('name')->pluck('name')->unique()->values()->toArray(),
+            'unitConfigurations' => $unitConfigurations,
             'allClasses' => Classroom::with('academicYear')->orderBy('name')->get()->map(fn ($c) => [
                 'id' => $c->id,
                 'name' => $c->name,
@@ -248,6 +263,7 @@ class StudentController extends Controller
             'unit_pesantren' => ['nullable', 'string', 'max:100'],
             'program' => ['nullable', 'string', 'max:100'],
             'jenjang' => ['nullable', 'string', 'max:50'],
+            'angkatan' => ['nullable', 'string', 'max:50'],
             'tingkat' => ['nullable', 'string', 'max:20'],
             'classroom_id' => ['nullable', 'exists:classrooms,id'],
             'kelas' => ['nullable', 'string', 'max:50'],
@@ -331,9 +347,11 @@ class StudentController extends Controller
             $isLulus = $rawKeaktifan === 'lulus' || (! empty($validated['tanggal_lulus']) && empty($validated['status_keaktifan']));
             $isTidakAktif = ! $isLulus && in_array($rawKeaktifan, ['tidak aktif', 'tidak_aktif', 'non-aktif', 'non_aktif']);
 
-            // Auto calculate angkatan from tanggal_diterima or current year (semester genap belongs to previous year's TA)
-            $angkatan = null;
-            if (! empty($validated['tanggal_diterima'])) {
+            // Gunakan angkatan dari input user jika diisi, fallback hitung dari tanggal_diterima / tahun berjalan
+            $rawAngkatan = trim((string) ($validated['angkatan'] ?? ''));
+            if ($rawAngkatan !== '') {
+                $angkatan = $rawAngkatan;
+            } elseif (! empty($validated['tanggal_diterima'])) {
                 $month = (int) date('n', strtotime($validated['tanggal_diterima']));
                 $year = (int) date('Y', strtotime($validated['tanggal_diterima']));
                 $angkatan = (string) ($month < 7 ? $year - 1 : $year);
