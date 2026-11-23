@@ -567,9 +567,8 @@ const selectedVillageModal = ref(null);
 const unmatchedGroupModal = ref(null);
 const quadrantGroupModal = ref(null);
 
-function openUnmatchedModal(grp) {
-    if (!grp) return;
-    const list = [...(grp.students || [])].sort((a, b) => (a.nama || '').localeCompare(b.nama || '', 'id'));
+function buildStudentGroupModalPayload(students, { mode, title, npsn = '-', kecamatan = '-', kabupaten = '-' }) {
+    const list = [...(students || [])].sort((a, b) => (a.nama || '').localeCompare(b.nama || '', 'id'));
     const taBreakdownMap = {};
     list.forEach((st) => {
         const taKey = st.ta_masuk || (st.angkatan ? `Angk. ${st.angkatan}` : 'Lainnya');
@@ -579,17 +578,45 @@ function openUnmatchedModal(grp) {
     const distinctTaKeys = Object.keys(taBreakdownMap).filter((k) => k !== 'Lainnya');
     const taCount = distinctTaKeys.length > 0 ? distinctTaKeys.length : (list.length > 0 ? 1 : 0);
 
-    unmatchedGroupModal.value = {
-        mode: isWelfareMode.value ? 'welfare' : 'school',
-        title: isWelfareMode.value ? `Ds. ${grp.desa}` : grp.name,
-        npsn: grp.npsn || '-',
-        kecamatan: grp.kecamatan || '-',
-        kabupaten: grp.kabupaten || '-',
+    return {
+        mode,
+        title,
+        npsn,
+        kecamatan,
+        kabupaten,
         totalStudents: list.length,
         taCount,
         taBreakdown,
         students: list,
     };
+}
+
+function openUnmatchedModal(grp) {
+    if (!grp) return;
+    unmatchedGroupModal.value = buildStudentGroupModalPayload(grp.students, {
+        mode: isWelfareMode.value ? 'welfare' : 'school',
+        title: isWelfareMode.value ? `Ds. ${grp.desa}` : grp.name,
+        npsn: grp.npsn || '-',
+        kecamatan: grp.kecamatan || '-',
+        kabupaten: grp.kabupaten || '-',
+    });
+}
+
+function openUnrecordedStudentsModal() {
+    const list = isWelfareMode.value
+        ? matchedWelfareResult.value.unrecordedStudents
+        : matchedResult.value.unrecordedStudents;
+    if (!list || list.length === 0) return;
+
+    unmatchedGroupModal.value = buildStudentGroupModalPayload(list, {
+        mode: isWelfareMode.value ? 'welfare' : 'school',
+        title: isWelfareMode.value ? 'Siswa Tanpa Data Desa Domisili' : 'Siswa Tanpa Data Sekolah Asal',
+        npsn: '-',
+        kecamatan: '-',
+        kabupaten: isWelfareMode.value
+            ? 'Data desa/kelurahan domisili belum terisi pada profil siswa'
+            : 'Data nama atau NPSN sekolah asal belum terisi pada profil siswa',
+    });
 }
 
 function jumpToTier(tierKey) {
@@ -1321,13 +1348,21 @@ function exportExcel() {
                         <span v-else>
                             Menampilkan nama sekolah asal siswa yang belum cocok dengan SD/MI/PKBM Solo Raya &amp; Kab. Grobogan (bisa berasal dari luar wilayah cakupan, TK/RA, atau perlu dilengkapi NPSN-nya).
                         </span>
-                        <span class="font-bold text-slate-800 shrink-0">
-                            <template v-if="isWelfareMode">
-                                Siswa tanpa data desa domisili: {{ matchedWelfareResult.unrecordedStudents.length }} siswa
-                            </template>
-                            <template v-else>
-                                Siswa tanpa data sekolah asal: {{ matchedResult.unrecordedStudents.length }} siswa
-                            </template>
+                        <button
+                            v-if="(isWelfareMode ? matchedWelfareResult.unrecordedStudents.length : matchedResult.unrecordedStudents.length) > 0"
+                            type="button"
+                            @click="openUnrecordedStudentsModal"
+                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-emerald-50 border border-slate-300 hover:border-emerald-400 text-slate-800 hover:text-emerald-950 font-bold shrink-0 shadow-2xs transition-all cursor-pointer active:scale-95"
+                            title="Klik untuk melihat daftar siswa"
+                        >
+                            <span>
+                                {{ isWelfareMode ? 'Siswa tanpa data desa domisili:' : 'Siswa tanpa data sekolah asal:' }}
+                                {{ isWelfareMode ? matchedWelfareResult.unrecordedStudents.length : matchedResult.unrecordedStudents.length }} siswa
+                            </span>
+                            <span class="text-emerald-700">→</span>
+                        </button>
+                        <span v-else class="font-bold text-slate-800 shrink-0">
+                            {{ isWelfareMode ? 'Siswa tanpa data desa domisili: 0 siswa' : 'Siswa tanpa data sekolah asal: 0 siswa' }}
                         </span>
                     </div>
 
