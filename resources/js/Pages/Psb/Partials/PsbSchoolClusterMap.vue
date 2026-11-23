@@ -1147,6 +1147,13 @@ function renderMapLabels() {
         const boxGapY = zoom >= 15 ? 14 : 18;
         const placedBoxes = [];
 
+        const lightLabelPalette = {
+            basis_utama: '#a7f3d0',
+            potensial: '#fde68a',
+            vakum: '#fecdd3',
+            belum_tergarap: '#ffffff',
+        };
+
         priorityList.forEach((school) => {
             const pt = map.latLngToContainerPoint([school.lat, school.lng]);
             const collides = placedBoxes.some(
@@ -1158,12 +1165,36 @@ function renderMapLabels() {
             const tier = PSB_TIERS[school.tier] || PSB_TIERS.belum_tergarap;
             const shortName = school.nama.length > 26 ? `${school.nama.slice(0, 25)}…` : school.nama;
 
+            // Tentukan gelap/terangnya poligon latar di titik sekolah berada agar teks selalu kontras
+            const polygonHit = findActivePolygonAtLatLng({ lat: school.lat, lng: school.lng });
+            let bgStudents = 0;
+            if (polygonHit?.feature) {
+                const polyStats = aggregationLevel.value === 'desa'
+                    ? getDesaStats(polygonHit.feature)
+                    : getKecStats(polygonHit.feature);
+                bgStudents = Number(polyStats?.students || 0);
+            } else if (aggregationLevel.value === 'desa') {
+                const dKey = `${normDesa(school.desa)}_${normalizeWilayahKey(school.kecamatan)}_${normalizeWilayahKey(school.kabupaten)}`;
+                bgStudents = Number(geoAggregations.value.byDesa.get(dKey)?.students || 0);
+            } else {
+                const kKey = `${normalizeWilayahKey(school.kecamatan)}_${normalizeWilayahKey(school.kabupaten)}`;
+                bgStudents = Number(geoAggregations.value.byKec.get(kKey)?.students || 0);
+            }
+
+            const isDarkBg = bgStudents >= 10;
+            const labelColor = isDarkBg
+                ? (lightLabelPalette[school.tier] || lightLabelPalette.belum_tergarap)
+                : tier.strokeHex;
+            const labelStroke = isDarkBg
+                ? 'rgba(6,78,59,0.92)'
+                : 'rgba(255,255,255,0.96)';
+
             L.marker([school.lat, school.lng], {
                 interactive: false,
                 icon: L.divIcon({
                     className: 'psb-school-point-label',
                     iconSize: [0, 0],
-                    html: `<div style="display:inline-block; width:max-content; transform:translate(-50%, 7px); white-space:nowrap; font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size:8px; font-weight:600; color:${tier.strokeHex}; text-shadow:0 0 3px rgba(255,255,255,0.98), 0 0 2px rgba(255,255,255,0.98); letter-spacing:-0.02em; pointer-events:none;">${escapeHtml(shortName)}</div>`,
+                    html: `<div style="display:inline-block; width:max-content; transform:translate(-50%, 7px); white-space:nowrap; font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size:8px; font-weight:700; color:${labelColor}; -webkit-text-stroke:2.5px ${labelStroke}; paint-order:stroke fill; text-shadow:0 1px 2px ${labelStroke}; letter-spacing:-0.02em; pointer-events:none;">${escapeHtml(shortName)}</div>`,
                 }),
             }).addTo(schoolLabelLayer);
         });
