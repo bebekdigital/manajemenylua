@@ -1,7 +1,9 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -11,7 +13,9 @@ return new class extends Migration
     public function up(): void
     {
         // 1. Ubah student_status dari ENUM menjadi VARCHAR(50) dengan default 'Naik Kelas'
-        DB::statement("ALTER TABLE student_academic_records MODIFY student_status VARCHAR(50) DEFAULT 'Naik Kelas'");
+        Schema::table('student_academic_records', function (Blueprint $table) {
+            $table->string('student_status', 50)->default('Naik Kelas')->change();
+        });
 
         // 2. Normalisasi data yang ada:
         // Pindahkan catatan mutasi / dropout / lulus ke ket_tidak_aktif jika belum terisi
@@ -55,6 +59,8 @@ return new class extends Migration
             ->where('student_status', 'Naik Kelas')
             ->update(['student_status' => 'aktif']);
 
-        DB::statement("ALTER TABLE student_academic_records MODIFY student_status ENUM('aktif', 'mutasi_masuk', 'mutasi_keluar', 'lulus', 'mengulang', 'dropout') DEFAULT 'aktif'");
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE student_academic_records MODIFY student_status ENUM('aktif', 'mutasi_masuk', 'mutasi_keluar', 'lulus', 'mengulang', 'dropout') DEFAULT 'aktif'");
+        }
     }
 };

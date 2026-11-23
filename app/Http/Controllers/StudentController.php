@@ -432,7 +432,11 @@ class StudentController extends Controller
 
         $activeYear = AcademicYear::current();
         $currentRecord = $studentModel->academicRecords->firstWhere('academic_year_id', $activeYear?->id)
-            ?? $studentModel->academicRecords->sortByDesc('academic_year_id')->first();
+            ?? $studentModel->academicRecords->sortByDesc(function ($r) {
+                $ay = $r->academicYear;
+
+                return $ay?->start_date?->format('Y-m-d') ?? ($ay?->name ?? '');
+            })->first();
 
         $studentData = [
             'id' => $studentModel->id,

@@ -19,7 +19,7 @@ return new class extends Migration
         });
 
         // Sinkronisasi data program yang sudah ada di riwayat akademik ke tabel students
-        if (Schema::hasTable('student_academic_records') && Schema::hasColumn('student_academic_records', 'program')) {
+        if (DB::getDriverName() !== 'sqlite' && Schema::hasTable('student_academic_records') && Schema::hasColumn('student_academic_records', 'program')) {
             DB::statement("
                 UPDATE students s
                 INNER JOIN (

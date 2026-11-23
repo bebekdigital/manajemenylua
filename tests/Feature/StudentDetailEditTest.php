@@ -2,7 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Models\AcademicYear;
 use App\Models\Student;
+use App\Models\StudentAcademicRecord;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -374,5 +376,74 @@ class StudentDetailEditTest extends TestCase
         $this->assertSame('Bersama Orang Tua', $student->jenis_tinggal);
         $this->assertSame('Jemputan Sekolah', $student->alat_transportasi);
         $this->assertSame('4.2 km', $student->jarak_rumah);
+    }
+
+    public function test_alumni_student_detail_picks_latest_chronological_academic_record(): void
+    {
+        $laterCreatedOlderYear = AcademicYear::create([
+            'name' => '2022/2023',
+            'semester' => 'Genap',
+            'start_date' => '2023-01-01',
+            'end_date' => '2023-06-30',
+        ]);
+
+        $earlierCreatedNewerYear = AcademicYear::where('name', '2024/2025')
+            ->where('semester', 'Genap')
+            ->first() ?? AcademicYear::create([
+                'name' => '2024/2025',
+                'semester' => 'Genap',
+                'start_date' => '2025-01-01',
+                'end_date' => '2025-06-30',
+            ]);
+
+        $this->assertGreaterThan($earlierCreatedNewerYear->id, $laterCreatedOlderYear->id);
+
+        $alumni = Student::create([
+            'nisn' => '0099999906',
+            'nama' => 'Alumni Angkatan Enam',
+            'jk' => 'L',
+            'unit' => 'SMP IT Tahfidzul Quran Ulil Albab Karanganyar',
+            'unit_pesantren' => 'PPTQ Ulil Albab',
+            'jenjang' => 'SMP',
+            'angkatan' => '6',
+            'program' => 'Boarding SMP',
+            'status_keaktifan' => 'Lulus',
+            'tanggal_diterima' => '2022-07-11',
+            'tanggal_lulus' => '2025-07-01',
+        ]);
+
+        StudentAcademicRecord::create([
+            'student_id' => $alumni->id,
+            'academic_year_id' => $earlierCreatedNewerYear->id,
+            'unit' => $alumni->unit,
+            'jenjang' => 'SMP',
+            'tingkat' => 9,
+            'program' => 'Boarding SMP',
+            'unit_pesantren' => 'PPTQ Ulil Albab',
+            'student_status' => 'Aktif',
+        ]);
+
+        StudentAcademicRecord::create([
+            'student_id' => $alumni->id,
+            'academic_year_id' => $laterCreatedOlderYear->id,
+            'unit' => $alumni->unit,
+            'jenjang' => 'SMP',
+            'tingkat' => 7,
+            'program' => 'Boarding SMP',
+            'unit_pesantren' => 'PPTQ Ulil Albab',
+            'student_status' => 'Aktif',
+        ]);
+
+        $response = $this->actingAs($this->user)->get("/students/{$alumni->nisn}");
+
+        $response->assertStatus(200);
+        $response->assertInertia(fn (Assert $page) => $page
+            ->component('StudentDetail')
+            ->where('student.tingkat', 9)
+            ->where('student.riwayat_keaktifan.0.academic_year', '2024/2025')
+            ->where('student.riwayat_keaktifan.0.tingkat', 9)
+            ->where('student.riwayat_keaktifan.1.academic_year', '2022/2023')
+            ->where('student.riwayat_keaktifan.1.tingkat', 7)
+        );
     }
 }
