@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -28,6 +29,10 @@ class AuthController extends Controller
 
         if (Auth::attempt([$loginField => $credentials['user_id'], 'password' => $credentials['password'], 'is_active' => true], $request->boolean('remember'))) {
             $request->session()->regenerate();
+            $loggedUser = Auth::user();
+            if ($loggedUser instanceof User) {
+                ActivityLogger::logLogin($request, $loggedUser);
+            }
 
             return redirect()->intended('/beranda');
         }

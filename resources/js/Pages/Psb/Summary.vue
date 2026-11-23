@@ -167,7 +167,34 @@ const sortBy = ref('students_desc');
 const currentPage = ref(1);
 const perPage = 25;
 
-watch(mappingMode, () => {
+function trackPsbUsage(eventType, mode = null) {
+    if (typeof window === 'undefined' || typeof fetch !== 'function') return;
+    try {
+        const metaToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        const xsrfMatch = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/);
+        const headers = {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+        };
+        if (metaToken) {
+            headers['X-CSRF-TOKEN'] = metaToken;
+        } else if (xsrfMatch) {
+            headers['X-XSRF-TOKEN'] = decodeURIComponent(xsrfMatch[1]);
+        }
+        fetch('/activity-logs/psb-event', {
+            method: 'POST',
+            headers,
+            credentials: 'same-origin',
+            keepalive: true,
+            body: JSON.stringify({ event: eventType, mode }),
+        }).catch(() => {});
+    } catch {
+        // Silent fail: tracking tidak boleh mengganggu UI PSB
+    }
+}
+
+watch(mappingMode, (newMode) => {
     activeTierTab.value = 'all';
     searchQuery.value = '';
     sortBy.value = 'students_desc';
@@ -176,6 +203,7 @@ watch(mappingMode, () => {
     selectedSchoolModal.value = null;
     selectedVillageModal.value = null;
     unmatchedGroupModal.value = null;
+    trackPsbUsage(newMode === 'welfare' ? 'mode_welfare' : 'mode_school', newMode);
 });
 
 watch(selectedKabupaten, () => {
@@ -784,6 +812,8 @@ function exportExcel() {
     );
 
     if (schoolsToExport.length === 0 && villagesToExport.length === 0) return;
+
+    trackPsbUsage('export_excel', mappingMode.value);
 
     const kabSuffix = selectedKabupaten.value === 'Semua' ? 'SoloRaya_Grobogan' : selectedKabupaten.value;
     const unitSuffix = activeUnit.value === 'all' ? 'SemuaUnit' : activeUnit.value;

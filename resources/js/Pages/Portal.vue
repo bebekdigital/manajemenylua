@@ -1,6 +1,6 @@
 <script setup>
 import { ref, reactive, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
-import { Head, router, usePage } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AcademicYearFormModal from '@/Components/Portal/AcademicYearFormModal.vue';
 import UserFormModal from '@/Components/Portal/UserFormModal.vue';
@@ -886,8 +886,17 @@ onUnmounted(() => {
                     </div>
                 </div>
 
-                <!-- Tombol Cepat PWA di Header -->
-                <div class="relative z-10 flex items-center gap-2.5 shrink-0">
+                <!-- Tombol Cepat di Header -->
+                <div class="relative z-10 flex flex-wrap items-center gap-2.5 shrink-0">
+                    <Link
+                        v-if="$page.props.auth?.user?.role === 'superadmin'"
+                        href="/activity-logs"
+                        class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-emerald-900 hover:bg-emerald-800 text-yellow-200 border border-emerald-950/20 shadow-2xs transition-all cursor-pointer active:scale-95"
+                        title="Pantau login & pemakaian Pemetaan PSB (7 hari terakhir)"
+                    >
+                        <span class="material-symbols-outlined text-[18px]">history</span>
+                        <span>Log Aktivitas</span>
+                    </Link>
                     <button
                         type="button"
                         @click="installPwa"

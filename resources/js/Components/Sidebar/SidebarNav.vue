@@ -13,6 +13,8 @@ const props = defineProps({
 
 const page = usePage();
 
+const isSuperadmin = computed(() => page.props.auth?.user?.role === 'superadmin');
+
 const canViewEmployee = computed(() => {
     const user = page.props.auth?.user;
     if (!user) return false;
@@ -178,6 +180,13 @@ const canViewEmployee = computed(() => {
                 Sistem
             </div>
             <ul class="space-y-0.5">
+                <SidebarMenuItem
+                    v-if="isSuperadmin"
+                    href="/activity-logs"
+                    icon="history"
+                    label="Log Aktivitas"
+                    :active="currentRoute === 'activity-logs'"
+                />
                 <SidebarMenuItem
                     href="/portal"
                     icon="settings"

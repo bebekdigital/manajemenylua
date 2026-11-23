@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AcademicYearClassController;
 use App\Http\Controllers\AcademicYearController;
+use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\AdministrationController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DepartmentController;
@@ -272,4 +273,9 @@ Route::middleware('auth')->group(function () {
     Route::put('/portal/department-positions/{departmentPosition}', [DepartmentPositionController::class, 'update'])->name('portal.department-positions.update');
     Route::delete('/portal/department-positions/{departmentPosition}', [DepartmentPositionController::class, 'destroy'])->name('portal.department-positions.destroy');
     Route::put('/portal/organization-levels/{level}', [DepartmentController::class, 'updateOrganizationLevel'])->name('portal.organization-levels.update');
+
+    // Log Aktivitas User (Superadmin Only Dashboard + Lightweight PSB Beacon)
+    Route::get('/activity-logs', [ActivityLogController::class, 'index'])->name('activity-logs.index');
+    Route::post('/activity-logs/psb-event', [ActivityLogController::class, 'trackPsbEvent'])->name('activity-logs.psb-event');
+    Route::delete('/activity-logs/prune', [ActivityLogController::class, 'pruneNow'])->name('activity-logs.prune');
 });

@@ -21,6 +21,7 @@ const activeRoute = computed(() => {
     if (url.startsWith('/staff/statistics')) return 'staff-statistics';
     if (url.startsWith('/staff')) return 'staff';
     if (url.startsWith('/portal')) return 'portal';
+    if (url.startsWith('/activity-logs')) return 'activity-logs';
     if (url.startsWith('/pembelajaran')) return 'pembelajaran';
     if (url.startsWith('/kesiswaan')) return 'kesiswaan';
     if (url.startsWith('/profile')) return 'profile';
@@ -41,6 +42,7 @@ const activeRouteLabel = computed(() => {
     if (route === 'staff-statistics') return 'Statistik Pegawai';
     if (route === 'staff') return 'Data Pegawai';
     if (route === 'portal') return 'Pengaturan';
+    if (route === 'activity-logs') return 'Log Aktivitas User';
     if (route === 'pembelajaran') return 'Pembelajaran';
     if (route === 'kesiswaan') return 'Kesiswaan';
     if (route === 'profile') return 'Profil Saya';
